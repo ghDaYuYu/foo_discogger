@@ -1,0 +1,54 @@
+Hidden tracks galore.
+27694
+
+Bonus tracks at end.
+254509
+
+Mega box vinyl.
+5882431
+
+Hidden tracks ('6a', '6b'):
+470209
+
+Index tracks on a vinyl ('C2.a')
+538636
+
+Hidden tracks; 1CD (-I, -II, -III, etc)
+5450552
+
+Hidden tracks; 2CD
+1034786
+
+Hidden tracks at start; 2CD
+3279180
+
+CD1/CD2 prefixes
+226939
+
+Range of tracks (13-90)
+164082
+
+Video at end, 1CD
+421431
+
+Track 0
+3185
+
+Complex files-only release
+3912704
+
+3CD with hidden tracks + files
+4263478
+
+8xVinyl
+5542270
+
+Mega 17xVinyl + CD
+573856
+
+Unicode title
+192310
+
+2CD with Videos at end
+424341
+

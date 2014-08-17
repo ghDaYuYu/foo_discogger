@@ -1,0 +1,191 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{C2EAA3A6-BD00-43B4-B7C3-6FCB040F691F}</ProjectGuid>
+    <RootNamespace>foo_discogs</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v120_xp</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v120_xp</PlatformToolset>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="..\..\foo_discogs.props" />
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="..\..\foo_discogs.props" />
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>12.0.21005.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
+    <LinkIncremental>false</LinkIncremental>
+    <EmbedManifest>false</EmbedManifest>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>jansson;zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>uxtheme.lib;wininet.lib;winmm.lib;ws2_32.lib;..\..\jansson-2.6\lib\Debug\jansson_d.lib;..\..\zlib-1.2.8\Debug\zlibstaticd.lib;..\..\liboauthcpp\build\Debug\oauthcpp.lib;..\shared\shared.lib;..\SDK\Debug\foobar2000_SDK.lib;..\foobar2000_component_client\Debug\foobar2000_component_client.lib;..\..\pfc\Debug\pfc.lib;..\helpers\Debug\foobar2000_sdk_helpers.lib;..\ATLHelpers\Debug\foobar2000_ATL_helpers.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <IgnoreSpecificDefaultLibraries>LIBCMT;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <DataExecutionPrevention />
+      <TargetMachine>MachineX86</TargetMachine>
+      <OutputFile>C:\Users\SW\Desktop\Programs\foobar2000\user-components\foo_discogs\foo_discogs.dll</OutputFile>
+      <Profile>true</Profile>
+    </Link>
+    <PostBuildEvent>
+      <Command />
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <Optimization>MinSpace</Optimization>
+      <AdditionalIncludeDirectories>zlib;jansson;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
+      <WarningLevel>Level3</WarningLevel>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <EnableEnhancedInstructionSet>NoExtensions</EnableEnhancedInstructionSet>
+      <EnablePREfast>false</EnablePREfast>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>uxtheme.lib;wininet.lib;winmm.lib;ws2_32.lib;..\..\jansson-2.6\lib\Release\jansson.lib;..\..\liboauthcpp\build\Release\oauthcpp.lib;..\shared\shared.lib;..\SDK\Release\foobar2000_SDK.lib;..\foobar2000_component_client\Release\foobar2000_component_client.lib;..\..\pfc\Release\pfc.lib;..\helpers\Release\foobar2000_sdk_helpers.lib;..\ATLhelpers\Release\foobar2000_ATL_helpers.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <DataExecutionPrevention />
+      <TargetMachine>MachineX86</TargetMachine>
+      <LinkTimeCodeGeneration>
+      </LinkTimeCodeGeneration>
+      <AdditionalOptions>/LTCG %(AdditionalOptions)</AdditionalOptions>
+      <OutputFile>C:\Users\SW\Desktop\Programs\foobar2000\user-components\foo_discogs\foo_discogs.dll</OutputFile>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="configuration_dialog.cpp" />
+    <ClCompile Include="discogs_interface.cpp" />
+    <ClCompile Include="entities.cpp" />
+    <ClCompile Include="fetcher.cpp" />
+    <ClCompile Include="file_info_manager.cpp" />
+    <ClCompile Include="find_release_dialog.cpp" />
+    <ClCompile Include="foo_discogs.cpp" />
+    <ClCompile Include="discogs.cpp" />
+    <ClCompile Include="json_helpers.cpp" />
+    <ClCompile Include="multiformat.cpp" />
+    <ClCompile Include="conf.cpp" />
+    <ClCompile Include="preview_dialog.cpp" />
+    <ClCompile Include="prompt_dialog.cpp" />
+    <ClCompile Include="tag_mappings_dialog.cpp" />
+    <ClCompile Include="stdafx.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="release_dialog.cpp" />
+    <ClCompile Include="string_encoded_array.cpp" />
+    <ClCompile Include="tags.cpp" />
+    <ClCompile Include="tag_writer.cpp" />
+    <ClCompile Include="tasks.cpp" />
+    <ClCompile Include="update_art_dialog.cpp" />
+    <ClCompile Include="update_tags_dialog.cpp" />
+    <ClCompile Include="utils.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="foo_discogs.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="cache.h" />
+    <ClInclude Include="configuration_dialog.h" />
+    <ClInclude Include="contextmenu_item_discogs.h" />
+    <ClInclude Include="discogs_interface.h" />
+    <ClInclude Include="entities.h" />
+    <ClInclude Include="error_manager.h" />
+    <ClInclude Include="exception.h" />
+    <ClInclude Include="fetcher.h" />
+    <ClInclude Include="file_info_manager.h" />
+    <ClInclude Include="find_release_dialog.h" />
+    <ClInclude Include="foo_discogs.h" />
+    <ClInclude Include="discogs.h" />
+    <ClInclude Include="formatting_script.h" />
+    <ClInclude Include="json_helpers.h" />
+    <ClInclude Include="multiformat.h" />
+    <ClInclude Include="conf.h" />
+    <ClInclude Include="preview_dialog.h" />
+    <ClInclude Include="prompt_dialog.h" />
+    <ClInclude Include="tag_mappings_dialog.h" />
+    <ClInclude Include="pfc_helpers.h" />
+    <ClInclude Include="release_dialog.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="stdafx.h" />
+    <ClInclude Include="string_encoded_array.h" />
+    <ClInclude Include="tags.h" />
+    <ClInclude Include="tag_writer.h" />
+    <ClInclude Include="tasks.h" />
+    <ClInclude Include="update_art_dialog.h" />
+    <ClInclude Include="update_tags_dialog.h" />
+    <ClInclude Include="utils.h" />
+    <ClInclude Include="wtl_helpers.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Changelog.txt" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties RESOURCE_FILE="foo_discogs.rc" />
+    </VisualStudio>
+  </ProjectExtensions>
+</Project>

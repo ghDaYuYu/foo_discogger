@@ -11,6 +11,28 @@
 #define DECODE_DISCOGS_TRACK(i)	((i==-1) ? -1 : (i & 0xFFFF))
 
 
+namespace listview_helper {
+	
+	unsigned insert_column(HWND p_listview, unsigned p_index, const char * p_name, unsigned p_width_dlu, int fmt)
+	{
+		pfc::stringcvt::string_os_from_utf8 os_string_temp(p_name);
+
+		RECT rect = { 0, 0, p_width_dlu, 0 };
+		MapDialogRect(GetParent(p_listview), &rect);
+
+		LVCOLUMN data = {};
+		data.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_FMT;
+		data.fmt = fmt;
+		data.cx = rect.right;
+		data.pszText = const_cast<TCHAR*>(os_string_temp.get_ptr());
+
+		LRESULT ret = uSendMessage(p_listview, LVM_INSERTCOLUMN, p_index, (LPARAM)&data);
+		if (ret < 0) return ~0;
+		else return (unsigned)ret;
+	}
+}
+
+
 inline void CReleaseDialog::load_size() {
 	int x = CONF.release_dialog_width;
 	int y = CONF.release_dialog_height;
@@ -56,9 +78,9 @@ LRESULT CReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*
 	file_list = uGetDlgItem(IDC_FILE_LIST);
 
 	listview_helper::insert_column(discogs_track_list, 0, "Discogs", 0);
-	listview_helper::insert_column(discogs_track_list, 1, "Length", 45);
+	listview_helper::insert_column(discogs_track_list, 1, "Length", 45, LVCFMT_RIGHT);
 	listview_helper::insert_column(file_list, 0, "Files", 0);
-	listview_helper::insert_column(file_list, 1, "Length", 45);
+	listview_helper::insert_column(file_list, 1, "Length", 45, LVCFMT_RIGHT);
 
 	update_list_width(discogs_track_list, true);
 	update_list_width(file_list, true);

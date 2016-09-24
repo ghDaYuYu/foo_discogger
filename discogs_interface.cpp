@@ -216,7 +216,7 @@ pfc::array_t<JSONParser_ptr> DiscogsInterface::get_all_pages(pfc::string8 &url, 
 void DiscogsInterface::expand_master_release(MasterRelease_ptr &master_release, threaded_process_status & p_status, abort_callback &p_abort) {
 	pfc::string8 json;
 	pfc::string8 url;
-	url << "http://api.discogs.com/masters/" << master_release->id << "/versions";
+	url << "https://api.discogs.com/masters/" << master_release->id << "/versions";
 	pfc::array_t<JSONParser_ptr> pages = get_all_pages(url, "", p_abort, "Fetching master release versions...", p_status);
 	const size_t count = pages.get_count();
 	for (size_t i = 0; i < count; i++) {
@@ -231,7 +231,7 @@ void DiscogsInterface::load_artist_releases(Artist *artist, threaded_process_sta
 	}
 	try {
 		pfc::string8 url;
-		url << "http://api.discogs.com/artists/" << artist->id << "/releases";
+		url << "https://api.discogs.com/artists/" << artist->id << "/releases";
 		pfc::array_t<JSONParser_ptr> pages = get_all_pages(url, "", p_abort, "Fetching artist releases...", p_status);
 		const size_t count = pages.get_count();
 		for (size_t i = 0; i < count; i++) {
@@ -287,7 +287,7 @@ void DiscogsInterface::load(Artist *artist, abort_callback &p_abort, bool throw_
 
 		pfc::string8 json;
 		pfc::string8 url;
-		url << "http://api.discogs.com/artists/" << artist->id;
+		url << "https://api.discogs.com/artists/" << artist->id;
 		fetcher->fetch_html(url, "", json, p_abort);
 
 		JSONParser jp(json);
@@ -312,7 +312,7 @@ void DiscogsInterface::load(Release *release, abort_callback &p_abort, bool thro
 	try {
 		pfc::string8 json;
 		pfc::string8 url;
-		url << "http://api.discogs.com/releases/" << release->id;
+		url << "https://api.discogs.com/releases/" << release->id;
 		fetcher->fetch_html(url, "", json, p_abort);
 
 		JSONParser jp(json);
@@ -337,7 +337,7 @@ void DiscogsInterface::load(MasterRelease *master_release, abort_callback & p_ab
 	try {
 		pfc::string8 json;
 		pfc::string8 url;
-		url << "http://api.discogs.com/masters/" << master_release->id;
+		url << "https://api.discogs.com/masters/" << master_release->id;
 		fetcher->fetch_html(url, "", json, p_abort);
 
 		JSONParser jp(json);

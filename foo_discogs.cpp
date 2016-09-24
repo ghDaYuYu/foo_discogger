@@ -26,7 +26,7 @@ DECLARE_COMPONENT_VERSION(
 "Discogs Tagger",
 // component version
 FOO_DISCOGS_VERSION,
-"A tagger using the Discogs (http://www.discogs.com) database.\n"
+"A tagger using the Discogs (https://www.discogs.com) database.\n"
 "\n"
 "Author:  zoomorph\n"
 "Version: "FOO_DISCOGS_VERSION"\n"
@@ -101,35 +101,38 @@ void foo_discogs::item_display_web_page(const metadb_handle_ptr item, discog_web
 	file_info_impl finfo;
 
 	char *url_prefix;
+	char *url_postfix = "";
 	const char *tag;
 	char *backup_tag = nullptr;
 	switch (web_page) {
 		case ARTIST_PAGE:
 			tag = TAG_ARTIST_ID;
 			backup_tag = "DISCOGS_ARTIST_LINK";
-			url_prefix = "http://www.discogs.com/artist/";
+			url_prefix = "https://www.discogs.com/artist/";
 			break;
 		case ARTIST_ART_PAGE:
 			tag = TAG_ARTIST_ID;
 			backup_tag = "DISCOGS_ARTIST_LINK";
-			url_prefix = "http://www.discogs.com/viewimages?artist=";
+			url_prefix = "https://www.discogs.com/artist/";
+			url_postfix = "/images";
 			break;
 		case RELEASE_PAGE:
 			tag = TAG_RELEASE_ID;
-			url_prefix = "http://www.discogs.com/x/release/";
+			url_prefix = "https://www.discogs.com/x/release/";
 			break;
 		case LABEL_PAGE:
 			tag = TAG_LABEL_ID;
 			backup_tag = "DISCOGS_LABEL_LINK";
-			url_prefix = "http://www.discogs.com/label/";
+			url_prefix = "https://www.discogs.com/label/";
 			break;
 		case ALBUM_ART_PAGE:
 			tag = TAG_RELEASE_ID;
-			url_prefix = "http://www.discogs.com/viewimages?release=";
+			url_prefix = "https://www.discogs.com/release/";
+			url_postfix = "/images";
 			break;
 		case MASTER_RELEASE_PAGE:
 			tag = TAG_MASTER_RELEASE_ID;
-			url_prefix = "http://www.discogs.com/master/";
+			url_prefix = "https://www.discogs.com/master/";
 			break;
 		default:
 			return;
@@ -140,14 +143,14 @@ void foo_discogs::item_display_web_page(const metadb_handle_ptr item, discog_web
 		pfc::string8 url;
 		item->get_info(finfo);
 		if (file_info_get_tag(item, finfo, tag, tag_value, backup_tag)) {
-			url << url_prefix << tag_value;
+			url << url_prefix << tag_value << url_postfix;
 			display_url(url);
 		}
 		else if (web_page == MASTER_RELEASE_PAGE) {
 			tag = TAG_RELEASE_ID;
-			url_prefix = "http://www.discogs.com/release/";
+			url_prefix = "https://www.discogs.com/release/";
 			if (file_info_get_tag(item, finfo, tag, tag_value, backup_tag)) {
-				url << url_prefix << tag_value;
+				url << url_prefix << tag_value << url_postfix;
 				display_url(url);
 			}
 		}

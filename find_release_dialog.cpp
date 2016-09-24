@@ -287,7 +287,7 @@ LRESULT CFindReleaseDialog::OnDoubleClickArtist(WORD /*wNotifyCode*/, WORD wID, 
 	int pos = (int)uSendMessage(artist_list, LB_GETCURSEL, 0, 0);
 	if (pos != -1) {
 		pfc::string8 url;
-		url << "http://www.discogs.com/artist/" << find_release_artists[pos]->id;
+		url << "https://www.discogs.com/artist/" << find_release_artists[pos]->id;
 		display_url(url);
 	}
 	return FALSE;
@@ -309,13 +309,13 @@ LRESULT CFindReleaseDialog::OnDoubleClickRelease(WORD /*wNotifyCode*/, WORD wID,
 		int release_index = item_data & 0xFFFF;
 		pfc::string8 url; 
 		if (master_index != 9999 && release_index == 9999) {
-			url << "http://www.discogs.com/master/" << find_release_artist->master_releases[master_index]->id;
+			url << "https://www.discogs.com/master/" << find_release_artist->master_releases[master_index]->id;
 		}
 		else if (master_index != 9999) {
-			url << "http://www.discogs.com/release/" << find_release_artist->master_releases[master_index]->sub_releases[release_index]->id;
+			url << "https://www.discogs.com/release/" << find_release_artist->master_releases[master_index]->sub_releases[release_index]->id;
 		}
 		else {
-			url << "http://www.discogs.com/release/" << find_release_artist->releases[release_index]->id;
+			url << "https://www.discogs.com/release/" << find_release_artist->releases[release_index]->id;
 		}
 		display_url(url);
 	}

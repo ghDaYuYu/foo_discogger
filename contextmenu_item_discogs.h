@@ -220,8 +220,7 @@ public:
 				p_displayflags = g_discogs->item_has_tag(p_data.get_item(0), TAG_ARTIST_ID, "DISCOGS_ARTIST_LINK") ? 0 : FLAG_GRAYED;
 				break;
 			case DisplayArtistArtPage:
-				// TODO: permanently grayed until Discogs uses artist_id for this page.
-				p_displayflags = FLAG_GRAYED; //g_discogs->item_has_tag(p_data.get_item(0), DISCOGS_ARTIST_ID, "DISCOGS_ARTIST_LINK") ? 0 : FLAG_GRAYED;
+				p_displayflags = g_discogs->item_has_tag(p_data.get_item(0), TAG_ARTIST_ID, "DISCOGS_ARTIST_LINK") ? 0 : FLAG_GRAYED;
 				break;
 			case DisplayLabelPage:
 				p_displayflags = g_discogs->item_has_tag(p_data.get_item(0), TAG_LABEL_ID, "DISCOGS_LABEL_LINK") ? 0 : FLAG_GRAYED;

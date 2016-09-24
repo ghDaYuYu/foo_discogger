@@ -168,7 +168,12 @@ void CFindReleaseDialog::filter_releases(const pfc::string8 &filter) {
 	int list_index = 0;
 	int master_index = 0, release_index = 0;
 	int item_data;
-	pfc::string filter_lowercase = pfc::string(filter.get_ptr()).toLower();
+	pfc::array_t<pfc::string8> filter_words;
+	tokenize(filter, " ", filter_words, true);
+	pfc::array_t<pfc::string> filter_words_lowercase;
+	for (size_t i = 0; i < filter_words.get_size(); i++) {
+		filter_words_lowercase.append_single(pfc::string(filter_words[i].get_ptr()).toLower());
+	}
 
 	// TODO: cache all these to make filtering fast again
 	try {
@@ -190,7 +195,18 @@ void CFindReleaseDialog::filter_releases(const pfc::string8 &filter) {
 			}
 
 			bool inserted = false;
-			if (!filter.get_length() || pfc::string(item.get_ptr()).toLower().contains(filter_lowercase)) {
+
+			bool matches = true;
+			if (filter.get_length()) {
+				pfc::string item_lower = pfc::string(item.get_ptr()).toLower();
+				for (size_t j = 0; j < filter_words_lowercase.get_count(); j++) {
+					matches = item_lower.contains(filter_words_lowercase[j]);
+					if (!matches) {
+						break;
+					}
+				}
+			}
+			if (matches) {
 				insert_item(item, list_index, item_data);
 				list_index++;
 				inserted = true;
@@ -200,7 +216,18 @@ void CFindReleaseDialog::filter_releases(const pfc::string8 &filter) {
 				for (size_t j = 0; j < find_release_artist->master_releases[master_index]->sub_releases.get_size(); j++) {
 					hook.set_release(&(find_release_artist->master_releases[master_index]->sub_releases[j]));
 					CONF.search_master_sub_format_string->run_hook(location, &info, &hook, sub_item, nullptr);
-					if (!filter.get_length() || pfc::string(sub_item.get_ptr()).toLower().contains(filter_lowercase)) {
+					
+					bool matches = true;
+					if (filter.get_length()) {
+						pfc::string sub_item_lower = pfc::string(sub_item.get_ptr()).toLower();
+						for (size_t k = 0; k < filter_words_lowercase.get_count(); k++) {
+							matches = sub_item_lower.contains(filter_words_lowercase[k]);
+							if (!matches) {
+								break;
+							}
+						}
+					}
+					if (matches) {
 						if (!inserted) {
 							insert_item(item, list_index, item_data);
 							list_index++;

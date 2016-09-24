@@ -203,6 +203,12 @@ bool new_conf::load() {
 			case CFG_SEARCH_MASTER_SUB_FORMAT_STRING:
 				search_master_sub_format_string = item.value;
 				break;
+			case CFG_DISCOGS_TRACK_FORMAT_STRING:
+				release_discogs_format_string = item.value;
+				break;
+			case CFG_FILE_TRACK_FORMAT_STRING:
+				release_file_format_string = item.value;
+				break;
 		}
 	}
 	return changed;
@@ -263,6 +269,8 @@ void new_conf::save() {
 	cfg_string_entries.add_item(make_conf_entry(CFG_SEARCH_RELEASE_FORMAT_STRING, pfc::string8((const char *)search_release_format_string)));
 	cfg_string_entries.add_item(make_conf_entry(CFG_SEARCH_MASTER_FORMAT_STRING, pfc::string8((const char *)search_master_format_string)));
 	cfg_string_entries.add_item(make_conf_entry(CFG_SEARCH_MASTER_SUB_FORMAT_STRING, pfc::string8((const char *)search_master_sub_format_string)));
+	cfg_string_entries.add_item(make_conf_entry(CFG_DISCOGS_TRACK_FORMAT_STRING, pfc::string8((const char *)release_discogs_format_string)));
+	cfg_string_entries.add_item(make_conf_entry(CFG_FILE_TRACK_FORMAT_STRING, pfc::string8((const char *)release_file_format_string)));
 	cfg_string_entries.add_item(make_conf_entry(CFG_ARTIST_ART_IDS_TITLEFORMAT, pfc::string8((const char *)artist_art_id_format_string)));
 }
 

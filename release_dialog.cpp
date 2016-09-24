@@ -143,7 +143,7 @@ void CReleaseDialog::insert_track_mappings() {
 			file_info &finfo = tag_writer->finfo_manager->get_item(mapping.file_index);
 			auto item = tag_writer->finfo_manager->items.get_item(mapping.file_index);
 			pfc::string8 formatted_name;
-			CONF.release_file_format->run_simple(item->get_location(), &finfo, formatted_name);
+			CONF.release_file_format_string->run_simple(item->get_location(), &finfo, formatted_name);
 			pfc::string8 display = pfc::string_filename_ext(formatted_name);
 			const char *length_titleformat = "%length%";
 			pfc::string8 formatted_length;
@@ -160,7 +160,7 @@ void CReleaseDialog::insert_track_mappings() {
 			hook.set_disc(&disc);
 			hook.set_track(&track);
 			pfc::string8 text;
-			CONF.release_discogs_format->run_hook(location, &info, &hook, text, nullptr);
+			CONF.release_discogs_format_string->run_hook(location, &info, &hook, text, nullptr);
 			pfc::string8 time = track->discogs_duration_raw;
 			listview_helper::insert_item2(discogs_track_list, i, text, time, ENCODE_DISCOGS(mapping.discogs_disc, mapping.discogs_track));
 		}

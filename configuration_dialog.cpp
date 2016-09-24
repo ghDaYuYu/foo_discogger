@@ -214,8 +214,8 @@ void CConfigurationDialog::init_matching_dialog(HWND wnd) {
 	uButton_SetCheck(wnd, IDC_MATCH_USING_NUMBERS, conf.match_tracks_using_number);
 	uButton_SetCheck(wnd, IDC_MATCH_ASSUME_SORTED, conf.assume_tracks_sorted);
 	uButton_SetCheck(wnd, IDC_SKIP_RELEASE_DIALOG_CHECK, conf.skip_release_dialog_if_matched);
-	uSetDlgItemText(wnd, IDC_DISCOGS_FORMATTING_EDIT, conf.release_discogs_format);
-	uSetDlgItemText(wnd, IDC_FILE_FORMATTING_EDIT, conf.release_file_format);
+	uSetDlgItemText(wnd, IDC_DISCOGS_FORMATTING_EDIT, conf.release_discogs_format_string);
+	uSetDlgItemText(wnd, IDC_FILE_FORMATTING_EDIT, conf.release_file_format_string);
 }
 
 void CConfigurationDialog::init_art_dialog(HWND wnd) {
@@ -292,10 +292,10 @@ void CConfigurationDialog::save_matching_dialog(HWND wnd) {
 	
 	pfc::string8 text;
 	uGetDlgItemText(wnd, IDC_DISCOGS_FORMATTING_EDIT, text);
-	conf.release_discogs_format = text;
+	conf.release_discogs_format_string = text;
 
 	uGetDlgItemText(wnd, IDC_FILE_FORMATTING_EDIT, text);
-	conf.release_file_format = text;
+	conf.release_file_format_string = text;
 }
 
 void CConfigurationDialog::save_art_dialog(HWND wnd) {

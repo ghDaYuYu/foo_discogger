@@ -61,8 +61,8 @@
 #define CFG_ARTIST_ART_IDS_TITLEFORMAT		45
 #define CFG_LAST_CONF_TAB					46
 
-#define CFG_DISCOGS_TRACK_FORMAT			47
-#define CFG_FILE_TRACK_FORMAT				48
+#define CFG_DISCOGS_TRACK_FORMAT_STRING		47
+#define CFG_FILE_TRACK_FORMAT_STRING		48
 
 #define CFG_SKIP_PREVIEW_DIALOG				49
 
@@ -238,8 +238,8 @@ public:
 	formatting_script search_master_format_string = "[master] $join($append(%MASTER_RELEASE_TITLE%,%MASTER_RELEASE_YEAR%))";
 	formatting_script search_master_sub_format_string = "'  '$ifequal(%RELEASE_ID%,%MASTER_RELEASE_MAIN_RELEASE_ID%,'* ','   ')$join($append(%RELEASE_TITLE%,%RELEASE_SEARCH_LABELS%,%RELEASE_SEARCH_FORMATS%,%RELEASE_YEAR%,%RELEASE_SEARCH_CATNOS%,%RELEASE_COUNTRY%))";
 
-	formatting_script release_discogs_format = "$ifgreater(%RELEASE_TOTAL_DISCS%,1,%DISC_NUMBER%-,)$num(%TRACK_DISC_TRACK_NUMBER%,2) - $multi_if($multi_and(%ARTISTS_NAME_VARIATION%,$multi_not(%REPLACE_ANVS%)),%ARTISTS_NAME_VARIATION%$multi_if(%DISPLAY_ANVS%,*,),%ARTISTS_NAME%) - %TRACK_TITLE%$ifequal(%TRACK_TOTAL_HIDDEN_TRACKS%,0,,'   [+'%TRACK_TOTAL_HIDDEN_TRACKS%' HIDDEN]')";
-	formatting_script release_file_format = "$if($strcmp($ext(%path%),tags),$info(@),%path%)";
+	formatting_script release_discogs_format_string = "$ifgreater(%RELEASE_TOTAL_DISCS%,1,%DISC_NUMBER%-,)$num(%TRACK_DISC_TRACK_NUMBER%,2) - $multi_if($multi_and(%ARTISTS_NAME_VARIATION%,$multi_not(%REPLACE_ANVS%)),%ARTISTS_NAME_VARIATION%$multi_if(%DISPLAY_ANVS%,*,),%ARTISTS_NAME%) - %TRACK_TITLE%$ifequal(%TRACK_TOTAL_HIDDEN_TRACKS%,0,,'   [+'%TRACK_TOTAL_HIDDEN_TRACKS%' HIDDEN]')";
+	formatting_script release_file_format_string = "$if($strcmp($ext(%path%),tags),$info(@),%path%)";
 };
 
 typedef new_conf foo_discogs_conf;

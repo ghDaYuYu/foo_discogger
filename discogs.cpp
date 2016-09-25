@@ -372,6 +372,7 @@ ReleaseFormat_ptr Discogs::parseReleaseFormat(json_t *element) {
 	format->name = JSONAttributeString(element, "name");
 	format->qty = JSONAttributeString(element, "qty");
 	format->descriptions = JSONAttributeStringArray(element, "descriptions");
+	format->text = JSONAttributeString(element, "text");
 	return format;
 }
 

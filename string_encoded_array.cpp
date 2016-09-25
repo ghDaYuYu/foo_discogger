@@ -513,11 +513,20 @@ bool string_encoded_array::_zip(const string_encoded_array &other) {
 		array_param_too_deep(2);
 	}
 	// don't zip when left side is empty string.
-	if (value.get_length() && other.value.get_length() != 0) {
+	if (value.get_length() && other.value.get_length()) {
 		value << other.value;
 		return true;
 	}
 	return false;
+}
+
+bool string_encoded_array::_zip2(const string_encoded_array &other) {
+	PFC_ASSERT(m_depth == 0);
+	if (other.m_depth != m_depth) {
+		array_param_too_deep(2);
+	}
+	value << other.value;
+	return true;
 }
 
 bool string_encoded_array::_replace(const string_encoded_array &find, const string_encoded_array &with) {

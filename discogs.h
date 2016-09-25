@@ -447,6 +447,7 @@ namespace Discogs
 		pfc::string8_ex name; 
 		pfc::string8_ex qty;
 		pfc::array_t_ex<pfc::string8> descriptions;
+		pfc::string8_ex text;
 
 		string_encoded_array get_quantity() const {
 			return qty;
@@ -457,12 +458,16 @@ namespace Discogs
 		string_encoded_array get_descriptions() const {
 			return string_encoded_array(descriptions);
 		}
+		string_encoded_array get_text() const {
+			return text;
+		}
 
 		static std::map<const char*, string_encoded_array(ReleaseFormat::*)()const, cmp_str> create_tags_map() {
 			std::map<const char*, string_encoded_array(ReleaseFormat::*)()const, cmp_str> m;
 			m["QUANTITY"] = &ReleaseFormat::get_quantity;
 			m["NAME"] = &ReleaseFormat::get_name;
 			m["DESCRIPTIONS"] = &ReleaseFormat::get_descriptions;
+			m["TEXT"] = &ReleaseFormat::get_text;
 			return m;
 		}
 	};

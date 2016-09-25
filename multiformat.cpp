@@ -147,6 +147,18 @@ bool titleformat_hook_impl_multiformat::process_function(titleformat_text_out * 
 			}
 		}
 
+		else if (pfc::strcmp_ex(p_name, p_name_length, "zip2", pfc::infinite_size) == 0) {
+			if (param_count) {
+				for (size_t i = 1; i < param_count; i++) {
+					params[0].zip2(params[i]);
+				}
+				result = &params[0];
+			}
+			else {
+				wrong_param_count = true;
+			}
+		}
+
 		else if (pfc::strcmp_ex(p_name, p_name_length, "multi_wrap", pfc::infinite_size) == 0) {
 			if (param_count == 2) {
 				params[0].wrap(params[1]);

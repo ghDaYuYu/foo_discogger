@@ -415,6 +415,9 @@
         <td> FORMAT </td><td> DESCRIPTIONS </td><td> array </td><td> Descriptions appended to format. </td>
     </tr>
     <tr>
+        <td> FORMAT </td><td> TEXT </td><td> string </td><td> Custom text portion of format description. </td>
+    </tr>
+    <tr>
         <td> CREDIT </td><td> ROLES_RAW </td><td> string </td><td> Raw credit roles string from Discogs. </td>
     </tr>
     <tr>
@@ -556,6 +559,18 @@
         </td>
         <td>
             $zip([aaa,,ccc],XXX,[1,2,3]) => [aaaXXX1,,cccXXX3]
+         </td>
+    </tr>
+    
+    <tr>
+        <td> 
+            $zip2(A,X,...) </td><td> Concatenates strings in A at depth D with X, etc. Operates at depth D and returns an array of the same shape as A.
+            X, etc, must be compatible arrays of the same shape or smaller than A.
+            <br>
+            Note: $zip2 does concatenate to A where A is the empty string.
+        </td>
+        <td>
+            $zip2([aaa,,ccc],XXX,[1,2,3]) => [aaaXXX1,XXX2,cccXXX3]
          </td>
     </tr>
     

@@ -35,6 +35,7 @@ private:
 	bool _join(const string_encoded_array&);
 	bool _joinnames(const string_encoded_array&);
 	bool _zip(const string_encoded_array&);
+	bool _zip2(const string_encoded_array&);
 	bool _replace(const string_encoded_array&, const string_encoded_array&);
 	bool _trim();
 	bool _wrap(const string_encoded_array&);
@@ -217,6 +218,9 @@ public:
 	}
 	inline void zip(const string_encoded_array &other) {
 		branch_execute(&string_encoded_array::_zip, other, 0);
+	}
+	inline void zip2(const string_encoded_array &other) {
+		branch_execute(&string_encoded_array::_zip2, other, 0);
 	}
 	inline void replace(const string_encoded_array &find, const string_encoded_array &with) {
 		branch_execute(&string_encoded_array::_replace, find, with, 0);

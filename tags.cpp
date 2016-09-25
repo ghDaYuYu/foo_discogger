@@ -32,7 +32,7 @@ static tag_mapping_entry default_tag_mappings[] = {
 	{TAG_MASTER_RELEASE_ID, true, false, false, false, true, "%MASTER_RELEASE_ID%"},
 	{TAG_ARTIST_ID, true, false, false, false, true, "%<ARTISTS_ID>%"},
 	{TAG_LABEL_ID, true, false, false, false, true, "$unique(%<RELEASE_LABELS_ID>%)"},
-	{"DISCOGS_FORMAT", false, false, false, false, false, "$zip(%<RELEASE_FORMATS_QUANTITY>%,' x ',%<RELEASE_FORMATS_NAME>%,$multi_if($put(D,$join(%<<RELEASE_FORMATS_DESCRIPTIONS>>%)),', ',),$get(D))"},
+	{"DISCOGS_FORMAT", false, false, false, false, false, "$zip2($multi_if($multi_greater(%<RELEASE_FORMATS_QUANTITY>%,1),$zip(%<RELEASE_FORMATS_QUANTITY>%,' x '),),%<RELEASE_FORMATS_NAME>%,$multi_if($put(D,$join(%<<RELEASE_FORMATS_DESCRIPTIONS>>%)),', ',),$get(D),$multi_if($put(T,%<RELEASE_FORMATS_TEXT>%),', ',),$multi_if2($get(T),))"},
 	{"DISCOGS_RELEASED", true, false, false, false, false, "%RELEASE_DATE_RAW%"},
 	{"DISCOGS_RELEASE_MONTH", true, false, false, false, false, "%RELEASE_MONTH%"},
 	{"DISCOGS_RELEASE_DAY", false, false, false, false, false, "%RELEASE_DAY%"}, 

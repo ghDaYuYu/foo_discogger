@@ -545,9 +545,15 @@
             $join([[aaa,bbb,ccc]],[111,222,333] => [aaa111bbb222ccc333]
          </td>
     </tr>
+    
     <tr>
         <td> $join(A) </td><td> Equivalent to $join(A,', '). </td>
         <td> $join([duck,frog,lion]) => duck, frog, lion </td>
+    </tr>
+    
+    <tr>
+        <td> $joinnames(A,J) </td><td> Shortcut for joining artist names using the "join" fields from discogs. </td>
+        <td> $joinnames([duck,frog,lion,elephant],['&',',','featuring') => duck & frog, lion featuring elephant </td>
     </tr>
     
     <tr>

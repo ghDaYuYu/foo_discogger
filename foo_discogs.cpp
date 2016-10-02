@@ -14,7 +14,7 @@
 #include "tag_mappings_dialog.h"
 
 
-#define FOO_DISCOGS_VERSION "2.06"
+#define FOO_DISCOGS_VERSION "2.07"
 
 using namespace std;
 

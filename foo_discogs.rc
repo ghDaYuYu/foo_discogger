@@ -65,7 +65,7 @@ FONT 8, "MS Shell Dlg", 400, 0, 1
     AUTOCHECKBOX    "Parse hidden tracks as regular tracks", IDC_HIDDEN_AS_REGULAR_CHECK, 14, 18, 133, 8, 0, WS_EX_LEFT
     LTEXT           "(Temporary solution. Clears release cache.)", IDC_STATIC, 24, 28, 160, 9, SS_LEFT, WS_EX_LEFT
     GROUPBOX        "Caching Options", IDC_STATIC, 6, 72, 206, 120, 0, WS_EX_LEFT
-    LTEXT           "Information is temporarily cached to avoid having to query the Discogs API multiple times and to speed up subsequent operations. The cache is reset when foobar2000 is restarted.", IDC_STATIC, 13, 83, 190, 25, SS_LEFT, WS_EX_LEFT
+    LTEXT           "Information is temporarily cached to avoid having to query the Discogs API multiple times and to speed up subsequent operations. Cache is reset when foobar2000 is restarted.", IDC_STATIC, 13, 83, 196, 25, SS_LEFT, WS_EX_LEFT
     EDITTEXT        IDC_CACHED_OBJECTS_EDIT, 131, 116, 45, 14, ES_AUTOHSCROLL, WS_EX_LEFT
     LTEXT           "Max objects cached (if applicable):", IDC_STATIC, 14, 119, 115, 9, SS_LEFT, WS_EX_LEFT
     LTEXT           "Clear cache:", IDC_STATIC, 13, 143, 41, 9, SS_LEFT, WS_EX_LEFT

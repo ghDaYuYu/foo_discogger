@@ -27,7 +27,6 @@ private:
 	size_t tw_skip = 0;
 
 	bool init_count();
-	bool get_next_tag_writer();
 	void finished_tag_writers();
 
 	void update_window_title() {
@@ -44,8 +43,6 @@ private:
 
 	HWND discogs_track_list, file_list;
 	HWND match_failed, match_assumed, match_success;
-
-	bool initialize();
 
 	void load_size();
 	void save_size(int x, int y);
@@ -129,6 +126,8 @@ public:
 		
 		g_discogs->release_dialog = this;
 
+		tag_writer = nullptr;
+
 		if (init_count()) {
 			Create(p_parent);
 		}
@@ -154,6 +153,9 @@ public:
 	LRESULT OnMultiSkip(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnFileListKeyDown(LPNMHDR lParam);
 	LRESULT OnDiscogsListKeyDown(LPNMHDR lParam);
+
+	bool initialize();
+	bool get_next_tag_writer();
 
 	void cb_generate_tags();
 

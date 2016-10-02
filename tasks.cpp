@@ -24,9 +24,14 @@ void foo_discogs_threaded_process_callback::on_done(HWND p_wnd, bool p_was_abort
 		on_abort(p_wnd);
 	}
 	else if (!errors.get_count()) {
-		on_success(p_wnd);
+		try {
+			on_success(p_wnd);
+		}
+		catch (foo_discogs_exception &e) {
+			add_error(e, true);
+		}
 	}
-	else {
+	if (errors.get_count()) {
 		bool display = on_error(p_wnd);
 		if (display) {
 			display_errors();

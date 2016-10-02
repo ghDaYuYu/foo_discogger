@@ -87,21 +87,22 @@ LRESULT CReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*
 
 	ListView_SetExtendedListViewStyleEx(discogs_track_list, LVS_EX_FULLROWSELECT, LVS_EX_FULLROWSELECT);
 	ListView_SetExtendedListViewStyleEx(file_list, LVS_EX_FULLROWSELECT, LVS_EX_FULLROWSELECT);
-	
-	initialize();
-	
+
 	DlgResize_Init(true, true);
 	load_size();
 	modeless_dialog_manager::g_add(m_hWnd);
 	show();
+
+	if (tag_writer) {
+		initialize();
+	}
+	else {
+		get_next_tag_writer();
+	}
 	return TRUE;
 }
 
 bool CReleaseDialog::initialize() {
-	if (!tag_writer) {
-		return get_next_tag_writer();
-	}
-
 	::ShowWindow(match_failed, false);
 	::ShowWindow(match_assumed, false);
 	::ShowWindow(match_success, false);
@@ -117,6 +118,7 @@ bool CReleaseDialog::initialize() {
 	}
 	insert_track_mappings();
 
+	// TODO: assess this! (return value not used? does it work if skip release dialog checked?)
 	if (!multi_mode && tag_writer->match_status == MATCH_SUCCESS && CONF.skip_release_dialog_if_matched) {
 		generate_track_mappings(tag_writer->track_mappings);
 		service_ptr_t<generate_tags_task> task = new service_impl_t<generate_tags_task>(this, tag_writer, false, use_update_tags);

@@ -4,6 +4,7 @@
 #include "configuration_dialog.h"
 #include "tasks.h"
 #include "multiformat.h"
+#include "sdk_helpers.h"
 
 #include "resource.h"
 #include "utils.h"
@@ -128,6 +129,7 @@ void CFindReleaseDialog::fill_artist_list() {
 
 void CFindReleaseDialog::on_get_artist_done(Artist_ptr &artist) {
 	find_release_artist = artist;
+	hook = std::make_shared<titleformat_hook_impl_multiformat>(&find_release_artist);
 	pfc::string8 text;
 	uGetWindowText(filter_edit, text);
 	filter_releases(text);
@@ -180,17 +182,15 @@ void CFindReleaseDialog::filter_releases(const pfc::string8 &filter) {
 		for (size_t i = 0; i < find_release_artist->search_order_master.get_size(); i++) {
 			bool is_master = find_release_artist->search_order_master[i];
 			pfc::string8 item;
-			
-			titleformat_hook_impl_multiformat hook(&find_release_artist);
 
 			if (is_master) {
-				hook.set_master(&(find_release_artist->master_releases[master_index]));
-				CONF.search_master_format_string->run_hook(location, &info, &hook, item, nullptr);
+				hook->set_master(&(find_release_artist->master_releases[master_index]));
+				CONF.search_master_format_string->run_hook(location, &info, hook.get(), item, nullptr);
 				item_data = (master_index << 16) | 9999;
 			}
 			else {
-				hook.set_release(&(find_release_artist->releases[release_index]));
-				CONF.search_release_format_string->run_hook(location, &info, &hook, item, nullptr);
+				hook->set_release(&(find_release_artist->releases[release_index]));
+				CONF.search_release_format_string->run_hook(location, &info, hook.get(), item, nullptr);
 				item_data = (9999 << 16) | release_index;
 			}
 
@@ -214,8 +214,8 @@ void CFindReleaseDialog::filter_releases(const pfc::string8 &filter) {
 			if (is_master) {
 				pfc::string8 sub_item;
 				for (size_t j = 0; j < find_release_artist->master_releases[master_index]->sub_releases.get_size(); j++) {
-					hook.set_release(&(find_release_artist->master_releases[master_index]->sub_releases[j]));
-					CONF.search_master_sub_format_string->run_hook(location, &info, &hook, sub_item, nullptr);
+					hook->set_release(&(find_release_artist->master_releases[master_index]->sub_releases[j]));
+					CONF.search_master_sub_format_string->run_hook(location, &info, hook.get(), sub_item, nullptr);
 					
 					bool matches = true;
 					if (filter.get_length()) {
@@ -415,7 +415,7 @@ LRESULT CFindReleaseDialog::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWnd
 	return TRUE;
 }
 
-void CFindReleaseDialog::on_expand_master_release_done(const MasterRelease_ptr &master_release, int list_index) {
+void CFindReleaseDialog::on_expand_master_release_done(const MasterRelease_ptr &master_release, int list_index, threaded_process_status &p_status, abort_callback &p_abort) {
 	int master_index = 0;
 	for (size_t i = 0; i < find_release_artist->master_releases.get_size(); i++) {
 		if (find_release_artist->master_releases[i]->id == master_release->id) {
@@ -425,7 +425,7 @@ void CFindReleaseDialog::on_expand_master_release_done(const MasterRelease_ptr &
 	list_index++;
 	for (size_t i = 0; i < master_release->sub_releases.get_size(); i++) {
 		pfc::string8 item;
-		titleformat_hook_impl_multiformat hook(&master_release, &(master_release->sub_releases[i]));
+		titleformat_hook_impl_multiformat hook(p_status, &master_release, &(master_release->sub_releases[i]));
 		try {
 			CONF.search_master_sub_format_string->run_hook(location, &info, &hook, item, nullptr);
 		}
@@ -444,7 +444,6 @@ void CFindReleaseDialog::expand_master_release(MasterRelease_ptr &release, int p
 	if (release->sub_releases.get_size()) {
 		return;
 	}
-
 	service_ptr_t<expand_master_release_process_callback> task = 
 		new service_impl_t<expand_master_release_process_callback>(release, pos);
 	task->start(m_hWnd);
@@ -454,14 +453,14 @@ void CFindReleaseDialog::get_selected_artist_releases() {
 	int pos = (int)uSendMessage(artist_list, LB_GETCURSEL, 0, 0);
 	if (pos != -1) {
 		Artist_ptr &artist = find_release_artists[pos];
-		if (!artist->loaded || !artist->loaded_releases) {
+		//if (!artist->loaded || !artist->loaded_releases) {
 			service_ptr_t<get_artist_process_callback> task =
 				new service_impl_t<get_artist_process_callback>(artist->id.get_ptr());
 			task->start(m_hWnd);
-		}
-		else {
-			on_get_artist_done(artist);
-		}
+		//}
+		//else {
+		//	on_get_artist_done(artist);
+		//}
 	}
 }
 

@@ -152,6 +152,7 @@
     <ClInclude Include="entities.h" />
     <ClInclude Include="error_manager.h" />
     <ClInclude Include="exception.h" />
+    <ClInclude Include="exposetags.h" />
     <ClInclude Include="fetcher.h" />
     <ClInclude Include="file_info_manager.h" />
     <ClInclude Include="find_release_dialog.h" />
@@ -163,6 +164,7 @@
     <ClInclude Include="conf.h" />
     <ClInclude Include="preview_dialog.h" />
     <ClInclude Include="prompt_dialog.h" />
+    <ClInclude Include="sdk_helpers.h" />
     <ClInclude Include="tag_mappings_dialog.h" />
     <ClInclude Include="pfc_helpers.h" />
     <ClInclude Include="release_dialog.h" />

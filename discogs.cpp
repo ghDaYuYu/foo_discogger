@@ -5,7 +5,6 @@
 #include "utils.h"
 #include "json_helpers.h"
 
-
 using namespace Discogs;
 
 const std::map<const char*, string_encoded_array(ReleaseLabel::*)()const, cmp_str> ExposedTags<ReleaseLabel>::exposed_tags = ReleaseLabel::create_tags_map();
@@ -79,6 +78,222 @@ const std::map<const char*, string_encoded_array(Artist::*)()const, cmp_str> Exp
 { "MEMBERS", &Artist::get_members }
 };*/
 
+
+string_encoded_array Discogs::ReleaseArtist::get_data(pfc::string8 &tag_name, threaded_process_status &p_status, abort_callback &p_abort) {
+	try {
+		return ExposedTags<ReleaseArtist>::get_data(tag_name, p_status, p_abort);
+	}
+	catch (missing_data_exception) {
+		pfc::string8 xxx = full_artist->name;
+		return full_artist->get_data(tag_name, p_status, p_abort);
+	}
+}
+
+
+string_encoded_array Discogs::Artist::get_sub_data(pfc::string8 &tag_name, threaded_process_status &p_status, abort_callback &p_abort) {
+	pfc::string8 sub_tag_name;
+	string_encoded_array result;
+	if (STR_EQUALN(tag_name, "IMAGES_", 7)) {
+		sub_tag_name = substr(tag_name, 7);
+		for (size_t i = 0; i < images.get_size(); i++) {
+			result.append_item_val(images[i]->get_data(sub_tag_name, p_status, p_abort));
+		}
+	}
+	else if (STR_EQUALN(tag_name, "RELEASES_", 9)) {
+		sub_tag_name = substr(tag_name, 9);
+		if (!loaded_releases) {
+			load_releases(p_status, p_abort);
+		}
+		for (size_t i = 0; i < releases.get_size(); i++) {
+			result.append_item_val(releases[i]->get_data(sub_tag_name, p_status, p_abort));
+		}
+	}
+	else {
+		return ExposedTags<Artist>::get_sub_data(tag_name, p_status, p_abort);
+	}
+	result.encode();
+	return result;
+}
+
+
+string_encoded_array Discogs::ReleaseCredit::get_sub_data(pfc::string8 &tag_name, threaded_process_status &p_status, abort_callback &p_abort) {
+	pfc::string8 sub_tag_name;
+	string_encoded_array result;
+	if (strncmp(tag_name.get_ptr(), "ARTISTS_", 8) == 0) {
+		sub_tag_name = pfc::string8(tag_name.get_ptr() + 8);
+		for (size_t i = 0; i < artists.get_size(); i++) {
+			result.append_item_val(artists[i]->get_data(sub_tag_name, p_status, p_abort));
+		}
+	}
+	else {
+		return ExposedTags<ReleaseCredit>::get_sub_data(tag_name, p_status, p_abort);
+	}
+	result.encode();
+	return result;
+}
+
+
+string_encoded_array Discogs::ReleaseTrack::get_sub_data(pfc::string8 &tag_name, threaded_process_status &p_status, abort_callback &p_abort) {
+	pfc::string8 sub_tag_name;
+	string_encoded_array result;
+	if (strncmp(tag_name.get_ptr(), "ARTISTS_", 8) == 0) {
+		sub_tag_name = pfc::string8(tag_name.get_ptr() + 8);
+		for (size_t i = 0; i < artists.get_size(); i++) {
+			result.append_item_val(artists[i]->get_data(sub_tag_name, p_status, p_abort));
+		}
+	}
+	else if (strncmp(tag_name.get_ptr(), "CREDITS_", 8) == 0) {
+		sub_tag_name = pfc::string8(tag_name.get_ptr() + 8);
+		for (size_t i = 0; i < credits.get_size(); i++) {
+			result.append_item_val(credits[i]->get_data(sub_tag_name, p_status, p_abort));
+		}
+	}
+	else if (strncmp(tag_name.get_ptr(), "HIDDEN_TRACKS_", 14) == 0) {
+		sub_tag_name = pfc::string8(tag_name.get_ptr() + 14);
+		for (size_t i = 0; i < hidden_tracks.get_size(); i++) {
+			result.append_item_val(hidden_tracks[i]->get_data(sub_tag_name, p_status, p_abort));
+		}
+	}
+	else {
+		return ExposedTags<ReleaseTrack>::get_sub_data(tag_name, p_status, p_abort);
+	}
+	result.encode();
+	return result;
+}
+
+
+string_encoded_array Discogs::ReleaseDisc::get_sub_data(pfc::string8 &tag_name, threaded_process_status &p_status, abort_callback &p_abort) {
+	pfc::string8 sub_tag_name;
+	string_encoded_array result;
+	if (STR_EQUALN(tag_name, "TRACKS_", 7)) {
+		sub_tag_name = substr(tag_name, 7);
+		for (size_t i = 0; i < tracks.get_size(); i++) {
+			result.append_item_val(tracks[i]->get_data(sub_tag_name, p_status, p_abort));
+		}
+	}
+	else if (STR_EQUALN(tag_name, "FORMAT_", 7)) {
+		sub_tag_name = substr(tag_name, 7);
+		return format->get_data(sub_tag_name, p_status, p_abort);
+	}
+	else {
+		return ExposedTags<ReleaseDisc>::get_sub_data(tag_name, p_status, p_abort);
+	}
+	result.encode();
+	return result;
+}
+
+
+string_encoded_array Discogs::Release::get_sub_data(pfc::string8 &tag_name, threaded_process_status &p_status, abort_callback &p_abort) {
+	pfc::string8 sub_tag_name;
+	string_encoded_array result;
+	if (STR_EQUALN(tag_name, "TRACKS_", 7)) {
+		for (size_t i = 0; i < discs.get_size(); i++) {
+			if (i == 0) {
+				result = discs[i]->get_data(tag_name, p_status, p_abort);
+			}
+			else {
+				result.shallow_extend(discs[i]->get_data(tag_name, p_status, p_abort));
+			}
+		}
+	}
+	else if (STR_EQUALN(tag_name, "DISCS_", 6)) {
+		sub_tag_name = substr(tag_name, 6);
+		for (size_t i = 0; i < discs.get_size(); i++) {
+			result.append_item_val(discs[i]->get_data(sub_tag_name, p_status, p_abort));
+		}
+	}
+	else if (STR_EQUALN(tag_name, "ARTISTS_", 8)) {
+		sub_tag_name = substr(tag_name, 8);
+		for (size_t i = 0; i < artists.get_size(); i++) {
+			result.append_item_val(artists[i]->get_data(sub_tag_name, p_status, p_abort));
+		}
+	}
+	else if (STR_EQUALN(tag_name, "LABELS_", 7)) {
+		sub_tag_name = substr(tag_name, 7);
+		for (size_t i = 0; i < labels.get_size(); i++) {
+			result.append_item_val(labels[i]->get_data(sub_tag_name, p_status, p_abort));
+		}
+	}
+	else if (STR_EQUALN(tag_name, "SERIES_", 7)) {
+		sub_tag_name = substr(tag_name, 7);
+		for (size_t i = 0; i < series.get_size(); i++) {
+			result.append_item_val(series[i]->get_data(sub_tag_name, p_status, p_abort));
+		}
+	}
+	else if (STR_EQUALN(tag_name, "FORMATS_", 8)) {
+		sub_tag_name = substr(tag_name, 8);
+		for (size_t i = 0; i < formats.get_size(); i++) {
+			result.append_item_val(formats[i]->get_data(sub_tag_name, p_status, p_abort));
+		}
+	}
+	else if (STR_EQUALN(tag_name, "CREDITS_", 8)) {
+		sub_tag_name = substr(tag_name, 8);
+		for (size_t i = 0; i < credits.get_size(); i++) {
+			result.append_item_val(credits[i]->get_data(sub_tag_name, p_status, p_abort));
+		}
+	}
+	else if (STR_EQUALN(tag_name, "IMAGES_", 7)) {
+		sub_tag_name = substr(tag_name, 7);
+		for (size_t i = 0; i < images.get_size(); i++) {
+			result.append_item_val(images[i]->get_data(sub_tag_name, p_status, p_abort));
+		}
+	}
+	else {
+		return ExposedTags<Release>::get_sub_data(tag_name, p_status, p_abort);
+	}
+	result.encode();
+	return result;
+}
+
+
+string_encoded_array Discogs::MasterRelease::get_sub_data(pfc::string8 &tag_name, threaded_process_status &p_status, abort_callback &p_abort) {
+	pfc::string8 sub_tag_name;
+	string_encoded_array result;
+	if (STR_EQUALN(tag_name, "TRACKS_", 7)) {
+		for (size_t i = 0; i < discs.get_size(); i++) {
+			if (i == 0) {
+				result = discs[i]->get_data(tag_name, p_status, p_abort);
+			}
+			else {
+				result.shallow_extend(discs[i]->get_data(tag_name, p_status, p_abort));
+			}
+		}
+	}
+	else if (STR_EQUALN(tag_name, "DISCS_", 6)) {
+		sub_tag_name = substr(tag_name, 6);
+		for (size_t i = 0; i < discs.get_size(); i++) {
+			result.append_item_val(discs[i]->get_data(sub_tag_name, p_status, p_abort));
+		}
+	}
+	else if (STR_EQUALN(tag_name, "ARTISTS_", 8)) {
+		sub_tag_name = substr(tag_name, 8);
+		for (size_t i = 0; i < artists.get_size(); i++) {
+			result.append_item_val(artists[i]->get_data(sub_tag_name, p_status, p_abort));
+		}
+	}
+	else if (STR_EQUALN(tag_name, "IMAGES_", 7)) {
+		sub_tag_name = substr(tag_name, 7);
+		for (size_t i = 0; i < images.get_size(); i++) {
+			result.append_item_val(images[i]->get_data(sub_tag_name, p_status, p_abort));
+		}
+	}
+	else if (STR_EQUALN(tag_name, "RELEASES_", 9)) {
+		sub_tag_name = substr(tag_name, 9);
+		if (!loaded_releases) {
+			load_releases(p_status, p_abort);
+		}
+		for (size_t i = 0; i < sub_releases.get_size(); i++) {
+			result.append_item_val(sub_releases[i]->get_data(sub_tag_name, p_status, p_abort));
+		}
+	}
+	else {
+		return ExposedTags<MasterRelease>::get_sub_data(tag_name, p_status, p_abort);
+	}
+	result.encode();
+	return result;
+}
+
+
 pfc::string8 Discogs::remove_number_suffix(const pfc::string8 &src) {
 	pfc::string8 dst = src;
 	unsigned src_size = src.get_length();
@@ -151,7 +366,7 @@ pfc::string8 Discogs::format_track_number(int tracknumber) {
 ReleaseArtist_ptr Discogs::parseReleaseArtist(json_t *element) {
 	assert_is_object(element);
 	pfc::string8 artist_id = JSONAttributeString(element, "id");
-	auto full_artist = g_discogs->discogs->get_artist(artist_id);
+	auto full_artist = discogs_interface->get_artist(artist_id);
 	ReleaseArtist_ptr artist(new ReleaseArtist(artist_id, full_artist));
 	artist->loaded = true;
 	pfc::string8 name = JSONAttributeString(element, "name");
@@ -844,7 +1059,7 @@ void Discogs::parseArtistReleases(json_t *root, Artist *artist) {
 			if (json_is_object(rel)) {
 				pfc::string8 type = JSONAttributeString(rel, "type");
 				if (STR_EQUAL(type, "master")) {
-					MasterRelease_ptr release = g_discogs->discogs->get_master_release(JSONAttributeString(rel, "id"));
+					MasterRelease_ptr release = discogs_interface->get_master_release(JSONAttributeString(rel, "id"));
 					bool duplicate = false;
 					for (size_t r = 0; r < artist->master_releases.get_size(); r++) {
 						if (artist->master_releases[r]->id == release->id) {
@@ -865,7 +1080,7 @@ void Discogs::parseArtistReleases(json_t *root, Artist *artist) {
 					artist->search_order_master.append_single(true);
 				}
 				else {
-					Release_ptr release = g_discogs->discogs->get_release(JSONAttributeString(rel, "id"));
+					Release_ptr release = discogs_interface->get_release(JSONAttributeString(rel, "id"));
 					release->title = JSONAttributeString(rel, "title");
 					/*pfc::string8 labels = JSONAttributeString(rel, "label");
 					pfc::array_t<pfc::string8> label_names;
@@ -902,14 +1117,14 @@ void Discogs::parseArtistReleases(json_t *root, Artist *artist) {
 	}
 }
 
-void Discogs::parseMasterVersions(json_t *root, MasterRelease_ptr &master_release) {
+void Discogs::parseMasterVersions(json_t *root, MasterRelease *master_release) {
 	json_t *versions = json_object_get(root, "versions");
 	if (json_is_array(versions)) {
 		for (size_t i = 0; i < json_array_size(versions); i++) {
 			json_t *rel = json_array_get(versions, i);
 
 			if (json_is_object(rel)) {
-				Release_ptr release = g_discogs->discogs->get_release(JSONAttributeString(rel, "id"));
+				Release_ptr release = discogs_interface->get_release(JSONAttributeString(rel, "id"));
 				release->master_id = master_release->id;
 				release->title = JSONAttributeString(rel, "title");
 				/*pfc::string8 labels = JSONAttributeString(rel, "label");
@@ -972,11 +1187,166 @@ void Discogs::parseArtistResults(json_t *root, pfc::array_t<Artist_ptr> &artists
 		for (size_t i = 0; i < json_array_size(results); i++) {
 			json_t *result = json_array_get(results, i);
 			if (json_is_object(result)) {
-				Artist_ptr artist = g_discogs->discogs->get_artist(JSONAttributeString(result, "id"));
+				Artist_ptr artist = discogs_interface->get_artist(JSONAttributeString(result, "id"));
 				artist->name = JSONAttributeString(result, "title");
 				artists.append_single(std::move(artist));
 			}
 		}
+	}
+}
+
+
+void initialize_null_artist(Artist *artist) {
+	artist->profile = "";
+	artist->anvs = pfc::array_t<pfc::string8>();
+	artist->urls = pfc::array_t<pfc::string8>();
+	artist->realname = "";
+	artist->aliases = pfc::array_t<pfc::string8>();
+	artist->ingroups = pfc::array_t<pfc::string8>();
+	artist->members = pfc::array_t<pfc::string8>();
+	artist->loaded = true;
+}
+
+
+void Discogs::Artist::load(threaded_process_status &p_status, abort_callback &p_abort, bool throw_all) {
+	if (loaded) {
+		return;
+	}
+	try {
+		if (STR_EQUAL(id, "355") || STR_EQUAL(id, "Unknown Artist")) {
+			name = "Unknown Artist";
+			initialize_null_artist(this);
+			return;
+		}
+		else if (STR_EQUAL(id, "118760") || STR_EQUAL(id, "No Artist")) {
+			name = "No Artist";
+			initialize_null_artist(this);
+			return;
+		}
+		else if (STR_EQUAL(id, "194") || STR_EQUAL(id, "Various")) {
+			name = "Various";
+			initialize_null_artist(this);
+			return;
+		}
+
+		pfc::string8 json;
+		pfc::string8 url;
+		url << "https://api.discogs.com/artists/" << id;
+		discogs_interface->fetcher->fetch_html(url, "", json, p_abort);
+
+		JSONParser jp(json);
+
+		parseArtist(this, jp.root);
+		loaded = true;
+	}
+	catch (foo_discogs_exception &e) {
+		if (throw_all) {
+			throw;
+		}
+		pfc::string8 error("Error loading artist ");
+		error << id << ": " << e.what();
+		throw foo_discogs_exception(error);
+	}
+}
+
+
+void Discogs::Release::load(threaded_process_status &p_status, abort_callback &p_abort, bool throw_all) {
+	if (loaded) {
+		return;
+	}
+	try {
+		pfc::string8 json;
+		pfc::string8 url;
+		url << "https://api.discogs.com/releases/" << id;
+		discogs_interface->fetcher->fetch_html(url, "", json, p_abort);
+
+		JSONParser jp(json);
+
+		parseRelease(this, jp.root);
+		loaded = true;
+	}
+	catch (foo_discogs_exception &e) {
+		if (throw_all) {
+			throw;
+		}
+		pfc::string8 error("Error loading release ");
+		error << id << ": " << e.what();
+		throw foo_discogs_exception(error);
+	}
+}
+
+void Discogs::MasterRelease::load(threaded_process_status &p_status, abort_callback &p_abort, bool throw_all) {
+	if (id.get_length() || loaded) {
+		return;
+	}
+	try {
+		pfc::string8 json;
+		pfc::string8 url;
+		url << "https://api.discogs.com/masters/" << id;
+		discogs_interface->fetcher->fetch_html(url, "", json, p_abort);
+
+		JSONParser jp(json);
+
+		parseMasterRelease(this, jp.root);
+		loaded = true;
+	}
+	catch (foo_discogs_exception &e) {
+		if (throw_all) {
+			throw;
+		}
+		pfc::string8 error("Error loading master release ");
+		error << id << ": " << e.what();
+		throw foo_discogs_exception(error);
+	}
+}
+
+
+void Discogs::Artist::load_releases(threaded_process_status &p_status, abort_callback &p_abort, bool throw_all) {
+	if (loaded_releases) {
+		return;
+	}
+	try {
+		pfc::string8 url;
+		url << "https://api.discogs.com/artists/" << id << "/releases";
+		pfc::array_t<JSONParser_ptr> pages = discogs_interface->get_all_pages(url, "", p_abort, "Fetching artist releases...", p_status);
+		const size_t count = pages.get_count();
+		for (size_t i = 0; i < count; i++) {
+			parseArtistReleases(pages[i]->root, this);
+		}
+		loaded_releases = true;
+	}
+	catch (foo_discogs_exception &e) {
+		if (throw_all) {
+			throw;
+		}
+		pfc::string8 error("Error loading artist releases");
+		error << id << ": " << e.what();
+		throw foo_discogs_exception(error);
+	}
+}
+
+void Discogs::MasterRelease::load_releases(threaded_process_status &p_status, abort_callback &p_abort, bool throw_all) {
+	if (loaded_releases) {
+		return;
+	}
+	try {
+		pfc::string8 json;
+		pfc::string8 url;
+		url << "https://api.discogs.com/masters/" << id << "/versions";
+		pfc::array_t<JSONParser_ptr> pages = discogs_interface->get_all_pages(url, "", p_abort, "Fetching master release versions...", p_status);
+		const size_t count = pages.get_count();
+		for (size_t i = 0; i < count; i++) {
+			parseMasterVersions(pages[i]->root, this);
+		}
+		loaded_releases = true;
+	}
+	catch (foo_discogs_exception &e) {
+		if (throw_all) {
+			throw;
+		}
+		pfc::string8 error("Error loading master release versions");
+		error << id << ": " << e.what();
+		throw foo_discogs_exception(error);
 	}
 }
 

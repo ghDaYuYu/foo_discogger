@@ -10,7 +10,7 @@
 #include "preview_dialog.h"
 
 
-void foo_discogs_threaded_process_callback::run(threaded_process_status & p_status, abort_callback & p_abort) {
+void foo_discogs_threaded_process_callback::run(threaded_process_status &p_status, abort_callback &p_abort) {
 	try {
 		safe_run(p_status, p_abort);
 	}
@@ -61,8 +61,8 @@ void generate_tags_task::start() {
 	);
 }
 
-void generate_tags_task::safe_run(threaded_process_status & p_status, abort_callback & p_abort) {
-	tag_writer->generate_tags(use_update_tags);
+void generate_tags_task::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
+	tag_writer->generate_tags(use_update_tags, p_status, p_abort);
 }
 
 void generate_tags_task::on_success(HWND p_wnd) {
@@ -112,7 +112,7 @@ void generate_tags_task_multi::start() {
 	);
 }
 
-void generate_tags_task_multi::safe_run(threaded_process_status & p_status, abort_callback & p_abort) {
+void generate_tags_task_multi::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
 	const size_t count = tag_writers.get_count();
 	for (size_t i = 0; i < count; i++) {
 		p_abort.check(); 
@@ -125,7 +125,7 @@ void generate_tags_task_multi::safe_run(threaded_process_status & p_status, abor
 
 		if (!tag_writers[i]->skip) {
 			try {
-				tag_writers[i]->generate_tags(use_update_tags);
+				tag_writers[i]->generate_tags(use_update_tags, p_status, p_abort);
 			}
 			catch (foo_discogs_exception &e) {
 				pfc::string8 error("release ");
@@ -167,7 +167,7 @@ void write_tags_task::start() {
 	);
 }
 
-void write_tags_task::safe_run(threaded_process_status & p_status, abort_callback & p_abort) {
+void write_tags_task::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
 	tag_writer->write_tags();
 }
 
@@ -194,7 +194,7 @@ void write_tags_task_multi::start() {
 	);
 }
 
-void write_tags_task_multi::safe_run(threaded_process_status & p_status, abort_callback & p_abort) {
+void write_tags_task_multi::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
 	const size_t count = tag_writers.get_count();
 	for (size_t i = 0; i < count; i++) {
 		if (!tag_writers[i]->skip && tag_writers[i]->changed) {
@@ -237,7 +237,7 @@ void update_art_task::start() {
 	);
 }
 
-void update_art_task::safe_run(threaded_process_status & p_status, abort_callback & p_abort) {
+void update_art_task::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
 	std::map<pfc::string8, bool> release_processed;
 	std::map<pfc::string8, bool> artist_processed;
 
@@ -259,8 +259,7 @@ void update_art_task::safe_run(threaded_process_status & p_status, abort_callbac
 					if (release_id.get_length()) {
 						if (!release_processed[release_id]) {
 							release_processed[release_id] = true;
-							Release_ptr release = g_discogs->discogs->get_release(release_id.get_ptr(), p_abort);
-
+							Release_ptr release = discogs_interface->get_release(release_id.get_ptr(), p_status, p_abort);
 							g_discogs->write_album_art(release, item, formatted_release_name.get_ptr(), p_status, p_abort);
 						}
 					}
@@ -293,7 +292,7 @@ void update_art_task::safe_run(threaded_process_status & p_status, abort_callbac
 					if (artist_id.get_length()) {
 						if (!artist_processed[artist_id]) {
 							artist_processed[artist_id] = true;
-							Artist_ptr artist = g_discogs->discogs->get_artist(artist_id.get_ptr(), false, p_status, p_abort);
+							Artist_ptr artist = discogs_interface->get_artist(artist_id.get_ptr(), false, p_status, p_abort);
 
 							g_discogs->write_artist_art(artist, item, formatted_release_name.get_ptr(), p_status, p_abort);
 						}
@@ -339,8 +338,8 @@ void download_art_task::start() {
 	);
 }
 
-void download_art_task::safe_run(threaded_process_status & p_status, abort_callback & p_abort) {
-	Release_ptr release = g_discogs->discogs->get_release(release_id.get_ptr(), p_abort);
+void download_art_task::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
+	Release_ptr release = discogs_interface->get_release(release_id.get_ptr(), p_status, p_abort);
 	if (save_album_art) {
 		pfc::string8 formatted_release_name;
 		items[0]->format_title(nullptr, formatted_release_name, g_discogs->release_name_script, nullptr);
@@ -370,7 +369,7 @@ void find_deleted_releases_task::start() {
 	);
 }
 
-void find_deleted_releases_task::safe_run(threaded_process_status & p_status, abort_callback & p_abort) {
+void find_deleted_releases_task::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
 	const size_t item_count = finfo_manager.get_item_count();
 
 	pfc::string8 release_id;
@@ -406,7 +405,7 @@ void find_deleted_releases_task::safe_run(threaded_process_status & p_status, ab
 		finished_count++;
 
 		try {
-			g_discogs->discogs->get_release(release_id, p_abort, true, true);
+			discogs_interface->get_release(release_id, p_status, p_abort, true, true);
 		}
 		catch (http_404_exception) {
 			deleted_items.add_item(item);
@@ -465,10 +464,10 @@ void find_releases_not_in_collection_task::start() {
 		);
 }
 
-void find_releases_not_in_collection_task::safe_run(threaded_process_status & p_status, abort_callback & p_abort) {
+void find_releases_not_in_collection_task::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
 	p_status.set_progress(0, 1);
 	
-	const pfc::array_t<pfc::string8> &collection = g_discogs->discogs->get_collection(p_status, p_abort);
+	const pfc::array_t<pfc::string8> &collection = discogs_interface->get_collection(p_status, p_abort);
 	const size_t collection_count = collection.get_count();
 
 	p_status.set_item("Checking for missing releases...");
@@ -539,7 +538,7 @@ void update_tags_task::start() {
 	);
 }
 
-void update_tags_task::safe_run(threaded_process_status & p_status, abort_callback & p_abort) {
+void update_tags_task::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
 	const size_t total_items = finfo_manager.get_item_count();
 	std::map<pfc::string8, pfc::array_t<size_t>> metadb_lists;
 	pfc::array_t<pfc::string8> releases;
@@ -582,14 +581,14 @@ void update_tags_task::safe_run(threaded_process_status & p_status, abort_callba
 			sub_manager->copy_from(finfo_manager, stuff[i]);
 		}
 
-		TagWriter_ptr tag_writer = std::make_shared<TagWriter>(sub_manager, g_discogs->discogs->get_release(release_id, p_abort, false, true));
+		TagWriter_ptr tag_writer = std::make_shared<TagWriter>(sub_manager, discogs_interface->get_release(release_id, p_status, p_abort, false, true));
 		tag_writer->match_tracks();
 		tag_writers.append_single(tag_writer);
 	}
 }
 
 void update_tags_task::on_success(HWND p_wnd) {
-	new CReleaseDialog(core_api::get_main_window(), tag_writers, use_update_tags);
+	new CReleaseDialog(core_api::get_main_window(), tag_writers, use_update_tags); 
 	finish();
 }
 
@@ -615,8 +614,8 @@ void get_artist_process_callback::start(HWND parent) {
 	);
 }
 
-void get_artist_process_callback::safe_run(threaded_process_status & p_status, abort_callback & p_abort) {
-	m_artist = g_discogs->discogs->get_artist(m_artist_id, true, p_status, p_abort);
+void get_artist_process_callback::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
+	m_artist = discogs_interface->get_artist(m_artist_id, true, p_status, p_abort);
 }
 
 void get_artist_process_callback::on_success(HWND p_wnd) {
@@ -636,9 +635,9 @@ void search_artist_process_callback::start(HWND parent) {
 	);
 }
 
-void search_artist_process_callback::safe_run(threaded_process_status & p_status, abort_callback & p_abort) {
+void search_artist_process_callback::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
 	p_status.set_item("Fetching artist list...");
-	g_discogs->discogs->search_artist(m_search, m_artist_exact_matches, m_artist_other_matches, p_abort);
+	discogs_interface->search_artist(m_search, m_artist_exact_matches, m_artist_other_matches, p_status, p_abort);
 }
 
 void search_artist_process_callback::on_success(HWND p_wnd) {
@@ -651,6 +650,8 @@ void search_artist_process_callback::on_success(HWND p_wnd) {
 process_release_callback::process_release_callback(CFindReleaseDialog *dialog, const pfc::string8 &release_id, const metadb_handle_list &items) :
 		items(items), m_dialog(dialog), m_release_id(release_id) {
 	m_dialog->enable(false);
+	finfo_manager = std::make_shared<file_info_manager>(items);
+	finfo_manager->read_infos();
 }
 
 void process_release_callback::start(HWND parent) {
@@ -661,9 +662,9 @@ void process_release_callback::start(HWND parent) {
 	);
 }
 
-void process_release_callback::safe_run(threaded_process_status & p_status, abort_callback & p_abort) {
+void process_release_callback::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
 	p_status.set_item("Fetching release information...");
-	Release_ptr release = g_discogs->discogs->get_release(m_release_id, p_abort);
+	Release_ptr release = discogs_interface->get_release(m_release_id, p_status, p_abort);
 
 	if (release) {
 		m_release = release;
@@ -676,21 +677,18 @@ void process_release_callback::safe_run(threaded_process_status & p_status, abor
 			}
 
 			p_status.set_item("Fetching small album art...");
-			g_discogs->discogs->fetcher->fetch_url(release->images[0]->url150, "", release->small_art, p_abort, false);
+			discogs_interface->fetcher->fetch_url(release->images[0]->url150, "", release->small_art, p_abort, false);
 		}
 	}
+
+	m_dialog->enable(true);
+	m_dialog->hide();
+
+	tag_writer = std::make_shared<TagWriter>(finfo_manager, m_release);
+	tag_writer->match_tracks();
 }
 
 void process_release_callback::on_success(HWND p_wnd) {
-	m_dialog->enable(true);
-	m_dialog->hide();
-	
-	file_info_manager_ptr finfo_manager = std::make_shared<file_info_manager>(items);
-	finfo_manager->read_infos();
-	
-	TagWriter_ptr tag_writer = std::make_shared<TagWriter>(finfo_manager, m_release);
-	tag_writer->match_tracks();
-
 	new CReleaseDialog(core_api::get_main_window(), tag_writer, false);
 }
 
@@ -713,10 +711,10 @@ void test_oauth_process_callback::start(HWND parent) {
 	);
 }
 
-void test_oauth_process_callback::safe_run(threaded_process_status & p_status, abort_callback & p_abort) {
+void test_oauth_process_callback::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
 	if (test_token.get_length() && test_token_secret.get_length()) {
 		p_status.set_item("Testing OAuth identity...");
-		g_discogs->discogs->fetcher->test_oauth(test_token, test_token_secret, p_abort);
+		discogs_interface->fetcher->test_oauth(test_token, test_token_secret, p_abort);
 	}
 	else {
 		add_error("Error: You must generate OAuth tokens first.");
@@ -737,9 +735,9 @@ void authorize_oauth_process_callback::start(HWND parent) {
 	);
 }
 
-void authorize_oauth_process_callback::safe_run(threaded_process_status & p_status, abort_callback & p_abort) {
+void authorize_oauth_process_callback::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
 	p_status.set_item("Authorizing OAuth...");
-	pfc::string8 auth_url = g_discogs->discogs->fetcher->get_oauth_authorize_url(p_abort);
+	pfc::string8 auth_url = discogs_interface->fetcher->get_oauth_authorize_url(p_abort);
 	display_url(auth_url);
 }
 
@@ -753,9 +751,9 @@ void generate_oauth_process_callback::start(HWND parent) {
 	);
 }
 
-void generate_oauth_process_callback::safe_run(threaded_process_status & p_status, abort_callback & p_abort) {
+void generate_oauth_process_callback::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
 	p_status.set_item("Generating OAuth tokens...");
-	token = g_discogs->discogs->fetcher->generate_oauth(code, p_abort);
+	token = discogs_interface->fetcher->generate_oauth(code, p_abort);
 	if (token == nullptr) {
 		add_error("Error: Invalid PIN Code.");
 	}
@@ -779,12 +777,13 @@ void expand_master_release_process_callback::start(HWND parent) {
 	);
 }
 
-void expand_master_release_process_callback::safe_run(threaded_process_status & p_status, abort_callback & p_abort) {
-	g_discogs->discogs->expand_master_release(m_master_release, p_status, p_abort);
+void expand_master_release_process_callback::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
+	m_master_release->load_releases(p_status, p_abort);
+	if (g_discogs->find_release_dialog) {
+		g_discogs->find_release_dialog->on_expand_master_release_done(m_master_release, m_pos, p_status, p_abort);
+	}
 }
 
 void expand_master_release_process_callback::on_success(HWND p_wnd) {
-	if (g_discogs->find_release_dialog) {
-		g_discogs->find_release_dialog->on_expand_master_release_done(m_master_release, m_pos);
-	}
+	
 }

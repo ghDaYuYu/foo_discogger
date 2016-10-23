@@ -4,7 +4,7 @@
 #include "discogs.h"
 #include "exception.h"
 #include "file_info_manager.h"
-
+#include "sdk_helpers.h"
 
 using namespace Discogs;
 
@@ -76,19 +76,25 @@ private:
 	const Image_ptr * image = nullptr;
 	file_info_manager_ptr files = nullptr;
 
+	fake_threaded_process_status f_status;
+	threaded_process_status &p_status;
+
 	const file_info *m_finfo = nullptr;
 	persistent_store *m_store = nullptr;
 	persistent_store *prompt_store = nullptr;
 	std::map<const char*, string_encoded_array, cmp_str> custom_map;
 
 public:
-	titleformat_hook_impl_multiformat(const Release_ptr *release = nullptr, const ReleaseDisc_ptr *disc = nullptr, const ReleaseTrack_ptr *track = nullptr) : 
-		release(release), release_disc(disc), release_track(track) {}
-	titleformat_hook_impl_multiformat(const Artist_ptr *artist) : artist(artist) {}
-	titleformat_hook_impl_multiformat(const MasterRelease_ptr *master_release, const Release_ptr *release = nullptr,
+	titleformat_hook_impl_multiformat(threaded_process_status &p_status, const Release_ptr *release = nullptr, const ReleaseDisc_ptr *disc = nullptr, const ReleaseTrack_ptr *track = nullptr) :
+		p_status(p_status), release(release), release_disc(disc), release_track(track) {}
+	titleformat_hook_impl_multiformat(const Artist_ptr *artist) : artist(artist), p_status(f_status) {}
+	titleformat_hook_impl_multiformat(threaded_process_status &p_status, const Artist_ptr *artist) : artist(artist), p_status(p_status) {}
+	titleformat_hook_impl_multiformat(threaded_process_status &p_status, const MasterRelease_ptr *master_release, const Release_ptr *release = nullptr,
 		const ReleaseDisc_ptr *release_disc = nullptr, const ReleaseTrack_ptr *release_track = nullptr,
 		const file_info *info = nullptr, persistent_store *pstore = nullptr, persistent_store *prompt_store = nullptr) :
-		release(release), release_disc(release_disc), release_track(release_track), master_release(master_release), artist(artist), m_finfo(info), m_store(pstore), prompt_store(prompt_store) {};
+		p_status(p_status), release(release), release_disc(release_disc), release_track(release_track), master_release(master_release), artist(artist), m_finfo(info), m_store(pstore), prompt_store(prompt_store) {};
+	titleformat_hook_impl_multiformat(const Release_ptr *release = nullptr, const ReleaseDisc_ptr *disc = nullptr, const ReleaseTrack_ptr *track = nullptr) :
+		release(release), release_disc(disc), release_track(track), p_status(f_status) {};
 
 	void set_custom(const char *s, string_encoded_array v) {
 		custom_map[s] = v;
@@ -121,3 +127,5 @@ public:
 	virtual bool process_field(titleformat_text_out * p_out, const char * p_name, size_t p_name_length, bool & p_found_flag) override;
 	virtual bool process_function(titleformat_text_out * p_out, const char * p_name, size_t p_name_length, titleformat_hook_function_params * p_params, bool & p_found_flag) override;
 };
+
+typedef std::shared_ptr<titleformat_hook_impl_multiformat> titleformat_hook_impl_multiformat_ptr;

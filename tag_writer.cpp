@@ -25,7 +25,7 @@ void TagWriter::match_tracks() {
 				mapping.discogs_disc = i;
 				mapping.discogs_track = j;
 				mapping.file_index = track_mappings.get_count();
-				if (mapping.file_index >= count) {
+				if (mapping.file_index >= 0 && (size_t)mapping.file_index >= count) {
 					mapping.file_index = -1;
 				}
 				track_mappings.append_single(mapping);
@@ -398,13 +398,13 @@ int TagWriter::order_tracks_by_assumption(track_mappings_list_type &mappings) {
 }
 
 
-void TagWriter::generate_tags(bool use_update_tags) {
+void TagWriter::generate_tags(bool use_update_tags, threaded_process_status &p_status, abort_callback &p_abort) {
 	tag_results.force_reset();
 	changed = false;
 
 	persistent_store pstore;
 	persistent_store prompt_store;
-	MasterRelease_ptr master = g_discogs->discogs->get_master_release(release->master_id);
+	MasterRelease_ptr master = discogs_interface->get_master_release(release->master_id);
 
 	for (size_t i = 0; i < TAGS.get_size(); i++) {
 		const tag_mapping_entry &entry = TAGS.get_item_ref(i);
@@ -431,7 +431,7 @@ void TagWriter::generate_tags(bool use_update_tags) {
 				const ReleaseDisc_ptr &disc = release->discs[disc_index];
 				const ReleaseTrack_ptr &track = disc->tracks[trac_index];
 
-				titleformat_hook_impl_multiformat hook(&master, &release, &disc, &track, &info, &pstore, &prompt_store);
+				titleformat_hook_impl_multiformat hook(p_status, &master, &release, &disc, &track, &info, &pstore, &prompt_store);
 				hook.set_files(finfo_manager);
 
 				pfc::string8 str;

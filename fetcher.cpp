@@ -5,13 +5,13 @@
 #include "utils.h"
 
 
-void Fetcher::fetch_html(const pfc::string8 &url, const pfc::string8 &params, pfc::string8 &html, abort_callback & p_abort, bool use_oauth) {
+void Fetcher::fetch_html(const pfc::string8 &url, const pfc::string8 &params, pfc::string8 &html, abort_callback &p_abort, bool use_oauth) {
 	pfc::array_t<t_uint8> buffer;
 	fetch_url(url, params, buffer, p_abort, use_oauth, "application/xml");
 	html = pfc::string8((char *)buffer.get_ptr(), buffer.get_size());
 }
 
-void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc::array_t<t_uint8> & out, abort_callback & p_abort, bool use_oauth, const pfc::string8 &content_type) {
+void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc::array_t<t_uint8> & out, abort_callback &p_abort, bool use_oauth, const pfc::string8 &content_type) {
 	pfc::string8 req_url = "";
 
 	bool use_api = true;

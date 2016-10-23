@@ -56,7 +56,7 @@ public:
 
 	TagWriter(file_info_manager_ptr finfo_manager, Release_ptr release);
 
-	void generate_tags(bool use_update_tags = false);
+	void generate_tags(bool use_update_tags, threaded_process_status &p_status, abort_callback &p_abort);
 	void write_tags(bool use_update_tags = false);
 	void match_tracks();
 

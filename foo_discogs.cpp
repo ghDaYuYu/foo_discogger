@@ -19,6 +19,7 @@
 using namespace std;
 
 foo_discogs *g_discogs = nullptr;
+DiscogsInterface *discogs_interface = nullptr;
 
 
 DECLARE_COMPONENT_VERSION(
@@ -50,6 +51,7 @@ class initquit_discogs : public initquit
 {
 	virtual void on_init() override {
 		console::print("Loading");
+		discogs_interface = new DiscogsInterface(); 
 		g_discogs = new foo_discogs();
 		load_dlls();
 	}
@@ -63,11 +65,9 @@ class initquit_discogs : public initquit
 static initquit_factory_t<initquit_discogs> foo_initquit;
 
 foo_discogs::foo_discogs() {
-	discogs = new DiscogsInterface();
-
 	init_conf();
 	init_tag_mappings();
-	discogs->fetcher->set_oauth(CONF.oauth_token, CONF.oauth_token_secret);
+	discogs_interface->fetcher->set_oauth(CONF.oauth_token, CONF.oauth_token_secret);
 
 	static_api_ptr_t<titleformat_compiler>()->compile_force(release_name_script, "[%album artist%] - [%album%]");
 	gave_oauth_warning = false;
@@ -262,7 +262,7 @@ void foo_discogs::write_album_art(Release_ptr &release,
 		metadb_handle_ptr item,
 		const char *item_text,
 		threaded_process_status &p_status,
-		abort_callback & p_abort) {
+		abort_callback &p_abort) {
 
 	if (!release->images.get_size()) {
 		return;
@@ -275,7 +275,7 @@ void foo_discogs::write_album_art(Release_ptr &release,
 	p_status.set_item(item_text);
 	
 	file_info_impl info;
-	titleformat_hook_impl_multiformat hook(&release);
+	titleformat_hook_impl_multiformat hook(p_status, &release);
 
 	pfc::string8 directory;
 	CONF.album_art_directory_string->run_hook(item->get_location(), &info, &hook, directory, nullptr);
@@ -330,16 +330,16 @@ void foo_discogs::write_album_art(Release_ptr &release,
 void foo_discogs::write_artist_art(Release_ptr &release,
 		metadb_handle_ptr item,
 		const char *item_text,
-		threaded_process_status & p_status,
+		threaded_process_status &p_status,
 		abort_callback &p_abort) {
 
 	// ensure release is loaded
-	g_discogs->discogs->load(release, p_abort);
+	release->load(p_status, p_abort);
 	
 	// get artist IDs from titleformat string
-	MasterRelease_ptr master = discogs->get_master_release(release->master_id);
+	MasterRelease_ptr master = discogs_interface->get_master_release(release->master_id);
 	file_info_impl info;
-	titleformat_hook_impl_multiformat hook(&master, &release);
+	titleformat_hook_impl_multiformat hook(p_status, &master, &release);
 	pfc::string8 str;
 	pfc::array_t<int> ids;
 	try {
@@ -368,7 +368,7 @@ void foo_discogs::write_artist_art(Release_ptr &release,
 		for (size_t i = 0; i < ids.get_size(); i++) {
 			pfc::string8 artist_id;
 			artist_id << ids[i];
-			Artist_ptr artist = discogs->get_artist(artist_id);
+			Artist_ptr artist = discogs_interface->get_artist(artist_id);
 			write_artist_art(artist, item, item_text, p_status, p_abort);
 		}
 	}
@@ -382,7 +382,7 @@ void foo_discogs::write_artist_art(Release_ptr &release,
 void foo_discogs::write_artist_art(ReleaseArtist_ptr &release_artist,
 		metadb_handle_ptr item,
 		const char *item_text,
-		threaded_process_status & p_status,
+		threaded_process_status &p_status,
 		abort_callback &p_abort) {
 
 	write_artist_art(release_artist->full_artist, item, item_text, p_status, p_abort);
@@ -391,7 +391,7 @@ void foo_discogs::write_artist_art(ReleaseArtist_ptr &release_artist,
 void foo_discogs::write_artist_art(Artist_ptr &artist,
 		metadb_handle_ptr item,
 		const char *item_text,
-		threaded_process_status & p_status,
+		threaded_process_status &p_status,
 		abort_callback &p_abort) {
 	
 	if (!artist->images.get_size()) {
@@ -399,14 +399,14 @@ void foo_discogs::write_artist_art(Artist_ptr &artist,
 	}
 	
 	// ensure artist is loaded
-	g_discogs->discogs->load(artist, p_abort);
+	artist->load(p_status, p_abort);
 
 	char progress_text[512];
 	sprintf_s(progress_text, "%s (%s - fetching artist art file list)", item_text, artist->name.get_ptr());
 	p_status.set_item(progress_text);
 
 	file_info_impl info;
-	titleformat_hook_impl_multiformat hook(&artist);
+	titleformat_hook_impl_multiformat hook(p_status, &artist);
 
 	pfc::string8 directory;
 	CONF.artist_art_directory_string->run_hook(item->get_location(), &info, &hook, directory, nullptr);
@@ -486,7 +486,7 @@ void foo_discogs::write_image(Image_ptr &image, const pfc::string8 &full_path, a
 		pfc::string8 url = image->url;
 		use_api = false;
 
-		discogs->fetcher->fetch_url(url, "", buffer, p_abort, use_api);
+		discogs_interface->fetcher->fetch_url(url, "", buffer, p_abort, use_api);
 
 		// write image
 		try {

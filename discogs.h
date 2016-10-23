@@ -6,6 +6,7 @@
 #include "jansson.h"
 #include "string_encoded_array.h"
 #include "pfc_helpers.h"
+#include "exposetags.h"
 
 #include <map>
 #include <functional>
@@ -16,79 +17,11 @@ namespace Discogs
 	class missing_data_exception : public foo_discogs_exception
 	{};
 
-	class DiscogsInterface;
-
 	extern pfc::string8 remove_number_suffix(const pfc::string8 &src);
 	extern pfc::string8 move_the_to_start(const pfc::string8 &src);
 	extern pfc::string8 move_the_to_end(const pfc::string8 &src);
 	extern pfc::string8 strip_artist_name(const pfc::string8 str);
 	extern pfc::string8 format_track_number(int tracknumber);
-
-
-	class ExposesTags
-	{
-	public:
-		bool loaded = false;
-		static DiscogsInterface *discogs;
-
-		virtual string_encoded_array get_data(pfc::string8 &tag_name, abort_callback &p_abort) = 0;
-
-		virtual ~ExposesTags() {}
-	};
-	typedef std::shared_ptr<ExposesTags> ExposesTags_ptr;
-
-
-	template <typename T>
-	class ExposedTags : public virtual ExposesTags
-	{
-	protected:
-		const static std::map<const char*, string_encoded_array(T::*)()const, cmp_str> exposed_tags;
-
-	public:
-		static std::map<const char*, string_encoded_array(ExposedTags::*)()const, cmp_str> create_default_tags_map() {
-			std::map<const char*, string_encoded_array(ExposedTags::*)()const, cmp_str> m;
-			return m;
-		}
-
-		inline bool has_data(pfc::string8 &tag_name) {
-			return exposed_tags.count(tag_name.get_ptr()) != 0;
-		}
-		
-		virtual string_encoded_array get_data(pfc::string8 &tag_name, abort_callback &p_abort) override {
-			auto &it = exposed_tags.find(tag_name.get_ptr());
-			if (it != exposed_tags.cend()) {
-				auto x = std::bind(it->second, ((T*)this));
-				pfc::string8 out;
-				try {
-					out = x();
-				}
-				catch (pfc::uninitialized_exception) {
-					if (!this->loaded) {
-						g_discogs->discogs->load(((T*)this), p_abort);
-						try {
-							out = x();
-						}
-						catch (pfc::uninitialized_exception) {
-							out = "";
-						}
-					}
-					else {
-						out = "";
-					}
-				}
-				return out;
-			}
-			else {
-				return get_sub_data(tag_name, p_abort);
-			}
-		}
-
-		virtual string_encoded_array get_sub_data(pfc::string8 &tag_name, abort_callback &p_abort) {
-			missing_data_exception ex;
-			ex << "Unknown tag: " << tag_name;
-			throw ex;
-		}
-	};
 
 
 	class Image : public ExposedTags<Image>
@@ -128,8 +61,28 @@ namespace Discogs
 	};
 
 
+	class HasRoles
+	{
+	public:
+		pfc::string8_ex raw_roles;
+		pfc::array_t_ex<pfc::string8> roles;
+		pfc::array_t_ex<pfc::string8> full_roles;
+
+		string_encoded_array get_raw_roles() const {
+			return raw_roles;
+		}
+		string_encoded_array get_roles() const {
+			return full_roles;
+		}
+		string_encoded_array get_roles_short() const {
+			return roles;
+		}
+	};
+
+
 	class Release;
 	typedef std::shared_ptr<Release> Release_ptr;
+
 
 	class MasterRelease;
 	typedef std::shared_ptr<MasterRelease> MasterRelease_ptr;
@@ -142,7 +95,6 @@ namespace Discogs
 		pfc::string8_ex name;
 		pfc::string8_ex profile;
 		pfc::string8_ex realname;
-		pfc::array_t<Release_ptr> releases;
 		pfc::array_t<MasterRelease_ptr> master_releases;
 		pfc::array_t<bool> search_order_master;
 		pfc::array_t_ex<pfc::string8> urls;
@@ -151,6 +103,7 @@ namespace Discogs
 		pfc::array_t_ex<pfc::string8> anvs;
 		pfc::array_t_ex<pfc::string8> members;
 		bool loaded_releases = false;
+		pfc::array_t<Release_ptr> releases;
 
 		string_encoded_array get_id() const {
 			return id;
@@ -201,45 +154,15 @@ namespace Discogs
 			return m;
 		}
 
-		virtual string_encoded_array get_sub_data(pfc::string8 &tag_name, abort_callback &p_abort) override {
-			pfc::string8 sub_tag_name;
-			string_encoded_array result;
-			if (STR_EQUALN(tag_name, "IMAGES_", 7)) {
-				sub_tag_name = substr(tag_name, 7);
-				for (size_t i = 0; i < images.get_size(); i++) {
-					result.append_item_val(images[i]->get_data(sub_tag_name, p_abort));
-				}
-			}
-			else {
-				return ExposedTags<Artist>::get_sub_data(tag_name, p_abort);
-			}
-			result.encode();
-			return result;
-		}
+		virtual string_encoded_array get_sub_data(pfc::string8 &tag_name, threaded_process_status &p_status, abort_callback &p_abort) override;
 
 		Artist(const char *id) : id(id) {
 		}
+
+		void load(threaded_process_status &p_status, abort_callback &p_abort, bool throw_all = false) override;
+		void load_releases(threaded_process_status &p_status, abort_callback &p_abort, bool throw_all = false);
 	};
 	typedef std::shared_ptr<Artist> Artist_ptr;
-
-
-	class HasRoles
-	{
-	public:
-		pfc::string8_ex raw_roles;
-		pfc::array_t_ex<pfc::string8> roles;
-		pfc::array_t_ex<pfc::string8> full_roles;
-
-		string_encoded_array get_raw_roles() const {
-			return raw_roles;
-		}
-		string_encoded_array get_roles() const {
-			return full_roles;
-		}
-		string_encoded_array get_roles_short() const {
-			return roles;
-		}
-	};
 
 
 	class ReleaseArtist : public HasRoles, public ExposedTags<ReleaseArtist>
@@ -286,15 +209,7 @@ namespace Discogs
 			return m;
 		}
 
-		string_encoded_array get_data(pfc::string8 &tag_name, abort_callback &p_abort) override {
-			try {
-				return ExposedTags<ReleaseArtist>::get_data(tag_name, p_abort);
-			}
-			catch (missing_data_exception) {
-				pfc::string8 xxx = full_artist->name;
-				return full_artist->get_data(tag_name, p_abort);
-			}
-		}
+		string_encoded_array get_data(pfc::string8 &tag_name, threaded_process_status &p_status, abort_callback &p_abort) override;
 
 		ReleaseArtist(const char *id, Artist_ptr &full_artist) : full_artist(full_artist), id(id) {
 		}
@@ -335,21 +250,7 @@ namespace Discogs
 			return m;
 		}
 
-		virtual string_encoded_array get_sub_data(pfc::string8 &tag_name, abort_callback &p_abort) override {
-			pfc::string8 sub_tag_name;
-			string_encoded_array result;
-			if (strncmp(tag_name.get_ptr(), "ARTISTS_", 8) == 0) {
-				sub_tag_name = pfc::string8(tag_name.get_ptr() + 8);
-				for (size_t i = 0; i < artists.get_size(); i++) {
-					result.append_item_val(artists[i]->get_data(sub_tag_name, p_abort));
-				}
-			}
-			else {
-				return ExposedTags<ReleaseCredit>::get_sub_data(tag_name, p_abort);
-			}
-			result.encode();
-			return result;
-		}
+		virtual string_encoded_array get_sub_data(pfc::string8 &tag_name, threaded_process_status &p_status, abort_callback &p_abort) override;
 	};
 	typedef std::shared_ptr<ReleaseCredit> ReleaseCredit_ptr;
 
@@ -544,33 +445,7 @@ namespace Discogs
 			return m;
 		}
 
-		virtual string_encoded_array get_sub_data(pfc::string8 &tag_name, abort_callback &p_abort) override {
-			pfc::string8 sub_tag_name;
-			string_encoded_array result;
-			if (strncmp(tag_name.get_ptr(), "ARTISTS_", 8) == 0) {
-				sub_tag_name = pfc::string8(tag_name.get_ptr() + 8);
-				for (size_t i = 0; i < artists.get_size(); i++) {
-					result.append_item_val(artists[i]->get_data(sub_tag_name, p_abort));
-				}
-			}
-			else if (strncmp(tag_name.get_ptr(), "CREDITS_", 8) == 0) {
-				sub_tag_name = pfc::string8(tag_name.get_ptr() + 8);
-				for (size_t i = 0; i < credits.get_size(); i++) {
-					result.append_item_val(credits[i]->get_data(sub_tag_name, p_abort));
-				}
-			}
-			else if (strncmp(tag_name.get_ptr(), "HIDDEN_TRACKS_", 14) == 0) {
-				sub_tag_name = pfc::string8(tag_name.get_ptr() + 14);
-				for (size_t i = 0; i < hidden_tracks.get_size(); i++) {
-					result.append_item_val(hidden_tracks[i]->get_data(sub_tag_name, p_abort));
-				}
-			}
-			else {
-				return ExposedTags<ReleaseTrack>::get_sub_data(tag_name, p_abort);
-			}
-			result.encode();
-			return result;
-		}
+		virtual string_encoded_array get_sub_data(pfc::string8 &tag_name, threaded_process_status &p_status, abort_callback &p_abort) override;
 
 		ReleaseTrack* clone() {
 			ReleaseTrack *rt = new ReleaseTrack();
@@ -659,25 +534,7 @@ namespace Discogs
 			return m;
 		}
 
-		virtual string_encoded_array get_sub_data(pfc::string8 &tag_name, abort_callback &p_abort) override {
-			pfc::string8 sub_tag_name;
-			string_encoded_array result;
-			if (STR_EQUALN(tag_name, "TRACKS_", 7)) {
-				sub_tag_name = substr(tag_name, 7);
-				for (size_t i = 0; i < tracks.get_size(); i++) {
-					result.append_item_val(tracks[i]->get_data(sub_tag_name, p_abort));
-				}
-			}
-			else if (STR_EQUALN(tag_name, "FORMAT_", 7)) {
-				sub_tag_name = substr(tag_name, 7);
-				return format->get_data(sub_tag_name, p_abort);
-			}
-			else {
-				return ExposedTags<ReleaseDisc>::get_sub_data(tag_name, p_abort);
-			}
-			result.encode();
-			return result;
-		}
+		virtual string_encoded_array get_sub_data(pfc::string8 &tag_name, threaded_process_status &p_status, abort_callback &p_abort) override;
 	};
 	typedef std::shared_ptr<ReleaseDisc> ReleaseDisc_ptr;
 
@@ -747,120 +604,6 @@ namespace Discogs
 		int total_headings;
 		int discogs_total_discs = 0;
 	};
-
-
-	class MasterRelease : public HasImages, public HasArtists, public HasTracklist, public ExposedTags<MasterRelease>
-	{
-	public:
-		pfc::string8_ex id;
-		pfc::string8_ex title;
-		pfc::string8_ex release_year;
-		pfc::string8_ex main_release_id; 
-		pfc::string8_ex main_release_url;
-		pfc::string8_ex main_release_api_url;
-		pfc::string8_ex versions_api_url;
-		pfc::array_t_ex<pfc::string8> genres;
-		pfc::array_t_ex<pfc::string8> styles;
-		pfc::array_t_ex<pfc::string8> videos;
-		pfc::string8_ex discogs_data_quality;
-		pfc::string8_ex discogs_tracklist_count;
-		// TODO: expose these...
-		pfc::array_t<Release_ptr> sub_releases;
-
-		MasterRelease() {}
-
-		MasterRelease(const char *id) : id(id) {
-		}
-
-		string_encoded_array get_id() const {
-			return id;
-		}
-		string_encoded_array get_title() const {
-			return title;
-		}
-		string_encoded_array get_release_year() const {
-			return release_year;
-		}
-		string_encoded_array get_main_release_id() const {
-			return main_release_id;
-		}
-		string_encoded_array get_main_release_url() const {
-			return main_release_url;
-		}
-		string_encoded_array get_main_release_api_url() const {
-			return main_release_api_url;
-		}
-		string_encoded_array get_discogs_data_quality() const {
-			return discogs_data_quality;
-		}
-		string_encoded_array get_videos() const {
-			return videos;
-		}
-		string_encoded_array get_styles() const {
-			return styles;
-		}
-		string_encoded_array get_genres() const {
-			return genres;
-		}
-
-		static std::map<const char*, string_encoded_array(MasterRelease::*)()const, cmp_str> create_tags_map() {
-			std::map<const char*, string_encoded_array(MasterRelease::*)()const, cmp_str> m;
-			m["ID"] = &MasterRelease::get_id;
-			m["TITLE"] = &MasterRelease::get_title;
-			m["YEAR"] = &MasterRelease::get_release_year;
-			m["MAIN_RELEASE_ID"] = &MasterRelease::get_main_release_id;
-			m["MAIN_RELEASE_URL"] = &MasterRelease::get_main_release_url;
-			m["MAIN_RELEASE_API_URL"] = &MasterRelease::get_main_release_api_url;
-			m["DISCOGS_DATA_QUALITY"] = &MasterRelease::get_discogs_data_quality;
-			m["GENRES"] = &MasterRelease::get_genres;
-			m["STYLES"] = &MasterRelease::get_styles;
-			m["VIDEOS"] = &MasterRelease::get_videos;
-			return m;
-		}
-
-		virtual string_encoded_array get_sub_data(pfc::string8 &tag_name, abort_callback &p_abort) override {
-			pfc::string8 sub_tag_name;
-			string_encoded_array result;
-			if (STR_EQUALN(tag_name, "TRACKS_", 7)) {
-				for (size_t i = 0; i < discs.get_size(); i++) {
-					if (i == 0) {
-						result = discs[i]->get_data(tag_name, p_abort);
-					}
-					else {
-						result.shallow_extend(discs[i]->get_data(tag_name, p_abort));
-					}
-				}
-			}
-			else if (STR_EQUALN(tag_name, "DISCS_", 6)) {
-				sub_tag_name = substr(tag_name, 6);
-				for (size_t i = 0; i < discs.get_size(); i++) {
-					result.append_item_val(discs[i]->get_data(sub_tag_name, p_abort));
-				}
-			}
-			else if (STR_EQUALN(tag_name, "ARTISTS_", 8)) {
-				sub_tag_name = substr(tag_name, 8);
-				for (size_t i = 0; i < artists.get_size(); i++) {
-					result.append_item_val(artists[i]->get_data(sub_tag_name, p_abort));
-				}
-			}
-			else if (STR_EQUALN(tag_name, "IMAGES_", 7)) {
-				sub_tag_name = substr(tag_name, 7);
-				for (size_t i = 0; i < images.get_size(); i++) {
-					result.append_item_val(images[i]->get_data(sub_tag_name, p_abort));
-				}
-			}
-			else {
-				return ExposedTags<MasterRelease>::get_sub_data(tag_name, p_abort);
-			}
-			result.encode();
-			return result;
-		}
-
-		bool has_anv() const override {
-			return HasArtists::has_anv() || HasDiscs::has_anv();
-		}
-	};
-	
 
 
 	class Release : public HasImages, public HasArtists, public HasCredits, public HasTracklist, public ExposedTags<Release>
@@ -1013,67 +756,7 @@ namespace Discogs
 			return m;
 		}
 
-		virtual string_encoded_array get_sub_data(pfc::string8 &tag_name, abort_callback &p_abort) override {
-			pfc::string8 sub_tag_name;
-			string_encoded_array result;
-			if (STR_EQUALN(tag_name, "TRACKS_", 7)) {
-				for (size_t i = 0; i < discs.get_size(); i++) {
-					if (i == 0) {
-						result = discs[i]->get_data(tag_name, p_abort);
-					}
-					else {
-						result.shallow_extend(discs[i]->get_data(tag_name, p_abort));
-					}
-				}
-			}
-			else if (STR_EQUALN(tag_name, "DISCS_", 6)) {
-				sub_tag_name = substr(tag_name, 6);
-				for (size_t i = 0; i < discs.get_size(); i++) {
-					result.append_item_val(discs[i]->get_data(sub_tag_name, p_abort));
-				}
-			}
-			else if (STR_EQUALN(tag_name, "ARTISTS_", 8)) {
-				sub_tag_name = substr(tag_name, 8);
-				for (size_t i = 0; i < artists.get_size(); i++) {
-					result.append_item_val(artists[i]->get_data(sub_tag_name, p_abort));
-				}
-			}
-			else if (STR_EQUALN(tag_name, "LABELS_", 7)) {
-				sub_tag_name = substr(tag_name, 7);
-				for (size_t i = 0; i < labels.get_size(); i++) {
-					result.append_item_val(labels[i]->get_data(sub_tag_name, p_abort));
-				}
-			}
-			else if (STR_EQUALN(tag_name, "SERIES_", 7)) {
-				sub_tag_name = substr(tag_name, 7);
-				for (size_t i = 0; i < series.get_size(); i++) {
-					result.append_item_val(series[i]->get_data(sub_tag_name, p_abort));
-				}
-			}
-			else if (STR_EQUALN(tag_name, "FORMATS_", 8)) {
-				sub_tag_name = substr(tag_name, 8);
-				for (size_t i = 0; i < formats.get_size(); i++) {
-					result.append_item_val(formats[i]->get_data(sub_tag_name, p_abort));
-				}
-			}
-			else if (STR_EQUALN(tag_name, "CREDITS_", 8)) {
-				sub_tag_name = substr(tag_name, 8);
-				for (size_t i = 0; i < credits.get_size(); i++) {
-					result.append_item_val(credits[i]->get_data(sub_tag_name, p_abort));
-				}
-			}
-			else if (STR_EQUALN(tag_name, "IMAGES_", 7)) {
-				sub_tag_name = substr(tag_name, 7);
-				for (size_t i = 0; i < images.get_size(); i++) {
-					result.append_item_val(images[i]->get_data(sub_tag_name, p_abort));
-				}
-			}
-			else {
-				return ExposedTags<Release>::get_sub_data(tag_name, p_abort);
-			}
-			result.encode();
-			return result;
-		}
+		virtual string_encoded_array get_sub_data(pfc::string8 &tag_name, threaded_process_status &p_status, abort_callback &p_abort) override;
 
 		Release(const char* id) : id(id) {}
 
@@ -1084,6 +767,88 @@ namespace Discogs
 		bool has_multiple_artists() const {
 			return artists.get_size() > 1;
 		}
+
+		void load(threaded_process_status &p_status, abort_callback &p_abort, bool throw_all = false) override;
+	};
+
+
+	class MasterRelease : public HasImages, public HasArtists, public HasTracklist, public ExposedTags<MasterRelease>
+	{
+	public:
+		pfc::string8_ex id;
+		pfc::string8_ex title;
+		pfc::string8_ex release_year;
+		pfc::string8_ex main_release_id; 
+		pfc::string8_ex main_release_url;
+		pfc::string8_ex main_release_api_url;
+		pfc::string8_ex versions_api_url;
+		pfc::array_t_ex<pfc::string8> genres;
+		pfc::array_t_ex<pfc::string8> styles;
+		pfc::array_t_ex<pfc::string8> videos;
+		pfc::string8_ex discogs_data_quality;
+		pfc::string8_ex discogs_tracklist_count;
+		pfc::array_t<Release_ptr> sub_releases;
+		bool loaded_releases = false;
+
+		MasterRelease() {}
+
+		MasterRelease(const char *id) : id(id) {
+		}
+
+		string_encoded_array get_id() const {
+			return id;
+		}
+		string_encoded_array get_title() const {
+			return title;
+		}
+		string_encoded_array get_release_year() const {
+			return release_year;
+		}
+		string_encoded_array get_main_release_id() const {
+			return main_release_id;
+		}
+		string_encoded_array get_main_release_url() const {
+			return main_release_url;
+		}
+		string_encoded_array get_main_release_api_url() const {
+			return main_release_api_url;
+		}
+		string_encoded_array get_discogs_data_quality() const {
+			return discogs_data_quality;
+		}
+		string_encoded_array get_videos() const {
+			return videos;
+		}
+		string_encoded_array get_styles() const {
+			return styles;
+		}
+		string_encoded_array get_genres() const {
+			return genres;
+		}
+
+		static std::map<const char*, string_encoded_array(MasterRelease::*)()const, cmp_str> create_tags_map() {
+			std::map<const char*, string_encoded_array(MasterRelease::*)()const, cmp_str> m;
+			m["ID"] = &MasterRelease::get_id;
+			m["TITLE"] = &MasterRelease::get_title;
+			m["YEAR"] = &MasterRelease::get_release_year;
+			m["MAIN_RELEASE_ID"] = &MasterRelease::get_main_release_id;
+			m["MAIN_RELEASE_URL"] = &MasterRelease::get_main_release_url;
+			m["MAIN_RELEASE_API_URL"] = &MasterRelease::get_main_release_api_url;
+			m["DISCOGS_DATA_QUALITY"] = &MasterRelease::get_discogs_data_quality;
+			m["GENRES"] = &MasterRelease::get_genres;
+			m["STYLES"] = &MasterRelease::get_styles;
+			m["VIDEOS"] = &MasterRelease::get_videos;
+			return m;
+		}
+
+		virtual string_encoded_array get_sub_data(pfc::string8 &tag_name, threaded_process_status &p_status, abort_callback &p_abort) override;
+
+		bool has_anv() const override {
+			return HasArtists::has_anv() || HasDiscs::has_anv();
+		}
+
+		void load(threaded_process_status &p_status, abort_callback &p_abort, bool throw_all = false) override;
+		void load_releases(threaded_process_status &p_status, abort_callback &p_abort, bool throw_all = false);
 	};
 
 	
@@ -1111,7 +876,7 @@ namespace Discogs
 	extern Image_ptr parseImage(json_t *element);
 
 	extern void parseArtistReleases(json_t *element, Artist *artist);
-	extern void parseMasterVersions(json_t *element, MasterRelease_ptr &master_release);
+	extern void parseMasterVersions(json_t *element, MasterRelease *master_release);
 
 	extern ReleaseArtist_ptr parseReleaseArtist(json_t *element);
 	extern void parseReleaseArtists(json_t *element, pfc::array_t<ReleaseArtist_ptr> &artists);
@@ -1134,5 +899,3 @@ namespace Discogs
 
 	extern int get_track_count(json_t *element);
 }
-
-#include "foo_discogs.h"

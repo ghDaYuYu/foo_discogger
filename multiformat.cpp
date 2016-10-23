@@ -27,36 +27,36 @@ bool titleformat_hook_impl_multiformat::process_field(titleformat_text_out * p_o
 			}
 			else if (release != nullptr && STR_EQUALN(p_name, "RELEASE_", 8)) {
 				tag_name = substr(p_name, 8, p_name_length - 8);
-				result = (*release)->get_data(tag_name, p_abort);
+				result = (*release)->get_data(tag_name, p_status, p_abort);
 			}
 			else if ((release_track != nullptr || release != nullptr) && STR_EQUALN(p_name, "ARTISTS_", 8)) {
 				tag_name = pfc::string8(p_name, p_name_length);
 				if (release_track != nullptr && (*release_track)->artists.get_size()) {
-					result = (*release_track)->get_data(tag_name, p_abort);
+					result = (*release_track)->get_data(tag_name, p_status, p_abort);
 				}
 				else if (release != nullptr) {
-					result = (*release)->get_data(tag_name, p_abort);
+					result = (*release)->get_data(tag_name, p_status, p_abort);
 				}
 			}
 			else if (artist != nullptr && STR_EQUALN(p_name, "ARTIST_", 7)) {
 				tag_name = substr(p_name, 7, p_name_length - 7);
-				result = (*artist)->get_data(tag_name, p_abort);
+				result = (*artist)->get_data(tag_name, p_status, p_abort);
 			}
 			else if (release_track != nullptr && STR_EQUALN(p_name, "TRACK_", 6)) {
 				tag_name = substr(p_name, 6, p_name_length - 6);
-				result = (*release_track)->get_data(tag_name, p_abort);
+				result = (*release_track)->get_data(tag_name, p_status, p_abort);
 			}
 			else if (release_disc != nullptr && STR_EQUALN(p_name, "DISC_", 5)) {
 				tag_name = substr(p_name, 5, p_name_length - 5);
-				result = (*release_disc)->get_data(tag_name, p_abort);
+				result = (*release_disc)->get_data(tag_name, p_status, p_abort);
 			}
 			else if (master_release != nullptr && STR_EQUALN(p_name, "MASTER_RELEASE_", 15)) {
 				tag_name = substr(p_name, 15, p_name_length - 15);
-				result = (*master_release)->get_data(tag_name, p_abort);
+				result = (*master_release)->get_data(tag_name, p_status, p_abort);
 			}
 			else if (image != nullptr && STR_EQUALN(p_name, "IMAGE_", 6)) {
 				tag_name = substr(p_name, 6, p_name_length - 6);
-				result = (*image)->get_data(tag_name, p_abort);
+				result = (*image)->get_data(tag_name, p_status, p_abort);
 			}
 			else {
 				p_found_flag = false;

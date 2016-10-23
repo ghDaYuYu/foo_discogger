@@ -38,7 +38,6 @@ private:
 
 	file_info_impl info;
 	playable_location_impl location;
-
 	titleformat_hook_impl_multiformat hook;
 
 	HWND discogs_track_list, file_list;
@@ -117,7 +116,8 @@ public:
 		save_size(cxWidth, cyHeight);
 	}
 
-	CReleaseDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags = false) : tag_writer(tag_writer), use_update_tags(use_update_tags) {
+	CReleaseDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags = false) : 
+			tag_writer(tag_writer), use_update_tags(use_update_tags) {
 		g_discogs->release_dialog = this;
 		Create(p_parent);
 	}

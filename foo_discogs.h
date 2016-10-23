@@ -28,8 +28,6 @@ class edit_complete;
 class foo_discogs : public ErrorManager
 {
 public:
-	DiscogsInterface *discogs;
-
 	enum discog_web_page
 	{
 		ARTIST_PAGE,

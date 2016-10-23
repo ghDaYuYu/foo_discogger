@@ -128,7 +128,7 @@ LRESULT CConfigurationDialog::OnOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCt
 	save_oauth_dialog(g_hWndTabDialog[CONF_OATH_TAB]);
 	CONF = conf;
 	CONF.save();
-	g_discogs->discogs->fetcher->update_oauth(conf.oauth_token, conf.oauth_token_secret);
+	discogs_interface->fetcher->update_oauth(conf.oauth_token, conf.oauth_token_secret);
 	destroy();
 	return TRUE;
 }
@@ -195,10 +195,10 @@ void CConfigurationDialog::init_caching_dialog(HWND wnd) {
 	pfc::string8 num;
 	num << conf.cache_max_objects;
 	uSetDlgItemText(wnd, IDC_CACHED_OBJECTS_EDIT, num);
-	::EnableWindow(::uGetDlgItem(wnd, IDC_CLEAR_CACHE_RELEASES), g_discogs->discogs->is_empty_release_cache() ? FALSE : TRUE);
-	::EnableWindow(::uGetDlgItem(wnd, IDC_CLEAR_CACHE_MASTERS), g_discogs->discogs->is_empty_master_release_cache() ? FALSE : TRUE);
-	::EnableWindow(::uGetDlgItem(wnd, IDC_CLEAR_CACHE_ARTISTS), g_discogs->discogs->is_empty_artist_cache() ? FALSE : TRUE);
-	::EnableWindow(::uGetDlgItem(wnd, IDC_CLEAR_CACHE_COLLECTION), g_discogs->discogs->is_empty_collection_cache() ? FALSE : TRUE);
+	::EnableWindow(::uGetDlgItem(wnd, IDC_CLEAR_CACHE_RELEASES), discogs_interface->is_empty_release_cache() ? FALSE : TRUE);
+	::EnableWindow(::uGetDlgItem(wnd, IDC_CLEAR_CACHE_MASTERS), discogs_interface->is_empty_master_release_cache() ? FALSE : TRUE);
+	::EnableWindow(::uGetDlgItem(wnd, IDC_CLEAR_CACHE_ARTISTS), discogs_interface->is_empty_artist_cache() ? FALSE : TRUE);
+	::EnableWindow(::uGetDlgItem(wnd, IDC_CLEAR_CACHE_COLLECTION), discogs_interface->is_empty_collection_cache() ? FALSE : TRUE);
 }
 
 void CConfigurationDialog::init_searching_dialog(HWND wnd) {
@@ -257,7 +257,7 @@ void CConfigurationDialog::save_tagging_dialog(HWND wnd) {
 void CConfigurationDialog::save_caching_dialog(HWND wnd) {
 	conf.parse_hidden_as_regular = uButton_GetCheck(wnd, IDC_HIDDEN_AS_REGULAR_CHECK);
 	if (original_parsing != conf.parse_hidden_as_regular) {
-		g_discogs->discogs->reset_release_cache();
+		discogs_interface->reset_release_cache();
 	}
 
 	pfc::string8 text;
@@ -269,7 +269,7 @@ void CConfigurationDialog::save_caching_dialog(HWND wnd) {
 		}
 	}
 	conf.cache_max_objects = atol(str);
-	g_discogs->discogs->set_cache_size(conf.cache_max_objects);
+	discogs_interface->set_cache_size(conf.cache_max_objects);
 }
 
 void CConfigurationDialog::save_searching_dialog(HWND wnd) {
@@ -380,19 +380,19 @@ BOOL CConfigurationDialog::on_caching_dialog_message(HWND wnd, UINT msg, WPARAM 
 			return TRUE;
 		case WM_COMMAND:
 			if (LOWORD(wp) == IDC_CLEAR_CACHE_RELEASES) {
-				g_discogs->discogs->reset_release_cache();
+				discogs_interface->reset_release_cache();
 				::EnableWindow(::uGetDlgItem(wnd, IDC_CLEAR_CACHE_RELEASES), FALSE);
 			}
 			else if (LOWORD(wp) == IDC_CLEAR_CACHE_MASTERS) {
-				g_discogs->discogs->reset_master_release_cache();
+				discogs_interface->reset_master_release_cache();
 				::EnableWindow(::uGetDlgItem(wnd, IDC_CLEAR_CACHE_MASTERS), FALSE);
 			}
 			else if (LOWORD(wp) == IDC_CLEAR_CACHE_ARTISTS) {
-				g_discogs->discogs->reset_artist_cache();
+				discogs_interface->reset_artist_cache();
 				::EnableWindow(::uGetDlgItem(wnd, IDC_CLEAR_CACHE_ARTISTS), FALSE);
 			}
 			else if (LOWORD(wp) == IDC_CLEAR_CACHE_COLLECTION) {
-				g_discogs->discogs->reset_collection_cache();
+				discogs_interface->reset_collection_cache();
 				::EnableWindow(::uGetDlgItem(wnd, IDC_CLEAR_CACHE_COLLECTION), FALSE);
 			}
 			return FALSE;

@@ -3,6 +3,7 @@
 #include "foo_discogs.h"
 #include "resource.h"
 #include "file_info_manager.h"
+#include "multiformat.h"
 
 using namespace Discogs;
 
@@ -20,6 +21,8 @@ private:
 	file_info_impl info;
 
 	metadb_handle_list items;
+
+	titleformat_hook_impl_multiformat_ptr hook;
 
 	pfc::array_t<Artist_ptr> artist_exact_matches;
 	pfc::array_t<Artist_ptr> artist_other_matches;
@@ -48,7 +51,7 @@ private:
 	void on_write_tags(const pfc::string8 &release_id);
 
 	void expand_master_release(MasterRelease_ptr &master_release, int pos);
-	void on_expand_master_release_done(const MasterRelease_ptr &master_release, int pos);
+	void on_expand_master_release_done(const MasterRelease_ptr &master_release, int pos, threaded_process_status &p_status, abort_callback &p_abort);
 
 	void on_release_selected(int pos);
 

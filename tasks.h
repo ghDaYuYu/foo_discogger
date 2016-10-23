@@ -14,7 +14,7 @@ class foo_discogs_threaded_process_callback : public threaded_process_callback, 
 {
 protected:
 	// implement task here. catches foo_discogs exceptions.
-	virtual void safe_run(threaded_process_status & p_status, abort_callback & p_abort) = 0;
+	virtual void safe_run(threaded_process_status &p_status, abort_callback &p_abort) = 0;
 	
 	// success callback
 	virtual void on_success(HWND p_wnd) {};
@@ -26,7 +26,7 @@ protected:
 	virtual bool on_error(HWND p_wnd) { return true; }
 
 private:
-	void run(threaded_process_status & p_status, abort_callback & p_abort) override final;
+	void run(threaded_process_status &p_status, abort_callback &p_abort) override final;
 	void on_done(HWND p_wnd, bool p_was_aborted) override final;
 };
 
@@ -60,7 +60,7 @@ private:
 	TagWriter_ptr tag_writer;
 	bool use_update_tags;
 
-	void safe_run(threaded_process_status & p_status, abort_callback & p_abort) override;
+	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
 	void on_abort(HWND p_wnd) override;
 	bool on_error(HWND p_wnd) override;
@@ -79,7 +79,7 @@ private:
 	pfc::array_t<TagWriter_ptr> tag_writers;
 	bool use_update_tags;
 
-	void safe_run(threaded_process_status & p_status, abort_callback & p_abort) override;
+	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
 	void on_abort(HWND p_wnd) override;
 	bool on_error(HWND p_wnd) override;
@@ -95,7 +95,7 @@ public:
 private:
 	TagWriter_ptr tag_writer;
 
-	void safe_run(threaded_process_status & p_status, abort_callback & p_abort) override;
+	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
 };
 
@@ -109,7 +109,7 @@ public:
 private:
 	pfc::array_t<TagWriter_ptr> tag_writers;
 
-	void safe_run(threaded_process_status & p_status, abort_callback & p_abort) override;
+	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
 	void on_abort(HWND p_wnd) override;
 	bool on_error(HWND p_wnd) override;
@@ -129,7 +129,7 @@ private:
 	file_info_manager finfo_manager;
 	metadb_handle_list items;
 
-	void safe_run(threaded_process_status & p_status, abort_callback & p_abort) override;
+	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 };
 
 
@@ -146,7 +146,7 @@ private:
 
 	metadb_handle_list items;
 
-	void safe_run(threaded_process_status & p_status, abort_callback & p_abort) override;
+	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 };
 
 
@@ -161,7 +161,7 @@ private:
 	metadb_handle_list items;
 	metadb_handle_list deleted_items;
 	
-	void safe_run(threaded_process_status & p_status, abort_callback & p_abort) override;
+	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
 	void on_abort(HWND p_wnd) override; 
 	bool on_error(HWND p_wnd) override;
@@ -181,7 +181,7 @@ private:
 	metadb_handle_list items;
 	metadb_handle_list missing_items;
 
-	void safe_run(threaded_process_status & p_status, abort_callback & p_abort) override;
+	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
 	void on_abort(HWND p_wnd) override;
 	bool on_error(HWND p_wnd) override;
@@ -204,7 +204,7 @@ private:
 	std::map<pfc::string8, file_info_manager_ptr> finfo_manager_map;
 	pfc::array_t<TagWriter_ptr> tag_writers;
 
-	void safe_run(threaded_process_status & p_status, abort_callback & p_abort) override;
+	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
 	void on_abort(HWND p_wnd) override;
 	bool on_error(HWND p_wnd) override;
@@ -223,7 +223,7 @@ private:
 	pfc::string8 m_artist_id;
 	Artist_ptr m_artist;
 
-	void safe_run(threaded_process_status & p_status, abort_callback & p_abort) override;
+	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
 };
 
@@ -239,7 +239,7 @@ private:
 	pfc::array_t<Artist_ptr> m_artist_exact_matches;
 	pfc::array_t<Artist_ptr> m_artist_other_matches;
 
-	void safe_run(threaded_process_status & p_status, abort_callback & p_abort) override;
+	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
 };
 
@@ -251,13 +251,15 @@ public:
 	void start(HWND parent);
 
 private:
+	TagWriter_ptr tag_writer;
+	file_info_manager_ptr finfo_manager;
 	metadb_handle_list items;
 
 	CFindReleaseDialog *m_dialog;
 	pfc::string8 m_release_id;
 	Release_ptr m_release;
 
-	void safe_run(threaded_process_status & p_status, abort_callback & p_abort) override;
+	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
 	void on_abort(HWND p_wnd) override;
 	bool on_error(HWND p_wnd) override;
@@ -273,7 +275,7 @@ private:
 	const pfc::string8 &test_token;
 	const pfc::string8 &test_token_secret;
 
-	void safe_run(threaded_process_status & p_status, abort_callback & p_abort) override;
+	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
 };
 
@@ -285,7 +287,7 @@ public:
 	void start(HWND parent);
 
 private:
-	void safe_run(threaded_process_status & p_status, abort_callback & p_abort) override;
+	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 };
 
 
@@ -299,7 +301,7 @@ private:
 	pfc::string8 code;
 	OAuth::Token *token;
 
-	void safe_run(threaded_process_status & p_status, abort_callback & p_abort) override;
+	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
 };
 
@@ -314,6 +316,6 @@ private:
 	MasterRelease_ptr m_master_release;
 	int m_pos;
 
-	void safe_run(threaded_process_status & p_status, abort_callback & p_abort) override;
+	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
 };

@@ -18,10 +18,13 @@ template <class T>
 class ExposedTags : public virtual ExposesTags
 {
 protected:
-	const static std::map<const char*, string_encoded_array(T::*)()const, cmp_str> exposed_tags;
+	const static std::map<const char*, std::pair<string_encoded_array(T::*)()const, void(T::*)(threaded_process_status&, abort_callback&, bool)>, cmp_str> exposed_tags;
 
 public:
-	static std::map<const char*, string_encoded_array(ExposedTags::*)()const, cmp_str> create_default_tags_map();
+	static std::map<const char*, std::pair<string_encoded_array(ExposedTags::*)()const, void(ExposedTags::*)(threaded_process_status&, abort_callback&, bool)>, cmp_str> create_default_tags_map() {
+		std::map<const char*, std::pair<string_encoded_array(ExposedTags::*)()const, void(ExposedTags::*)(threaded_process_status&, abort_callback&, bool)>, cmp_str> m;
+		return m;
+	}
 	
 	virtual string_encoded_array get_data(pfc::string8 &tag_name, threaded_process_status &p_status, abort_callback &p_abort) override;
 	virtual string_encoded_array get_sub_data(pfc::string8 &tag_name, threaded_process_status &p_status, abort_callback &p_abort);
@@ -31,20 +34,27 @@ public:
 	}
 };
 
+template <class T>
+using ExposedPair = std::pair<string_encoded_array(T::*)()const, void(T::*)(threaded_process_status&, abort_callback&, bool)>;
 
-template <typename T> static std::map<const char*, string_encoded_array(ExposedTags<T>::*)()const, cmp_str> ExposedTags<T>::create_default_tags_map() {
-	std::map<const char*, string_encoded_array(ExposedTags::*)()const, cmp_str> m;
-	return m;
-}
+template <class T>
+using ExposedMap = std::map<const char*, std::pair<string_encoded_array(T::*)()const, void(T::*)(threaded_process_status&, abort_callback&, bool)>, cmp_str>;
+
 
 
 template <class T>
 string_encoded_array ExposedTags<T>::get_data(pfc::string8 &tag_name, threaded_process_status &p_status, abort_callback &p_abort) {
 	auto &it = exposed_tags.find(tag_name.get_ptr());
 	if (it != exposed_tags.cend()) {
-		auto x = std::bind(it->second, ((T*)this));
-		pfc::string8 out;
-		try {
+		auto pair = it->second;
+		auto x = std::bind(pair.first, ((T*)this));
+		auto load_check = pair.second;
+		if (load_check != nullptr) {
+			auto load_func = std::bind(pair.second, ((T*)this), std::ref(p_status), std::ref(p_abort), false);
+			load_func();
+		}
+		pfc::string8 out = x();
+		/*try {
 			out = x();
 		}
 		catch (pfc::uninitialized_exception) {
@@ -60,7 +70,7 @@ string_encoded_array ExposedTags<T>::get_data(pfc::string8 &tag_name, threaded_p
 			else {
 				out = "";
 			}
-		}
+		}*/
 		return out;
 	}
 	else {

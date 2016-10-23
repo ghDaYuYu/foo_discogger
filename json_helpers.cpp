@@ -54,8 +54,8 @@ pfc::string8 JSONAttributeString(json_t *element, const char* attribute) {
 }
 
 /*
-pfc::string8_ex JSONAttributeStringEx(json_t *element, const char* attribute) {
-	pfc::string8_ex s;
+pfc::string8 JSONAttributeStringEx(json_t *element, const char* attribute) {
+	pfc::string8 s;
 
 	if (json_is_object(element)) {
 

@@ -19,7 +19,8 @@ private:
 	lru_cache<pfc::string8, MasterRelease_ptr> *cache_master_releases;
 	lru_cache<pfc::string8, Artist_ptr> *cache_artists;
 	lru_cache<pfc::string8, bool> *cache_deleted_releases;
-		
+	
+	pfc::string8 username;
 	pfc::array_t<pfc::string8> collection;
 
 
@@ -120,7 +121,8 @@ public:
 	Artist_ptr get_artist(const pfc::string8 &artist_id, bool bypass_cache = false);
 	Artist_ptr get_artist(const pfc::string8 &artist_id, bool load_releases, threaded_process_status &p_status, abort_callback &p_abort, bool bypass_cache = false, bool throw_all = false);
 
-	pfc::string8 get_username(abort_callback &p_abort);
+	pfc::string8 get_username(threaded_process_status &p_status, abort_callback &p_abort);
+	pfc::string8 load_username(threaded_process_status &p_status, abort_callback &p_abort);
 	pfc::array_t<pfc::string8> get_collection(threaded_process_status &p_status, abort_callback &p_abort);
 };
 

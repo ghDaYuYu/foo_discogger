@@ -7,17 +7,18 @@
 
 using namespace Discogs;
 
-const std::map<const char*, string_encoded_array(ReleaseLabel::*)()const, cmp_str> ExposedTags<ReleaseLabel>::exposed_tags = ReleaseLabel::create_tags_map();
-const std::map<const char*, string_encoded_array(ReleaseSeries::*)()const, cmp_str> ExposedTags<ReleaseSeries>::exposed_tags = ReleaseSeries::create_tags_map();
-const std::map<const char*, string_encoded_array(ReleaseTrack::*)()const, cmp_str> ExposedTags<ReleaseTrack>::exposed_tags = ReleaseTrack::create_tags_map();
-const std::map<const char*, string_encoded_array(Release::*)()const, cmp_str> ExposedTags<Release>::exposed_tags = Release::create_tags_map();
-const std::map<const char*, string_encoded_array(MasterRelease::*)()const, cmp_str> ExposedTags<MasterRelease>::exposed_tags = MasterRelease::create_tags_map();
-const std::map<const char*, string_encoded_array(Artist::*)()const, cmp_str> ExposedTags<Artist>::exposed_tags = Artist::create_tags_map();
-const std::map<const char*, string_encoded_array(ReleaseArtist::*)()const, cmp_str> ExposedTags<ReleaseArtist>::exposed_tags = ReleaseArtist::create_tags_map();
-const std::map<const char*, string_encoded_array(ReleaseCredit::*)()const, cmp_str> ExposedTags<ReleaseCredit>::exposed_tags = ReleaseCredit::create_tags_map();
-const std::map<const char*, string_encoded_array(ReleaseFormat::*)()const, cmp_str> ExposedTags<ReleaseFormat>::exposed_tags = ReleaseFormat::create_tags_map();
-const std::map<const char*, string_encoded_array(ReleaseDisc::*)()const, cmp_str> ExposedTags<ReleaseDisc>::exposed_tags = ReleaseDisc::create_tags_map();
-const std::map<const char*, string_encoded_array(Image::*)()const, cmp_str> ExposedTags<Image>::exposed_tags = Image::create_tags_map();
+const ExposedMap<ReleaseLabel> ExposedTags<ReleaseLabel>::exposed_tags = ReleaseLabel::create_tags_map();
+const ExposedMap<ReleaseSeries> ExposedTags<ReleaseSeries>::exposed_tags = ReleaseSeries::create_tags_map();
+const ExposedMap<ReleaseTrack> ExposedTags<ReleaseTrack>::exposed_tags = ReleaseTrack::create_tags_map();
+const ExposedMap<Release> ExposedTags<Release>::exposed_tags = Release::create_tags_map();
+const ExposedMap<MasterRelease> ExposedTags<MasterRelease>::exposed_tags = MasterRelease::create_tags_map();
+const ExposedMap<Artist> ExposedTags<Artist>::exposed_tags = Artist::create_tags_map();
+const ExposedMap<ReleaseArtist> ExposedTags<ReleaseArtist>::exposed_tags = ReleaseArtist::create_tags_map();
+const ExposedMap<ReleaseCredit> ExposedTags<ReleaseCredit>::exposed_tags = ReleaseCredit::create_tags_map();
+const ExposedMap<ReleaseFormat> ExposedTags<ReleaseFormat>::exposed_tags = ReleaseFormat::create_tags_map();
+const ExposedMap<ReleaseDisc> ExposedTags<ReleaseDisc>::exposed_tags = ReleaseDisc::create_tags_map();
+const ExposedMap<Image> ExposedTags<Image>::exposed_tags = Image::create_tags_map();
+
 
 /*
 const std::map<const char*, string_encoded_array(Release::*)()const, cmp_str> ExposedTags<Release>::exposed_tags = {
@@ -237,6 +238,11 @@ string_encoded_array Discogs::Release::get_sub_data(pfc::string8 &tag_name, thre
 		for (size_t i = 0; i < images.get_size(); i++) {
 			result.append_item_val(images[i]->get_data(sub_tag_name, p_status, p_abort));
 		}
+	}
+	else if (STR_EQUALN(tag_name, "MASTER_RELEASE_", 15)) {
+		sub_tag_name = substr(tag_name, 15);
+		load(p_status, p_abort);
+		result = master_release->get_data(sub_tag_name, p_status, p_abort);
 	}
 	else {
 		return ExposedTags<Release>::get_sub_data(tag_name, p_status, p_abort);
@@ -940,7 +946,8 @@ void Discogs::parseRelease(Release *release, json_t *root) {
 	assert_is_object(root);
 
 	release->id = JSONAttributeString(root, "id");
-	release->master_id = JSONAttributeString(root, "master_id");
+	MasterRelease_ptr master = discogs_interface->get_master_release(JSONAttributeString(root, "master_id"));
+	release->set_master_release(master);
 	release->title = JSONAttributeString(root, "title");
 	release->country = JSONAttributeString(root, "country");
 	release->genres = JSONAttributeStringArray(root, "genres");
@@ -1017,6 +1024,10 @@ void Discogs::parseRelease(Release *release, json_t *root) {
 
 	json_t *extraartists = json_object_get(root, "extraartists");
 	parseReleaseCredits(extraartists, release->credits, release);
+}
+
+void Discogs::parseReleaseRating(Release *release, json_t *root) {
+	release->discogs_my_rating = JSONAttributeString(root, "rating");
 }
 
 void Discogs::parseMasterRelease(MasterRelease *master_release, json_t *root) {
@@ -1125,16 +1136,9 @@ void Discogs::parseMasterVersions(json_t *root, MasterRelease *master_release) {
 
 			if (json_is_object(rel)) {
 				Release_ptr release = discogs_interface->get_release(JSONAttributeString(rel, "id"));
-				release->master_id = master_release->id;
+				MasterRelease_ptr master = discogs_interface->get_master_release(master_release->id);
+				release->set_master_release(master);
 				release->title = JSONAttributeString(rel, "title");
-				/*pfc::string8 labels = JSONAttributeString(rel, "label");
-				pfc::array_t<pfc::string8> label_names;
-				tokenize(labels, ", ", label_names, true);
-				for (size_t i = 0; i < label_names.get_size(); i++) {
-				ReleaseLabel_ptr label(new ReleaseLabel());
-				label->name = label_names[i];
-				release->labels.append_single(std::move(label));
-				}*/
 				release->search_labels = JSONAttributeString(rel, "label");
 				release->search_formats = JSONAttributeString(rel, "format");
 				release->search_catno = JSONAttributeString(rel, "catno");
@@ -1152,6 +1156,7 @@ void Discogs::parseMasterVersions(json_t *root, MasterRelease *master_release) {
 					}
 				}
 				if (!duplicate) {
+					release->loaded_master_preview = true;
 					master_release->sub_releases.append_single(std::move(release));
 				}
 			}
@@ -1228,6 +1233,10 @@ void Discogs::Artist::load(threaded_process_status &p_status, abort_callback &p_
 			initialize_null_artist(this);
 			return;
 		}
+		
+		pfc::string8 msg("Loading artist ");
+		msg << id << "...";
+		p_status.set_item(msg);
 
 		pfc::string8 json;
 		pfc::string8 url;
@@ -1255,6 +1264,10 @@ void Discogs::Release::load(threaded_process_status &p_status, abort_callback &p
 		return;
 	}
 	try {
+		pfc::string8 msg("Loading release ");
+		msg << id << "...";
+		p_status.set_item(msg);
+
 		pfc::string8 json;
 		pfc::string8 url;
 		url << "https://api.discogs.com/releases/" << id;
@@ -1275,8 +1288,37 @@ void Discogs::Release::load(threaded_process_status &p_status, abort_callback &p
 	}
 }
 
+void Discogs::Release::load_my_rating(threaded_process_status &p_status, abort_callback &p_abort, bool throw_all) {
+	if (loaded_my_rating) {
+		return;
+	}
+	try {
+		pfc::string8 msg("Loading release ");
+		msg << id << " personal rating...";
+		p_status.set_item(msg);
+
+		pfc::string8 json;
+		pfc::string8 url;
+		url << "https://api.discogs.com/releases/" << id << "/rating/" << discogs_interface->get_username(p_status, p_abort);
+		discogs_interface->fetcher->fetch_html(url, "", json, p_abort);
+
+		JSONParser jp(json);
+
+		parseReleaseRating(this, jp.root);
+		loaded_my_rating = true;
+	}
+	catch (foo_discogs_exception &e) {
+		if (throw_all) {
+			throw;
+		}
+		pfc::string8 error("Error loading release ");
+		error << id << ": " << e.what();
+		throw foo_discogs_exception(error);
+	}
+}
+
 void Discogs::MasterRelease::load(threaded_process_status &p_status, abort_callback &p_abort, bool throw_all) {
-	if (id.get_length() || loaded) {
+	if (!id.get_length() || loaded) {
 		return;
 	}
 	try {
@@ -1326,7 +1368,7 @@ void Discogs::Artist::load_releases(threaded_process_status &p_status, abort_cal
 }
 
 void Discogs::MasterRelease::load_releases(threaded_process_status &p_status, abort_callback &p_abort, bool throw_all) {
-	if (loaded_releases) {
+	if (!id.get_length() || loaded_releases) {
 		return;
 	}
 	try {

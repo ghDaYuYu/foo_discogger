@@ -99,7 +99,7 @@ int tokenize_multi(const pfc::string8 &src, const pfc::array_t<pfc::string8> &de
 	return (int)tokens.get_size();
 }
 
-int tokenize(const pfc::string8_ex &src, const pfc::string8 &delim, pfc::array_t_ex<pfc::string8> &tokens, bool remove_blanks) {
+/*int tokenize(const pfc::string8 &src, const pfc::string8 &delim, pfc::array_t_ex<pfc::string8> &tokens, bool remove_blanks) {
 	size_t pos;
 	tokens.force_reset();
 	pfc::string8 tmp = src;
@@ -117,7 +117,7 @@ int tokenize(const pfc::string8_ex &src, const pfc::string8 &delim, pfc::array_t
 	}
 	tokens.append_single(tmp);
 	return (int)tokens.get_size();
-}
+}*/
 
 
 pfc::string8 makeFsCompliant(const char *s) {

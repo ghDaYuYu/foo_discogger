@@ -166,7 +166,6 @@
     <ClInclude Include="prompt_dialog.h" />
     <ClInclude Include="sdk_helpers.h" />
     <ClInclude Include="tag_mappings_dialog.h" />
-    <ClInclude Include="pfc_helpers.h" />
     <ClInclude Include="release_dialog.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="stdafx.h" />

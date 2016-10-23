@@ -2,7 +2,6 @@
 
 #include "../../pfc/pfc.h"
 #include <map>
-#include "pfc_helpers.h"
 
 extern "C" {
 	#include "zlib.h"
@@ -67,7 +66,7 @@ extern void add_first_if_not_exists(pfc::array_t<pfc::string8> &v, pfc::string8 
 
 // Tokenize string
 extern int tokenize(const pfc::string8 &src, const pfc::string8 &delim, pfc::array_t<pfc::string8> &tokens, bool remove_blanks);
-extern int tokenize(const pfc::string8_ex &src, const pfc::string8 &delim, pfc::array_t_ex<pfc::string8> &tokens, bool remove_blanks);
+//extern int tokenize(const pfc::string8 &src, const pfc::string8 &delim, pfc::array_t_ex<pfc::string8> &tokens, bool remove_blanks);
 extern int tokenize_multi(const pfc::string8 &src, const pfc::array_t<pfc::string8> &delims, pfc::array_t<pfc::string8> &tokens, bool remove_blanks);
 
 // TODO: use the titleformat filter instead?

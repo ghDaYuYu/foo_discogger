@@ -19,24 +19,12 @@ string_encoded_array::string_encoded_array(const char c) {
 	set_value(c);
 }
 
-string_encoded_array::string_encoded_array(const pfc::string8_ex &str) {
-	set_value(str);
-}
-
 string_encoded_array::string_encoded_array(const pfc::string8 &str) {
 	set_value(str);
 }
 
-string_encoded_array::string_encoded_array(const pfc::array_t_ex<pfc::string8> &arr) {
-	set_value(arr);
-}
-
 string_encoded_array::string_encoded_array(const pfc::array_t<pfc::string8> &arr) {
 	set_value(arr);
-}
-
-void string_encoded_array::set_value(const pfc::string8_ex &str) {
-	set_value((const char*)str);
 }
 
 void string_encoded_array::set_value(const pfc::string8 &str) {
@@ -100,12 +88,6 @@ void string_encoded_array::set_value(const char *str) {
 		}
 		m_depth = 0;
 	}
-}
-
-
-void string_encoded_array::set_value(const pfc::array_t_ex<pfc::string8> &arr) {
-	arr.assert_initialized();
-	set_value(static_cast<const pfc::array_t<pfc::string8>>(arr));
 }
 
 void string_encoded_array::set_value(const pfc::array_t<pfc::string8> &arr) {
@@ -275,7 +257,10 @@ bool string_encoded_array::branch_execute(bool(string_encoded_array::*func)(), s
 		return _changed;
 	}
 	else if (m_depth == depth) {
-		bool _dirty = (this->*func)();
+		bool _dirty = false;
+		if (has_array() || value.get_length()) {
+			_dirty = (this->*func)();
+		}
 		if (!has_array()) {
 			dirty = false;
 		}
@@ -321,7 +306,10 @@ bool string_encoded_array::branch_execute(bool(string_encoded_array::*func)(cons
 		return _changed;
 	}
 	else if (m_depth == depth) {
-		bool _dirty = (this->*func)(other1);
+		bool _dirty = false;
+		if (has_array() || value.get_length() || other1.has_array() || other1.value.get_length()) {
+			_dirty = (this->*func)(other1);
+		}
 		if (!has_array()) {
 			dirty = false;
 		}
@@ -380,7 +368,10 @@ bool string_encoded_array::branch_execute(bool(string_encoded_array::*func)(cons
 		return _changed;
 	}
 	else if (m_depth == depth) {
-		bool changed = (this->*func)(other1, other2);
+		bool changed = false;
+		if (has_array() || value.get_length() || other1.has_array() || other1.value.get_length() || other2.has_array() || other2.value.get_length()) {
+			changed = (this->*func)(other1, other2);
+		}
 		if (!has_array()) {
 			dirty = false;
 		}
@@ -703,10 +694,17 @@ bool string_encoded_array::_count() {
 	PFC_ASSERT(m_depth == 1);
 	unsigned result = 0;
 	const size_t count = get_width();
+	bool valid = false;
 	for (size_t i = 0; i < count; i++) {
-		if (sub_array[i].value.get_length() && !(sub_array[i].value.get_length() == 1 && sub_array[i].value[0] == '0')) {
-			result++;
+		if (sub_array[i].value.get_length()) {
+			valid = true;
+			if (!(sub_array[i].value.get_length() == 1 && sub_array[i].value[0] == '0')) {
+				result++;
+			}
 		}
+	}
+	if (!valid) {
+		return false;
 	}
 	sub_array.force_reset();
 	if (result) {
@@ -1049,7 +1047,15 @@ bool string_encoded_array::_multi_divd(const string_encoded_array& other) {
 	double me_num = get_numeric_double_value();
 	double other_num = other.get_numeric_double_value();
 	value.force_reset();
-	PRINTDOUBLE(value, me_num / other_num);
+	if (me_num == 0) {
+		value << "0";
+	}
+	else if (other_num == 0) {
+		PRINTDOUBLE(value, me_num);
+	}
+	else {
+		PRINTDOUBLE(value, me_num / other_num);
+	}
 	return true;
 }
 
@@ -1128,8 +1134,15 @@ bool string_encoded_array::_sum() {
 	PFC_ASSERT(m_depth == 1);
 	double result = 0;
 	const size_t count = get_width();
+	bool valid = false;
 	for (size_t i = 0; i < count; i++) {
+		if (sub_array[i].value.get_length()) {
+			valid = true;
+		}
 		result += sub_array[i].get_numeric_double_value();
+	}
+	if (!valid) {
+		return false;
 	}
 	sub_array.force_reset();
 	value = "";

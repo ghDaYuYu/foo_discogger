@@ -2,7 +2,6 @@
 
 #include "exception.h"
 #include "../../pfc/pfc.h"
-#include "pfc_helpers.h"
 
 
 #define LIST_START	1
@@ -95,9 +94,7 @@ private:
 public:
 	string_encoded_array();
 	string_encoded_array(const char c);
-	string_encoded_array(const pfc::string8_ex &str); 
-	string_encoded_array(const pfc::string8 &str);
-	string_encoded_array(const pfc::array_t_ex<pfc::string8> &arr);
+	string_encoded_array(const pfc::string8 &str); 
 	string_encoded_array(const pfc::array_t<pfc::string8> &arr);
 	string_encoded_array::string_encoded_array(int i) : m_depth(0) {
 		value << i;
@@ -188,10 +185,8 @@ public:
 
 	void set_value(const char c);
 	void set_value(const char *str);
-	void set_value(const pfc::string8_ex &str); 
-	void set_value(const pfc::string8 &str);
-	void set_value(const pfc::array_t_ex<pfc::string8> &arr); 
-	void set_value(const pfc::array_t<pfc::string8> &arr);
+	void set_value(const pfc::string8 &str); 
+	void set_value(const pfc::array_t<pfc::string8> &arr); 
 
 	void append_item(const string_encoded_array &v);
 	void append_item_val(const string_encoded_array v);

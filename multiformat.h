@@ -43,37 +43,16 @@ public:
 	}
 };
 
-/**********
-TODO:
-- Eliminate "update tags" and allow "write tags" for multiple releases at once, or not....
-**********/
-
-
-/*
-class titleformat_hook_impl_discogs : public titleformat_hook
-{
-private:
-	const Release_ptr &release = nullptrptr;
-	const ReleaseDisc_ptr &release_disc = nullptrptr;
-	const ReleaseTrack_ptr &release_track = nullptrptr;
-	const MasterRelease_ptr &master_release = nullptrptr;
-	const Artist_ptr &artist = nullptrptr;
-
-	std::map<const char*, pfc::string8, cmp_str> custom_map;
-};
-*/
-
 
 class titleformat_hook_impl_multiformat : public titleformat_hook
 {
 private:
-	// TODO: figure out something better....
-	const Release_ptr * release = nullptr;
-	const ReleaseDisc_ptr * release_disc = nullptr;
-	const ReleaseTrack_ptr * release_track = nullptr;
-	const MasterRelease_ptr * master_release = nullptr;
-	const Artist_ptr * artist = nullptr;
-	const Image_ptr * image = nullptr;
+	const Release_ptr *release = nullptr;
+	const ReleaseDisc_ptr *release_disc = nullptr;
+	const ReleaseTrack_ptr *release_track = nullptr;
+	const MasterRelease_ptr *master_release = nullptr;
+	const Artist_ptr *artist = nullptr;
+	const Image_ptr *image = nullptr;
 	file_info_manager_ptr files = nullptr;
 
 	fake_threaded_process_status f_status;
@@ -124,8 +103,8 @@ public:
 		files = f;
 	}
 
-	virtual bool process_field(titleformat_text_out * p_out, const char * p_name, size_t p_name_length, bool & p_found_flag) override;
-	virtual bool process_function(titleformat_text_out * p_out, const char * p_name, size_t p_name_length, titleformat_hook_function_params * p_params, bool & p_found_flag) override;
+	virtual bool process_field(titleformat_text_out * p_out, const char * p_name, size_t p_name_length, bool &p_found_flag) override;
+	virtual bool process_function(titleformat_text_out * p_out, const char * p_name, size_t p_name_length, titleformat_hook_function_params * p_params, bool &p_found_flag) override;
 };
 
 typedef std::shared_ptr<titleformat_hook_impl_multiformat> titleformat_hook_impl_multiformat_ptr;

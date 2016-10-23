@@ -154,9 +154,6 @@
     <ClInclude Include="conf.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="pfc_helpers.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="wtl_helpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>

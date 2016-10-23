@@ -2,7 +2,6 @@
 
 #include "jansson.h"
 #include "exception.h"
-#include "pfc_helpers.h"
 
 
 extern void assert_is_object(json_t *element);
@@ -10,7 +9,7 @@ extern void assert_is_array(json_t *element);
 
 extern pfc::string8 JSONString(json_t *element);
 extern pfc::string8 JSONAttributeString(json_t *element, const char* attribute);
-//extern pfc::string8_ex JSONAttributeStringEx(json_t *element, const char *attribute);
+//extern pfc::string8 JSONAttributeStringEx(json_t *element, const char *attribute);
 extern pfc::array_t<pfc::string8> JSONAttributeStringArray(json_t *root, const char *attribute);
 extern pfc::string8 JSONAttributeObjectAttributeObjectAttributeString(json_t *root, const char *object, const char *object2, const char *attribute);
 extern pfc::string8 JSONAttributeObjectAttributeString(json_t *root, const char *object, const char *key);

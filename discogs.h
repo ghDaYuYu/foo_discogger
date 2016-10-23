@@ -5,7 +5,6 @@
 #include "conf.h"
 #include "jansson.h"
 #include "string_encoded_array.h"
-#include "pfc_helpers.h"
 #include "exposetags.h"
 
 #include <map>
@@ -23,13 +22,13 @@ namespace Discogs
 	extern pfc::string8 strip_artist_name(const pfc::string8 str);
 	extern pfc::string8 format_track_number(int tracknumber);
 
-
+	
 	class Image : public ExposedTags<Image>
 	{
 	public:
-		pfc::string8_ex type; // "primary" or "secondary"
-		pfc::string8_ex url;
-		pfc::string8_ex url150;
+		pfc::string8 type; // "primary" or "secondary"
+		pfc::string8 url;
+		pfc::string8 url150;
 
 		string_encoded_array get_type() const {
 			return type;
@@ -43,11 +42,11 @@ namespace Discogs
 			return url150;
 		}
 
-		static std::map<const char*, string_encoded_array(Image::*)()const, cmp_str> create_tags_map() {
-			std::map<const char*, string_encoded_array(Image::*)()const, cmp_str> m;
-			m["TYPE"] = &Image::get_type;
-			m["URL"] = &Image::get_url;
-			m["THUMBNAIL_URL"] = &Image::get_thumbnail_url;
+		static ExposedMap<Image> create_tags_map() {
+			ExposedMap<Image> m;
+			m["TYPE"] = { &Image::get_type, &Image::load };
+			m["URL"] = { &Image::get_url, &Image::load };
+			m["THUMBNAIL_URL"] = { &Image::get_thumbnail_url, &Image::load };
 			return m;
 		}
 	};
@@ -64,9 +63,9 @@ namespace Discogs
 	class HasRoles
 	{
 	public:
-		pfc::string8_ex raw_roles;
-		pfc::array_t_ex<pfc::string8> roles;
-		pfc::array_t_ex<pfc::string8> full_roles;
+		pfc::string8 raw_roles;
+		pfc::array_t<pfc::string8> roles;
+		pfc::array_t<pfc::string8> full_roles;
 
 		string_encoded_array get_raw_roles() const {
 			return raw_roles;
@@ -91,19 +90,20 @@ namespace Discogs
 	class Artist : public HasImages, public ExposedTags<Artist>
 	{
 	public:
-		pfc::string8_ex id;
-		pfc::string8_ex name;
-		pfc::string8_ex profile;
-		pfc::string8_ex realname;
+		pfc::string8 id;
+		pfc::string8 name;
+		pfc::string8 profile;
+		pfc::string8 realname;
 		pfc::array_t<MasterRelease_ptr> master_releases;
 		pfc::array_t<bool> search_order_master;
-		pfc::array_t_ex<pfc::string8> urls;
-		pfc::array_t_ex<pfc::string8> aliases;
-		pfc::array_t_ex<pfc::string8> ingroups;
-		pfc::array_t_ex<pfc::string8> anvs;
-		pfc::array_t_ex<pfc::string8> members;
-		bool loaded_releases = false;
+		pfc::array_t<pfc::string8> urls;
+		pfc::array_t<pfc::string8> aliases;
+		pfc::array_t<pfc::string8> ingroups;
+		pfc::array_t<pfc::string8> anvs;
+		pfc::array_t<pfc::string8> members;
 		pfc::array_t<Release_ptr> releases;
+
+		bool loaded_releases = false;
 
 		string_encoded_array get_id() const {
 			return id;
@@ -140,17 +140,17 @@ namespace Discogs
 			return members;
 		}
 
-		static std::map<const char*, string_encoded_array(Artist::*)()const, cmp_str> create_tags_map() {
-			std::map<const char*, string_encoded_array(Artist::*)()const, cmp_str> m;
-			m["ID"] = &Artist::get_id;
-			m["NAME"] = &Artist::get_name;
-			m["PROFILE"] = &Artist::get_profile;
-			m["REAL_NAME"] = &Artist::get_realname;
-			m["URLS"] = &Artist::get_urls;
-			m["ALIASES"] = &Artist::get_aliases;
-			m["GROUPS"] = &Artist::get_ingroups;
-			m["ALL_NAME_VARIATIONS"] = &Artist::get_anvs;
-			m["MEMBERS"] = &Artist::get_members;
+		static ExposedMap<Artist> create_tags_map() {
+			ExposedMap<Artist> m;
+			m["ID"] = { &Artist::get_id, nullptr };
+			m["NAME"] = { &Artist::get_name, &Artist::load };
+			m["PROFILE"] = { &Artist::get_profile, &Artist::load };
+			m["REAL_NAME"] = { &Artist::get_realname, &Artist::load };
+			m["URLS"] = { &Artist::get_urls, &Artist::load };
+			m["ALIASES"] = { &Artist::get_aliases, &Artist::load };
+			m["GROUPS"] = { &Artist::get_ingroups, &Artist::load };
+			m["ALL_NAME_VARIATIONS"] = { &Artist::get_anvs, &Artist::load };
+			m["MEMBERS"] = { &Artist::get_members, &Artist::load };
 			return m;
 		}
 
@@ -165,14 +165,16 @@ namespace Discogs
 	typedef std::shared_ptr<Artist> Artist_ptr;
 
 
+	// TODO: possible to merge artist and release artist, using the lazy loading stuff?
+
 	class ReleaseArtist : public HasRoles, public ExposedTags<ReleaseArtist>
 	{
 	public:
 		Artist_ptr full_artist;
-		pfc::string8_ex id;
-		pfc::string8_ex name;
-		pfc::string8_ex anv;
-		pfc::string8_ex join;
+		pfc::string8 id;
+		pfc::string8 name;
+		pfc::string8 anv;
+		pfc::string8 join;
 
 		string_encoded_array get_id() const {
 			return id;
@@ -200,12 +202,12 @@ namespace Discogs
 			return join;
 		}
 
-		static std::map<const char*, string_encoded_array(ReleaseArtist::*)()const, cmp_str> create_tags_map() {
-			std::map<const char*, string_encoded_array(ReleaseArtist::*)()const, cmp_str> m;
-			m["ID"] = &ReleaseArtist::get_id;
-			m["NAME"] = &ReleaseArtist::get_name;
-			m["NAME_VARIATION"] = &ReleaseArtist::get_anv;
-			m["JOIN"] = &ReleaseArtist::get_join;
+		static ExposedMap<ReleaseArtist> create_tags_map() {
+			ExposedMap<ReleaseArtist> m;
+			m["ID"] = { &ReleaseArtist::get_id, nullptr };
+			m["NAME"] = { &ReleaseArtist::get_name, &ReleaseArtist::load };
+			m["NAME_VARIATION"] = { &ReleaseArtist::get_anv, &ReleaseArtist::load };
+			m["JOIN"] = { &ReleaseArtist::get_join, &ReleaseArtist::load };
 			return m;
 		}
 
@@ -242,11 +244,11 @@ namespace Discogs
 	class ReleaseCredit : public HasRoles, public HasArtists, public ExposedTags<ReleaseCredit>
 	{
 	public:
-		static std::map<const char*, string_encoded_array(ReleaseCredit::*)()const, cmp_str> create_tags_map() {
-			std::map<const char*, string_encoded_array(ReleaseCredit::*)()const, cmp_str> m;
-			m["ROLES_RAW"] = &ReleaseCredit::get_raw_roles;
-			m["ROLES"] = &ReleaseCredit::get_roles;
-			m["SHORT_ROLES"] = &ReleaseCredit::get_roles_short;
+		static ExposedMap<ReleaseCredit> create_tags_map() {
+			ExposedMap<ReleaseCredit> m;
+			m["ROLES_RAW"] = { &ReleaseCredit::get_raw_roles, &ReleaseCredit::load };
+			m["ROLES"] = { &ReleaseCredit::get_roles, &ReleaseCredit::load };
+			m["SHORT_ROLES"] = { &ReleaseCredit::get_roles_short, &ReleaseCredit::load };
 			return m;
 		}
 
@@ -276,9 +278,9 @@ namespace Discogs
 	class ReleaseLabel : public ExposedTags<ReleaseLabel>
 	{
 	public:
-		pfc::string8_ex id;
-		pfc::string8_ex name;
-		pfc::string8_ex catalog;
+		pfc::string8 id;
+		pfc::string8 name;
+		pfc::string8 catalog;
 
 		string_encoded_array get_id() const {
 			return id;
@@ -294,11 +296,11 @@ namespace Discogs
 			return catalog;
 		}
 
-		static std::map<const char*, string_encoded_array(ReleaseLabel::*)()const, cmp_str>  create_tags_map() {
-			std::map<const char*, string_encoded_array(ReleaseLabel::*)()const, cmp_str> m;
-			m["ID"] = &ReleaseLabel::get_id;
-			m["NAME"] = &ReleaseLabel::get_name;
-			m["CATALOG_NUMBER"] = &ReleaseLabel::get_catalog;
+		static ExposedMap<ReleaseLabel> create_tags_map() {
+			ExposedMap<ReleaseLabel> m;
+			m["ID"] = { &ReleaseLabel::get_id, nullptr };
+			m["NAME"] = { &ReleaseLabel::get_name, &ReleaseLabel::load };
+			m["CATALOG_NUMBER"] = { &ReleaseLabel::get_catalog, &ReleaseLabel::load };
 			return m;
 		}
 	};
@@ -308,10 +310,10 @@ namespace Discogs
 	class ReleaseSeries : public ExposedTags<ReleaseSeries>
 	{
 	public:
-		pfc::string8_ex id;
-		pfc::string8_ex name;
-		pfc::string8_ex api_url;
-		pfc::string8_ex number;
+		pfc::string8 id;
+		pfc::string8 name;
+		pfc::string8 api_url;
+		pfc::string8 number;
 
 		string_encoded_array get_id() const {
 			return id;
@@ -330,12 +332,12 @@ namespace Discogs
 			return api_url;
 		}
 
-		static std::map<const char*, string_encoded_array(ReleaseSeries::*)()const, cmp_str> create_tags_map() {
-			std::map<const char*, string_encoded_array(ReleaseSeries::*)()const, cmp_str> m;
-			m["ID"] = &ReleaseSeries::get_id;
-			m["NAME"] = &ReleaseSeries::get_name;
-			m["NUMBER"] = &ReleaseSeries::get_number;
-			m["API_URL"] = &ReleaseSeries::get_api_url;
+		static ExposedMap<ReleaseSeries> create_tags_map() {
+			ExposedMap<ReleaseSeries> m;
+			m["ID"] = { &ReleaseSeries::get_id, nullptr };
+			m["NAME"] = { &ReleaseSeries::get_name, &ReleaseSeries::load };
+			m["NUMBER"] = { &ReleaseSeries::get_number, &ReleaseSeries::load };
+			m["API_URL"] = { &ReleaseSeries::get_api_url, &ReleaseSeries::load };
 			return m;
 		}
 	};
@@ -345,10 +347,10 @@ namespace Discogs
 	class ReleaseFormat : public ExposedTags<ReleaseFormat>
 	{
 	public:
-		pfc::string8_ex name; 
-		pfc::string8_ex qty;
-		pfc::array_t_ex<pfc::string8> descriptions;
-		pfc::string8_ex text;
+		pfc::string8 name; 
+		pfc::string8 qty;
+		pfc::array_t<pfc::string8> descriptions;
+		pfc::string8 text;
 
 		string_encoded_array get_quantity() const {
 			return qty;
@@ -363,12 +365,12 @@ namespace Discogs
 			return text;
 		}
 
-		static std::map<const char*, string_encoded_array(ReleaseFormat::*)()const, cmp_str> create_tags_map() {
-			std::map<const char*, string_encoded_array(ReleaseFormat::*)()const, cmp_str> m;
-			m["QUANTITY"] = &ReleaseFormat::get_quantity;
-			m["NAME"] = &ReleaseFormat::get_name;
-			m["DESCRIPTIONS"] = &ReleaseFormat::get_descriptions;
-			m["TEXT"] = &ReleaseFormat::get_text;
+		static ExposedMap<ReleaseFormat> create_tags_map() {
+			ExposedMap<ReleaseFormat> m;
+			m["QUANTITY"] = { &ReleaseFormat::get_quantity, &ReleaseFormat::load };
+			m["NAME"] = { &ReleaseFormat::get_name, &ReleaseFormat::load };
+			m["DESCRIPTIONS"] = { &ReleaseFormat::get_descriptions, &ReleaseFormat::load };
+			m["TEXT"] = { &ReleaseFormat::get_text, &ReleaseFormat::load };
 			return m;
 		}
 	};
@@ -378,17 +380,17 @@ namespace Discogs
 	class ReleaseTrack : public HasArtists, public HasCredits, public ExposedTags<ReleaseTrack>
 	{
 	public:
-		pfc::string8_ex title;
-		pfc::string8_ex title_index;
-		pfc::string8_ex title_subtrack;
-		pfc::string8_ex title_heading;
-		pfc::string8_ex discogs_duration_raw;
-		pfc::string8_ex discogs_indextrack_duration_raw;
+		pfc::string8 title;
+		pfc::string8 title_index;
+		pfc::string8 title_subtrack;
+		pfc::string8 title_heading;
+		pfc::string8 discogs_duration_raw;
+		pfc::string8 discogs_indextrack_duration_raw;
 		int discogs_duration_seconds = 0;
 		int discogs_indextrack_duration_seconds = 0;
 		int track_number;
 		int disc_track_number;
-		pfc::string8_ex discogs_track_number;
+		pfc::string8 discogs_track_number;
 		pfc::array_t<std::shared_ptr<ReleaseTrack>> hidden_tracks;
 
 		string_encoded_array get_track_number() const {
@@ -428,20 +430,20 @@ namespace Discogs
 			return hidden_tracks.get_size();
 		}
 
-		static std::map<const char*, string_encoded_array(ReleaseTrack::*)()const, cmp_str> create_tags_map() {
-			std::map<const char*, string_encoded_array(ReleaseTrack::*)()const, cmp_str> m;
-			m["NUMBER"] = &ReleaseTrack::get_track_number;
-			m["DISC_TRACK_NUMBER"] = &ReleaseTrack::get_disc_track_number;
-			m["DISCOGS_TRACK_NUMBER"] = &ReleaseTrack::get_discogs_track_number;
-			m["TITLE"] = &ReleaseTrack::get_title;
-			m["INDEXTRACK_TITLE"] = &ReleaseTrack::get_title_index;
-			m["HEADING"] = &ReleaseTrack::get_title_heading;
-			m["SUBTRACK_TITLE"] = &ReleaseTrack::get_title_subtrack;
-			m["INDEXTRACK_DURATION_RAW"] = &ReleaseTrack::get_discogs_indextrack_duration_raw;
-			m["INDEXTRACK_DURATION_SECONDS"] = &ReleaseTrack::get_discogs_indextrack_duration_seconds;
-			m["DISCOGS_DURATION_RAW"] = &ReleaseTrack::get_discogs_duration_raw;
-			m["DISCOGS_DURATION_SECONDS"] = &ReleaseTrack::get_discogs_duration_seconds;
-			m["TOTAL_HIDDEN_TRACKS"] = &ReleaseTrack::get_total_hidden_tracks;
+		static ExposedMap<ReleaseTrack> create_tags_map() {
+			ExposedMap<ReleaseTrack> m;
+			m["NUMBER"] = { &ReleaseTrack::get_track_number, &ReleaseTrack::load };
+			m["DISC_TRACK_NUMBER"] = { &ReleaseTrack::get_disc_track_number, &ReleaseTrack::load };
+			m["DISCOGS_TRACK_NUMBER"] = { &ReleaseTrack::get_discogs_track_number, &ReleaseTrack::load };
+			m["TITLE"] = { &ReleaseTrack::get_title, &ReleaseTrack::load };
+			m["INDEXTRACK_TITLE"] = { &ReleaseTrack::get_title_index, &ReleaseTrack::load };
+			m["HEADING"] = { &ReleaseTrack::get_title_heading, &ReleaseTrack::load };
+			m["SUBTRACK_TITLE"] = { &ReleaseTrack::get_title_subtrack, &ReleaseTrack::load };
+			m["INDEXTRACK_DURATION_RAW"] = { &ReleaseTrack::get_discogs_indextrack_duration_raw, &ReleaseTrack::load };
+			m["INDEXTRACK_DURATION_SECONDS"] = { &ReleaseTrack::get_discogs_indextrack_duration_seconds, &ReleaseTrack::load };
+			m["DISCOGS_DURATION_RAW"] = { &ReleaseTrack::get_discogs_duration_raw, &ReleaseTrack::load };
+			m["DISCOGS_DURATION_SECONDS"] = { &ReleaseTrack::get_discogs_duration_seconds, &ReleaseTrack::load };
+			m["TOTAL_HIDDEN_TRACKS"] = { &ReleaseTrack::get_total_hidden_tracks, &ReleaseTrack::load };
 			return m;
 		}
 
@@ -527,10 +529,10 @@ namespace Discogs
 			return tracks.get_size();
 		}
 
-		static std::map<const char*, string_encoded_array(ReleaseDisc::*)()const, cmp_str> create_tags_map() {
-			std::map<const char*, string_encoded_array(ReleaseDisc::*)()const, cmp_str> m;
-			m["NUMBER"] = &ReleaseDisc::get_number;
-			m["TOTAL_TRACKS"] = &ReleaseDisc::get_total_tracks;
+		static ExposedMap<ReleaseDisc> create_tags_map() {
+			ExposedMap<ReleaseDisc> m;
+			m["NUMBER"] = { &ReleaseDisc::get_number, nullptr };
+			m["TOTAL_TRACKS"] = { &ReleaseDisc::get_total_tracks, nullptr };
 			return m;
 		}
 
@@ -606,41 +608,133 @@ namespace Discogs
 	};
 
 
+	class MasterRelease : public HasImages, public HasArtists, public HasTracklist, public ExposedTags<MasterRelease>
+	{
+	public:
+		pfc::string8 id;
+		pfc::string8 title;
+		pfc::string8 release_year;
+		pfc::string8 main_release_id;
+		pfc::string8 main_release_url;
+		pfc::string8 main_release_api_url;
+		pfc::string8 versions_api_url;
+		pfc::array_t<pfc::string8> genres;
+		pfc::array_t<pfc::string8> styles;
+		pfc::array_t<pfc::string8> videos;
+		pfc::string8 discogs_data_quality;
+		pfc::string8 discogs_tracklist_count;
+		pfc::array_t<Release_ptr> sub_releases;
+		bool loaded_releases = false;
+
+		MasterRelease() {}
+
+		MasterRelease(const char *id) : id(id) {
+		}
+
+		string_encoded_array get_id() const {
+			return id;
+		}
+		string_encoded_array get_title() const {
+			return title;
+		}
+		string_encoded_array get_release_year() const {
+			return release_year;
+		}
+		string_encoded_array get_main_release_id() const {
+			return main_release_id;
+		}
+		string_encoded_array get_main_release_url() const {
+			return main_release_url;
+		}
+		string_encoded_array get_main_release_api_url() const {
+			return main_release_api_url;
+		}
+		string_encoded_array get_discogs_data_quality() const {
+			return discogs_data_quality;
+		}
+		string_encoded_array get_videos() const {
+			return videos;
+		}
+		string_encoded_array get_styles() const {
+			return styles;
+		}
+		string_encoded_array get_genres() const {
+			return genres;
+		}
+
+		static ExposedMap<MasterRelease> create_tags_map() {
+			ExposedMap<MasterRelease> m;
+			m["ID"] = { &MasterRelease::get_id, nullptr };
+			m["TITLE"] = { &MasterRelease::get_title, &MasterRelease::load };
+			m["YEAR"] = { &MasterRelease::get_release_year, &MasterRelease::load };
+			m["MAIN_RELEASE_ID"] = { &MasterRelease::get_main_release_id, &MasterRelease::load };
+			m["MAIN_RELEASE_URL"] = { &MasterRelease::get_main_release_url, &MasterRelease::load };
+			m["MAIN_RELEASE_API_URL"] = { &MasterRelease::get_main_release_api_url, &MasterRelease::load };
+			m["DISCOGS_DATA_QUALITY"] = { &MasterRelease::get_discogs_data_quality, &MasterRelease::load };
+			m["GENRES"] = { &MasterRelease::get_genres, &MasterRelease::load };
+			m["STYLES"] = { &MasterRelease::get_styles, &MasterRelease::load };
+			m["VIDEOS"] = { &MasterRelease::get_videos, &MasterRelease::load };
+			return m;
+		}
+
+		virtual string_encoded_array get_sub_data(pfc::string8 &tag_name, threaded_process_status &p_status, abort_callback &p_abort) override;
+
+		bool has_anv() const override {
+			return HasArtists::has_anv() || HasDiscs::has_anv();
+		}
+
+		void load(threaded_process_status &p_status, abort_callback &p_abort, bool throw_all = false) override;
+		void load_releases(threaded_process_status &p_status, abort_callback &p_abort, bool throw_all = false);
+	};
+
+
 	class Release : public HasImages, public HasArtists, public HasCredits, public HasTracklist, public ExposedTags<Release>
 	{
 	public:
-		pfc::string8_ex id;
-		pfc::string8_ex master_id;
-		pfc::string8_ex title;
+		pfc::string8 id;
+		pfc::string8 title;
 
-		pfc::array_t_ex<pfc::string8> artist_join_fields;
+		pfc::string8 master_id;
+		MasterRelease_ptr master_release = nullptr;
+
+		pfc::array_t<pfc::string8> artist_join_fields;
 		pfc::array_t<ReleaseLabel_ptr> labels;
-		pfc::string8_ex search_formats;
-		pfc::string8_ex search_labels;
-		pfc::string8_ex search_catno;
+		pfc::string8 search_formats;
+		pfc::string8 search_labels;
+		pfc::string8 search_catno;
 		pfc::array_t<ReleaseSeries_ptr> series;
 		pfc::array_t<ReleaseFormat_ptr> formats;
-		pfc::array_t_ex<pfc::string8> genres;
-		pfc::array_t_ex<pfc::string8> styles;
-		pfc::string8_ex country;
-		pfc::string8_ex release_date;
-		pfc::string8_ex release_date_raw;
-		pfc::string8_ex release_year;
-		pfc::string8_ex release_month;
-		pfc::string8_ex release_day;
-		// TODO: add my rating
-		pfc::string8_ex discogs_avg_rating;
-		pfc::string8_ex discogs_rating_votes;
-		pfc::string8_ex notes;
-		pfc::string8_ex submitted_by;
-		pfc::string8_ex members_have;
-		pfc::string8_ex members_want;
-		pfc::string8_ex barcode;
-		pfc::string8_ex weight;
-		pfc::string8_ex discogs_status;
-		pfc::string8_ex discogs_data_quality;
-		pfc::array_t_ex<pfc::string8> videos;
+		pfc::array_t<pfc::string8> genres;
+		pfc::array_t<pfc::string8> styles;
+		pfc::string8 country;
+		pfc::string8 release_date;
+		pfc::string8 release_date_raw;
+		pfc::string8 release_year;
+		pfc::string8 release_month;
+		pfc::string8 release_day;
+		pfc::string8 discogs_avg_rating;
+		pfc::string8 discogs_rating_votes;
+		pfc::string8 discogs_my_rating;
+		pfc::string8 notes;
+		pfc::string8 submitted_by;
+		pfc::string8 members_have;
+		pfc::string8 members_want;
+		pfc::string8 barcode;
+		pfc::string8 weight;
+		pfc::string8 discogs_status;
+		pfc::string8 discogs_data_quality;
+		pfc::array_t<pfc::string8> videos;
 		MemoryBlock small_art;
+		
+		bool loaded_master_preview = false;
+		bool loaded_my_rating = false;
+
+		void set_master_release(MasterRelease_ptr master) {
+			master_release = master;
+			if (master) {
+				master_id = master->id;
+			}
+		}
 
 		string_encoded_array get_id() const {
 			return id;
@@ -693,6 +787,9 @@ namespace Discogs
 		string_encoded_array get_rating_votes() const {
 			return discogs_rating_votes;
 		}
+		string_encoded_array get_my_rating() const {
+			return discogs_my_rating;
+		}
 		string_encoded_array get_discogs_status() const {
 			return discogs_status;
 		}
@@ -724,35 +821,36 @@ namespace Discogs
 			return search_catno;
 		}
 
-		static std::map<const char*, string_encoded_array(Release::*)()const, cmp_str> create_tags_map() {
-			std::map<const char*, string_encoded_array(Release::*)()const, cmp_str> m;
-			m["ID"] = &Release::get_id;
-			m["TITLE"] = &Release::get_title;
-			m["COUNTRY"] = &Release::get_country;
-			m["DATE"] = &Release::get_release_date;
-			m["DATE_RAW"] = &Release::get_release_date_raw;
-			m["YEAR"] = &Release::get_release_year;
-			m["MONTH"] = &Release::get_release_month;
-			m["DAY"] = &Release::get_release_day;
-			m["NOTES"] = &Release::get_notes;
-			m["BARCODE"] = &Release::get_barcode;
-			m["WEIGHT"] = &Release::get_weight;
-			m["TOTAL_DISCS"] = &Release::get_total_discs;
-			m["TOTAL_TRACKS"] = &Release::get_total_tracks;
-			m["DISCOGS_USERS_HAVE"] = &Release::get_members_have;
-			m["DISCOGS_USERS_WANT"] = &Release::get_members_want;
-			m["DISCOGS_AVG_RATING"] = &Release::get_avg_rating;
-			m["DISCOGS_RATING_VOTES"] = &Release::get_rating_votes;
-			m["DISCOGS_STATUS"] = &Release::get_discogs_status;
-			m["DISCOGS_DATA_QUALITY"] = &Release::get_discogs_data_quality;
-			m["DISCOGS_SUBMITTED_BY"] = &Release::get_submitted_by;
-			//m["DISCOGS_TOTAL_DISCS"] = &Release::get_discogs_total_discs;  -- technically format_quantity...? :-s
-			m["GENRES"] = &Release::get_genres;
-			m["STYLES"] = &Release::get_styles;
-			m["VIDEOS"] = &Release::get_videos;
-			m["SEARCH_FORMATS"] = &Release::get_search_formats;
-			m["SEARCH_LABELS"] = &Release::get_search_labels;
-			m["SEARCH_CATNOS"] = &Release::get_search_catno;
+		static ExposedMap<Release> create_tags_map() {
+			ExposedMap<Release> m;
+			m["ID"] = { &Release::get_id, nullptr };
+			m["TITLE"] = { &Release::get_title, &Release::load_master_preview };
+			m["COUNTRY"] = { &Release::get_country, &Release::load_master_preview };
+			m["DATE"] = { &Release::get_release_date, &Release::load };
+			m["DATE_RAW"] = { &Release::get_release_date_raw, &Release::load };
+			m["YEAR"] = { &Release::get_release_year, &Release::load_master_preview };
+			m["MONTH"] = { &Release::get_release_month, &Release::load };
+			m["DAY"] = { &Release::get_release_day, &Release::load };
+			m["NOTES"] = { &Release::get_notes, &Release::load };
+			m["BARCODE"] = { &Release::get_barcode, &Release::load };
+			m["WEIGHT"] = { &Release::get_weight, &Release::load };
+			m["TOTAL_DISCS"] = { &Release::get_total_discs, &Release::load };
+			m["TOTAL_TRACKS"] = { &Release::get_total_tracks, &Release::load };
+			m["DISCOGS_USERS_HAVE"] = { &Release::get_members_have, &Release::load };
+			m["DISCOGS_USERS_WANT"] = { &Release::get_members_want, &Release::load };
+			m["DISCOGS_AVG_RATING"] = { &Release::get_avg_rating, &Release::load };
+			m["DISCOGS_MY_RATING"] = { &Release::get_my_rating, &Release::load_my_rating };
+			m["DISCOGS_RATING_VOTES"] = { &Release::get_rating_votes, &Release::load };
+			m["DISCOGS_STATUS"] = { &Release::get_discogs_status, &Release::load };
+			m["DISCOGS_DATA_QUALITY"] = { &Release::get_discogs_data_quality, &Release::load };
+			m["DISCOGS_SUBMITTED_BY"] = { &Release::get_submitted_by, &Release::load };
+			//m["DISCOGS_TOTAL_DISCS"] = { &Release::get_discogs_total_discs, 0 };  -- technically format_quantity...? :-s
+			m["GENRES"] = { &Release::get_genres, &Release::load };
+			m["STYLES"] = { &Release::get_styles, & Release::load };
+			m["VIDEOS"] = { &Release::get_videos, &Release::load };
+			m["SEARCH_FORMATS"] = { &Release::get_search_formats, &Release::load };
+			m["SEARCH_LABELS"] = { &Release::get_search_labels, &Release::load };
+			m["SEARCH_CATNOS"] = { &Release::get_search_catno, &Release::load };
 			return m;
 		}
 
@@ -768,87 +866,15 @@ namespace Discogs
 			return artists.get_size() > 1;
 		}
 
+		inline void load_master_preview(threaded_process_status &p_status, abort_callback &p_abort, bool throw_all = false) {
+			if (loaded || loaded_master_preview) {
+				return;
+			}
+			// No point just loading the preview, might as well load everything
+			load(p_status, p_abort, throw_all);
+		}
 		void load(threaded_process_status &p_status, abort_callback &p_abort, bool throw_all = false) override;
-	};
-
-
-	class MasterRelease : public HasImages, public HasArtists, public HasTracklist, public ExposedTags<MasterRelease>
-	{
-	public:
-		pfc::string8_ex id;
-		pfc::string8_ex title;
-		pfc::string8_ex release_year;
-		pfc::string8_ex main_release_id; 
-		pfc::string8_ex main_release_url;
-		pfc::string8_ex main_release_api_url;
-		pfc::string8_ex versions_api_url;
-		pfc::array_t_ex<pfc::string8> genres;
-		pfc::array_t_ex<pfc::string8> styles;
-		pfc::array_t_ex<pfc::string8> videos;
-		pfc::string8_ex discogs_data_quality;
-		pfc::string8_ex discogs_tracklist_count;
-		pfc::array_t<Release_ptr> sub_releases;
-		bool loaded_releases = false;
-
-		MasterRelease() {}
-
-		MasterRelease(const char *id) : id(id) {
-		}
-
-		string_encoded_array get_id() const {
-			return id;
-		}
-		string_encoded_array get_title() const {
-			return title;
-		}
-		string_encoded_array get_release_year() const {
-			return release_year;
-		}
-		string_encoded_array get_main_release_id() const {
-			return main_release_id;
-		}
-		string_encoded_array get_main_release_url() const {
-			return main_release_url;
-		}
-		string_encoded_array get_main_release_api_url() const {
-			return main_release_api_url;
-		}
-		string_encoded_array get_discogs_data_quality() const {
-			return discogs_data_quality;
-		}
-		string_encoded_array get_videos() const {
-			return videos;
-		}
-		string_encoded_array get_styles() const {
-			return styles;
-		}
-		string_encoded_array get_genres() const {
-			return genres;
-		}
-
-		static std::map<const char*, string_encoded_array(MasterRelease::*)()const, cmp_str> create_tags_map() {
-			std::map<const char*, string_encoded_array(MasterRelease::*)()const, cmp_str> m;
-			m["ID"] = &MasterRelease::get_id;
-			m["TITLE"] = &MasterRelease::get_title;
-			m["YEAR"] = &MasterRelease::get_release_year;
-			m["MAIN_RELEASE_ID"] = &MasterRelease::get_main_release_id;
-			m["MAIN_RELEASE_URL"] = &MasterRelease::get_main_release_url;
-			m["MAIN_RELEASE_API_URL"] = &MasterRelease::get_main_release_api_url;
-			m["DISCOGS_DATA_QUALITY"] = &MasterRelease::get_discogs_data_quality;
-			m["GENRES"] = &MasterRelease::get_genres;
-			m["STYLES"] = &MasterRelease::get_styles;
-			m["VIDEOS"] = &MasterRelease::get_videos;
-			return m;
-		}
-
-		virtual string_encoded_array get_sub_data(pfc::string8 &tag_name, threaded_process_status &p_status, abort_callback &p_abort) override;
-
-		bool has_anv() const override {
-			return HasArtists::has_anv() || HasDiscs::has_anv();
-		}
-
-		void load(threaded_process_status &p_status, abort_callback &p_abort, bool throw_all = false) override;
-		void load_releases(threaded_process_status &p_status, abort_callback &p_abort, bool throw_all = false);
+		void load_my_rating(threaded_process_status &p_status, abort_callback &p_abort, bool throw_all = false);
 	};
 
 	
@@ -867,6 +893,7 @@ namespace Discogs
 	extern void parseCollection(json_t *root, pfc::array_t<pfc::string8> &collection);
 
 	extern void parseRelease(Release *release, json_t *root);
+	extern void parseReleaseRating(Release *release, json_t *root);
 	extern void parseMasterRelease(MasterRelease *master_release, json_t *root);
 	extern void parseArtist(Artist *artist, json_t *root);
 

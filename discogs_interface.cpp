@@ -206,8 +206,19 @@ pfc::array_t<JSONParser_ptr> DiscogsInterface::get_all_pages(pfc::string8 &url, 
 }
 
 
-pfc::string8 DiscogsInterface::get_username(abort_callback &p_abort) {
+pfc::string8 DiscogsInterface::get_username(threaded_process_status &p_status, abort_callback &p_abort) {
+	if (!username.get_length()) {
+		username = load_username(p_status, p_abort);
+	}
+	return username;
+}
+
+
+pfc::string8 DiscogsInterface::load_username(threaded_process_status &p_status, abort_callback &p_abort) {
 	try {
+		pfc::string8 status("Loading identity...");
+		p_status.set_item(status);
+
 		pfc::string8 json;
 		pfc::string8 url;
 		url << "https://api.discogs.com/oauth/identity";
@@ -219,7 +230,7 @@ pfc::string8 DiscogsInterface::get_username(abort_callback &p_abort) {
 		parseIdentity(jp.root, &i);
 		return i.username;
 	}
-	catch (network_exception &e) {
+	catch (network_exception &) {
 		throw;
 	}
 }
@@ -230,7 +241,7 @@ pfc::array_t<pfc::string8> DiscogsInterface::get_collection(threaded_process_sta
 		return collection;
 	}
 
-	pfc::string8 username = get_username(p_abort);
+	pfc::string8 username = get_username(p_status, p_abort);
 
 	try {
 		pfc::string8 json;
@@ -250,7 +261,7 @@ pfc::array_t<pfc::string8> DiscogsInterface::get_collection(threaded_process_sta
 			parseCollection(pages[i]->root, collection);
 		}
 	}
-	catch (network_exception &e) {
+	catch (network_exception &) {
 		throw;
 	}
 	return collection;

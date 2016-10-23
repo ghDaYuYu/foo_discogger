@@ -188,7 +188,10 @@
         <td> MASTER_RELEASE </td><td> DISCS </td><td> array </td><td> Discs for the master release. </td>
     </tr>
     <tr>
-        <td> MASTER_RELEASE </td><td> TRACKS </td><td> array </td><td> All tracks for the master release. TODO: verify if parsed same as for release or not... </td>
+        <td> MASTER_RELEASE </td><td> TRACKS </td><td> array </td><td> All tracks for the master release.</td>
+    </tr>
+    <tr>
+        <td> MASTER_RELEASE </td><td> RELEASES </td><td> array </td><td> All sub releases inside this master release.</td>
     </tr>
     <tr>
         <td> CREDIT </td><td> ARTISTS </td><td> array </td><td> Artists for a credit. </td>
@@ -740,13 +743,23 @@
     
     <tr>
         <td> 
-            $sum(A) </td><td> Counts the number of all elements of A at depth D-1 that evaluate to true. Returns an array of depth D-1.
+            $count(A) </td><td> Counts the number of all elements of A at depth D-1 that evaluate to true. Returns an array of depth D-1.
         </td>
         <td>
-            $sum([[,,],[a,b,c],[a,,]]) => [,3,1]
+            $count([[,,],[a,b,c],[a,,]]) => [,3,1]
          </td>
     </tr>
     
+    <tr>
+        <td> 
+            $sum(A) </td><td> Sums the numbers of numerical array A at depth D-1. Returns an array of depth D-1.
+        </td>
+        <td>
+            $sum([1,2,3,4,5]) => 15
+            $sum([[1,2],[3,4]]) => [3,7]
+         </td>
+    </tr>
+
     <tr>
         <td> 
             $multi_replace(A,X,Y) </td><td> Replaces X with Y in A. Operates at depth D. Returns array of the same shape as A.

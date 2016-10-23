@@ -4,6 +4,14 @@
 #include "utils.h"
 
 
+
+inline void PRINTDOUBLE(pfc::string8 &v, double d) {
+	std::ostringstream s;
+	s << d;
+	v << pfc::string8(s.str().c_str());
+}
+
+
 string_encoded_array::string_encoded_array() {
 }
 
@@ -691,7 +699,7 @@ bool string_encoded_array::_all() {
 	return true;
 }
 
-bool string_encoded_array::_sum() {
+bool string_encoded_array::_count() {
 	PFC_ASSERT(m_depth == 1);
 	unsigned result = 0;
 	const size_t count = get_width();
@@ -990,10 +998,10 @@ bool string_encoded_array::_multi_add(const string_encoded_array& other) {
 	if (other.m_depth) {
 		array_param_too_deep(2);
 	}
-	int me_num = get_numeric_value();
-	int other_num = other.get_numeric_value();
+	double me_num = get_numeric_double_value();
+	double other_num = other.get_numeric_double_value();
 	value.force_reset();
-	value << (me_num + other_num);
+	PRINTDOUBLE(value, me_num + other_num);
 	return true;
 }
 
@@ -1002,10 +1010,10 @@ bool string_encoded_array::_multi_sub(const string_encoded_array& other) {
 	if (other.m_depth) {
 		array_param_too_deep(2);
 	}
-	int me_num = get_numeric_value();
-	int other_num = other.get_numeric_value();
+	double me_num = get_numeric_double_value();
+	double other_num = other.get_numeric_double_value();
 	value.force_reset();
-	value << (me_num - other_num);
+	PRINTDOUBLE(value, me_num - other_num);
 	return true;
 }
 
@@ -1014,10 +1022,10 @@ bool string_encoded_array::_multi_mul(const string_encoded_array& other) {
 	if (other.m_depth) {
 		array_param_too_deep(2);
 	}
-	int me_num = get_numeric_value();
-	int other_num = other.get_numeric_value();
+	double me_num = get_numeric_double_value();
+	double other_num = other.get_numeric_double_value();
 	value.force_reset();
-	value << (me_num * other_num);
+	PRINTDOUBLE(value, me_num * other_num);
 	return true;
 }
 
@@ -1029,7 +1037,19 @@ bool string_encoded_array::_multi_div(const string_encoded_array& other) {
 	int me_num = get_numeric_value();
 	int other_num = other.get_numeric_value();
 	value.force_reset();
-	value << (me_num / other_num);
+	value << (value, me_num / other_num);
+	return true;
+}
+
+bool string_encoded_array::_multi_divd(const string_encoded_array& other) {
+	PFC_ASSERT(m_depth == 0);
+	if (other.m_depth) {
+		array_param_too_deep(2);
+	}
+	double me_num = get_numeric_double_value();
+	double other_num = other.get_numeric_double_value();
+	value.force_reset();
+	PRINTDOUBLE(value, me_num / other_num);
 	return true;
 }
 
@@ -1038,10 +1058,35 @@ bool string_encoded_array::_multi_mod(const string_encoded_array& other) {
 	if (other.m_depth) {
 		array_param_too_deep(2);
 	}
-	int me_num = get_numeric_value();
-	int other_num = other.get_numeric_value();
+	double me_num = get_numeric_double_value();
+	double other_num = other.get_numeric_double_value();
 	value.force_reset();
-	value << (me_num % other_num);
+	PRINTDOUBLE(value, fmod(me_num,other_num));
+	return true;
+}
+
+bool string_encoded_array::_multi_round(const string_encoded_array& other) {
+	PFC_ASSERT(m_depth == 0);
+	if (other.m_depth) {
+		array_param_too_deep(2);
+	}
+	double me_num = get_numeric_double_value();
+	if (me_num == 0) {
+		return false;
+	}
+	int sigdigs = other.get_numeric_value();
+	unsigned long long int multiplier = pow(10, sigdigs);
+	long double out_num = me_num * multiplier;
+	if (me_num > 0) {
+		out_num += 0.5;
+	}
+	else {
+		out_num -= 0.5;
+	}
+	out_num = floor(out_num);
+	out_num = out_num / multiplier;
+	value.force_reset();
+	PRINTDOUBLE(value, out_num);
 	return true;
 }
 
@@ -1050,14 +1095,14 @@ bool string_encoded_array::_multi_min(const string_encoded_array& other) {
 	if (other.m_depth) {
 		array_param_too_deep(2);
 	}
-	int me_num = get_numeric_value();
-	int other_num = other.get_numeric_value();
+	double me_num = get_numeric_double_value();
+	double other_num = other.get_numeric_double_value();
 	if (me_num <= other_num) {
 		return false;
 	}
 	else {
 		value.force_reset();
-		value << other_num;
+		PRINTDOUBLE(value, other_num);
 		return true;
 	}
 }
@@ -1067,16 +1112,30 @@ bool string_encoded_array::_multi_max(const string_encoded_array& other) {
 	if (other.m_depth) {
 		array_param_too_deep(2);
 	}
-	int me_num = get_numeric_value();
-	int other_num = other.get_numeric_value();
+	double me_num = get_numeric_double_value();
+	double other_num = other.get_numeric_double_value();
 	if (me_num >= other_num) {
 		return false;
 	}
 	else {
 		value.force_reset();
-		value << other_num;
+		PRINTDOUBLE(value, other_num);
 		return true;
 	}
+}
+
+bool string_encoded_array::_sum() {
+	PFC_ASSERT(m_depth == 1);
+	double result = 0;
+	const size_t count = get_width();
+	for (size_t i = 0; i < count; i++) {
+		result += sub_array[i].get_numeric_double_value();
+	}
+	sub_array.force_reset();
+	value = "";
+	PRINTDOUBLE(value, result);
+	m_depth = 0;
+	return true;
 }
 
 pfc::string8 string_encoded_array::print() const {

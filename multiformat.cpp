@@ -531,16 +531,6 @@ bool titleformat_hook_impl_multiformat::process_function(titleformat_text_out * 
 			}
 		}
 
-		else if (pfc::strcmp_ex(p_name, p_name_length, "sum", pfc::infinite_size) == 0) {
-			if (param_count == 1) {
-				params[0].sum();
-				result = &params[0];
-			}
-			else {
-				wrong_param_count = true;
-			}
-		}
-
 		else if (pfc::strcmp_ex(p_name, p_name_length, "multi_if", pfc::infinite_size) == 0) {
 			if (param_count == 3) {
 				params[0].multi_if(params[1], params[2]);
@@ -764,6 +754,108 @@ bool titleformat_hook_impl_multiformat::process_function(titleformat_text_out * 
 		else if (m_store != nullptr && pfc::strcmp_ex(p_name, p_name_length, "pget", pfc::infinite_size) == 0) {
 			if (param_count == 1) {
 				params[0].set_value(m_store->get(params[0].get_cvalue()));
+				result = &params[0];
+			}
+			else {
+				wrong_param_count = true;
+			}
+		}
+
+		else if (pfc::strcmp_ex(p_name, p_name_length, "count", pfc::infinite_size) == 0) {
+			if (param_count == 1) {
+				params[0].count();
+				result = &params[0];
+			}
+			else {
+				wrong_param_count = true;
+			}
+		}
+
+		else if (pfc::strcmp_ex(p_name, p_name_length, "sum", pfc::infinite_size) == 0) {
+			if (param_count == 1) {
+				params[0].sum();
+				result = &params[0];
+			}
+			else {
+				wrong_param_count = true;
+			}
+		}
+
+		else if (pfc::strcmp_ex(p_name, p_name_length, "multi_add", pfc::infinite_size) == 0) {
+			if (param_count > 1) {
+				for (size_t i = 1; i < param_count; i++) {
+					params[0].multi_add(params[i]);
+				}
+				result = &params[0];
+			}
+			else {
+				wrong_param_count = true;
+			}
+		}
+
+		else if (pfc::strcmp_ex(p_name, p_name_length, "multi_sub", pfc::infinite_size) == 0) {
+			if (param_count > 1) {
+				for (size_t i = 1; i < param_count; i++) {
+					params[0].multi_sub(params[i]);
+				}
+				result = &params[0];
+			}
+			else {
+				wrong_param_count = true;
+			}
+		}
+
+		else if (pfc::strcmp_ex(p_name, p_name_length, "multi_mul", pfc::infinite_size) == 0) {
+			if (param_count > 1) {
+				for (size_t i = 1; i < param_count; i++) {
+					params[0].multi_mul(params[i]);
+				}
+				result = &params[0];
+			}
+			else {
+				wrong_param_count = true;
+			}
+		}
+
+		else if (pfc::strcmp_ex(p_name, p_name_length, "multi_div", pfc::infinite_size) == 0) {
+			if (param_count > 1) {
+				for (size_t i = 1; i < param_count; i++) {
+					params[0].multi_div(params[i]);
+				}
+				result = &params[0];
+			}
+			else {
+				wrong_param_count = true;
+			}
+		}
+
+		else if (pfc::strcmp_ex(p_name, p_name_length, "multi_divd", pfc::infinite_size) == 0) {
+			if (param_count > 1) {
+				for (size_t i = 1; i < param_count; i++) {
+					params[0].multi_divd(params[i]);
+				}
+				result = &params[0];
+			}
+			else {
+				wrong_param_count = true;
+			}
+		}
+
+		else if (pfc::strcmp_ex(p_name, p_name_length, "multi_round", pfc::infinite_size) == 0) {
+			if (param_count == 2) {
+				params[0].multi_round(params[1]);
+				result = &params[0];
+			}
+			else {
+				wrong_param_count = true;
+			}
+		}
+
+		else if (pfc::strcmp_ex(p_name, p_name_length, "multi_mod", pfc::infinite_size) == 0) {
+			if (param_count > 1) {
+				for (size_t i = 1; i < param_count; i++) {
+					params[0].multi_mod(params[i]);
+				}
 				result = &params[0];
 			}
 			else {

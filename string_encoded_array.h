@@ -46,7 +46,7 @@ private:
 	bool _strstr(const string_encoded_array&);
 	bool _any();
 	bool _all();
-	bool _sum();
+	bool _count();
 	bool _multi_if(const string_encoded_array&, const string_encoded_array&);
 	bool _multi_or(const string_encoded_array&);
 	bool _multi_and(const string_encoded_array&);
@@ -63,13 +63,16 @@ private:
 	bool _multi_right(const string_encoded_array&);
 	bool _multi_greater(const string_encoded_array&);
 	bool _multi_longer(const string_encoded_array&);
+	bool _sum(); 
 	bool _multi_add(const string_encoded_array&);
 	bool _multi_sub(const string_encoded_array&);
 	bool _multi_mul(const string_encoded_array&);
 	bool _multi_div(const string_encoded_array&);
+	bool _multi_divd(const string_encoded_array&);
 	bool _multi_mod(const string_encoded_array&);
 	bool _multi_min(const string_encoded_array&);
 	bool _multi_max(const string_encoded_array&);
+	bool _multi_round(const string_encoded_array&);
 
 	void array_param_too_deep(size_t pos) {
 		string_encoding_exception ex;
@@ -152,8 +155,31 @@ public:
 	}
 
 	inline int get_numeric_value() const {
-		if (!has_array() && pfc::string_is_numeric(value)) {
-			return std::stoi(value.get_ptr());
+		if (!has_array()) {
+			if (!value.get_length()) {
+				return 0;
+			}
+			else if (pfc::string_is_numeric(value)) {
+				return std::stoi(value.get_ptr());
+			}
+		}
+		string_encoding_exception ex;
+		ex << "Invalid integer parameter: " << value;
+		throw ex;
+	}
+
+	inline double get_numeric_double_value() const {
+		try {
+			if (!has_array()) {
+				if (!value.get_length()) {
+					return 0;
+				}
+				else {
+					return std::stod(value.get_ptr());
+				}
+			}
+		}
+		catch (const std::invalid_argument&) {
 		}
 		string_encoding_exception ex;
 		ex << "Invalid numeric parameter: " << value;
@@ -252,8 +278,8 @@ public:
 	inline void all() {
 		branch_execute(&string_encoded_array::_all, 1);
 	}
-	inline void sum() {
-		branch_execute(&string_encoded_array::_sum, 1);
+	inline void count() {
+		branch_execute(&string_encoded_array::_count, 1);
 	}
 	inline void multi_if(const string_encoded_array &yes, const string_encoded_array &no) {
 		branch_execute(&string_encoded_array::_multi_if, yes, no);
@@ -321,6 +347,9 @@ public:
 	inline void multi_div(const string_encoded_array &other) {
 		branch_execute(&string_encoded_array::_multi_div, other);
 	}
+	inline void multi_divd(const string_encoded_array &other) {
+		branch_execute(&string_encoded_array::_multi_divd, other);
+	}
 	inline void multi_mod(const string_encoded_array &other) {
 		branch_execute(&string_encoded_array::_multi_mod, other);
 	}
@@ -329,6 +358,12 @@ public:
 	}
 	inline void multi_max(const string_encoded_array &other) {
 		branch_execute(&string_encoded_array::_multi_max, other);
+	}
+	inline void multi_round(const string_encoded_array &other) {
+		branch_execute(&string_encoded_array::_multi_round, other);
+	}
+	inline void sum() {
+		branch_execute(&string_encoded_array::_sum, 1);
 	}
 
 	pfc::string8 print() const;

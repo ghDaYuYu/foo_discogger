@@ -491,7 +491,11 @@ bool string_encoded_array::_joinnames(const string_encoded_array &delim) {
 		}
 		if (!first) {
 			if (delim.has_array()) {
-				pd = &delim.get_citem(delim.get_width() % i);
+				size_t j = i - 1;
+				if (j >= delim.get_width()) {
+					j = j - delim.get_width();
+				}
+				pd = &delim.get_citem(j);
 			}
 			if (!STR_EQUAL(pd->value, ",")) {
 				value.add_char(' ');

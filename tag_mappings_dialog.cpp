@@ -454,7 +454,7 @@ void CNewTagMappingsDialog::show_context_menu(CPoint &pt, int selection) {
 
 LRESULT CNewTagMappingsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam , BOOL& bHandled) {
 	LPNMLVCUSTOMDRAW lplvcd = (LPNMLVCUSTOMDRAW)lParam;
-	int pos = (int)lplvcd->nmcd.dwItemSpec;
+	size_t pos = lplvcd->nmcd.dwItemSpec;
 	int sub_item;
 	if (tag_mappings->get_count() <= pos) {
 		return CDRF_DODEFAULT;

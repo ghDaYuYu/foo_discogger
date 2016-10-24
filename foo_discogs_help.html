@@ -140,67 +140,70 @@
 
 <table class="inline">
     <tr>
-        <th> Object </th><th> Sub-object </th><th> Type </th><th>Description</th>
+        <th> Object </th><th> Sub-object </th><th> Type </th><th> Sub-object type</th><th>Description</th>
     </tr>
     <tr>
-        <td> RELEASE </td><td> ARTISTS </td><td> array </td><td> Artists for the release. </td>
+        <td> RELEASE </td><td> ARTISTS </td><td> array </td><td> ARTIST </td><td> Artists for the release. </td>
     </tr>
     <tr>
-        <td> RELEASE </td><td> LABELS </td><td> array </td><td> Labels for the release. </td>
+        <td> RELEASE </td><td> LABELS </td><td> array </td><td> LABEL </td><td> Labels for the release. </td>
     </tr>
     <tr>
-        <td> RELEASE </td><td> SERIES </td><td> array </td><td> Seriess for the release, if applicable. </td>
+        <td> RELEASE </td><td> SERIES </td><td> array </td><td> SERIES </td><td> Seriess for the release, if applicable. </td>
     </tr>
     <tr>
-        <td> RELEASE </td><td> DISCS </td><td> array </td><td> Discs for the release. Each CD, Record, Tape, etc, is parsed as a separate disc. </td>
+        <td> RELEASE </td><td> DISCS </td><td> array </td><td> DISC </td><td> Discs for the release. Each CD, Record, Tape, etc, is parsed as a separate disc. </td>
     </tr>
     <tr>
-        <td> RELEASE </td><td> TRACKS </td><td> array </td><td> All tracks for the release. </td>
+        <td> RELEASE </td><td> TRACKS </td><td> array </td><td> TRACK </td><td> All tracks for the release. </td>
     </tr>
     <tr>
-        <td> RELEASE </td><td> FORMATS </td><td> array </td><td> Formats for the release. Will include the format for each disc, and may include some additional. </td>
+        <td> RELEASE </td><td> FORMATS </td><td> array </td><td> FORMAT </td><td> Formats for the release. Will include the format for each disc, and may include some additional. </td>
     </tr>
     <tr>
-        <td> RELEASE </td><td> CREDITS </td><td> array </td><td> Credits for the release, if available. These are release-level, non-track-specific credits only. </td>
+        <td> RELEASE </td><td> CREDITS </td><td> array </td><td> CREDIT </td><td> Credits for the release, if available. These are release-level, non-track-specific credits only. </td>
     </tr>
     <tr>
-        <td> RELEASE </td><td> IMAGES </td><td> array </td><td> Images for the release, if available. </td>
+        <td> RELEASE </td><td> IMAGES </td><td> array </td><td> IMAGE </td><td> Images for the release, if available. </td>
     </tr>
     <tr>
-        <td> RELEASE </td><td> MASTER_RELEASE </td><td> single </td><td> Master release for the release, if applicable. </td>
+        <td> RELEASE </td><td> MASTER_RELEASE </td><td> single </td><td> RELEASE </td><td> Master release for the release, if applicable. </td>
     </tr>
     <tr>
-        <td> DISC </td><td> TRACKS </td><td> array </td><td> All tracks for the disc. </td>
+        <td> DISC </td><td> TRACKS </td><td> array </td><td> TRACK </td><td> All tracks for the disc. </td>
     </tr>
     <tr>
-        <td> DISC </td><td> FORMAT </td><td> single </td><td> Format of this particular disc. </td>
+        <td> DISC </td><td> FORMAT </td><td> single </td><td> FORMAT </td><td> Format of this particular disc. </td>
     </tr>
     <tr>
-        <td> TRACK </td><td> ARTISTS </td><td> array </td><td> Artists for the track, if applicable. </td>
+        <td> TRACK </td><td> ARTISTS </td><td> array </td><td> ARTIST </td><td> Artists for the track, if applicable. </td>
     </tr>
     <tr>
-        <td> TRACK </td><td> CREDITS </td><td> array </td><td> Credits for the track. All track-specific credits are put here, even if they were entered at the release level. </td>
+        <td> TRACK </td><td> CREDITS </td><td> array </td><td> CREDIT </td><td> Credits for the track. All track-specific credits are put here, even if they were entered at the release level. </td>
     </tr>
     <tr>
-        <td> TRACK </td><td> HIDDEN_TRACKS </td><td> array </td><td> Tracks hidden within this track. Additional tracks within the same audio file are placed here. </td>
+        <td> TRACK </td><td> HIDDEN_TRACKS </td><td> array </td><td> TRACK </td><td> Tracks hidden within this track. (Additional tracks hidden within the same audio track.) </td>
     </tr>
     <tr>
-        <td> MASTER_RELEASE </td><td> ARTISTS </td><td> array </td><td> Artists for the master release. </td>
+        <td> MASTER_RELEASE </td><td> ARTISTS </td><td> array </td><td> ARTIST </td><td> Artists for the master release. </td>
     </tr>
     <tr>
-        <td> MASTER_RELEASE </td><td> DISCS </td><td> array </td><td> Discs for the master release. </td>
+        <td> MASTER_RELEASE </td><td> DISCS </td><td> array </td><td> DISC </td><td> Discs for the master release. </td>
     </tr>
     <tr>
-        <td> MASTER_RELEASE </td><td> TRACKS </td><td> array </td><td> All tracks for the master release.</td>
+        <td> MASTER_RELEASE </td><td> TRACKS </td><td> array </td><td> TRACK </td><td> All Tracks for the master release.</td>
     </tr>
     <tr>
-        <td> MASTER_RELEASE </td><td> RELEASES </td><td> array </td><td> All sub releases inside this master release.</td>
+        <td> MASTER_RELEASE </td><td> MAIN_RELEASE </td><td> single </td><td> RELEASE </td><td> Main release for this master release.</td>
     </tr>
     <tr>
-        <td> CREDIT </td><td> ARTISTS </td><td> array </td><td> Artists for a credit. </td>
+        <td> MASTER_RELEASE </td><td> RELEASES </td><td> array </td><td> RELEASE </td><td> All sub releases inside this master release.</td>
     </tr>
     <tr>
-        <td> ARTIST </td><td> IMAGES </td><td> array </td><td> Images for the artist, if available. </td>
+        <td> CREDIT </td><td> ARTISTS </td><td> array </td><td> ARTIST </td><td> Artists for a credit. </td>
+    </tr>
+    <tr>
+        <td> ARTIST </td><td> IMAGES </td><td> array </td><td> IMAGE </td><td> Images for the artist, if available. </td>
     </tr>
 </table>
 
@@ -1005,8 +1008,10 @@
     $puts(a,$multi_count($put(x,$contains(%&#60;RELEASE_TRACKS_TITLE&#62;%,%&#60;MASTER_RELEASE_TRACKS_TITLE&#62;%))))$puts(b,$multi_length($get(x)))$div($add($mul($get(a),100),$div($get(b),2)),$get(b))'%'
 </p>
 
-5. Approximate old COMPILATION tag (Discogs used to set album artist as "Various Artists" for all compilations; now they the name of any person written on the cover.):
-
+5. Calculate average rating of all releases in a release's master release (if applicable):
+<p>
+    $puts(RATINGS,%<MASTER_RELEASE_RELEASES_DISCOGS_AVG_RATING>%)$puts(VOTES,%<MASTER_RELEASE_RELEASES_DISCOGS_RATING_VOTES>%)$puts(COUNT,$length($get(RATINGS)))$puts(TOTALVOTES,$sum($get(VOTES)))$multi_round($sum($multi_divd($multi_mul($get(RATINGS),$get(VOTES)),$get(TOTALVOTES))),2)
+</p>
 
 <p>
     Refer to the default tag formatting strings in foo_discogs for additional examples.

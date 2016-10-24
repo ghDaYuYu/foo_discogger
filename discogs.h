@@ -614,7 +614,10 @@ namespace Discogs
 		pfc::string8 id;
 		pfc::string8 title;
 		pfc::string8 release_year;
+		
 		pfc::string8 main_release_id;
+		Release_ptr main_release;
+
 		pfc::string8 main_release_url;
 		pfc::string8 main_release_api_url;
 		pfc::string8 versions_api_url;
@@ -624,9 +627,11 @@ namespace Discogs
 		pfc::string8 discogs_data_quality;
 		pfc::string8 discogs_tracklist_count;
 		pfc::array_t<Release_ptr> sub_releases;
-		
+
 		bool loaded_preview = false;
 		bool loaded_releases = false;
+
+		inline void set_main_release(Release_ptr main);
 
 		MasterRelease() {}
 
@@ -738,12 +743,7 @@ namespace Discogs
 		bool loaded_preview = false;
 		bool loaded_my_rating = false;
 
-		void set_master_release(MasterRelease_ptr master) {
-			master_release = master;
-			if (master) {
-				master_id = master->id;
-			}
-		}
+		inline void set_master_release(MasterRelease_ptr master);
 
 		string_encoded_array get_id() const {
 			return id;

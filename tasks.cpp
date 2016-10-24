@@ -610,12 +610,13 @@ void get_artist_process_callback::start(HWND parent) {
 		threaded_process::flag_show_abort |
 		threaded_process::flag_show_delayed,
 		parent,
-		"Getting artist releases..."
+		"Loading artist releases..."
 	);
 }
 
 void get_artist_process_callback::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
 	m_artist = discogs_interface->get_artist(m_artist_id, true, p_status, p_abort);
+	p_status.set_item("Formatting artist releases...");
 }
 
 void get_artist_process_callback::on_success(HWND p_wnd) {

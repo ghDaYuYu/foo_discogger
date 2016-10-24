@@ -624,6 +624,8 @@ namespace Discogs
 		pfc::string8 discogs_data_quality;
 		pfc::string8 discogs_tracklist_count;
 		pfc::array_t<Release_ptr> sub_releases;
+		
+		bool loaded_preview = false;
 		bool loaded_releases = false;
 
 		MasterRelease() {}
@@ -665,9 +667,9 @@ namespace Discogs
 		static ExposedMap<MasterRelease> create_tags_map() {
 			ExposedMap<MasterRelease> m;
 			m["ID"] = { &MasterRelease::get_id, nullptr };
-			m["TITLE"] = { &MasterRelease::get_title, &MasterRelease::load };
-			m["YEAR"] = { &MasterRelease::get_release_year, &MasterRelease::load };
-			m["MAIN_RELEASE_ID"] = { &MasterRelease::get_main_release_id, &MasterRelease::load };
+			m["TITLE"] = { &MasterRelease::get_title, &MasterRelease::load_preview };
+			m["YEAR"] = { &MasterRelease::get_release_year, &MasterRelease::load_preview };
+			m["MAIN_RELEASE_ID"] = { &MasterRelease::get_main_release_id, &MasterRelease::load_preview };
 			m["MAIN_RELEASE_URL"] = { &MasterRelease::get_main_release_url, &MasterRelease::load };
 			m["MAIN_RELEASE_API_URL"] = { &MasterRelease::get_main_release_api_url, &MasterRelease::load };
 			m["DISCOGS_DATA_QUALITY"] = { &MasterRelease::get_discogs_data_quality, &MasterRelease::load };
@@ -683,6 +685,13 @@ namespace Discogs
 			return HasArtists::has_anv() || HasDiscs::has_anv();
 		}
 
+		inline void load_preview(threaded_process_status &p_status, abort_callback &p_abort, bool throw_all = false) {
+			if (loaded || loaded_preview) {
+				return;
+			}
+			// No point just loading the preview, might as well load everything
+			load(p_status, p_abort, throw_all);
+		}
 		void load(threaded_process_status &p_status, abort_callback &p_abort, bool throw_all = false) override;
 		void load_releases(threaded_process_status &p_status, abort_callback &p_abort, bool throw_all = false);
 	};
@@ -726,7 +735,7 @@ namespace Discogs
 		pfc::array_t<pfc::string8> videos;
 		MemoryBlock small_art;
 		
-		bool loaded_master_preview = false;
+		bool loaded_preview = false;
 		bool loaded_my_rating = false;
 
 		void set_master_release(MasterRelease_ptr master) {
@@ -824,11 +833,11 @@ namespace Discogs
 		static ExposedMap<Release> create_tags_map() {
 			ExposedMap<Release> m;
 			m["ID"] = { &Release::get_id, nullptr };
-			m["TITLE"] = { &Release::get_title, &Release::load_master_preview };
-			m["COUNTRY"] = { &Release::get_country, &Release::load_master_preview };
+			m["TITLE"] = { &Release::get_title, &Release::load_preview };
+			m["COUNTRY"] = { &Release::get_country, &Release::load_preview };
 			m["DATE"] = { &Release::get_release_date, &Release::load };
 			m["DATE_RAW"] = { &Release::get_release_date_raw, &Release::load };
-			m["YEAR"] = { &Release::get_release_year, &Release::load_master_preview };
+			m["YEAR"] = { &Release::get_release_year, &Release::load_preview };
 			m["MONTH"] = { &Release::get_release_month, &Release::load };
 			m["DAY"] = { &Release::get_release_day, &Release::load };
 			m["NOTES"] = { &Release::get_notes, &Release::load };
@@ -848,9 +857,9 @@ namespace Discogs
 			m["GENRES"] = { &Release::get_genres, &Release::load };
 			m["STYLES"] = { &Release::get_styles, & Release::load };
 			m["VIDEOS"] = { &Release::get_videos, &Release::load };
-			m["SEARCH_FORMATS"] = { &Release::get_search_formats, &Release::load };
-			m["SEARCH_LABELS"] = { &Release::get_search_labels, &Release::load };
-			m["SEARCH_CATNOS"] = { &Release::get_search_catno, &Release::load };
+			m["SEARCH_FORMATS"] = { &Release::get_search_formats, &Release::load_preview };
+			m["SEARCH_LABELS"] = { &Release::get_search_labels, &Release::load_preview };
+			m["SEARCH_CATNOS"] = { &Release::get_search_catno, &Release::load_preview };
 			return m;
 		}
 
@@ -866,8 +875,8 @@ namespace Discogs
 			return artists.get_size() > 1;
 		}
 
-		inline void load_master_preview(threaded_process_status &p_status, abort_callback &p_abort, bool throw_all = false) {
-			if (loaded || loaded_master_preview) {
+		inline void load_preview(threaded_process_status &p_status, abort_callback &p_abort, bool throw_all = false) {
+			if (loaded || loaded_preview) {
 				return;
 			}
 			// No point just loading the preview, might as well load everything

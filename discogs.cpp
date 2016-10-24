@@ -1087,20 +1087,13 @@ void Discogs::parseArtistReleases(json_t *root, Artist *artist) {
 						release->release_year = getYearFromReleased(JSONAttributeString(rel, "released"));
 					}
 					release->main_release_id = JSONAttributeString(rel, "main_release");
+					release->loaded_preview = true;
 					artist->master_releases.append_single(std::move(release));
 					artist->search_order_master.append_single(true);
 				}
 				else {
 					Release_ptr release = discogs_interface->get_release(JSONAttributeString(rel, "id"));
 					release->title = JSONAttributeString(rel, "title");
-					/*pfc::string8 labels = JSONAttributeString(rel, "label");
-					pfc::array_t<pfc::string8> label_names;
-					tokenize(labels, ", ", label_names, true);
-					for (size_t i = 0; i < label_names.get_size(); i++) {
-						ReleaseLabel_ptr label(new ReleaseLabel());
-						label->name = label_names[i];
-						release->labels.append_single(std::move(label));
-					}*/
 					release->search_labels = JSONAttributeString(rel, "label");
 					release->search_formats = JSONAttributeString(rel, "format");
 					release->search_catno = JSONAttributeString(rel, "catno");
@@ -1119,6 +1112,7 @@ void Discogs::parseArtistReleases(json_t *root, Artist *artist) {
 						}
 					}
 					if (!duplicate) {
+						release->loaded_preview = true;
 						artist->releases.append_single(std::move(release));
 						artist->search_order_master.append_single(false);
 					}
@@ -1156,7 +1150,7 @@ void Discogs::parseMasterVersions(json_t *root, MasterRelease *master_release) {
 					}
 				}
 				if (!duplicate) {
-					release->loaded_master_preview = true;
+					release->loaded_preview = true;
 					master_release->sub_releases.append_single(std::move(release));
 				}
 			}

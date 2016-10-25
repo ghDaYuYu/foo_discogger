@@ -189,7 +189,9 @@ string_encoded_array Discogs::Release::get_sub_data(pfc::string8 &tag_name, thre
 	else if (STR_EQUALN(tag_name, "MASTER_RELEASE_", 15)) {
 		sub_tag_name = substr(tag_name, 15);
 		load_preview(p_status, p_abort);
-		result = master_release->get_data(sub_tag_name, p_status, p_abort);
+		if (master_release) {
+			result = master_release->get_data(sub_tag_name, p_status, p_abort);
+		}
 	}
 	else {
 		return ExposedTags<Release>::get_sub_data(tag_name, p_status, p_abort);
@@ -237,7 +239,9 @@ string_encoded_array Discogs::MasterRelease::get_sub_data(pfc::string8 &tag_name
 	else if (STR_EQUALN(tag_name, "MAIN_RELEASE_", 13)) {
 		sub_tag_name = substr(tag_name, 13);
 		load_preview(p_status, p_abort);
-		result = main_release->get_data(sub_tag_name, p_status, p_abort);
+		if (main_release) {
+			result = main_release->get_data(sub_tag_name, p_status, p_abort);
+		}
 	}
 	else if (STR_EQUALN(tag_name, "RELEASES_", 9)) {
 		sub_tag_name = substr(tag_name, 9);

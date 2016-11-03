@@ -322,6 +322,8 @@ int TagWriter::order_tracks_by_number(track_mappings_list_type &mappings) {
 	int missing = 0;
 	metadb_handle_ptr item;
 	
+	pfc::array_t<std::pair<int, int>> used;
+
 	file_info_impl finfo;
 	for (size_t i = 0; i < count; i++) {
 		item = finfo_manager->items.get_item(i);
@@ -361,13 +363,16 @@ int TagWriter::order_tracks_by_number(track_mappings_list_type &mappings) {
 				match = (!disc_number || disc_number == disc->disc_number) && (track->track_number == track_number || track->disc_track_number == track_number);
 				match = match || (!disc_number && track_number == total_num);
 				if (match) {
-					if (mappings[i].enabled) {
-						return MATCH_FAIL;
+					for (size_t k = 0; k < used.get_count(); k++) {
+						if (used[k].first == d && used[k].second == j) {
+							return MATCH_FAIL;
+						}
 					}
 					mappings[i].enabled = true;
 					mappings[i].discogs_disc = d;
 					mappings[i].discogs_track = j;
 					found = true;
+					used.append_single(std::pair<int, int>(d, j));
 					break;
 				}
 			}

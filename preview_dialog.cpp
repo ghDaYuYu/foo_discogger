@@ -531,10 +531,10 @@ LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam, BOOL& bHand
 			lplvcd->clrText = DISABLED_RGB;
 			return CDRF_NEWFONT;
 		}*/
-		else {
+		/*else {
 			lplvcd->clrText = DEFAULT_RGB;
 			return CDRF_NEWFONT;
-		}
+		}*/
 	}
 	return CDRF_DODEFAULT;
 }

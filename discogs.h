@@ -824,6 +824,11 @@ namespace Discogs
 			return search_formats;
 		}
 		string_encoded_array get_search_labels() const {
+			if (CONF.discard_numeric_suffix) {
+				// NOTE: this won't work if multiple labels
+				pfc::string8 result = search_labels; 
+				result = remove_number_suffix(result);
+			}
 			return search_labels;
 		}
 		string_encoded_array get_search_catno() const {

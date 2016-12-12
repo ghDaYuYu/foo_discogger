@@ -217,7 +217,7 @@ public:
 
 	// limits depth of array by squashing it with ", " delimiter
 	bool limit_depth(size_t depth);
-	
+
 	// expands depth to fill in empty values
 	bool expand_depth(size_t depth);
 
@@ -226,7 +226,7 @@ public:
 	
 	void unique();
 	void flatten();
-	void force_array();
+	void force_array(size_t depth=1);
 
 	inline void join(const pfc::string8 &delim = DEFAULT_JOIN_DELIM) {
 		branch_execute(&string_encoded_array::_join, delim, 1);

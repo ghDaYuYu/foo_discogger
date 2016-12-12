@@ -710,8 +710,7 @@ bool titleformat_hook_impl_multiformat::process_function(titleformat_text_out * 
 				pfc::string8 name = params[0].get_pure_cvalue();
 				result = &params[0];
 				result->force_reset();
-				result->force_array();
-				result->expand_depth(2);
+				result->force_array(2);
 				for (size_t f = 0; f < files->get_item_count(); f++) {
 					string_encoded_array temp;
 					temp.force_array();

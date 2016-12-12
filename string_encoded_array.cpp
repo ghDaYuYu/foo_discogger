@@ -434,14 +434,14 @@ void string_encoded_array::flatten() {
 	}
 }
 
-void string_encoded_array::force_array() {
+void string_encoded_array::force_array(size_t depth) {
 	if (m_depth == 0) {
 		sub_array.append_single(string_encoded_array(value));
-		m_depth = 1;
+		m_depth = depth;
 		dirty = true;
 	}
 	else if (m_depth == ~0) {
-		m_depth = 1;
+		m_depth = depth;
 		dirty = true;
 	}
 }

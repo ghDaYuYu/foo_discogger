@@ -503,7 +503,7 @@ LRESULT CPreviewTagsDialog::OnEdit(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
 
 #define DISABLED_RGB	RGB(150, 150, 150)
-#define DEFAULT_RGB		RGB(0, 0, 0)
+
 
 LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam, BOOL& bHandled) {
 	if (generating_tags) {

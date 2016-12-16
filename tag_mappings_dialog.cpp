@@ -450,7 +450,7 @@ void CNewTagMappingsDialog::show_context_menu(CPoint &pt, int selection) {
 }
 
 #define DISABLED_RGB	RGB(150, 150, 150)
-#define DEFAULT_RGB		RGB(0, 0, 0)
+
 
 LRESULT CNewTagMappingsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam , BOOL& bHandled) {
 	LPNMLVCUSTOMDRAW lplvcd = (LPNMLVCUSTOMDRAW)lParam;
@@ -474,14 +474,14 @@ LRESULT CNewTagMappingsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam , BOOL& b
 				lplvcd->clrText = DISABLED_RGB;
 				return CDRF_NEWFONT;
 			}
-			else if (sub_item == 2 && entry.freeze_write && entry.freeze_update) {
+			/*else if (sub_item == 2 && entry.freeze_write && entry.freeze_update) {
 				lplvcd->clrText = DISABLED_RGB;
 				return CDRF_NEWFONT;
 			}
 			else {
 				lplvcd->clrText = DEFAULT_RGB;
 				return CDRF_NEWFONT;
-			}
+			}*/
 	}
 	return CDRF_DODEFAULT;
 }

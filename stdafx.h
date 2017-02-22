@@ -50,3 +50,5 @@
 #include <ctime>
 
 #include "resource.h"
+
+#define FOO_DISCOGS_VERSION "2.13"

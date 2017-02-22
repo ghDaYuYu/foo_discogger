@@ -14,8 +14,6 @@
 #include "tag_mappings_dialog.h"
 
 
-#define FOO_DISCOGS_VERSION "2.12"
-
 using namespace std;
 
 foo_discogs *g_discogs = nullptr;

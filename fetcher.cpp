@@ -5,6 +5,9 @@
 #include "utils.h"
 
 
+char USER_AGENT[] = "User-Agent: foo_discogs/" FOO_DISCOGS_VERSION;
+
+
 void Fetcher::fetch_html(const pfc::string8 &url, const pfc::string8 &params, pfc::string8 &html, abort_callback &p_abort, bool use_oauth) {
 	pfc::array_t<t_uint8> buffer;
 	fetch_url(url, params, buffer, p_abort, use_oauth, "application/xml");
@@ -53,7 +56,7 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 		else {
 			request->add_header("Accept-Encoding: identity");
 		}
-		request->add_header("User-Agent: Opera/9.50"); // TODO: make this a parameter? along with max retries, wait time, etc?
+		request->add_header(USER_AGENT);
 		pfc::string8 accept_header("Accept: ");
 		accept_header << (content_type);
 		request->add_header(accept_header);

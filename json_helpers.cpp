@@ -115,7 +115,7 @@ unsigned int JSONAttributeObjectAttributeInt(json_t *root, const char *object, c
 	if (json_is_object(obj)) {
 		json_t *s = json_object_get(obj, key);
 		if (json_is_integer(s)) {
-			return json_integer_value(s);
+			return (unsigned int)json_integer_value(s);
 		}
 	}
 	return pfc::infinite_size;

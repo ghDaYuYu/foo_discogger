@@ -1081,7 +1081,7 @@ bool string_encoded_array::_multi_round(const string_encoded_array& other) {
 		return false;
 	}
 	int sigdigs = other.get_numeric_value();
-	unsigned long long int multiplier = pow(10, sigdigs);
+	unsigned long long int multiplier = (unsigned long long int) pow(10, sigdigs);
 	long double out_num = me_num * multiplier;
 	if (me_num > 0) {
 		out_num += 0.5;

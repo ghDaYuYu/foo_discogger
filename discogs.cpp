@@ -806,6 +806,8 @@ void Discogs::parseReleaseTrack(json_t *element, pfc::array_t<ReleaseTrack_ptr> 
 		temp << " (" << track->title << ")";
 		track->title = temp;
 
+		track->credits = (*index)->credits;
+
 		track->discogs_indextrack_duration_raw = (*index)->discogs_duration_raw;
 		track->discogs_indextrack_duration_seconds = (*index)->discogs_duration_seconds;
 	}

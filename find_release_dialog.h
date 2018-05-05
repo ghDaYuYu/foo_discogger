@@ -56,6 +56,7 @@ private:
 	void on_release_selected(int pos);
 
 	void extract_id_from_url(pfc::string8 &s);
+	void extract_release_from_link(pfc::string8 &s);
 
 public:
 	enum { IDD = IDD_DIALOG_FIND_RELEASE };

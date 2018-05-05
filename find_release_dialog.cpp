@@ -398,12 +398,20 @@ void CFindReleaseDialog::extract_id_from_url(pfc::string8 &s) {
 	}
 }
 
+void CFindReleaseDialog::extract_release_from_link(pfc::string8 &s) {
+	size_t pos = s.find_first("[r");
+	if (pos == 0) {
+		s = substr(s, 2, s.get_length() - 3);
+	}
+}
+
 LRESULT CFindReleaseDialog::OnOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	pfc::string8 text; 
 	uGetWindowText(release_url_edit, text);
 	pfc::string8 release_id = text.get_ptr();
 	release_id = trim(release_id);
 	extract_id_from_url(release_id);
+	extract_release_from_link(release_id);
 	if (release_id.get_length() != 0) {
 		on_write_tags(release_id);
 	}

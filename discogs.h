@@ -520,7 +520,7 @@ namespace Discogs
 	public:
 		int disc_number;
 		// TODO: disc index title
-		ReleaseFormat_ptr format;  // TODO: assumed to be initialized
+		ReleaseFormat_ptr format = nullptr;
 
 		string_encoded_array get_number() const {
 			return disc_number;
@@ -860,7 +860,7 @@ namespace Discogs
 			m["DISCOGS_SUBMITTED_BY"] = { &Release::get_submitted_by, &Release::load };
 			//m["DISCOGS_TOTAL_DISCS"] = { &Release::get_discogs_total_discs, 0 };  -- technically format_quantity...? :-s
 			m["GENRES"] = { &Release::get_genres, &Release::load };
-			m["STYLES"] = { &Release::get_styles, & Release::load };
+			m["STYLES"] = { &Release::get_styles, &Release::load };
 			m["VIDEOS"] = { &Release::get_videos, &Release::load };
 			m["SEARCH_FORMATS"] = { &Release::get_search_formats, &Release::load_preview };
 			m["SEARCH_LABELS"] = { &Release::get_search_labels, &Release::load_preview };

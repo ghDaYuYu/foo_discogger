@@ -111,7 +111,7 @@ string_encoded_array Discogs::ReleaseDisc::get_sub_data(pfc::string8 &tag_name, 
 			result.append_item_val(tracks[i]->get_data(sub_tag_name, p_status, p_abort));
 		}
 	}
-	else if (STR_EQUALN(tag_name, "FORMAT_", 7)) {
+	else if (format != nullptr && STR_EQUALN(tag_name, "FORMAT_", 7)) {
 		sub_tag_name = substr(tag_name, 7);
 		return format->get_data(sub_tag_name, p_status, p_abort);
 	}

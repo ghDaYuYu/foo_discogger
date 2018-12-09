@@ -648,6 +648,46 @@ void search_artist_process_callback::on_success(HWND p_wnd) {
 }
 
 
+void expand_master_release_process_callback::start(HWND parent) {
+	threaded_process::g_run_modeless(
+		this,
+		threaded_process::flag_show_item |
+		threaded_process::flag_show_abort |
+		threaded_process::flag_show_delayed,
+		parent,
+		"Expanding master release..."
+		);
+}
+
+void expand_master_release_process_callback::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
+	p_status.set_item("Expanding master release...");
+	m_master_release->load_releases(p_status, p_abort);
+	if (g_discogs->find_release_dialog) {
+		g_discogs->find_release_dialog->on_expand_master_release_done(m_master_release, m_pos, p_status, p_abort);
+	}
+}
+
+void expand_master_release_process_callback::on_success(HWND p_wnd) {
+	if (g_discogs->find_release_dialog) {
+		g_discogs->find_release_dialog->on_expand_master_release_complete();
+	}
+}
+
+void expand_master_release_process_callback::on_abort(HWND p_wnd) {
+	if (g_discogs->find_release_dialog) {
+		g_discogs->find_release_dialog->on_expand_master_release_complete();
+	}
+}
+
+bool expand_master_release_process_callback::on_error(HWND p_wnd) {
+	if (g_discogs->find_release_dialog) {
+		g_discogs->find_release_dialog->on_expand_master_release_complete();
+	}
+	return true;
+}
+
+
+
 process_release_callback::process_release_callback(CFindReleaseDialog *dialog, const pfc::string8 &release_id, const metadb_handle_list &items) :
 		items(items), m_dialog(dialog), m_release_id(release_id) {
 	m_dialog->enable(false);
@@ -657,7 +697,8 @@ process_release_callback::process_release_callback(CFindReleaseDialog *dialog, c
 
 void process_release_callback::start(HWND parent) {
 	threaded_process::g_run_modeless(this,
-		threaded_process::flag_show_item | threaded_process::flag_show_abort,
+		threaded_process::flag_show_item | 
+		threaded_process::flag_show_abort,
 		parent,
 		"Processing release..."
 	);
@@ -765,26 +806,4 @@ void generate_oauth_process_callback::on_success(HWND p_wnd) {
 	uSetWindowText(g_discogs->configuration_dialog->secret_edit, token->secret().c_str());
 	delete token;
 	token = nullptr;
-}
-
-
-void expand_master_release_process_callback::start(HWND parent) {
-	threaded_process::g_run_modal(this,
-		threaded_process::flag_show_item |
-		threaded_process::flag_show_abort |
-		threaded_process::flag_show_delayed,
-		parent,
-		"Expanding master release..."
-	);
-}
-
-void expand_master_release_process_callback::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
-	m_master_release->load_releases(p_status, p_abort);
-	if (g_discogs->find_release_dialog) {
-		g_discogs->find_release_dialog->on_expand_master_release_done(m_master_release, m_pos, p_status, p_abort);
-	}
-}
-
-void expand_master_release_process_callback::on_success(HWND p_wnd) {
-	
 }

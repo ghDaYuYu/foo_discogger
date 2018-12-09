@@ -35,6 +35,8 @@ private:
 	HWND artist_list, release_list;
 	HWND release_url_edit, search_edit, filter_edit;
 
+	service_ptr_t<expand_master_release_process_callback> *active_task = nullptr;
+
 	void load_size();
 	void save_size(int x, int y);
 
@@ -52,6 +54,7 @@ private:
 
 	void expand_master_release(MasterRelease_ptr &master_release, int pos);
 	void on_expand_master_release_done(const MasterRelease_ptr &master_release, int pos, threaded_process_status &p_status, abort_callback &p_abort);
+	void on_expand_master_release_complete();
 
 	void on_release_selected(int pos);
 

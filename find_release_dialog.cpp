@@ -264,6 +264,9 @@ void CFindReleaseDialog::select_first_release() {
 }
 
 void CFindReleaseDialog::on_release_selected(int list_index) {
+	if (this->active_task) {
+		return;
+	}
 	int item_data = (int)uSendMessage(release_list, LB_GETITEMDATA, list_index, 0);
 	int master_index = item_data >> 16;
 	int release_index = item_data & 0xFFFF;
@@ -448,12 +451,17 @@ void CFindReleaseDialog::on_expand_master_release_done(const MasterRelease_ptr &
 	}
 }
 
+void CFindReleaseDialog::on_expand_master_release_complete() {
+	active_task = NULL;
+}
+
 void CFindReleaseDialog::expand_master_release(MasterRelease_ptr &release, int pos) {
 	if (release->sub_releases.get_size()) {
 		return;
 	}
 	service_ptr_t<expand_master_release_process_callback> task = 
 		new service_impl_t<expand_master_release_process_callback>(release, pos);
+	active_task = &task;
 	task->start(m_hWnd);
 }
 
@@ -461,14 +469,9 @@ void CFindReleaseDialog::get_selected_artist_releases() {
 	int pos = (int)uSendMessage(artist_list, LB_GETCURSEL, 0, 0);
 	if (pos != -1) {
 		Artist_ptr &artist = find_release_artists[pos];
-		//if (!artist->loaded || !artist->loaded_releases) {
-			service_ptr_t<get_artist_process_callback> task =
-				new service_impl_t<get_artist_process_callback>(artist->id.get_ptr());
-			task->start(m_hWnd);
-		//}
-		//else {
-		//	on_get_artist_done(artist);
-		//}
+		service_ptr_t<get_artist_process_callback> task =
+			new service_impl_t<get_artist_process_callback>(artist->id.get_ptr());
+		task->start(m_hWnd);
 	}
 }
 

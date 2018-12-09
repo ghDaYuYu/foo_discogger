@@ -956,22 +956,27 @@ void Discogs::parseRelease(Release *release, json_t *root) {
 	int num_tokens = tokenize(release->release_date_raw, "-", tokens, false);
 
 	release->release_date = "";
-	if (num_tokens) {
-		if (num_tokens == 1) {
-			release->release_year = tokens[0];
-		}
-		else if (num_tokens == 3) {
-			release->release_year = tokens[0];
-			if (!STR_EQUAL(tokens[1], "00")) {
-				release->release_month = tokens[1];
-				release->release_date << MONTH_NAMES.at(tokens[1].get_ptr()) << " ";
+	try {
+		if (num_tokens) {
+			if (num_tokens == 1) {
+				release->release_year = tokens[0];
 			}
-			if (!STR_EQUAL(tokens[2], "00")) {
-				release->release_day = tokens[2];
-				release->release_date << tokens[2] << " ";
+			else if (num_tokens == 3) {
+				release->release_year = tokens[0];
+				if (!STR_EQUAL(tokens[1], "00")) {
+					release->release_month = tokens[1];
+					release->release_date << MONTH_NAMES.at(tokens[1].get_ptr()) << " ";
+				}
+				if (!STR_EQUAL(tokens[2], "00")) {
+					release->release_day = tokens[2];
+					release->release_date << tokens[2] << " ";
+				}
 			}
+			release->release_date << tokens[0];
 		}
-		release->release_date << tokens[0];
+	}
+	catch (std::out_of_range) {
+		throw foo_discogs_exception("Error parsing release date.");
 	}
 
 	json_t *labels = json_object_get(root, "labels");

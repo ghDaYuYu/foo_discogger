@@ -710,7 +710,8 @@ void parseTrackPositions(pfc::array_t<ReleaseTrack_ptr> &intermediate_tracks, Ha
 			pre = "";
 		}
 
-		if (hidden.get_length() == 0 || !last_hidden || last_post != post) { // only use first partial track ie. 10a, 10b
+		if (hidden.get_length() == 0 || !last_hidden || last_post != post || 
+				disc->tracks.get_size() == 0) { // only use first partial track ie. 10a, 10b
 			disc->tracks.append_single(std::move(track));
 			//release->tracks.append_single(std::move(track));
 			track_number++;

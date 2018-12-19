@@ -156,7 +156,7 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 				pfc::string8 msg;
 				msg << "Rate-limited. Retrying: " << tries;
 				log_msg(msg);
-				Sleep(2000);
+				Sleep(2000 * tries);
 			}
 			catch (foobar2000_io::exception_io &e) {
 				if (tries > 5) {
@@ -165,7 +165,7 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 				pfc::string8 error;
 				error << "Networking Error: " << pfc::string8(e.what()) << " - Retrying: " << tries;
 				log_msg(error);
-				Sleep(1000);
+				Sleep(2000);
 			}
 			tries++;
 		}

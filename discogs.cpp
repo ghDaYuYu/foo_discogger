@@ -898,13 +898,13 @@ void Discogs::parseReleaseTracks(json_t *element, HasTracklist *has_tracklist, H
 	}
 	has_tracklist->discogs_tracklist_count = discogs_original_track_count;
 	has_tracklist->discs.force_reset();
-	bool fix_dots = true;
-	for (size_t i = 0; i < intermediate_tracks.get_count(); i++) {
+	bool fix_dots = false;
+	/*for (size_t i = 0; i < intermediate_tracks.get_count(); i++) {
 		if (intermediate_tracks[i]->discogs_track_number.find_first('.') == pfc::infinite_size) {
 			fix_dots = false;
 			break;
 		}
-	}
+	}*/
 	parseTrackPositions(intermediate_tracks, has_tracklist, fix_dots);
 }
 

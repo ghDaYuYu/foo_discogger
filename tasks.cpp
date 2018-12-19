@@ -569,21 +569,28 @@ void update_tags_task::safe_run(threaded_process_status &p_status, abort_callbac
 	for (size_t n = 0; n < count; n++) {
 		const pfc::string8 &release_id = releases[n];
 		const pfc::array_t<size_t> &stuff = metadb_lists[release_id];
+		
+		try {
+			pfc::string8 formatted_release_name;
+			metadb_handle_ptr item = finfo_manager.get_item_handle(stuff[0]);
+			item->format_title(nullptr, formatted_release_name, g_discogs->release_name_script, nullptr);
+			p_status.set_item(formatted_release_name.get_ptr());
+			p_status.set_progress(n + 1, count);
 
-		pfc::string8 formatted_release_name;
-		metadb_handle_ptr item = finfo_manager.get_item_handle(stuff[0]);
-		item->format_title(nullptr, formatted_release_name, g_discogs->release_name_script, nullptr);
-		p_status.set_item(formatted_release_name.get_ptr());
-		p_status.set_progress(n + 1, count);
+			file_info_manager_ptr sub_manager = std::make_shared<file_info_manager>();
+			for (size_t i = 0; i < stuff.get_count(); i++) {
+				sub_manager->copy_from(finfo_manager, stuff[i]);
+			}
 
-		file_info_manager_ptr sub_manager = std::make_shared<file_info_manager>();
-		for (size_t i = 0; i < stuff.get_count(); i++) {
-			sub_manager->copy_from(finfo_manager, stuff[i]);
+			TagWriter_ptr tag_writer = std::make_shared<TagWriter>(sub_manager, discogs_interface->get_release(release_id, p_status, p_abort, false, true));
+			tag_writer->match_tracks();
+			tag_writers.append_single(tag_writer);
 		}
-
-		TagWriter_ptr tag_writer = std::make_shared<TagWriter>(sub_manager, discogs_interface->get_release(release_id, p_status, p_abort, false, true));
-		tag_writer->match_tracks();
-		tag_writers.append_single(tag_writer);
+		catch (http_404_exception) {
+			pfc::string8 error;
+			error << "Skipping 404 release: " << release_id;
+			log_msg(error);
+		}
 	}
 }
 

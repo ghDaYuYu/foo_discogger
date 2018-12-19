@@ -35,6 +35,7 @@ string_encoded_array Discogs::Artist::get_sub_data(pfc::string8 &tag_name, threa
 	pfc::string8 sub_tag_name;
 	string_encoded_array result;
 	if (STR_EQUALN(tag_name, "IMAGES_", 7)) {
+		result.force_array(); 
 		sub_tag_name = substr(tag_name, 7);
 		load(p_status, p_abort);
 		for (size_t i = 0; i < images.get_size(); i++) {
@@ -42,6 +43,7 @@ string_encoded_array Discogs::Artist::get_sub_data(pfc::string8 &tag_name, threa
 		}
 	}
 	else if (STR_EQUALN(tag_name, "RELEASES_", 9)) {
+		result.force_array();
 		sub_tag_name = substr(tag_name, 9);
 		load_releases(p_status, p_abort);
 		for (size_t i = 0; i < releases.get_size(); i++) {
@@ -60,6 +62,7 @@ string_encoded_array Discogs::ReleaseCredit::get_sub_data(pfc::string8 &tag_name
 	pfc::string8 sub_tag_name;
 	string_encoded_array result;
 	if (strncmp(tag_name.get_ptr(), "ARTISTS_", 8) == 0) {
+		result.force_array(); 
 		sub_tag_name = pfc::string8(tag_name.get_ptr() + 8);
 		for (size_t i = 0; i < artists.get_size(); i++) {
 			result.append_item_val(artists[i]->get_data(sub_tag_name, p_status, p_abort));
@@ -77,18 +80,21 @@ string_encoded_array Discogs::ReleaseTrack::get_sub_data(pfc::string8 &tag_name,
 	pfc::string8 sub_tag_name;
 	string_encoded_array result;
 	if (strncmp(tag_name.get_ptr(), "ARTISTS_", 8) == 0) {
+		result.force_array();
 		sub_tag_name = pfc::string8(tag_name.get_ptr() + 8);
 		for (size_t i = 0; i < artists.get_size(); i++) {
 			result.append_item_val(artists[i]->get_data(sub_tag_name, p_status, p_abort));
 		}
 	}
 	else if (strncmp(tag_name.get_ptr(), "CREDITS_", 8) == 0) {
+		result.force_array(); 
 		sub_tag_name = pfc::string8(tag_name.get_ptr() + 8);
 		for (size_t i = 0; i < credits.get_size(); i++) {
 			result.append_item_val(credits[i]->get_data(sub_tag_name, p_status, p_abort));
 		}
 	}
 	else if (strncmp(tag_name.get_ptr(), "HIDDEN_TRACKS_", 14) == 0) {
+		result.force_array(); 
 		sub_tag_name = pfc::string8(tag_name.get_ptr() + 14);
 		for (size_t i = 0; i < hidden_tracks.get_size(); i++) {
 			result.append_item_val(hidden_tracks[i]->get_data(sub_tag_name, p_status, p_abort));
@@ -106,6 +112,7 @@ string_encoded_array Discogs::ReleaseDisc::get_sub_data(pfc::string8 &tag_name, 
 	pfc::string8 sub_tag_name;
 	string_encoded_array result;
 	if (STR_EQUALN(tag_name, "TRACKS_", 7)) {
+		result.force_array();
 		sub_tag_name = substr(tag_name, 7);
 		for (size_t i = 0; i < tracks.get_size(); i++) {
 			result.append_item_val(tracks[i]->get_data(sub_tag_name, p_status, p_abort));
@@ -127,6 +134,7 @@ string_encoded_array Discogs::Release::get_sub_data(pfc::string8 &tag_name, thre
 	pfc::string8 sub_tag_name;
 	string_encoded_array result;
 	if (STR_EQUALN(tag_name, "TRACKS_", 7)) {
+		result.force_array(); 
 		load(p_status, p_abort);
 		for (size_t i = 0; i < discs.get_size(); i++) {
 			if (i == 0) {
@@ -138,6 +146,7 @@ string_encoded_array Discogs::Release::get_sub_data(pfc::string8 &tag_name, thre
 		}
 	}
 	else if (STR_EQUALN(tag_name, "DISCS_", 6)) {
+		result.force_array(); 
 		sub_tag_name = substr(tag_name, 6);
 		load(p_status, p_abort); 
 		for (size_t i = 0; i < discs.get_size(); i++) {
@@ -145,6 +154,7 @@ string_encoded_array Discogs::Release::get_sub_data(pfc::string8 &tag_name, thre
 		}
 	}
 	else if (STR_EQUALN(tag_name, "ARTISTS_", 8)) {
+		result.force_array(); 
 		sub_tag_name = substr(tag_name, 8);
 		load(p_status, p_abort); 
 		for (size_t i = 0; i < artists.get_size(); i++) {
@@ -152,6 +162,7 @@ string_encoded_array Discogs::Release::get_sub_data(pfc::string8 &tag_name, thre
 		}
 	}
 	else if (STR_EQUALN(tag_name, "LABELS_", 7)) {
+		result.force_array(); 
 		sub_tag_name = substr(tag_name, 7);
 		load(p_status, p_abort); 
 		for (size_t i = 0; i < labels.get_size(); i++) {
@@ -159,6 +170,7 @@ string_encoded_array Discogs::Release::get_sub_data(pfc::string8 &tag_name, thre
 		}
 	}
 	else if (STR_EQUALN(tag_name, "SERIES_", 7)) {
+		result.force_array(); 
 		sub_tag_name = substr(tag_name, 7);
 		load(p_status, p_abort); 
 		for (size_t i = 0; i < series.get_size(); i++) {
@@ -166,6 +178,7 @@ string_encoded_array Discogs::Release::get_sub_data(pfc::string8 &tag_name, thre
 		}
 	}
 	else if (STR_EQUALN(tag_name, "FORMATS_", 8)) {
+		result.force_array(); 
 		sub_tag_name = substr(tag_name, 8);
 		load(p_status, p_abort); 
 		for (size_t i = 0; i < formats.get_size(); i++) {
@@ -173,6 +186,7 @@ string_encoded_array Discogs::Release::get_sub_data(pfc::string8 &tag_name, thre
 		}
 	}
 	else if (STR_EQUALN(tag_name, "CREDITS_", 8)) {
+		result.force_array(); 
 		sub_tag_name = substr(tag_name, 8);
 		load(p_status, p_abort);
 		for (size_t i = 0; i < credits.get_size(); i++) {
@@ -180,6 +194,7 @@ string_encoded_array Discogs::Release::get_sub_data(pfc::string8 &tag_name, thre
 		}
 	}
 	else if (STR_EQUALN(tag_name, "IMAGES_", 7)) {
+		result.force_array(); 
 		sub_tag_name = substr(tag_name, 7);
 		load(p_status, p_abort);
 		for (size_t i = 0; i < images.get_size(); i++) {
@@ -205,6 +220,7 @@ string_encoded_array Discogs::MasterRelease::get_sub_data(pfc::string8 &tag_name
 	pfc::string8 sub_tag_name;
 	string_encoded_array result;
 	if (STR_EQUALN(tag_name, "TRACKS_", 7)) {
+		result.force_array(); 
 		load(p_status, p_abort);
 		for (size_t i = 0; i < discs.get_size(); i++) {
 			if (i == 0) {
@@ -216,6 +232,7 @@ string_encoded_array Discogs::MasterRelease::get_sub_data(pfc::string8 &tag_name
 		}
 	}
 	else if (STR_EQUALN(tag_name, "DISCS_", 6)) {
+		result.force_array(); 
 		sub_tag_name = substr(tag_name, 6);
 		load(p_status, p_abort); 
 		for (size_t i = 0; i < discs.get_size(); i++) {
@@ -223,6 +240,7 @@ string_encoded_array Discogs::MasterRelease::get_sub_data(pfc::string8 &tag_name
 		}
 	}
 	else if (STR_EQUALN(tag_name, "ARTISTS_", 8)) {
+		result.force_array(); 
 		sub_tag_name = substr(tag_name, 8);
 		load(p_status, p_abort); 
 		for (size_t i = 0; i < artists.get_size(); i++) {
@@ -230,6 +248,7 @@ string_encoded_array Discogs::MasterRelease::get_sub_data(pfc::string8 &tag_name
 		}
 	}
 	else if (STR_EQUALN(tag_name, "IMAGES_", 7)) {
+		result.force_array(); 
 		sub_tag_name = substr(tag_name, 7);
 		load(p_status, p_abort); 
 		for (size_t i = 0; i < images.get_size(); i++) {
@@ -244,6 +263,7 @@ string_encoded_array Discogs::MasterRelease::get_sub_data(pfc::string8 &tag_name
 		}
 	}
 	else if (STR_EQUALN(tag_name, "RELEASES_", 9)) {
+		result.force_array(); 
 		sub_tag_name = substr(tag_name, 9);
 		load_releases(p_status, p_abort);
 		for (size_t i = 0; i < sub_releases.get_size(); i++) {

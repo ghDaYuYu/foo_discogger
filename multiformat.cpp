@@ -78,7 +78,7 @@ bool titleformat_hook_impl_multiformat::process_field(titleformat_text_out * p_o
 		}
 	}
 
-	// Broken if wrong depth returned due to no release artists, for example.
+	// Broken if wrong depth returned due to no release artists, for example. ???
 	/*if (multi_depth > result.get_depth()) {
 		foo_discogs_exception ex;
 		ex << "Error processing field " << pfc::string8(p_name, p_name_length) << " : " << " Too many triangle brackets.";

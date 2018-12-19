@@ -125,6 +125,9 @@ void string_encoded_array::append_item_val(const string_encoded_array v) {
 		m_depth = 1;
 		sub_array.append_single(value);
 	}
+	if (m_depth == 1 && !get_width()) {
+		m_depth = v.m_depth + 1;
+	}
 	if (m_depth == ~0) {
 		m_depth = v.m_depth + 1;
 	}

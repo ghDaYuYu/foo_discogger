@@ -55,6 +55,9 @@ public:
 	Release_ptr release;
 
 	TagWriter(file_info_manager_ptr finfo_manager, Release_ptr release);
+	TagWriter(file_info_manager_ptr finfo_manager, pfc::string8 p_error) : finfo_manager(finfo_manager), release(nullptr), error(p_error) {
+		skip = true;
+	}
 
 	void generate_tags(bool use_update_tags, threaded_process_status &p_status, abort_callback &p_abort);
 	void write_tags(bool use_update_tags = false);
@@ -62,6 +65,7 @@ public:
 
 	bool changed = false;
 	bool skip = false;
+	pfc::string8 error = "";
 
 private:
 	//void file_info_write_tags(metadb_handle_ptr item, file_info &finfo, const ReleaseDisc_ptr &disc, const ReleaseTrack_ptr &track, bool is_update);

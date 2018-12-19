@@ -116,14 +116,14 @@ void generate_tags_task_multi::safe_run(threaded_process_status &p_status, abort
 	const size_t count = tag_writers.get_count();
 	for (size_t i = 0; i < count; i++) {
 		p_abort.check(); 
-		
-		pfc::string8 formatted_release_name;
-		metadb_handle_ptr item = tag_writers[i]->finfo_manager->get_item_handle(0);
-		item->format_title(nullptr, formatted_release_name, g_discogs->release_name_script, nullptr);
-		p_status.set_item(formatted_release_name.get_ptr());
-		p_status.set_progress(i + 1, count);
 
 		if (!tag_writers[i]->skip) {
+			pfc::string8 formatted_release_name;
+			metadb_handle_ptr item = tag_writers[i]->finfo_manager->get_item_handle(0);
+			item->format_title(nullptr, formatted_release_name, g_discogs->release_name_script, nullptr);
+			p_status.set_item(formatted_release_name.get_ptr());
+			p_status.set_progress(i + 1, count);
+
 			try {
 				tag_writers[i]->generate_tags(use_update_tags, p_status, p_abort);
 			}
@@ -132,6 +132,9 @@ void generate_tags_task_multi::safe_run(threaded_process_status &p_status, abort
 				error << tag_writers[i]->release->id;
 				add_error(error, e);
 			}
+		}
+		else if (!STR_EQUAL(tag_writers[i]->error, "")) {
+			add_error(tag_writers[i]->error);
 		}
 	}
 }
@@ -196,6 +199,7 @@ void write_tags_task_multi::start() {
 
 void write_tags_task_multi::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
 	const size_t count = tag_writers.get_count();
+	// TODO: bulk version so it doesn't open hundreds of windows!
 	for (size_t i = 0; i < count; i++) {
 		if (!tag_writers[i]->skip && tag_writers[i]->changed) {
 			tag_writers[i]->write_tags();
@@ -570,18 +574,18 @@ void update_tags_task::safe_run(threaded_process_status &p_status, abort_callbac
 		const pfc::string8 &release_id = releases[n];
 		const pfc::array_t<size_t> &stuff = metadb_lists[release_id];
 		
+		pfc::string8 formatted_release_name;
+		metadb_handle_ptr item = finfo_manager.get_item_handle(stuff[0]);
+		item->format_title(nullptr, formatted_release_name, g_discogs->release_name_script, nullptr);
+		p_status.set_item(formatted_release_name.get_ptr());
+		p_status.set_progress(n + 1, count);
+
+		file_info_manager_ptr sub_manager = std::make_shared<file_info_manager>();
+		for (size_t i = 0; i < stuff.get_count(); i++) {
+			sub_manager->copy_from(finfo_manager, stuff[i]);
+		}
+
 		try {
-			pfc::string8 formatted_release_name;
-			metadb_handle_ptr item = finfo_manager.get_item_handle(stuff[0]);
-			item->format_title(nullptr, formatted_release_name, g_discogs->release_name_script, nullptr);
-			p_status.set_item(formatted_release_name.get_ptr());
-			p_status.set_progress(n + 1, count);
-
-			file_info_manager_ptr sub_manager = std::make_shared<file_info_manager>();
-			for (size_t i = 0; i < stuff.get_count(); i++) {
-				sub_manager->copy_from(finfo_manager, stuff[i]);
-			}
-
 			TagWriter_ptr tag_writer = std::make_shared<TagWriter>(sub_manager, discogs_interface->get_release(release_id, p_status, p_abort, false, true));
 			tag_writer->match_tracks();
 			tag_writers.append_single(tag_writer);
@@ -589,7 +593,8 @@ void update_tags_task::safe_run(threaded_process_status &p_status, abort_callbac
 		catch (http_404_exception) {
 			pfc::string8 error;
 			error << "Skipping 404 release: " << release_id;
-			log_msg(error);
+			TagWriter_ptr tag_writer = std::make_shared<TagWriter>(sub_manager, error);
+			tag_writers.append_single(tag_writer);
 		}
 	}
 }

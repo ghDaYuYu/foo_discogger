@@ -733,13 +733,14 @@ void parseTrackPositions(pfc::array_t<ReleaseTrack_ptr> &intermediate_tracks, Ha
 		if (hidden.get_length() == 0 || !last_hidden || last_post != post || 
 				disc->tracks.get_size() == 0) { // only use first partial track ie. 10a, 10b
 			disc->tracks.append_single(std::move(track));
-			//release->tracks.append_single(std::move(track));
 			track_number++;
 			disc_track_number++;
 		}
 		else {
-			disc->tracks[disc->tracks.get_size() - 1]->hidden_tracks.append_single(std::move(track));
-			//release->tracks[release->tracks.get_size() - 1]->hidden_tracks.append_single(std::move(track));
+			disc->tracks[disc->tracks.get_size() - 1]->discogs_hidden_duration_seconds += track->discogs_duration_seconds;
+			if (!STR_EQUAL(track->discogs_track_number, "(silence)")) {
+				disc->tracks[disc->tracks.get_size() - 1]->hidden_tracks.append_single(std::move(track));
+			}
 		}
 
 		if (range <= 0) {  // not sure what this is for

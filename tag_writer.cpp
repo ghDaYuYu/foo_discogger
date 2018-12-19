@@ -267,7 +267,7 @@ int TagWriter::order_tracks_by_duration(track_mappings_list_type &mappings) {
 				for (size_t j = 0; j < disc->tracks.get_size(); j++) {
 					ReleaseTrack_ptr &track = disc->tracks[j];
 					int file_length = (int)round(item->get_length());
-					int discogs_length = track->discogs_duration_seconds;
+					int discogs_length = track->discogs_duration_seconds + track->discogs_hidden_duration_seconds;
 					int delta = abs(file_length - discogs_length);
 					if (delta < min_delta) {
 						if (used_indexes[cnum]) {

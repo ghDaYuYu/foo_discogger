@@ -128,6 +128,26 @@ bool CReleaseDialog::initialize() {
 	return TRUE;
 }
 
+pfc::string8 duration_to_str(int seconds) {
+	int hours = seconds / 3600;
+	seconds %= 3600;
+	int minutes = seconds / 60;
+	seconds = seconds % 60;
+	pfc::string8 result = "";
+	if (hours) {
+		result << hours << ":";
+	}
+	if (hours && minutes < 10) {
+		result << "0";
+	}
+	result << minutes << ":";
+	if (seconds < 10) {
+		result << "0";
+	}
+	result << seconds;
+	return result;
+}
+
 void CReleaseDialog::insert_track_mappings() {
 	ListView_DeleteAllItems(discogs_track_list);
 	ListView_DeleteAllItems(file_list);
@@ -163,7 +183,14 @@ void CReleaseDialog::insert_track_mappings() {
 			hook.set_track(&track);
 			pfc::string8 text;
 			CONF.release_discogs_format_string->run_hook(location, &info, &hook, text, nullptr);
-			pfc::string8 time = track->discogs_duration_raw;
+			pfc::string8 time;
+			if (track->discogs_hidden_duration_seconds) {
+				int duration_seconds = track->discogs_duration_seconds + track->discogs_hidden_duration_seconds;
+				time = duration_to_str(duration_seconds);
+			}
+			else {
+				time = track->discogs_duration_raw;
+			}
 			listview_helper::insert_item2(discogs_track_list, i, text, time, ENCODE_DISCOGS(mapping.discogs_disc, mapping.discogs_track));
 		}
 	}

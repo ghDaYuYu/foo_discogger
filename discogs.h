@@ -392,6 +392,7 @@ namespace Discogs
 		int disc_track_number;
 		pfc::string8 discogs_track_number;
 		pfc::array_t<std::shared_ptr<ReleaseTrack>> hidden_tracks;
+		int discogs_hidden_duration_seconds = 0;
 
 		string_encoded_array get_track_number() const {
 			return track_number;
@@ -418,7 +419,7 @@ namespace Discogs
 			return discogs_duration_raw;
 		}
 		string_encoded_array get_discogs_duration_seconds() const {
-			return discogs_duration_seconds;
+			return discogs_duration_seconds + discogs_hidden_duration_seconds;
 		}
 		string_encoded_array get_discogs_indextrack_duration_raw() const {
 			return discogs_indextrack_duration_raw;

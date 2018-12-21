@@ -23,7 +23,7 @@ protected:
 	virtual void on_abort(HWND p_wnd) {};
 
 	// error callback. display errors if return true
-	virtual bool on_error(HWND p_wnd) { return true; }
+	virtual void on_error(HWND p_wnd) {}
 
 private:
 	void run(threaded_process_status &p_status, abort_callback &p_abort) override final;
@@ -63,7 +63,7 @@ private:
 	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
 	void on_abort(HWND p_wnd) override;
-	bool on_error(HWND p_wnd) override;
+	void on_error(HWND p_wnd) override;
 };
 
 
@@ -82,7 +82,7 @@ private:
 	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
 	void on_abort(HWND p_wnd) override;
-	bool on_error(HWND p_wnd) override;
+	void on_error(HWND p_wnd) override;
 };
 
 
@@ -112,7 +112,7 @@ private:
 	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
 	void on_abort(HWND p_wnd) override;
-	bool on_error(HWND p_wnd) override;
+	void on_error(HWND p_wnd) override;
 };
 
 
@@ -164,7 +164,7 @@ private:
 	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
 	void on_abort(HWND p_wnd) override; 
-	bool on_error(HWND p_wnd) override;
+	void on_error(HWND p_wnd) override;
 
 	void finish();
 };
@@ -184,7 +184,7 @@ private:
 	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
 	void on_abort(HWND p_wnd) override;
-	bool on_error(HWND p_wnd) override;
+	void on_error(HWND p_wnd) override;
 
 	void finish();
 };
@@ -207,7 +207,7 @@ private:
 	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
 	void on_abort(HWND p_wnd) override;
-	bool on_error(HWND p_wnd) override;
+	void on_error(HWND p_wnd) override;
 
 	void finish();
 };
@@ -262,7 +262,7 @@ private:
 	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
 	void on_abort(HWND p_wnd) override;
-	bool on_error(HWND p_wnd) override;
+	void on_error(HWND p_wnd) override;
 };
 
 class test_oauth_process_callback : public foo_discogs_threaded_process_callback
@@ -319,5 +319,5 @@ private:
 	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
 	void on_abort(HWND p_wnd) override;
-	bool on_error(HWND p_wnd) override;
+	void on_error(HWND p_wnd) override;
 };

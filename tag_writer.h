@@ -60,7 +60,7 @@ public:
 	}
 
 	void generate_tags(bool use_update_tags, threaded_process_status &p_status, abort_callback &p_abort);
-	void write_tags(bool use_update_tags = false);
+	void write_tags();
 	void match_tracks();
 
 	bool changed = false;

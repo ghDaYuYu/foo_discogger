@@ -24,7 +24,7 @@ LRESULT CUpdateTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM
 }
 
 LRESULT CUpdateTagsDialog::OnOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	bool use_update_tags = !IsDlgButtonChecked(IDC_WRITE_RADIO) != 0;
+	bool use_update_tags = IsDlgButtonChecked(IDC_UPDATE_RADIO) != 0;
 	service_ptr_t<update_tags_task> task = new service_impl_t<update_tags_task>(items, use_update_tags);
 	task->start();
 	destroy();

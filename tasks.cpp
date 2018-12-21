@@ -23,18 +23,20 @@ void foo_discogs_threaded_process_callback::on_done(HWND p_wnd, bool p_was_abort
 	if (p_was_aborted) {
 		on_abort(p_wnd);
 	}
-	else if (!errors.get_count()) {
-		try {
-			on_success(p_wnd);
+	else {
+		if (!fatal_error) {
+			try {
+				on_success(p_wnd);
+			}
+			catch (foo_discogs_exception &e) {
+				add_error(e, true);
+			}
 		}
-		catch (foo_discogs_exception &e) {
-			add_error(e, true);
-		}
-	}
-	if (errors.get_count()) {
-		bool display = on_error(p_wnd);
-		if (display) {
+		if (errors.get_count()) {
 			display_errors();
+			if (fatal_error) {
+				on_error(p_wnd);
+			}
 		}
 	}
 }
@@ -85,7 +87,7 @@ void generate_tags_task::on_abort(HWND p_wnd) {
 	on_error(p_wnd);
 }
 
-bool generate_tags_task::on_error(HWND p_wnd) {
+void generate_tags_task::on_error(HWND p_wnd) {
 	if (preview_dialog) {
 		preview_dialog->enable(true);
 	}
@@ -93,7 +95,6 @@ bool generate_tags_task::on_error(HWND p_wnd) {
 		release_dialog->enable(true);
 		release_dialog->show();
 	}
-	return true;
 }
 
 
@@ -153,8 +154,7 @@ void generate_tags_task_multi::on_abort(HWND p_wnd) {
 	on_error(p_wnd);
 }
 
-bool generate_tags_task_multi::on_error(HWND p_wnd) {
-	return true;
+void generate_tags_task_multi::on_error(HWND p_wnd) {
 }
 
 
@@ -199,7 +199,6 @@ void write_tags_task_multi::start() {
 
 void write_tags_task_multi::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
 	const size_t count = tag_writers.get_count();
-	// TODO: bulk version so it doesn't open hundreds of windows!
 	for (size_t i = 0; i < count; i++) {
 		if (!tag_writers[i]->skip && tag_writers[i]->changed) {
 			tag_writers[i]->write_tags();
@@ -209,18 +208,21 @@ void write_tags_task_multi::safe_run(threaded_process_status &p_status, abort_ca
 
 void write_tags_task_multi::on_success(HWND p_wnd) {
 	const size_t count = tag_writers.get_count();
+	file_info_manager_ptr super_manager = std::make_shared<file_info_manager>();
 	for (size_t i = 0; i < count; i++) {
 		if (!tag_writers[i]->skip && tag_writers[i]->changed) {
-			tag_writers[i]->finfo_manager->write_infos();
+			for (size_t j = 0; j < tag_writers[i]->finfo_manager->get_item_count(); j++) {
+				super_manager->copy_from(*(tag_writers[i]->finfo_manager), j);
+			}
 		}
 	}
+	super_manager->write_infos();
 }
 
 void write_tags_task_multi::on_abort(HWND p_wnd) {
 }
 
-bool write_tags_task_multi::on_error(HWND p_wnd) {
-	return true;
+void write_tags_task_multi::on_error(HWND p_wnd) {
 }
 
 
@@ -435,9 +437,8 @@ void find_deleted_releases_task::on_success(HWND p_wnd) {
 void find_deleted_releases_task::on_abort(HWND p_wnd) {
 }
 
-bool find_deleted_releases_task::on_error(HWND p_wnd) {
+void find_deleted_releases_task::on_error(HWND p_wnd) {
 	finish();
-	return true;
 }
 
 void find_deleted_releases_task::finish() {
@@ -508,9 +509,8 @@ void find_releases_not_in_collection_task::on_success(HWND p_wnd) {
 void find_releases_not_in_collection_task::on_abort(HWND p_wnd) {
 }
 
-bool find_releases_not_in_collection_task::on_error(HWND p_wnd) {
+void find_releases_not_in_collection_task::on_error(HWND p_wnd) {
 	finish();
-	return true;
 }
 
 void find_releases_not_in_collection_task::finish() {
@@ -607,9 +607,8 @@ void update_tags_task::on_success(HWND p_wnd) {
 void update_tags_task::on_abort(HWND p_wnd) {
 }
 
-bool update_tags_task::on_error(HWND p_wnd) {
+void update_tags_task::on_error(HWND p_wnd) {
 	finish();
-	return true;
 }
 
 void update_tags_task::finish() {
@@ -691,11 +690,10 @@ void expand_master_release_process_callback::on_abort(HWND p_wnd) {
 	}
 }
 
-bool expand_master_release_process_callback::on_error(HWND p_wnd) {
+void expand_master_release_process_callback::on_error(HWND p_wnd) {
 	if (g_discogs->find_release_dialog) {
 		g_discogs->find_release_dialog->on_expand_master_release_complete();
 	}
-	return true;
 }
 
 
@@ -750,9 +748,8 @@ void process_release_callback::on_abort(HWND p_wnd) {
 	m_dialog->enable(true);
 }
 
-bool process_release_callback::on_error(HWND p_wnd) {
+void process_release_callback::on_error(HWND p_wnd) {
 	m_dialog->enable(true);
-	return true;
 }
 
 

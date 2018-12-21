@@ -517,7 +517,7 @@ void TagWriter::generate_tags(bool use_update_tags, threaded_process_status &p_s
 	}
 }
 
-void TagWriter::write_tags(bool use_update_tags) {
+void TagWriter::write_tags() {
 	finfo_manager->invalidate_all();
 
 	for (size_t i = 0; i < track_mappings.get_count(); i++) {
@@ -554,14 +554,14 @@ void TagWriter::write_tags(bool use_update_tags) {
 			}
 		}
 
-		if (!use_update_tags && CONF.remove_other_tags) {
+		if (CONF.remove_other_tags) {
 			size_t j = 0;
 			while (j < info.meta_get_count()) {
 				const char * tag_name = info.meta_enum_name(j);
 				bool remove = true;
 				for (size_t k = 0; k < TAGS.get_size(); k++) {
 					auto &tag = TAGS.get_item_ref(k);
-					if (((!use_update_tags && tag.enable_write) || (use_update_tags && tag.enable_update)) && STR_EQUAL(tag_name, tag.tag_name)) {
+					if (STR_EQUAL(tag_name, tag.tag_name)) {
 						remove = false;
 						break;
 					}

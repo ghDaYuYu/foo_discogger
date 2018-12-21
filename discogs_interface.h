@@ -92,17 +92,17 @@ public:
 		collection.force_reset();
 	}
 
-	inline bool is_empty_master_release_cache() {
-		return cache_master_releases->size() == 0;
+	inline int master_release_cache_size() {
+		return cache_master_releases->size();
 	}
-	inline bool is_empty_release_cache() {
-		return cache_releases->size() == 0 && cache_deleted_releases->size() == 0;
+	inline int release_cache_size() {
+		return cache_releases->size() + cache_deleted_releases->size();
 	}
-	inline bool is_empty_artist_cache() {
-		return cache_artists->size() == 0;
+	inline int artist_cache_size() {
+		return cache_artists->size();
 	}
-	inline bool is_empty_collection_cache() {
-		return collection.get_count() == 0;
+	inline int collection_cache_size() {
+		return collection.get_count();
 	}
 
 	inline void set_cache_size(size_t x) {

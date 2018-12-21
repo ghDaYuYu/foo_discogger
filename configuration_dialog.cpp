@@ -188,6 +188,11 @@ void CConfigurationDialog::init_tagging_dialog(HWND wnd) {
 	uSetDlgItemText(wnd, IDC_REMOVE_EXCLUDING_TAGS, conf.raw_remove_exclude_tags);
 }
 
+inline void set_window_text(HWND wnd, int IDC, const pfc::string8 &text) {
+	pfc::stringcvt::string_wide_from_ansi wtext(text);
+	::SetWindowText(::uGetDlgItem(wnd, IDC), (LPCTSTR)const_cast<wchar_t*>(wtext.get_ptr()));
+}
+
 void CConfigurationDialog::init_caching_dialog(HWND wnd) {
 	uButton_SetCheck(wnd, IDC_HIDDEN_AS_REGULAR_CHECK, conf.parse_hidden_as_regular);
 	original_parsing = conf.parse_hidden_as_regular;
@@ -195,10 +200,24 @@ void CConfigurationDialog::init_caching_dialog(HWND wnd) {
 	pfc::string8 num;
 	num << conf.cache_max_objects;
 	uSetDlgItemText(wnd, IDC_CACHED_OBJECTS_EDIT, num);
-	::EnableWindow(::uGetDlgItem(wnd, IDC_CLEAR_CACHE_RELEASES), discogs_interface->is_empty_release_cache() ? FALSE : TRUE);
-	::EnableWindow(::uGetDlgItem(wnd, IDC_CLEAR_CACHE_MASTERS), discogs_interface->is_empty_master_release_cache() ? FALSE : TRUE);
-	::EnableWindow(::uGetDlgItem(wnd, IDC_CLEAR_CACHE_ARTISTS), discogs_interface->is_empty_artist_cache() ? FALSE : TRUE);
-	::EnableWindow(::uGetDlgItem(wnd, IDC_CLEAR_CACHE_COLLECTION), discogs_interface->is_empty_collection_cache() ? FALSE : TRUE);
+
+	pfc::string8 text;
+	text << "Releases (" << discogs_interface->release_cache_size() << ")";
+	set_window_text(wnd, IDC_CLEAR_CACHE_RELEASES, text);
+	text = "";
+	text << "Master Releases (" << discogs_interface->master_release_cache_size() << ")";
+	set_window_text(wnd, IDC_CLEAR_CACHE_MASTERS, text);
+	text = "";
+	text << "Artists (" << discogs_interface->artist_cache_size() << ")";
+	set_window_text(wnd, IDC_CLEAR_CACHE_ARTISTS, text);
+	text = "";
+	text << "Collection (" << discogs_interface->collection_cache_size() << ")";
+	set_window_text(wnd, IDC_CLEAR_CACHE_COLLECTION, text);
+
+	::EnableWindow(::uGetDlgItem(wnd, IDC_CLEAR_CACHE_RELEASES), discogs_interface->release_cache_size() ? TRUE : FALSE);
+	::EnableWindow(::uGetDlgItem(wnd, IDC_CLEAR_CACHE_MASTERS), discogs_interface->master_release_cache_size() ? TRUE : FALSE);
+	::EnableWindow(::uGetDlgItem(wnd, IDC_CLEAR_CACHE_ARTISTS), discogs_interface->artist_cache_size() ? TRUE : FALSE);
+	::EnableWindow(::uGetDlgItem(wnd, IDC_CLEAR_CACHE_COLLECTION), discogs_interface->collection_cache_size() ? TRUE : FALSE);
 }
 
 void CConfigurationDialog::init_searching_dialog(HWND wnd) {

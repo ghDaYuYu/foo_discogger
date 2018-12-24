@@ -59,6 +59,7 @@ LRESULT CReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*
 	if (multi_mode) {
 		::ShowWindow(uGetDlgItem(IDC_WRITE_TAGS_BUTTON), false);
 		::ShowWindow(uGetDlgItem(IDC_PREVIEW_TAGS_BUTTON), false);
+		::ShowWindow(uGetDlgItem(IDC_PREVIOUS_BUTTON), true);
 		::ShowWindow(uGetDlgItem(IDC_NEXT_BUTTON), true);
 		::ShowWindow(uGetDlgItem(IDC_SKIP_BUTTON), true);
 		::ShowWindow(uGetDlgItem(IDCANCEL), false);
@@ -67,6 +68,7 @@ LRESULT CReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*
 	else {
 		::ShowWindow(uGetDlgItem(IDC_WRITE_TAGS_BUTTON), true);
 		::ShowWindow(uGetDlgItem(IDC_PREVIEW_TAGS_BUTTON), true);
+		::ShowWindow(uGetDlgItem(IDC_PREVIOUS_BUTTON), false);
 		::ShowWindow(uGetDlgItem(IDC_NEXT_BUTTON), false);
 		::ShowWindow(uGetDlgItem(IDC_SKIP_BUTTON), false);
 		::ShowWindow(uGetDlgItem(IDCANCEL), true);
@@ -396,7 +398,7 @@ bool CReleaseDialog::init_count() {
 bool CReleaseDialog::get_next_tag_writer() {
 	while (tw_index < tag_writers.get_count()) {
 		tag_writer = tag_writers[tw_index++];
-		if (tag_writer->skip || tag_writer->match_status == MATCH_SUCCESS || tag_writer->match_status == MATCH_ASSUME) {
+		if (tag_writer->force_skip || tag_writer->match_status == MATCH_SUCCESS || tag_writer->match_status == MATCH_ASSUME) {
 			tw_skip++;
 			continue;
 		}
@@ -406,6 +408,23 @@ bool CReleaseDialog::get_next_tag_writer() {
 	}
 	finished_tag_writers();
 	destroy();
+	return false;
+}
+
+bool CReleaseDialog::get_previous_tag_writer() {
+	size_t previous_index = tw_index-1;
+	while (previous_index > 0) {
+		previous_index--;
+		auto tw = tag_writers[previous_index];
+		if (!(tw->force_skip || tw->match_status == MATCH_SUCCESS || tw->match_status == MATCH_ASSUME)) {
+			tw_index = previous_index;
+			tag_writer = tag_writers[tw_index++];
+			update_window_title();
+			initialize();
+			return true;
+		}
+		tw_skip--;
+	}
 	return false;
 }
 
@@ -456,6 +475,12 @@ LRESULT CReleaseDialog::OnMultiSkip(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndC
 	PFC_ASSERT(multi_mode);
 	tag_writer->skip = true;
 	get_next_tag_writer();
+	return TRUE;
+}
+
+LRESULT CReleaseDialog::OnMultiPrev(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+	PFC_ASSERT(multi_mode);
+	get_previous_tag_writer();
 	return TRUE;
 }
 

@@ -57,6 +57,7 @@ public:
 	TagWriter(file_info_manager_ptr finfo_manager, Release_ptr release);
 	TagWriter(file_info_manager_ptr finfo_manager, pfc::string8 p_error) : finfo_manager(finfo_manager), release(nullptr), error(p_error) {
 		skip = true;
+		force_skip = true;
 	}
 
 	void generate_tags(bool use_update_tags, threaded_process_status &p_status, abort_callback &p_abort);
@@ -65,6 +66,8 @@ public:
 
 	bool changed = false;
 	bool skip = false;
+	bool force_skip = false;
+
 	pfc::string8 error = "";
 
 private:

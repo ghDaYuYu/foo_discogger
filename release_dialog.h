@@ -76,6 +76,7 @@ public:
 		COMMAND_ID_HANDLER(IDC_PREVIEW_TAGS_BUTTON, OnPreviewTags)
 		COMMAND_ID_HANDLER(IDC_WRITE_TAGS_BUTTON, OnWriteTags)
 		COMMAND_ID_HANDLER(IDC_NEXT_BUTTON, OnMultiNext)
+		COMMAND_ID_HANDLER(IDC_PREVIOUS_BUTTON, OnMultiPrev)
 		COMMAND_ID_HANDLER(IDC_BACK_BUTTON, OnBack)
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
 		COMMAND_ID_HANDLER(IDC_SKIP_BUTTON, OnMultiSkip)
@@ -104,6 +105,7 @@ public:
 		DLGRESIZE_CONTROL(IDC_BACK_BUTTON, DLSZ_MOVE_X | DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_PREVIEW_TAGS_BUTTON, DLSZ_MOVE_X | DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_WRITE_TAGS_BUTTON, DLSZ_MOVE_X | DLSZ_MOVE_Y)
+		DLGRESIZE_CONTROL(IDC_PREVIOUS_BUTTON, DLSZ_MOVE_X | DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_NEXT_BUTTON, DLSZ_MOVE_X | DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDCANCEL, DLSZ_MOVE_X | DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_SKIP_BUTTON, DLSZ_MOVE_X | DLSZ_MOVE_Y)
@@ -148,6 +150,7 @@ public:
 	LRESULT OnPreviewTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnMultiNext(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnMultiPrev(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnBack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnMultiSkip(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
@@ -156,6 +159,7 @@ public:
 
 	bool initialize();
 	bool get_next_tag_writer();
+	bool get_previous_tag_writer();
 
 	void cb_generate_tags();
 

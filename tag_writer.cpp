@@ -242,8 +242,8 @@ int TagWriter::order_tracks_by_duration(track_mappings_list_type &mappings) {
 		}
 		*/
 
-		// max delta of 15 seconds per track or 1 minute
-		const unsigned MAX_DELTA = count * 15;
+		// max delta of 5 seconds per track
+		const unsigned MAX_DELTA = count * 5;
 		unsigned total_delta = 0;
 
 		// for every selected item,

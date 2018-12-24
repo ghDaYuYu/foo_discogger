@@ -12,7 +12,7 @@ using namespace Discogs;
 
 
 class CFindReleaseDialog;
-class CReleaseDialog;
+class CTrackMatchingDialog;
 class CPreviewTagsDialog;
 class CNewTagMappingsDialog;
 class CConfigurationDialog;
@@ -39,7 +39,7 @@ public:
 	};
 
 	CFindReleaseDialog *find_release_dialog = nullptr;
-	CReleaseDialog *release_dialog = nullptr;
+	CTrackMatchingDialog *track_matching_dialog = nullptr;
 	CPreviewTagsDialog *preview_tags_dialog = nullptr;
 	CNewTagMappingsDialog *tag_mappings_dialog = nullptr;
 	CConfigurationDialog *configuration_dialog = nullptr;

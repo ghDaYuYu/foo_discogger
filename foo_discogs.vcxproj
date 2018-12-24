@@ -132,7 +132,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="release_dialog.cpp" />
+    <ClCompile Include="track_matching_dialog.cpp" />
     <ClCompile Include="string_encoded_array.cpp" />
     <ClCompile Include="tags.cpp" />
     <ClCompile Include="tag_writer.cpp" />
@@ -166,7 +166,7 @@
     <ClInclude Include="prompt_dialog.h" />
     <ClInclude Include="sdk_helpers.h" />
     <ClInclude Include="tag_mappings_dialog.h" />
-    <ClInclude Include="release_dialog.h" />
+    <ClInclude Include="track_matching_dialog.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="string_encoded_array.h" />

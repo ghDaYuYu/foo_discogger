@@ -48,13 +48,13 @@ class generate_tags_task : public foo_discogs_locked_threaded_process_callback
 {
 public:
 	generate_tags_task(CPreviewTagsDialog *preview_dialog, TagWriter_ptr tag_writer, bool use_update_tags);
-	generate_tags_task(CReleaseDialog *release_dialog, TagWriter_ptr tag_writer, bool show_preview_dialog, bool use_update_tags);
+	generate_tags_task(CTrackMatchingDialog *release_dialog, TagWriter_ptr tag_writer, bool show_preview_dialog, bool use_update_tags);
 	void start();
 
 private:
 	CPreviewTagsDialog *preview_dialog = nullptr;
 
-	CReleaseDialog *release_dialog = nullptr;
+	CTrackMatchingDialog *track_matching_dialog = nullptr;
 	bool show_preview_dialog;
 	
 	TagWriter_ptr tag_writer;

@@ -10,8 +10,8 @@
 using namespace Discogs;
 
 
-class CReleaseDialog : public MyCDialogImpl<CReleaseDialog>,
-	public CDialogResize<CReleaseDialog>,
+class CTrackMatchingDialog : public MyCDialogImpl<CTrackMatchingDialog>,
+	public CDialogResize<CTrackMatchingDialog>,
 	public CMessageFilter
 {
 private:
@@ -64,7 +64,7 @@ public:
 		return ::IsDialogMessage(m_hWnd, pMsg);
 	}
 
-	MY_BEGIN_MSG_MAP(CReleaseDialog)
+	MY_BEGIN_MSG_MAP(CTrackMatchingDialog)
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
 		MESSAGE_HANDLER(WM_CTLCOLORSTATIC, OnColorStatic)
 		COMMAND_ID_HANDLER(IDC_MOVE_UP_BUTTON, OnMoveTrackUp)
@@ -80,10 +80,10 @@ public:
 		COMMAND_ID_HANDLER(IDC_BACK_BUTTON, OnBack)
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
 		COMMAND_ID_HANDLER(IDC_SKIP_BUTTON, OnMultiSkip)
-		CHAIN_MSG_MAP(CDialogResize<CReleaseDialog>)
+		CHAIN_MSG_MAP(CDialogResize<CTrackMatchingDialog>)
 	MY_END_MSG_MAP()
 
-	BEGIN_DLGRESIZE_MAP(CReleaseDialog)
+	BEGIN_DLGRESIZE_MAP(CTrackMatchingDialog)
 		DLGRESIZE_CONTROL(IDC_TRACKLIST_GROUP, DLSZ_SIZE_X | DLSZ_SIZE_Y)
 		DLGRESIZE_CONTROL(IDC_DISCOGS_TRACK_LIST, DLSZ_SIZE_Y)
 		DLGRESIZE_CONTROL(IDC_FILE_LIST, DLSZ_SIZE_Y)
@@ -112,21 +112,21 @@ public:
 	END_DLGRESIZE_MAP()
 
 	void DlgResize_UpdateLayout(int cxWidth, int cyHeight) {
-		CDialogResize<CReleaseDialog>::DlgResize_UpdateLayout(cxWidth, cyHeight);
+		CDialogResize<CTrackMatchingDialog>::DlgResize_UpdateLayout(cxWidth, cyHeight);
 		update_list_width(discogs_track_list);
 		update_list_width(file_list);
 		save_size(cxWidth, cyHeight);
 	}
 
-	CReleaseDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags = false) : 
+	CTrackMatchingDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags = false) : 
 			tag_writer(tag_writer), use_update_tags(use_update_tags) {
-		g_discogs->release_dialog = this;
+		g_discogs->track_matching_dialog = this;
 		Create(p_parent);
 	}
-	CReleaseDialog(HWND p_parent, pfc::array_t<TagWriter_ptr> tag_writers, bool use_update_tags = false) :
+	CTrackMatchingDialog(HWND p_parent, pfc::array_t<TagWriter_ptr> tag_writers, bool use_update_tags = false) :
 			tag_writers(tag_writers), use_update_tags(use_update_tags), multi_mode(true) {
 		
-		g_discogs->release_dialog = this;
+		g_discogs->track_matching_dialog = this;
 
 		tag_writer = nullptr;
 
@@ -138,8 +138,8 @@ public:
 			destroy();
 		}
 	}
-	~CReleaseDialog();
-	void CReleaseDialog::OnFinalMessage(HWND /*hWnd*/) override;
+	~CTrackMatchingDialog();
+	void CTrackMatchingDialog::OnFinalMessage(HWND /*hWnd*/) override;
 
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnColorStatic(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);

@@ -5,7 +5,7 @@
 #include "foo_discogs.h"
 #include "tags.h"
 #include "find_release_dialog.h"
-#include "release_dialog.h"
+#include "track_matching_dialog.h"
 #include "configuration_dialog.h"
 #include "preview_dialog.h"
 
@@ -46,9 +46,9 @@ generate_tags_task::generate_tags_task(CPreviewTagsDialog *preview_dialog, TagWr
 	preview_dialog->enable(false);
 }
 
-generate_tags_task::generate_tags_task(CReleaseDialog *release_dialog, TagWriter_ptr tag_writer, bool show_preview_dialog, bool use_update_tags) :
-		tag_writer(tag_writer), release_dialog(release_dialog), show_preview_dialog(show_preview_dialog), use_update_tags(use_update_tags) {
-	release_dialog->enable(false);
+generate_tags_task::generate_tags_task(CTrackMatchingDialog *track_matching_dialog, TagWriter_ptr tag_writer, bool show_preview_dialog, bool use_update_tags) :
+		tag_writer(tag_writer), track_matching_dialog(track_matching_dialog), show_preview_dialog(show_preview_dialog), use_update_tags(use_update_tags) {
+	track_matching_dialog->enable(false);
 }
 
 void generate_tags_task::start() {
@@ -72,12 +72,12 @@ void generate_tags_task::on_success(HWND p_wnd) {
 		preview_dialog->cb_generate_tags();
 	}
 	else if (show_preview_dialog) {
-		release_dialog->enable(true); 
-		release_dialog->hide();
+		track_matching_dialog->enable(true);
+		track_matching_dialog->hide();
 		new CPreviewTagsDialog(core_api::get_main_window(), tag_writer, use_update_tags);
 	}
 	else {
-		g_discogs->release_dialog->destroy_all(); 
+		g_discogs->track_matching_dialog->destroy_all();
 		service_ptr_t<write_tags_task> task = new service_impl_t<write_tags_task>(tag_writer);
 		task->start();
 	}
@@ -92,8 +92,8 @@ void generate_tags_task::on_error(HWND p_wnd) {
 		preview_dialog->enable(true);
 	}
 	else {
-		release_dialog->enable(true);
-		release_dialog->show();
+		track_matching_dialog->enable(true);
+		track_matching_dialog->show();
 	}
 }
 
@@ -600,7 +600,7 @@ void update_tags_task::safe_run(threaded_process_status &p_status, abort_callbac
 }
 
 void update_tags_task::on_success(HWND p_wnd) {
-	new CReleaseDialog(core_api::get_main_window(), tag_writers, use_update_tags); 
+	new CTrackMatchingDialog(core_api::get_main_window(), tag_writers, use_update_tags); 
 	finish();
 }
 
@@ -741,7 +741,7 @@ void process_release_callback::safe_run(threaded_process_status &p_status, abort
 }
 
 void process_release_callback::on_success(HWND p_wnd) {
-	new CReleaseDialog(core_api::get_main_window(), tag_writer, false);
+	new CTrackMatchingDialog(core_api::get_main_window(), tag_writer, false);
 }
 
 void process_release_callback::on_abort(HWND p_wnd) {

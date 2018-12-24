@@ -24,9 +24,6 @@
     <ClCompile Include="foo_discogs.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="release_dialog.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="update_tags_dialog.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -84,6 +81,9 @@
     <ClCompile Include="update_art_dialog.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="track_matching_dialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="foo_discogs.rc">
@@ -101,9 +101,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="foo_discogs.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="release_dialog.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
@@ -185,6 +182,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="exposetags.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="track_matching_dialog.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

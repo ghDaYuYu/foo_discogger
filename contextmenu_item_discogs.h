@@ -202,10 +202,10 @@ public:
 		get_item_name(p_index, p_out);
 		switch (p_index) {
 			case WriteTags:
-				p_displayflags = !g_discogs->locked_operation && !g_discogs->find_release_dialog && !g_discogs->release_dialog && !g_discogs->preview_tags_dialog ? 0 : FLAG_GRAYED;
+				p_displayflags = !g_discogs->locked_operation && !g_discogs->find_release_dialog && !g_discogs->track_matching_dialog && !g_discogs->preview_tags_dialog ? 0 : FLAG_GRAYED;
 				break;
 			case UpdateTags:
-				p_displayflags = !g_discogs->locked_operation && !g_discogs->update_tags_dialog && !g_discogs->find_release_dialog && !g_discogs->release_dialog && !g_discogs->preview_tags_dialog ? 0 : FLAG_GRAYED;
+				p_displayflags = !g_discogs->locked_operation && !g_discogs->update_tags_dialog && !g_discogs->find_release_dialog && !g_discogs->track_matching_dialog && !g_discogs->preview_tags_dialog ? 0 : FLAG_GRAYED;
 				break;
 			case UpdateArt:
 				p_displayflags = !g_discogs->locked_operation && !g_discogs->update_art_dialog && g_discogs->some_item_has_tag(p_data, TAG_RELEASE_ID) ? 0 : FLAG_GRAYED;

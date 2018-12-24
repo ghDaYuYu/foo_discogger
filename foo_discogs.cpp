@@ -5,7 +5,7 @@
 #include "utils.h"
 #include "tags.h"
 #include "multiformat.h"
-#include "release_dialog.h"
+#include "track_matching_dialog.h"
 #include "preview_dialog.h"
 #include "update_art_dialog.h"
 #include "update_tags_dialog.h"
@@ -75,8 +75,8 @@ foo_discogs::~foo_discogs() {
 	if (find_release_dialog)  {
 		find_release_dialog->destroy();
 	}
-	if (release_dialog) {
-		release_dialog->destroy();
+	if (track_matching_dialog) {
+		track_matching_dialog->destroy();
 	}
 	if (tag_mappings_dialog) {
 		tag_mappings_dialog->destroy();

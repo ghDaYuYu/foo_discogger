@@ -1,6 +1,6 @@
 #include "stdafx.h"
 
-#include "release_dialog.h"
+#include "track_matching_dialog.h"
 #include "preview_dialog.h"
 #include "tasks.h"
 #include "utils.h"
@@ -33,7 +33,7 @@ namespace listview_helper {
 }
 
 
-inline void CReleaseDialog::load_size() {
+inline void CTrackMatchingDialog::load_size() {
 	int x = CONF.release_dialog_width;
 	int y = CONF.release_dialog_height;
 	if (x != 0 && y != 0) {
@@ -45,13 +45,13 @@ inline void CReleaseDialog::load_size() {
 	}
 }
 
-inline void CReleaseDialog::save_size(int x, int y) {
+inline void CTrackMatchingDialog::save_size(int x, int y) {
 	CONF.release_dialog_width = x;
 	CONF.release_dialog_height = y;
 	conf_changed = true;
 }
 
-LRESULT CReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
+LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
 	match_failed = uGetDlgItem(IDC_FAILED_TO_MATCH_TRACKS);
 	match_assumed = uGetDlgItem(IDC_ASSUMED_MATCH_TRACKS);
 	match_success = uGetDlgItem(IDC_MATCHED_TRACKS);
@@ -104,7 +104,7 @@ LRESULT CReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*
 	return TRUE;
 }
 
-bool CReleaseDialog::initialize() {
+bool CTrackMatchingDialog::initialize() {
 	::ShowWindow(match_failed, false);
 	::ShowWindow(match_assumed, false);
 	::ShowWindow(match_success, false);
@@ -150,7 +150,7 @@ pfc::string8 duration_to_str(int seconds) {
 	return result;
 }
 
-void CReleaseDialog::insert_track_mappings() {
+void CTrackMatchingDialog::insert_track_mappings() {
 	ListView_DeleteAllItems(discogs_track_list);
 	ListView_DeleteAllItems(file_list);
 
@@ -200,7 +200,7 @@ void CReleaseDialog::insert_track_mappings() {
 	update_list_width(file_list);
 }
 
-LRESULT CReleaseDialog::OnColorStatic(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/) {
+LRESULT CTrackMatchingDialog::OnColorStatic(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/) {
 	if ((HWND)lParam == match_failed || (HWND)lParam == match_assumed) {
 		SetBkMode((HDC)wParam, TRANSPARENT);
 		SetTextColor((HDC)wParam, RGB(255, 0, 0));
@@ -215,14 +215,14 @@ LRESULT CReleaseDialog::OnColorStatic(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 	return (BOOL)GetSysColorBrush(COLOR_MENU);
 }
 
-CReleaseDialog::~CReleaseDialog() {
+CTrackMatchingDialog::~CTrackMatchingDialog() {
 	if (conf_changed) {
 		CONF.save();
 	}
-	g_discogs->release_dialog = nullptr;
+	g_discogs->track_matching_dialog = nullptr;
 }
 
-void CReleaseDialog::list_swap_items(HWND list, unsigned int pos1, unsigned int pos2) {
+void CTrackMatchingDialog::list_swap_items(HWND list, unsigned int pos1, unsigned int pos2) {
 	const unsigned LOCAL_BUFFER_SIZE = 4096;
 	LVITEM lvi1, lvi2;
 	UINT uMask = LVIF_TEXT | LVIF_IMAGE | LVIF_INDENT | LVIF_PARAM | LVIF_STATE;
@@ -269,7 +269,7 @@ void CReleaseDialog::list_swap_items(HWND list, unsigned int pos1, unsigned int 
 	}
 }
 
-LRESULT CReleaseDialog::OnMoveTrackUp(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+LRESULT CTrackMatchingDialog::OnMoveTrackUp(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	int direction;
 	size_t limit;
 	//size_t max_selected = max(release->get_total_track_count(), items.get_count());
@@ -287,7 +287,7 @@ LRESULT CReleaseDialog::OnMoveTrackUp(WORD /*wNotifyCode*/, WORD wID, HWND /*hWn
 	return FALSE;
 }
 
-LRESULT CReleaseDialog::OnMoveTrackDown(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+LRESULT CTrackMatchingDialog::OnMoveTrackDown(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	int direction;
 	size_t limit;
 	size_t max_selected = max(tag_writer->release->get_total_track_count(), tag_writer->finfo_manager->items.get_count());
@@ -305,17 +305,17 @@ LRESULT CReleaseDialog::OnMoveTrackDown(WORD /*wNotifyCode*/, WORD wID, HWND /*h
 	return FALSE;
 }
 
-LRESULT CReleaseDialog::OnRemoveDiscogsTrack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+LRESULT CTrackMatchingDialog::OnRemoveDiscogsTrack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	remove_selected_items(discogs_track_list);
 	return FALSE;
 }
 
-LRESULT CReleaseDialog::OnRemoveFileTrack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+LRESULT CTrackMatchingDialog::OnRemoveFileTrack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	remove_selected_items(file_list);
 	return FALSE;
 }
 
-void CReleaseDialog::remove_selected_items(HWND list) {
+void CTrackMatchingDialog::remove_selected_items(HWND list) {
 	int index;
 	int end = ListView_GetItemCount(list);
 	while ((index = ListView_GetNextItem(list, -1, LVNI_SELECTED)) != -1) {
@@ -324,7 +324,7 @@ void CReleaseDialog::remove_selected_items(HWND list) {
 	}
 }
 
-void CReleaseDialog::move_selected_items_down(HWND list) {
+void CTrackMatchingDialog::move_selected_items_down(HWND list) {
 	pfc::array_t<int> swap;
 	int index = -1;
 	while ((index = ListView_GetNextItem(list, index, LVNI_SELECTED)) != -1) {
@@ -341,7 +341,7 @@ void CReleaseDialog::move_selected_items_down(HWND list) {
 	}
 }
 
-void CReleaseDialog::move_selected_items_up(HWND list) {
+void CTrackMatchingDialog::move_selected_items_up(HWND list) {
 	pfc::array_t<int> swap;
 	int index = -1;
 	while ((index = ListView_GetNextItem(list, index, LVNI_SELECTED)) != -1) {
@@ -358,7 +358,7 @@ void CReleaseDialog::move_selected_items_up(HWND list) {
 	}
 }
 
-void CReleaseDialog::generate_track_mappings(track_mappings_list_type &track_mappings) {
+void CTrackMatchingDialog::generate_track_mappings(track_mappings_list_type &track_mappings) {
 	track_mappings.force_reset();
 	const size_t count = ListView_GetItemCount(discogs_track_list);
 	for (size_t i = 0; i < count; i++) {
@@ -379,7 +379,7 @@ void CReleaseDialog::generate_track_mappings(track_mappings_list_type &track_map
 	}
 }
 
-bool CReleaseDialog::init_count() {
+bool CTrackMatchingDialog::init_count() {
 	const bool die = !CONF.update_tags_manually_match;
 	for (size_t i = 0; i < tag_writers.get_count(); i++) {
 		if (tag_writers[i]->skip || tag_writers[i]->match_status == MATCH_SUCCESS || tag_writers[i]->match_status == MATCH_ASSUME) {
@@ -395,7 +395,7 @@ bool CReleaseDialog::init_count() {
 	return multi_count != 0;
 }
 
-bool CReleaseDialog::get_next_tag_writer() {
+bool CTrackMatchingDialog::get_next_tag_writer() {
 	while (tw_index < tag_writers.get_count()) {
 		tag_writer = tag_writers[tw_index++];
 		if (tag_writer->force_skip || tag_writer->match_status == MATCH_SUCCESS || tag_writer->match_status == MATCH_ASSUME) {
@@ -411,7 +411,7 @@ bool CReleaseDialog::get_next_tag_writer() {
 	return false;
 }
 
-bool CReleaseDialog::get_previous_tag_writer() {
+bool CTrackMatchingDialog::get_previous_tag_writer() {
 	size_t previous_index = tw_index-1;
 	while (previous_index > 0) {
 		previous_index--;
@@ -428,17 +428,17 @@ bool CReleaseDialog::get_previous_tag_writer() {
 	return false;
 }
 
-void CReleaseDialog::finished_tag_writers() {
+void CTrackMatchingDialog::finished_tag_writers() {
 	service_ptr_t<generate_tags_task_multi> task = new service_impl_t<generate_tags_task_multi>(tag_writers, CONF.update_tags_preview_changes, use_update_tags);
 	task->start();
 }
 
-LRESULT CReleaseDialog::OnBack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+LRESULT CTrackMatchingDialog::OnBack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	go_back();
 	return TRUE;
 }
 
-LRESULT CReleaseDialog::OnPreviewTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+LRESULT CTrackMatchingDialog::OnPreviewTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	PFC_ASSERT(!multi_mode);
 	generate_track_mappings(tag_writer->track_mappings);
 	service_ptr_t<generate_tags_task> task = new service_impl_t<generate_tags_task>(this, tag_writer, true, use_update_tags);
@@ -446,7 +446,7 @@ LRESULT CReleaseDialog::OnPreviewTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWn
 	return TRUE;
 }
 
-LRESULT CReleaseDialog::OnWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+LRESULT CTrackMatchingDialog::OnWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	PFC_ASSERT(!multi_mode);
 	generate_track_mappings(tag_writer->track_mappings);
 	service_ptr_t<generate_tags_task> task = new service_impl_t<generate_tags_task>(this, tag_writer, false, use_update_tags);
@@ -454,14 +454,14 @@ LRESULT CReleaseDialog::OnWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndC
 	return TRUE;
 }
 
-LRESULT CReleaseDialog::OnMultiNext(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+LRESULT CTrackMatchingDialog::OnMultiNext(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	PFC_ASSERT(multi_mode);
 	generate_track_mappings(tag_writer->track_mappings);
 	get_next_tag_writer();
 	return TRUE;
 }
 
-LRESULT CReleaseDialog::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+LRESULT CTrackMatchingDialog::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	if (multi_mode) {
 		destroy();
 	}
@@ -471,25 +471,25 @@ LRESULT CReleaseDialog::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*
 	return TRUE;
 }
 
-LRESULT CReleaseDialog::OnMultiSkip(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+LRESULT CTrackMatchingDialog::OnMultiSkip(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	PFC_ASSERT(multi_mode);
 	tag_writer->skip = true;
 	get_next_tag_writer();
 	return TRUE;
 }
 
-LRESULT CReleaseDialog::OnMultiPrev(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+LRESULT CTrackMatchingDialog::OnMultiPrev(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	PFC_ASSERT(multi_mode);
 	get_previous_tag_writer();
 	return TRUE;
 }
 
-void CReleaseDialog::OnFinalMessage(HWND /*hWnd*/) {
+void CTrackMatchingDialog::OnFinalMessage(HWND /*hWnd*/) {
 	modeless_dialog_manager::g_remove(m_hWnd);
 	delete this;
 }
 
-void CReleaseDialog::update_list_width(HWND list, bool initialize) {
+void CTrackMatchingDialog::update_list_width(HWND list, bool initialize) {
 	CRect client_rectangle;
 	::GetClientRect(list, &client_rectangle);
 	int width = client_rectangle.Width();
@@ -506,7 +506,7 @@ void CReleaseDialog::update_list_width(HWND list, bool initialize) {
 	ListView_SetColumnWidth(list, 1, c2);
 }
 
-LRESULT CReleaseDialog::OnFileListKeyDown(LPNMHDR lParam) {
+LRESULT CTrackMatchingDialog::OnFileListKeyDown(LPNMHDR lParam) {
 	NMLVKEYDOWN * info = reinterpret_cast<NMLVKEYDOWN*>(lParam);
 	switch (info->wVKey) {
 		case VK_DELETE:
@@ -534,7 +534,7 @@ LRESULT CReleaseDialog::OnFileListKeyDown(LPNMHDR lParam) {
 	return FALSE;
 }
 
-LRESULT CReleaseDialog::OnDiscogsListKeyDown(LPNMHDR lParam) {
+LRESULT CTrackMatchingDialog::OnDiscogsListKeyDown(LPNMHDR lParam) {
 	NMLVKEYDOWN * info = reinterpret_cast<NMLVKEYDOWN*>(lParam);
 	switch (info->wVKey) {
 		case VK_DELETE:
@@ -562,7 +562,7 @@ LRESULT CReleaseDialog::OnDiscogsListKeyDown(LPNMHDR lParam) {
 	return FALSE;
 }
 
-void CReleaseDialog::enable(bool is_enabled) {
+void CTrackMatchingDialog::enable(bool is_enabled) {
 	::uEnableWindow(GetDlgItem(IDC_WRITE_TAGS_BUTTON), is_enabled);
 	::uEnableWindow(GetDlgItem(IDCANCEL), is_enabled);
 	::uEnableWindow(GetDlgItem(IDC_BACK_BUTTON), is_enabled);
@@ -575,14 +575,14 @@ void CReleaseDialog::enable(bool is_enabled) {
 	::uEnableWindow(GetDlgItem(IDC_PREVIEW_TAGS_BUTTON), is_enabled);
 }
 
-void CReleaseDialog::destroy_all() {
+void CTrackMatchingDialog::destroy_all() {
 	if (!multi_mode) {
 		g_discogs->find_release_dialog->destroy();
 	}
-	MyCDialogImpl<CReleaseDialog>::destroy();
+	MyCDialogImpl<CTrackMatchingDialog>::destroy();
 }
 
-void CReleaseDialog::go_back() {
+void CTrackMatchingDialog::go_back() {
 	PFC_ASSERT(!multi_mode);
 	destroy();
 	g_discogs->find_release_dialog->show();

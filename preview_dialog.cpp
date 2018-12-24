@@ -3,7 +3,7 @@
 #include "preview_dialog.h"
 #include "tag_mappings_dialog.h"
 #include "tasks.h"
-#include "release_dialog.h"
+#include "track_matching_dialog.h"
 #include "string_encoded_array.h"
 
 #include <GdiPlus.h>
@@ -555,7 +555,7 @@ void CPreviewTagsDialog::enable(bool is_enabled) {
 
 void CPreviewTagsDialog::destroy_all() {
 	if (!multi_mode) {
-		g_discogs->release_dialog->destroy_all();
+		g_discogs->track_matching_dialog->destroy_all();
 	}
 	MyCDialogImpl<CPreviewTagsDialog>::destroy();
 }
@@ -563,5 +563,5 @@ void CPreviewTagsDialog::destroy_all() {
 void CPreviewTagsDialog::go_back() {
 	PFC_ASSERT(!multi_mode);
 	destroy();
-	g_discogs->release_dialog->show();
+	g_discogs->track_matching_dialog->show();
 }

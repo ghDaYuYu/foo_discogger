@@ -610,30 +610,28 @@ void detect_hidden(pfc::string8 &s, pfc::string8 &pre, pfc::string8 &hidden) {
 	int len = s.length();
 	int pos = pfc::infinite_size;
 	int dot = s.find_last(".");
-	int dash = s.find_last("-");
-	if (dot == pfc::infinite_size) {
-		dot = dash; // treat as same for now
-	}
-	// eg. 1.a, C2.a
+
+	// eg. 1.a, C2.a, B.1
 	if (dot != pfc::infinite_size) {
 		bool numeric = false;
+		bool alpha = false;
 		while (pos < len) {
 			pos++;
-			if (!numeric) {
+			if (!numeric && !alpha) {
 				if (s[pos] > 0 && s[pos] < 256 && isdigit(s[pos])) {
 					numeric = true;
 				}
+				else if (s[pos] > 0 && s[pos] < 256 && isalpha(s[pos])) {
+					alpha = true;
+				}
 			}
 			else {
-				if (s[pos] < 0 || s[pos] > 255 || !isdigit(s[pos])) {
+				if (s[pos] < 0 || s[pos] > 255 || ((numeric && !isdigit(s[pos])) || (alpha && !isalpha(s[pos])))) {
 					break;
 				}
 			}
 		}
 	}
-	// eg. 1-III
-	//else if (dash != pfc::infinite_size) {
-	//}
 	// eg. 6a
 	else if (s[len - 2] > 0 && s[len - 2] < 256 && isdigit(s[len - 2]) && s[len - 1] > 0 && s[len - 1] < 256 && isalpha(s[len - 1])) {
 		pos = len - 1;

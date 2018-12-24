@@ -119,4 +119,5 @@
 #define IDC_CACHED_OBJECTS_EDIT                 1187
 #define IDC_PROCESS_RELEASE_BUTTON              1188
 #define IDC_EXPORT_TAGS                         40000
+#define IDC_SKIP_VIDEO_TRACKS                   40000
 #define IDC_IMPORT_TAGS                         40001

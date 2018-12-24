@@ -55,6 +55,7 @@ private:
 	HWND album_art_file_edit;
 
 	bool original_parsing = false;
+	bool original_skip_video = false;
 
 	CHyperLink help_link;
 

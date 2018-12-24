@@ -113,6 +113,8 @@ bool new_conf::load() {
 				update_tags_manually_match = item.value;
 			case CFG_PARSE_HIDDEN_AS_REGULAR:
 				parse_hidden_as_regular = item.value;
+			case CFG_SKIP_VIDEO_TRACKS:
+				skip_video_tracks = item.value;
 		}
 	}
 	for (unsigned int i = 0; i < cfg_int_entries.get_count(); i++) {
@@ -239,6 +241,7 @@ void new_conf::save() {
 	cfg_bool_entries.add_item(make_conf_entry(CFG_UPDATE_PREVIEW_CHANGES, update_tags_preview_changes));
 	cfg_bool_entries.add_item(make_conf_entry(CFG_UPDATE_TAGS_MANUALLY_PROMPT, update_tags_manually_match));
 	cfg_bool_entries.add_item(make_conf_entry(CFG_PARSE_HIDDEN_AS_REGULAR, parse_hidden_as_regular));
+	cfg_bool_entries.add_item(make_conf_entry(CFG_SKIP_VIDEO_TRACKS, skip_video_tracks));
 
 	cfg_int_entries.remove_all();
 	cfg_int_entries.add_item(make_conf_entry(CFG_UPDATE_ART_FLAGS, update_art_flags));

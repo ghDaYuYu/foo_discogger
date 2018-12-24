@@ -73,6 +73,7 @@
 
 #define CFG_UPDATE_TAGS_MANUALLY_PROMPT		55
 #define CFG_PARSE_HIDDEN_AS_REGULAR			56
+#define CFG_SKIP_VIDEO_TRACKS				58
 
 #define CFG_CACHE_MAX_OBJECTS				57
 
@@ -193,6 +194,7 @@ public:
 	bool update_tags_manually_match = true;
 
 	bool parse_hidden_as_regular = false;
+	bool skip_video_tracks = false;
 
 	int preview_mode = PREVIEW_NORMAL;
 

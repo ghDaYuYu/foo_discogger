@@ -195,7 +195,9 @@ inline void set_window_text(HWND wnd, int IDC, const pfc::string8 &text) {
 
 void CConfigurationDialog::init_caching_dialog(HWND wnd) {
 	uButton_SetCheck(wnd, IDC_HIDDEN_AS_REGULAR_CHECK, conf.parse_hidden_as_regular);
+	uButton_SetCheck(wnd, IDC_SKIP_VIDEO_TRACKS, conf.skip_video_tracks);
 	original_parsing = conf.parse_hidden_as_regular;
+	original_skip_video = conf.skip_video_tracks;
 
 	pfc::string8 num;
 	num << conf.cache_max_objects;
@@ -275,7 +277,8 @@ void CConfigurationDialog::save_tagging_dialog(HWND wnd) {
 
 void CConfigurationDialog::save_caching_dialog(HWND wnd) {
 	conf.parse_hidden_as_regular = uButton_GetCheck(wnd, IDC_HIDDEN_AS_REGULAR_CHECK);
-	if (original_parsing != conf.parse_hidden_as_regular) {
+	conf.skip_video_tracks = uButton_GetCheck(wnd, IDC_SKIP_VIDEO_TRACKS);
+	if (original_parsing != conf.parse_hidden_as_regular || original_skip_video != conf.skip_video_tracks) {
 		discogs_interface->reset_release_cache();
 	}
 

@@ -62,8 +62,8 @@ STYLE DS_CONTROL | DS_SHELLFONT | WS_CHILDWINDOW | WS_SYSMENU
 FONT 8, "MS Shell Dlg", 400, 0, 1
 {
     GROUPBOX        "Discogs Parsing Options", IDC_STATIC, 6, 6, 206, 60, 0, WS_EX_LEFT
-    AUTOCHECKBOX    "Parse hidden tracks as regular tracks", IDC_HIDDEN_AS_REGULAR_CHECK, 14, 18, 133, 8, 0, WS_EX_LEFT
-    LTEXT           "(Temporary solution. Clears release cache.)", IDC_STATIC, 24, 28, 160, 9, SS_LEFT, WS_EX_LEFT
+    AUTOCHECKBOX    "Parse hidden tracks as regular tracks", IDC_HIDDEN_AS_REGULAR_CHECK, 14, 19, 133, 8, 0, WS_EX_LEFT
+    LTEXT           "(Changing these clears releases cache.)", IDC_STATIC, 39, 51, 140, 9, SS_LEFT, WS_EX_LEFT
     GROUPBOX        "Caching Options", IDC_STATIC, 6, 72, 206, 120, 0, WS_EX_LEFT
     LTEXT           "Information is temporarily cached to avoid having to query the Discogs API multiple times and to speed up subsequent operations. Cache is reset when foobar2000 is restarted.", IDC_STATIC, 13, 83, 196, 25, SS_LEFT, WS_EX_LEFT
     EDITTEXT        IDC_CACHED_OBJECTS_EDIT, 131, 113, 45, 14, ES_AUTOHSCROLL, WS_EX_LEFT
@@ -73,6 +73,7 @@ FONT 8, "MS Shell Dlg", 400, 0, 1
     PUSHBUTTON      "Master Releases", IDC_CLEAR_CACHE_MASTERS, 12, 162, 95, 15, 0, WS_EX_LEFT
     PUSHBUTTON      "Artists", IDC_CLEAR_CACHE_ARTISTS, 110, 144, 95, 15, 0, WS_EX_LEFT
     PUSHBUTTON      "Collection", IDC_CLEAR_CACHE_COLLECTION, 110, 162, 95, 15, 0, WS_EX_LEFT
+    AUTOCHECKBOX    "Skip video tracks when parsing tracklist", IDC_SKIP_VIDEO_TRACKS, 14, 30, 141, 8, 0, WS_EX_LEFT
 }
 
 

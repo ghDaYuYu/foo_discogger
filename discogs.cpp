@@ -848,6 +848,13 @@ void Discogs::parseReleaseTrack(json_t *element, pfc::array_t<ReleaseTrack_ptr> 
 
 	track->discogs_track_number = JSONAttributeString(element, "position");
 
+	if (CONF.skip_video_tracks) {
+		pfc::string8 lower_position = lowercase(track->discogs_track_number);
+		if (lower_position.find_first("video") != pfc::infinite_size || lower_position.find_first("dvd") != pfc::infinite_size) {
+			return;
+		}
+	}
+
 	json_t *artists = json_object_get(element, "artists");
 	if (artists) {
 		parseReleaseArtists(artists, track->artists);

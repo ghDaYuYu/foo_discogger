@@ -712,7 +712,6 @@ void parseTrackPositions(pfc::array_t<ReleaseTrack_ptr> &intermediate_tracks, Ha
 				disc_track_number = 1;
 			}
 		}
-		//track->disc_number = disc_number;
 		track->track_number = track_number;
 		track->disc_track_number = disc_track_number;
 
@@ -806,6 +805,17 @@ void parseTrackPositions(pfc::array_t<ReleaseTrack_ptr> &intermediate_tracks, Ha
 			ex << "Unable to parse Discogs tracklist.";
 			throw ex;
 		}*/
+	}
+
+	// use index track duration for single tracks
+	for (size_t i = 0; i < disc->tracks.get_size(); i++) {
+		auto track = disc->tracks[i];
+		if (!track->discogs_duration_seconds && track->discogs_indextrack_duration_seconds) {
+			if (i + 1 > disc->tracks.get_size() - 1 || disc->tracks[i + 1]->discogs_indextrack_duration_seconds != track->discogs_indextrack_duration_seconds) {
+				track->discogs_duration_seconds = track->discogs_indextrack_duration_seconds;
+				track->discogs_duration_raw = track->discogs_indextrack_duration_raw;
+			}
+		}
 	}
 }
 

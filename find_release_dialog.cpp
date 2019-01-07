@@ -433,6 +433,10 @@ void CFindReleaseDialog::on_expand_master_release_done(const MasterRelease_ptr &
 			master_index = i;
 		}
 	}
+	pfc::string8 text;
+	uGetWindowText(filter_edit, text);
+	filter_releases(text);
+	/*
 	list_index++;
 	for (size_t i = 0; i < master_release->sub_releases.get_size(); i++) {
 		pfc::string8 item;
@@ -445,10 +449,12 @@ void CFindReleaseDialog::on_expand_master_release_done(const MasterRelease_ptr &
 			ex << "Error formating release list item [" << e.what() << "]";
 			throw ex;
 		}
+		
 		uSendMessageText(release_list, LB_INSERTSTRING, list_index, item.get_ptr());
 		int item_data = (master_index << 16) | i;
 		uSendMessage(release_list, LB_SETITEMDATA, list_index, (LPARAM)item_data);
 	}
+	*/
 }
 
 void CFindReleaseDialog::on_expand_master_release_complete() {

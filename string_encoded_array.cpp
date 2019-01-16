@@ -437,6 +437,7 @@ void string_encoded_array::flatten() {
 	}
 }
 
+
 void string_encoded_array::force_array(size_t depth) {
 	if (m_depth == 0) {
 		sub_array.append_single(string_encoded_array(value));
@@ -847,8 +848,14 @@ bool string_encoded_array::_filter(const string_encoded_array &other) {
 		array_param_too_deep(2);
 	}
 	size_t count = get_width();
-	bool changed = false;
-	if (other.m_depth == 0) {
+	pfc::array_t<string_encoded_array> new_sub_array;
+	for (size_t i = 0; i < count; i++) {
+		if (!STR_EQUAL(sub_array[i], other.value)) {
+			new_sub_array.append_single(sub_array[i]);
+		}
+	}
+	sub_array = new_sub_array;
+	/*if (other.m_depth == 0) {
 		for (size_t i = 0; i < count; i++) {
 			if (STR_EQUAL(sub_array[i], other.value)) {
 				for (size_t j = i + 1; j < count; j++) {
@@ -859,7 +866,7 @@ bool string_encoded_array::_filter(const string_encoded_array &other) {
 				changed = true;
 			}
 		}
-	}
+	}*/
 	/*else {
 		if (other.m_depth != 1) {
 			array_param_too_deep(2);
@@ -879,7 +886,7 @@ bool string_encoded_array::_filter(const string_encoded_array &other) {
 			}
 		}
 	}*/
-	return changed;
+	return true;
 }
 
 /*

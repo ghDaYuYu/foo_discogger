@@ -407,7 +407,10 @@ void TagWriter::generate_tags(bool use_update_tags, threaded_process_status &p_s
 	tag_results.force_reset();
 	changed = false;
 
-	persistent_store pstore;
+	pfc::array_t<persistent_store> track_stores;
+	for (size_t j = 0; j < track_mappings.get_count(); j++) {
+		track_stores.append_single(persistent_store());
+	}
 	persistent_store prompt_store;
 	MasterRelease_ptr master = discogs_interface->get_master_release(release->master_id);
 
@@ -436,7 +439,7 @@ void TagWriter::generate_tags(bool use_update_tags, threaded_process_status &p_s
 				const ReleaseDisc_ptr &disc = release->discs[disc_index];
 				const ReleaseTrack_ptr &track = disc->tracks[trac_index];
 
-				titleformat_hook_impl_multiformat hook(p_status, &master, &release, &disc, &track, &info, &pstore, &prompt_store);
+				titleformat_hook_impl_multiformat hook(p_status, &master, &release, &disc, &track, &info, &track_stores[j], &prompt_store);
 				hook.set_files(finfo_manager);
 
 				pfc::string8 str;

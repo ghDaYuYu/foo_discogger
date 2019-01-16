@@ -51,4 +51,4 @@
 
 #include "resource.h"
 
-#define FOO_DISCOGS_VERSION "2.18"
+#define FOO_DISCOGS_VERSION "2.19"

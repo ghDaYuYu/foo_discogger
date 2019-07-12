@@ -226,7 +226,12 @@ void string_encoded_array::split(const pfc::string8 &delim) {
 	pfc::array_t<pfc::string8> tokens;
 	tokenize(value, delim, tokens, false);
 	for (size_t i = 0; i < tokens.get_size(); i++) {
-		append_item(tokens[i]);
+		if (i == 0) {
+			set_value(tokens[i]);
+		}
+		else {
+			append_item(tokens[i]);
+		}
 	}
 	dirty = true;
 	m_depth = 1;

@@ -307,6 +307,43 @@ namespace Discogs
 	typedef std::shared_ptr<ReleaseLabel> ReleaseLabel_ptr;
 
 
+	class ReleaseCompany : public ExposedTags<ReleaseCompany>
+	{
+	public:
+		pfc::string8 id;
+		pfc::string8 name;
+		pfc::string8 catalog;
+		pfc::string8 entity_type_name;
+
+		string_encoded_array get_id() const {
+			return id;
+		}
+		string_encoded_array get_name() const {
+			pfc::string8 result = name;
+			if (CONF.discard_numeric_suffix) {
+				result = remove_number_suffix(result);
+			}
+			return result;
+		}
+		string_encoded_array get_catalog() const {
+			return catalog;
+		}
+		string_encoded_array get_entity_type_name() const {
+			return entity_type_name;
+		}
+
+		static ExposedMap<ReleaseCompany> create_tags_map() {
+			ExposedMap<ReleaseCompany> m;
+			m["ID"] = { &ReleaseCompany::get_id, nullptr };
+			m["NAME"] = { &ReleaseCompany::get_name, &ReleaseCompany::load };
+			m["CATALOG_NUMBER"] = { &ReleaseCompany::get_catalog, &ReleaseCompany::load };
+			m["ENTITY_TYPE_NAME"] = { &ReleaseCompany::get_entity_type_name, &ReleaseCompany::load };
+			return m;
+		}
+	};
+	typedef std::shared_ptr<ReleaseCompany> ReleaseCompany_ptr;
+
+
 	class ReleaseSeries : public ExposedTags<ReleaseSeries>
 	{
 	public:
@@ -714,6 +751,7 @@ namespace Discogs
 
 		pfc::array_t<pfc::string8> artist_join_fields;
 		pfc::array_t<ReleaseLabel_ptr> labels;
+		pfc::array_t<ReleaseCompany_ptr> companies;
 		pfc::string8 search_formats;
 		pfc::string8 search_labels;
 		pfc::string8 search_catno;
@@ -929,6 +967,9 @@ namespace Discogs
 
 	extern ReleaseLabel_ptr parseReleaseLabel(json_t *element);
 	extern void parseReleaseLabels(json_t *element, pfc::array_t<ReleaseLabel_ptr> &release_labels);
+	
+	extern ReleaseCompany_ptr parseReleaseCompany(json_t *element);
+	extern void parseReleaseCompanies(json_t *element, pfc::array_t<ReleaseCompany_ptr> &release_companies);
 
 	extern ReleaseSeries_ptr parseReleaseSeries(json_t *element);
 	extern void parseReleaseSeries(json_t *element, pfc::array_t<ReleaseSeries_ptr> &release_series);

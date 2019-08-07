@@ -8,6 +8,7 @@
 using namespace Discogs;
 
 const ExposedMap<ReleaseLabel> ExposedTags<ReleaseLabel>::exposed_tags = ReleaseLabel::create_tags_map();
+const ExposedMap<ReleaseCompany> ExposedTags<ReleaseCompany>::exposed_tags = ReleaseCompany::create_tags_map();
 const ExposedMap<ReleaseSeries> ExposedTags<ReleaseSeries>::exposed_tags = ReleaseSeries::create_tags_map();
 const ExposedMap<ReleaseTrack> ExposedTags<ReleaseTrack>::exposed_tags = ReleaseTrack::create_tags_map();
 const ExposedMap<Release> ExposedTags<Release>::exposed_tags = Release::create_tags_map();
@@ -167,6 +168,14 @@ string_encoded_array Discogs::Release::get_sub_data(pfc::string8 &tag_name, thre
 		load(p_status, p_abort); 
 		for (size_t i = 0; i < labels.get_size(); i++) {
 			result.append_item_val(labels[i]->get_data(sub_tag_name, p_status, p_abort));
+		}
+	}
+	else if (STR_EQUALN(tag_name, "COMPANIES_", 10)) {
+		result.force_array();
+		sub_tag_name = substr(tag_name, 10);
+		load(p_status, p_abort);
+		for (size_t i = 0; i < companies.get_size(); i++) {
+			result.append_item_val(companies[i]->get_data(sub_tag_name, p_status, p_abort));
 		}
 	}
 	else if (STR_EQUALN(tag_name, "SERIES_", 7)) {
@@ -533,6 +542,23 @@ void Discogs::parseReleaseLabels(json_t *element, pfc::array_t<ReleaseLabel_ptr>
 	if (json_is_array(element)) {
 		for (size_t i = 0; i < json_array_size(element); i++) {
 			release_labels.append_single(parseReleaseLabel(json_array_get(element, i)));
+		}
+	}
+}
+
+ReleaseCompany_ptr Discogs::parseReleaseCompany(json_t *element) {
+	ReleaseCompany_ptr company(new ReleaseCompany());
+	company->name = JSONAttributeString(element, "name");
+	company->id = JSONAttributeString(element, "id");
+	company->catalog = JSONAttributeString(element, "catno");
+	company->entity_type_name = JSONAttributeString(element, "entity_type_name");
+	return std::move(company);
+}
+
+void Discogs::parseReleaseCompanies(json_t *element, pfc::array_t<ReleaseCompany_ptr> &release_companies) {
+	if (json_is_array(element)) {
+		for (size_t i = 0; i < json_array_size(element); i++) {
+			release_companies.append_single(parseReleaseCompany(json_array_get(element, i)));
 		}
 	}
 }
@@ -1018,6 +1044,9 @@ void Discogs::parseRelease(Release *release, json_t *root) {
 
 	json_t *labels = json_object_get(root, "labels");
 	parseReleaseLabels(labels, release->labels);
+
+	json_t *companies = json_object_get(root, "companies");
+	parseReleaseCompanies(companies, release->companies);
 
 	json_t *series = json_object_get(root, "series");
 	parseReleaseSeries(series, release->series);

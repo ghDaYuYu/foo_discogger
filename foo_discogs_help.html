@@ -149,6 +149,9 @@
         <td> RELEASE </td><td> LABELS </td><td> array </td><td> LABEL </td><td> Labels for the release. </td>
     </tr>
     <tr>
+        <td> RELEASE </td><td> COMPANIES </td><td> array </td><td> COMPANY </td><td> Companies for the release. </td>
+    </tr>
+    <tr>
         <td> RELEASE </td><td> SERIES </td><td> array </td><td> SERIES </td><td> Seriess for the release, if applicable. </td>
     </tr>
     <tr>
@@ -409,6 +412,18 @@
         <td> LABEL </td><td> CATALOG_NUMBER </td><td> string </td><td> Catalog number of release on label. </td>
     </tr>
     <tr>
+        <td> COMPANY </td><td> ID </td><td> string </td><td> Company id in Discogs database. </td>
+    </tr>
+    <tr>
+        <td> COMPANY </td><td> NAME </td><td> string </td><td> Company name. </td>
+    </tr>
+    <tr>
+        <td> COMPANY </td><td> CATALOG_NUMBER </td><td> string </td><td> Catalog number of release on company. </td>
+    </tr>
+    <tr>
+        <td> COMPANY </td><td> ENTITY_TYPE_NAME </td><td> string </td><td> Entity credit name for release on company. </td>
+    </tr>
+    <tr>
         <td> SERIES </td><td> ID </td><td> string </td><td> Series id in Discogs database. </td>
     </tr>
     <tr>
@@ -418,7 +433,7 @@
         <td> SERIES </td><td> NUMBER </td><td> string </td><td> Item number in series. Not necessarily an actual number. </td>
     </tr>
     <tr>
-        <td> FORMAT </td><td> QUANTITY </td><td> string </td><td> Quality of format. </td>
+        <td> FORMAT </td><td> QUANTITY </td><td> string </td><td> Quantity of format. </td>
     </tr>
     <tr>
         <td> FORMAT </td><td> NAME </td><td> string </td><td> Name of format. </td>
@@ -824,7 +839,7 @@
             N must be a compatible integer array of same size or smaller than A.
         </td>
         <td>
-            $multi_pad([x,y,z],3) => [x  ,y  ,z  ]
+            $multi_wrap([x,y,z],---) => [---x---,---y---,---z---]
          </td>
     </tr>
     

@@ -54,22 +54,23 @@
     <LinkIncremental>false</LinkIncremental>
     <EmbedManifest>false</EmbedManifest>
     <RunCodeAnalysis>false</RunCodeAnalysis>
+    <IncludePath>C:\Users\SW\Desktop\foo_discogs;C:\Users\SW\Desktop\foo_discogs\foobar2000;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>jansson;zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>zlib;jansson;C:\Users\SW\Desktop\foo_discogs;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>uxtheme.lib;wininet.lib;winmm.lib;ws2_32.lib;..\..\jansson-2.6\lib\Debug\jansson_d.lib;..\..\zlib-1.2.8\Debug\zlibstaticd.lib;..\..\liboauthcpp\build\Debug\oauthcpp.lib;..\shared\shared.lib;..\SDK\Debug\foobar2000_SDK.lib;..\foobar2000_component_client\Debug\foobar2000_component_client.lib;..\..\pfc\Debug\pfc.lib;..\helpers\Debug\foobar2000_sdk_helpers.lib;..\ATLHelpers\Debug\foobar2000_ATL_helpers.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>uxtheme.lib;wininet.lib;winmm.lib;ws2_32.lib;..\..\jansson-2.6\Debug\jansson_d.lib;..\..\libPPUI\Debug\libPPUI.lib;..\..\liboauthcpp\build\Debug\oauthcpp.lib;..\shared\shared.lib;..\SDK\Debug\foobar2000_SDK.lib;..\foobar2000_component_client\Debug\foobar2000_component_client.lib;..\..\pfc\Debug\pfc.lib;..\helpers\Debug\foobar2000_sdk_helpers.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>LIBCMT;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -88,7 +89,7 @@
       <Optimization>MinSpace</Optimization>
       <AdditionalIncludeDirectories>zlib;jansson;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
@@ -99,7 +100,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>uxtheme.lib;wininet.lib;winmm.lib;ws2_32.lib;..\..\jansson-2.6\lib\Release\jansson.lib;..\..\liboauthcpp\build\Release\oauthcpp.lib;..\shared\shared.lib;..\SDK\Release\foobar2000_SDK.lib;..\foobar2000_component_client\Release\foobar2000_component_client.lib;..\..\pfc\Release\pfc.lib;..\helpers\Release\foobar2000_sdk_helpers.lib;..\ATLhelpers\Release\foobar2000_ATL_helpers.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>uxtheme.lib;wininet.lib;winmm.lib;ws2_32.lib;..\..\jansson-2.6\Release\jansson.lib;..\..\libPPUI\Release\libPPUI.lib;..\..\liboauthcpp\build\Release\oauthcpp.lib;..\shared\shared.lib;..\SDK\Release\foobar2000_SDK.lib;..\foobar2000_component_client\Release\foobar2000_component_client.lib;..\..\pfc\Release\pfc.lib;..\helpers\Release\foobar2000_sdk_helpers.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
@@ -145,6 +146,7 @@
     <ResourceCompile Include="foo_discogs.rc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="art_helpers.h" />
     <ClInclude Include="cache.h" />
     <ClInclude Include="configuration_dialog.h" />
     <ClInclude Include="contextmenu_item_discogs.h" />

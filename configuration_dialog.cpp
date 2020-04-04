@@ -1,6 +1,7 @@
 #include "stdafx.h"
 
 #include "configuration_dialog.h"
+#include <libPPUI/CDialogResizeHelper.h>
 #include "utils.h"
 #include "liboauthcpp/liboauthcpp.h"
 #include "tasks.h"

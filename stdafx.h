@@ -21,15 +21,20 @@
 //#define WIN32_LEAN_AND_MEAN		// Exclude rarely-used stuff from Windows headers
 
 // Windows Header Files:
+#include "Winsock2.h"
 #include <windows.h>
 
 #include "../SDK/foobar2000.h"
 #include "../helpers/helpers.h"
-#include "../SDK/filesystem_helper.h"
-
-#include "../ATLHelpers/ATLHelpers.h"
+#include "../helpers/foobar2000+atl.h"
 #include <atlframe.h>
 #include <atlctrlx.h>
+#include "../helpers/atl-misc.h"
+#include "../SDK/filesystem_helper.h"
+
+#include "../../libPPUI/InPlaceEdit.h"
+#include "../../libPPUI/InPlaceEditTable.h"
+#include "../../libPPUI/listview_helper.h"
 
 #include "wtl_helpers.h"
 

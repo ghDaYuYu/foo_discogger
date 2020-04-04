@@ -187,6 +187,9 @@
     <ClInclude Include="track_matching_dialog.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="art_helpers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Changelog.txt" />

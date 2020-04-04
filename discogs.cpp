@@ -779,7 +779,7 @@ void parseTrackPositions(pfc::array_t<ReleaseTrack_ptr> &intermediate_tracks, Ha
 
 	// renumber if we didn't get them all and number of headings matches number of formats
 	if (disc_number != format_quantity && format_quantity) {
-		if (release->total_headings == format_quantity) {
+		if (release->total_headings == format_quantity && !STR_EQUAL(release->discs[0]->tracks[0]->title_heading, "")) {
 			pfc::string8 last_heading = "";
 			track_number = 1;
 			disc_track_number = 0;

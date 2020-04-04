@@ -174,3 +174,11 @@ The following dependencies will have to be linked for you to be able to compile 
 * [Jansson](http://www.digip.org/jansson/)
 * [liboauthcpp](https://github.com/sirikata/liboauthcpp)
 * [zlib](http://www.zlib.net/)
+
+### Packaging
+
+1. In Windows File Explorer, select files to package: foo_discogs.dll, foo_discogs_help.html, titleformat_help.css
+2. Right click on selected files, Send To > Compressed (zipped) folder
+3. Rename the created zip file as "foo_discogs.fb2k-component"
+
+The fb2k-component file can then be loaded in foobar2000 as a component or uploaded to the official components site.

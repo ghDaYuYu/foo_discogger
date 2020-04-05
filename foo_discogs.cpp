@@ -494,6 +494,8 @@ void foo_discogs::write_image(MemoryBlock &buffer, const pfc::string8 &full_path
 }
 
 void foo_discogs::embed_image(MemoryBlock &buffer, metadb_handle_ptr item, GUID embed_guid, abort_callback &p_abort) {
+	static_api_ptr_t<file_lock_manager> api;
+	file_lock_ptr lock = api->acquire_write(item->get_path(), p_abort);
 	service_ptr_t<file> file;
 	album_art_editor_instance_ptr editor = album_art_editor_v2::g_open(nullptr, item->get_path(), p_abort);
 	album_art_data_ptr data = album_art_data_impl::g_create(buffer.get_ptr(), buffer.get_count());

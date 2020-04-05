@@ -242,18 +242,19 @@ void CConfigurationDialog::init_matching_dialog(HWND wnd) {
 
 void CConfigurationDialog::init_art_dialog(HWND wnd) {
 	uButton_SetCheck(wnd, IDC_SAVE_ALBUM_ART_CHECK, conf.save_album_art);
-	uButton_SetCheck(wnd, IDC_DISPLAY_ART_CHECK, conf.display_art);
-	uButton_SetCheck(wnd, IDC_ALBUM_ART_OVERWRITE_CHECK, conf.album_art_overwrite);
 	uButton_SetCheck(wnd, IDC_ALBUM_ART_FETCH_ALL_CHECK, conf.album_art_fetch_all);
+	uButton_SetCheck(wnd, IDC_ALBUM_ART_EMBED, conf.embed_album_art);
 	uSetDlgItemText(wnd, IDC_ALBUM_ART_DIR_EDIT, conf.album_art_directory_string);
 	uSetDlgItemText(wnd, IDC_ALBUM_ART_PREFIX_EDIT, conf.album_art_filename_string);
+	uButton_SetCheck(wnd, IDC_ALBUM_ART_OVERWRITE_CHECK, conf.album_art_overwrite);
 
 	uButton_SetCheck(wnd, IDC_SAVE_ARTIST_ART_CHECK, conf.save_artist_art);
-	uButton_SetCheck(wnd, IDC_ARTIST_ART_OVERWRITE_CHECK, conf.artist_art_overwrite);
 	uButton_SetCheck(wnd, IDC_ARTIST_ART_FETCH_ALL_CHECK, conf.artist_art_fetch_all);
+	uSetDlgItemText(wnd, IDC_ARTIST_ART_IDS_EDIT, conf.artist_art_id_format_string);
+	uButton_SetCheck(wnd, IDC_ARTIST_ART_EMBED, conf.embed_artist_art);
 	uSetDlgItemText(wnd, IDC_ARTIST_ART_DIR_EDIT, conf.artist_art_directory_string);
 	uSetDlgItemText(wnd, IDC_ARTIST_ART_PREFIX_EDIT, conf.artist_art_filename_string);
-	uSetDlgItemText(wnd, IDC_ARTIST_ART_IDS_EDIT, conf.artist_art_id_format_string);
+	uButton_SetCheck(wnd, IDC_ARTIST_ART_OVERWRITE_CHECK, conf.artist_art_overwrite);
 }
 
 void CConfigurationDialog::init_oauth_dialog(HWND wnd) {
@@ -325,23 +326,24 @@ void CConfigurationDialog::save_art_dialog(HWND wnd) {
 	pfc::string8 temp;
 
 	conf.save_album_art = uButton_GetCheck(wnd, IDC_SAVE_ALBUM_ART_CHECK);
-	conf.display_art = uButton_GetCheck(wnd, IDC_DISPLAY_ART_CHECK);
+	conf.album_art_fetch_all = uButton_GetCheck(wnd, IDC_ALBUM_ART_FETCH_ALL_CHECK);
+	conf.embed_album_art = uButton_GetCheck(wnd, IDC_ALBUM_ART_EMBED);
 	uGetDlgItemText(wnd, IDC_ALBUM_ART_DIR_EDIT, temp);
 	conf.album_art_directory_string = temp;
 	uGetDlgItemText(wnd, IDC_ALBUM_ART_PREFIX_EDIT, temp);
 	conf.album_art_filename_string = temp;
 	conf.album_art_overwrite = uButton_GetCheck(wnd, IDC_ALBUM_ART_OVERWRITE_CHECK);
-	conf.album_art_fetch_all = uButton_GetCheck(wnd, IDC_ALBUM_ART_FETCH_ALL_CHECK);
-
+	
 	conf.save_artist_art = uButton_GetCheck(wnd, IDC_SAVE_ARTIST_ART_CHECK);
+	conf.artist_art_fetch_all = uButton_GetCheck(wnd, IDC_ARTIST_ART_FETCH_ALL_CHECK);
+	uGetDlgItemText(wnd, IDC_ARTIST_ART_IDS_EDIT, temp);
+	conf.artist_art_id_format_string = temp;
+	conf.embed_artist_art = uButton_GetCheck(wnd, IDC_ARTIST_ART_EMBED);
 	uGetDlgItemText(wnd, IDC_ARTIST_ART_DIR_EDIT, temp);
 	conf.artist_art_directory_string = temp;
 	uGetDlgItemText(wnd, IDC_ARTIST_ART_PREFIX_EDIT, temp);
 	conf.artist_art_filename_string = temp;
-	uGetDlgItemText(wnd, IDC_ARTIST_ART_IDS_EDIT, temp);
-	conf.artist_art_id_format_string = temp;
 	conf.artist_art_overwrite = uButton_GetCheck(wnd, IDC_ARTIST_ART_OVERWRITE_CHECK);
-	conf.artist_art_fetch_all = uButton_GetCheck(wnd, IDC_ARTIST_ART_FETCH_ALL_CHECK);
 }
 
 void CConfigurationDialog::save_oauth_dialog(HWND wnd) {

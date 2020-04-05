@@ -92,7 +92,7 @@ bool CPreviewTagsDialog::initialize() {
 	CheckDlgButton(IDC_REPLACE_ANV_CHECK, release_has_anv && CONF.replace_ANVs);
 
 	// Album art
-	if (tag_writer->release->small_art.get_size() > 0 && CONF.display_art) {
+	if (tag_writer->release->small_art.get_size() > 0 && (CONF.save_album_art || CONF.embed_album_art)) {
 		pfc::string8 temp_path, temp_file;
 		uGetTempPath(temp_path);
 		uGetTempFileName(temp_path, "fb2k", 0, temp_file);

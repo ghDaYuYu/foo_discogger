@@ -177,9 +177,9 @@ void write_tags_task::safe_run(threaded_process_status &p_status, abort_callback
 void write_tags_task::on_success(HWND p_wnd) {
 	// TODO: combine??
 	tag_writer->finfo_manager->write_infos();
-	if (CONF.save_album_art || CONF.save_artist_art) {
+	if (CONF.save_album_art || CONF.save_artist_art || CONF.embed_album_art || CONF.embed_artist_art) {
 		service_ptr_t<download_art_task> task =
-			new service_impl_t<download_art_task>(tag_writer->release->id, CONF.save_album_art, CONF.save_artist_art, tag_writer->finfo_manager->items);
+			new service_impl_t<download_art_task>(tag_writer->release->id, tag_writer->finfo_manager->items);
 		task->start();
 	}
 }
@@ -259,20 +259,18 @@ void update_art_task::safe_run(threaded_process_status &p_status, abort_callback
 				try {
 					g_discogs->file_info_get_tag(item, finfo, TAG_RELEASE_ID, release_id);
 
-					pfc::string8 formatted_release_name;
-					item->format_title(nullptr, formatted_release_name, g_discogs->release_name_script, nullptr);
-
 					if (release_id.get_length()) {
 						if (!release_processed[release_id]) {
 							release_processed[release_id] = true;
 							Release_ptr release = discogs_interface->get_release(release_id.get_ptr(), p_status, p_abort);
-							g_discogs->write_album_art(release, item, formatted_release_name.get_ptr(), p_status, p_abort);
+							g_discogs->save_album_art(release, item, p_status, p_abort);
 						}
 					}
 					else {
-						pfc::string8 error(formatted_release_name);
-						error << "missing tag DISCOGS_RELEASE_ID";
-						add_error(error);
+						pfc::string8 formatted_release_name;
+						item->format_title(nullptr, formatted_release_name, g_discogs->release_name_script, nullptr);
+						formatted_release_name << "missing tag DISCOGS_RELEASE_ID";
+						add_error(formatted_release_name);
 					}
 				}
 				catch (network_exception &e) {
@@ -300,7 +298,7 @@ void update_art_task::safe_run(threaded_process_status &p_status, abort_callback
 							artist_processed[artist_id] = true;
 							Artist_ptr artist = discogs_interface->get_artist(artist_id.get_ptr(), false, p_status, p_abort);
 
-							g_discogs->write_artist_art(artist, item, formatted_release_name.get_ptr(), p_status, p_abort);
+							g_discogs->save_artist_art(artist, item, p_status, p_abort);
 						}
 					}
 					else {
@@ -328,8 +326,8 @@ void update_art_task::safe_run(threaded_process_status &p_status, abort_callback
 }
 
 
-download_art_task::download_art_task(pfc::string8 release_id, bool save_album_art, bool save_artist_art, metadb_handle_list items) :
-		release_id(release_id), save_album_art(save_album_art), save_artist_art(save_artist_art), items(items) {
+download_art_task::download_art_task(pfc::string8 release_id, metadb_handle_list items) :
+		release_id(release_id), items(items) {
 }
 
 void download_art_task::start() {
@@ -346,15 +344,15 @@ void download_art_task::start() {
 
 void download_art_task::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
 	Release_ptr release = discogs_interface->get_release(release_id.get_ptr(), p_status, p_abort);
-	if (save_album_art) {
-		pfc::string8 formatted_release_name;
-		items[0]->format_title(nullptr, formatted_release_name, g_discogs->release_name_script, nullptr);
-		g_discogs->write_album_art(release, items[0], formatted_release_name.get_ptr(), p_status, p_abort);
+	if (CONF.save_album_art || CONF.embed_album_art) {
+		for (size_t i = 0; i < items.get_count(); i++) {
+			g_discogs->save_album_art(release, items[i], p_status, p_abort);
+		}
 	}
-	if (save_artist_art) {
-		pfc::string8 formatted_release_name;
-		items[0]->format_title(nullptr, formatted_release_name, g_discogs->release_name_script, nullptr);
-		g_discogs->write_artist_art(release, items[0], formatted_release_name.get_ptr(), p_status, p_abort);
+	if (CONF.save_artist_art || CONF.embed_artist_art) {
+		for (size_t i = 0; i < items.get_count(); i++) {
+			g_discogs->save_artist_art(release, items[i], p_status, p_abort);
+		}
 	}
 }
 
@@ -719,9 +717,7 @@ void process_release_callback::safe_run(threaded_process_status &p_status, abort
 	Release_ptr release = discogs_interface->get_release(m_release_id, p_status, p_abort);
 
 	if (release) {
-		m_release = release;
-
-		if (release->images.get_size() && CONF.display_art) {
+		if (release->images.get_size() && (CONF.save_album_art || CONF.embed_album_art)) {
 			if (!release->images[0]->url150.get_length()) {
 				foo_discogs_exception ex;
 				ex << "Image URLs unavailable - Is OAuth working?";
@@ -736,7 +732,7 @@ void process_release_callback::safe_run(threaded_process_status &p_status, abort
 	m_dialog->enable(true);
 	m_dialog->hide();
 
-	tag_writer = std::make_shared<TagWriter>(finfo_manager, m_release);
+	tag_writer = std::make_shared<TagWriter>(finfo_manager, release);
 	tag_writer->match_tracks();
 }
 

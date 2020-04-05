@@ -37,7 +37,6 @@
 #define IDC_UPD_TAGS_REPLACE_ANV_CHECK          1087
 #define IDC_MOVE_THE_AT_BEGINNING_CHECK         1088
 #define IDC_ONLY_EXACT_MATCHES_CHECK            1091
-#define IDC_DISPLAY_ART_CHECK                   1092
 #define IDC_TAB                                 1093
 #define IDC_SAVE_ARTIST_ART_CHECK               1094
 #define IDC_BACK_BUTTON                         1095
@@ -118,7 +117,10 @@
 #define IDC_CLEAR_CACHE_COLLECTION              1186
 #define IDC_CACHED_OBJECTS_EDIT                 1187
 #define IDC_PROCESS_RELEASE_BUTTON              1188
+#define IDC_ALBUM_ART_EMBED                     40000
 #define IDC_EXPORT_TAGS                         40000
 #define IDC_PREVIOUS_BUTTON                     40000
 #define IDC_SKIP_VIDEO_TRACKS                   40000
+#define IDC_ALBUM_ART_DIR_LABEL                 40001
 #define IDC_IMPORT_TAGS                         40001
+#define IDC_ARTIST_ART_EMBED                    40002

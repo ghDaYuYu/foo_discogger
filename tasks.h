@@ -68,6 +68,7 @@ private:
 
 
 class generate_tags_task_multi : public foo_discogs_locked_threaded_process_callback
+
 {
 public:
 	generate_tags_task_multi(pfc::array_t<TagWriter_ptr> tag_writers, bool show_preview_dialog, bool use_update_tags);
@@ -136,16 +137,12 @@ private:
 class download_art_task : public foo_discogs_threaded_process_callback
 {
 public:
-	download_art_task(pfc::string8 release_id, bool save_album_art, bool save_artist_art, metadb_handle_list items);
+	download_art_task(pfc::string8 release_id, metadb_handle_list items);
 	void start();
 
 private:
 	pfc::string8 release_id;
-	bool save_album_art;
-	bool save_artist_art;
-
 	metadb_handle_list items;
-
 	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 };
 

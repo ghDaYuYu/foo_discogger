@@ -73,14 +73,17 @@ bool new_conf::load() {
 			case CFG_ASSUME_TRACKS_SORTED:
 				assume_tracks_sorted = item.value;
 				break;
-			case CFG_DISPLAY_ART:
-				display_art = item.value;
-				break;
 			case CFG_SAVE_ALBUM_ART:
 				save_album_art = item.value;
 				break;
 			case CFG_SAVE_ARTIST_ART:
 				save_artist_art = item.value;
+				break;
+			case CFG_ALBUM_ART_EMBED:
+				embed_album_art = item.value;
+				break;
+			case CFG_ARTIST_ART_EMBED:
+				embed_artist_art = item.value;
 				break;
 			case CFG_ALBUM_ART_FETCH_ALL:
 				album_art_fetch_all = item.value;
@@ -222,12 +225,13 @@ void new_conf::save() {
 	cfg_bool_entries.add_item(make_conf_entry(CFG_MOVE_THE_AT_BEGINNING, move_the_at_beginning));
 	cfg_bool_entries.add_item(make_conf_entry(CFG_DISCARD_NUMERIC_SUFFIX, discard_numeric_suffix));
 	cfg_bool_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_USING_DURATION, match_tracks_using_duration));
-	cfg_bool_entries.add_item(make_conf_entry(CFG_DISPLAY_ART, display_art));
 	cfg_bool_entries.add_item(make_conf_entry(CFG_SAVE_ALBUM_ART, save_album_art));
 	cfg_bool_entries.add_item(make_conf_entry(CFG_SAVE_ARTIST_ART, save_artist_art));
 	cfg_bool_entries.add_item(make_conf_entry(CFG_ALBUM_ART_FETCH_ALL, album_art_fetch_all));
+	cfg_bool_entries.add_item(make_conf_entry(CFG_ALBUM_ART_EMBED, embed_album_art));
 	cfg_bool_entries.add_item(make_conf_entry(CFG_ALBUM_ART_OVERWRITE, album_art_overwrite));
 	cfg_bool_entries.add_item(make_conf_entry(CFG_ARTIST_ART_FETCH_ALL, artist_art_fetch_all));
+	cfg_bool_entries.add_item(make_conf_entry(CFG_ARTIST_ART_EMBED, embed_artist_art));
 	cfg_bool_entries.add_item(make_conf_entry(CFG_ARTIST_ART_OVERWRITE, artist_art_overwrite));
 	cfg_bool_entries.add_item(make_conf_entry(CFG_DISPLAY_EXACT_MATCHES, display_exact_matches));
 	cfg_bool_entries.add_item(make_conf_entry(CFG_ENABLE_AUTOSEARCH, enable_autosearch));
@@ -289,7 +293,6 @@ void new_conf::upgrade(foo_discogs_conf3 &conf2) {
 	album_art_filename_string = conf2.album_art_file_titleformat;
 	artist_art_directory_string = conf2.artist_art_dir_titleformat;
 
-	display_art = conf2.display_art;
 	save_album_art = conf2.save_album_art;
 	save_artist_art = conf2.save_artist_art;
 	album_art_fetch_all = artist_art_fetch_all = conf2.fetch_all_art;

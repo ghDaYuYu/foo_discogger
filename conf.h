@@ -11,12 +11,6 @@
 #define CFG_REPLACE_ANVS					1
 #define CFG_MOVE_THE_AT_BEGINNING			2
 #define CFG_DISCARD_NUMERIC_SUFFIX			3
-//#define CFG_SHOW_LENGTH_COLUMN				7
-#define CFG_DISPLAY_ART						8
-#define CFG_SAVE_ALBUM_ART					9
-#define CFG_SAVE_ARTIST_ART					10
-#define CFG_ALBUM_ART_FETCH_ALL				11
-#define CFG_ALBUM_ART_OVERWRITE				12
 #define CFG_DISPLAY_EXACT_MATCHES			13
 #define CFG_ENABLE_AUTOSEARCH				14
 
@@ -33,18 +27,26 @@
 #define CFG_EDIT_TAGS_DIALOG_COL2_WIDTH		26
 #define CFG_EDIT_TAGS_DIALOG_COL3_WIDTH		27
 
+#define CFG_SAVE_ALBUM_ART					9
 #define CFG_ALBUM_ART_DIRECTORY_STRING		28
 #define CFG_ALBUM_ART_FILENAME_STRING		29
+#define CFG_ALBUM_ART_FETCH_ALL				11
+#define CFG_ALBUM_ART_OVERWRITE				12
+#define CFG_ALBUM_ART_EMBED                 59
+
+#define CFG_SAVE_ARTIST_ART					10
 #define CFG_ARTIST_ART_DIRECTORY_STRING		30
 #define CFG_ARTIST_ART_FILENAME_STRING		31
+#define CFG_ARTIST_ART_FETCH_ALL			36
+#define CFG_ARTIST_ART_OVERWRITE			37
+#define CFG_ARTIST_ART_IDS_TITLEFORMAT		45
+#define CFG_ARTIST_ART_EMBED                60
+
 #define CFG_OAUTH_TOKEN						32
 #define CFG_OAUTH_TOKEN_SECRET				33
 
 #define CFG_REMOVE_OTHER_TAGS				34
 #define CFG_REMOVE_EXCLUDE_TAGS				35
-
-#define CFG_ARTIST_ART_FETCH_ALL			36
-#define CFG_ARTIST_ART_OVERWRITE			37
 
 #define CFG_MATCH_TRACKS_USING_DURATION		6
 #define CFG_MATCH_TRACKS_USING_NUMBER		38
@@ -58,7 +60,6 @@
 #define CFG_SEARCH_MASTER_FORMAT_STRING	    44
 #define CFG_SEARCH_MASTER_SUB_FORMAT_STRING 51
 
-#define CFG_ARTIST_ART_IDS_TITLEFORMAT		45
 #define CFG_LAST_CONF_TAB					46
 
 #define CFG_DISCOGS_TRACK_FORMAT_STRING		47
@@ -172,7 +173,6 @@ public:
 	bool skip_preview_dialog = false;
 
 	bool save_album_art = true;
-	bool display_art = true;
 	bool album_art_fetch_all = false;
 	bool album_art_overwrite = false;
 
@@ -180,12 +180,15 @@ public:
 	bool artist_art_fetch_all = false;
 	bool artist_art_overwrite = false;
 
+	bool embed_album_art = false;
+	bool embed_artist_art = false;
+
 	formatting_script album_art_directory_string = "$directory_path(%path%)";
 	formatting_script artist_art_directory_string = "$directory_path(%path%)";
 
 	formatting_script album_art_filename_string = "cover$ifequal(%IMAGE_NUMBER%,1,,_%IMAGE_NUMBER%)";
 	formatting_script artist_art_filename_string = "artist%ARTIST_ID%$ifequal(%IMAGE_NUMBER%,1,,_%IMAGE_NUMBER%)";
-	formatting_script artist_art_id_format_string = "%<RELEASE_ARTISTS_ID>%";
+	formatting_script artist_art_id_format_string = "%DISCOGS_ARTIST_ID%";
 
 	bool display_exact_matches = true;
 	bool enable_autosearch = true;

@@ -234,7 +234,7 @@ const ReleaseDisc_ptr& foo_discogs::get_discogs_disc(const Release_ptr &release,
 // expand all ability for searching of sub releases?
 
 
-void foo_discogs::save_album_art(Release_ptr &release, metadb_handle_ptr item, threaded_process_status &p_status, abort_callback &p_abort) {
+void foo_discogs::save_album_art(Release_ptr &release, metadb_handle_ptr item, pfc::array_t<pfc::string8> &done_files, threaded_process_status &p_status, abort_callback &p_abort) {
 	if (!release->images.get_size()) {
 		return;
 	}
@@ -276,9 +276,7 @@ void foo_discogs::save_album_art(Release_ptr &release, metadb_handle_ptr item, t
 	const size_t count = CONF.album_art_fetch_all ? release->images.get_size() : 1;
 
 	for (size_t i = 0; i < count; i++) {
-		MemoryBlock buffer;
-		g_discogs->fetch_image(buffer, release->images[i], p_abort);
-
+		pfc::string8 path = directory;
 		if (write_it) {
 			hook.set_custom("IMAGE_NUMBER", i + 1);
 			hook.set_image(&release->images[i]);
@@ -290,8 +288,8 @@ void foo_discogs::save_album_art(Release_ptr &release, metadb_handle_ptr item, t
 				continue;
 			}
 
-			pfc::string8 path = directory;
-			path += makeFsCompliant(file);
+			makeFsCompliant(file);
+			path += file;
 			path += ".jpg";
 
 			if (STR_EQUAL(path, last_path)) {
@@ -299,7 +297,29 @@ void foo_discogs::save_album_art(Release_ptr &release, metadb_handle_ptr item, t
 				ex << ERROR_IMAGE_NUMBER_REQUIRED;
 				throw ex;
 			}
+			bool skip = false;
+			for (size_t i = 0; i < done_files.get_count(); i++) {
+				if (done_files[i].equals(path.get_ptr())) {
+					skip = true;
+					continue;
+				}
+			}
+			if (skip) {
+				continue;
+			}
+			console::print("DOWNLOADING FILE");
+			console::print(path.get_ptr());
+			done_files.append_single_val(path);
+		}
 
+		if (!write_it && i != 0) {
+			continue;
+		}
+
+		MemoryBlock buffer;
+		g_discogs->fetch_image(buffer, release->images[i], p_abort);
+
+		if (write_it) {
 			if (CONF.album_art_overwrite || !filesystem::g_exists(path, p_abort)) {
 				g_discogs->write_image(buffer, path, p_abort);
 			}
@@ -313,7 +333,7 @@ void foo_discogs::save_album_art(Release_ptr &release, metadb_handle_ptr item, t
 }
 
 
-void foo_discogs::save_artist_art(Release_ptr &release, metadb_handle_ptr item, threaded_process_status &p_status, abort_callback &p_abort) {
+void foo_discogs::save_artist_art(Release_ptr &release, metadb_handle_ptr item, pfc::array_t<pfc::string8> &done_files, threaded_process_status &p_status, abort_callback &p_abort) {
 	// ensure release is loaded
 	release->load(p_status, p_abort);
 
@@ -351,7 +371,7 @@ void foo_discogs::save_artist_art(Release_ptr &release, metadb_handle_ptr item, 
 			artist_id << ids[i];
 			Artist_ptr artist = discogs_interface->get_artist(artist_id);
 			if (CONF.save_artist_art || (CONF.embed_artist_art && i == 0)) {
-				save_artist_art(artist, item, p_status, p_abort);
+				save_artist_art(artist, item, done_files, p_status, p_abort);
 			}
 		}
 	}
@@ -363,7 +383,7 @@ void foo_discogs::save_artist_art(Release_ptr &release, metadb_handle_ptr item, 
 }
 
 
-void foo_discogs::save_artist_art(Artist_ptr &artist, metadb_handle_ptr item, threaded_process_status &p_status, abort_callback &p_abort) {
+void foo_discogs::save_artist_art(Artist_ptr &artist, metadb_handle_ptr item, pfc::array_t<pfc::string8> &done_files,  threaded_process_status &p_status, abort_callback &p_abort) {
 	if (!artist->images.get_size()) {
 		return;
 	}
@@ -403,9 +423,7 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, metadb_handle_ptr item, th
 	const size_t count = CONF.artist_art_fetch_all ? artist->images.get_size() : 1;
 
 	for (size_t i = 0; i < count; i++) {
-		MemoryBlock buffer;
-		g_discogs->fetch_image(buffer, artist->images[i], p_abort);
-
+		pfc::string8 path = directory;
 		if (write_it) {
 			hook.set_custom("IMAGE_NUMBER", i + 1);
 			hook.set_image(&artist->images[i]);
@@ -418,8 +436,8 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, metadb_handle_ptr item, th
 				continue;
 			}
 
-			pfc::string8 path = directory;
-			path += makeFsCompliant(file);
+			makeFsCompliant(file);
+			path += file;
 			path += ".jpg";
 
 			if (STR_EQUAL(path, last_path)) {
@@ -428,6 +446,27 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, metadb_handle_ptr item, th
 				throw ex;
 			}
 
+			bool skip = false;
+			for (size_t i = 0; i < done_files.get_count(); i++) {
+				if (done_files[i].equals(path)) {
+					skip = true;
+					continue;
+				}
+			}
+			if (skip) {
+				continue;
+			}
+			done_files.append_single_val(path);
+		}
+
+		if (!write_it && i != 0) {
+			continue;
+		}
+
+		MemoryBlock buffer;
+		g_discogs->fetch_image(buffer, artist->images[i], p_abort);
+
+		if (write_it) {
 			if (CONF.artist_art_overwrite || !filesystem::g_exists(path, p_abort)) {
 				g_discogs->write_image(buffer, path, p_abort);
 			}

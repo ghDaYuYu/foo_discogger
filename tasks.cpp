@@ -244,11 +244,13 @@ void update_art_task::start() {
 }
 
 void update_art_task::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
-	std::map<pfc::string8, bool> release_processed;
 	std::map<pfc::string8, bool> artist_processed;
 
 	const size_t item_count = finfo_manager.get_item_count();
 	pfc::string8 release_id, artist_id;
+
+	pfc::array_t<pfc::string8> done_release_files;
+	pfc::array_t<pfc::string8> done_artist_files;
 
 	for (size_t i = 0; i < item_count && !p_abort.is_aborting(); i++) {
 		p_status.set_progress(i + 1, item_count);
@@ -260,11 +262,8 @@ void update_art_task::safe_run(threaded_process_status &p_status, abort_callback
 					g_discogs->file_info_get_tag(item, finfo, TAG_RELEASE_ID, release_id);
 
 					if (release_id.get_length()) {
-						if (!release_processed[release_id]) {
-							release_processed[release_id] = true;
-							Release_ptr release = discogs_interface->get_release(release_id.get_ptr(), p_status, p_abort);
-							g_discogs->save_album_art(release, item, p_status, p_abort);
-						}
+						Release_ptr release = discogs_interface->get_release(release_id.get_ptr(), p_status, p_abort);
+						g_discogs->save_album_art(release, item, done_release_files, p_status, p_abort);
 					}
 					else {
 						pfc::string8 formatted_release_name;
@@ -294,12 +293,8 @@ void update_art_task::safe_run(threaded_process_status &p_status, abort_callback
 					item->format_title(nullptr, formatted_release_name, g_discogs->release_name_script, nullptr);
 
 					if (artist_id.get_length()) {
-						if (!artist_processed[artist_id]) {
-							artist_processed[artist_id] = true;
-							Artist_ptr artist = discogs_interface->get_artist(artist_id.get_ptr(), false, p_status, p_abort);
-
-							g_discogs->save_artist_art(artist, item, p_status, p_abort);
-						}
+						Artist_ptr artist = discogs_interface->get_artist(artist_id.get_ptr(), false, p_status, p_abort);
+						g_discogs->save_artist_art(artist, item, done_artist_files, p_status, p_abort);
 					}
 					else {
 						pfc::string8 error(formatted_release_name);
@@ -345,13 +340,15 @@ void download_art_task::start() {
 void download_art_task::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
 	Release_ptr release = discogs_interface->get_release(release_id.get_ptr(), p_status, p_abort);
 	if (CONF.save_album_art || CONF.embed_album_art) {
+		pfc::array_t<pfc::string8> done_files;
 		for (size_t i = 0; i < items.get_count(); i++) {
-			g_discogs->save_album_art(release, items[i], p_status, p_abort);
+			g_discogs->save_album_art(release, items[i], done_files, p_status, p_abort);
 		}
 	}
 	if (CONF.save_artist_art || CONF.embed_artist_art) {
+		pfc::array_t<pfc::string8> done_files;
 		for (size_t i = 0; i < items.get_count(); i++) {
-			g_discogs->save_artist_art(release, items[i], p_status, p_abort);
+			g_discogs->save_artist_art(release, items[i], done_files, p_status, p_abort);
 		}
 	}
 }

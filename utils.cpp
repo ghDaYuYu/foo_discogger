@@ -120,19 +120,14 @@ int tokenize_multi(const pfc::string8 &src, const pfc::array_t<pfc::string8> &de
 }*/
 
 
-pfc::string8 makeFsCompliant(const char *s) {
-	pfc::string8 dst = "";
-	while (*s) {
-		//\/:*?"<>|
+void makeFsCompliant(pfc::string8 &str) {
+	for (t_size n = 0; n < str.get_length(); n++)
+	{
+		auto s = &(str[n]);
 		if (*s == '\\' || *s == '/' || *s == ':' || *s == '*' || *s == '?' || *s == '"' || *s == '<' || *s == '>' || *s == '|') {
-			dst.add_char('_');
+			str.set_char(n, '_');
 		}
-		else {
-			dst.add_char(*s);
-		}
-		s++;
 	}
-	return dst;
 }
 
 pfc::string8 urlEscape(const pfc::string8 &src) {

@@ -57,9 +57,9 @@ public:
 	void write_artist_art(Artist_ptr &artist, metadb_handle_ptr item, const char *item_text, threaded_process_status &p_status, abort_callback &p_abort);
 	void write_artist_art(Release_ptr &release, metadb_handle_ptr item, const char *item_text, threaded_process_status &p_status, abort_callback &p_abort);
 	
-	void save_album_art(Release_ptr &release, metadb_handle_ptr item, threaded_process_status &p_status, abort_callback &p_abort);
-	void save_artist_art(Release_ptr &release, metadb_handle_ptr item, threaded_process_status &p_status, abort_callback &p_abort);
-	void save_artist_art(Artist_ptr &artist, metadb_handle_ptr item, threaded_process_status &p_status, abort_callback &p_abort);
+	void save_album_art(Release_ptr &release, metadb_handle_ptr item, pfc::array_t<pfc::string8> &done_files, threaded_process_status &p_status, abort_callback &p_abort);
+	void save_artist_art(Release_ptr &release, metadb_handle_ptr item, pfc::array_t<pfc::string8> &done_files, threaded_process_status &p_status, abort_callback &p_abort);
+	void save_artist_art(Artist_ptr &artist, metadb_handle_ptr item, pfc::array_t<pfc::string8> &done_files, threaded_process_status &p_status, abort_callback &p_abort);
 
 	void fetch_image(MemoryBlock &buffer, Image_ptr &image, abort_callback &p_abort);
 	void write_image(MemoryBlock &buffer, const pfc::string8 &full_path, abort_callback &p_abort);

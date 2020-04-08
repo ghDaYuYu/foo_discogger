@@ -70,7 +70,7 @@ extern int tokenize(const pfc::string8 &src, const pfc::string8 &delim, pfc::arr
 extern int tokenize_multi(const pfc::string8 &src, const pfc::array_t<pfc::string8> &delims, pfc::array_t<pfc::string8> &tokens, bool remove_blanks);
 
 // TODO: use the titleformat filter instead?
-extern pfc::string8 makeFsCompliant(const char *s);
+extern void makeFsCompliant(pfc::string8 &str);
 
 extern pfc::string8 urlEscape(const pfc::string8 &src);
 

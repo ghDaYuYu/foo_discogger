@@ -277,7 +277,8 @@ void foo_discogs::save_album_art(Release_ptr &release, metadb_handle_ptr item, p
 
 	for (size_t i = 0; i < count; i++) {
 		pfc::string8 path = directory;
-		if (write_it) {
+		bool write_this = write_it;
+		if (write_this) {
 			hook.set_custom("IMAGE_NUMBER", i + 1);
 			hook.set_image(&release->images[i]);
 			pfc::string8 file;
@@ -297,29 +298,25 @@ void foo_discogs::save_album_art(Release_ptr &release, metadb_handle_ptr item, p
 				ex << ERROR_IMAGE_NUMBER_REQUIRED;
 				throw ex;
 			}
-			bool skip = false;
 			for (size_t i = 0; i < done_files.get_count(); i++) {
 				if (done_files[i].equals(path.get_ptr())) {
-					skip = true;
+					write_this = false;
 					continue;
 				}
 			}
-			if (skip) {
-				continue;
+			if (write_this) {
+				done_files.append_single_val(path);
 			}
-			console::print("DOWNLOADING FILE");
-			console::print(path.get_ptr());
-			done_files.append_single_val(path);
 		}
 
-		if (!write_it && i != 0) {
+		if (!write_this && !(i == 0 && embed_it)) {
 			continue;
 		}
 
 		MemoryBlock buffer;
 		g_discogs->fetch_image(buffer, release->images[i], p_abort);
 
-		if (write_it) {
+		if (write_this) {
 			if (CONF.album_art_overwrite || !filesystem::g_exists(path, p_abort)) {
 				g_discogs->write_image(buffer, path, p_abort);
 			}
@@ -424,7 +421,8 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, metadb_handle_ptr item, pf
 
 	for (size_t i = 0; i < count; i++) {
 		pfc::string8 path = directory;
-		if (write_it) {
+		bool write_this = write_it;
+		if (write_this) {
 			hook.set_custom("IMAGE_NUMBER", i + 1);
 			hook.set_image(&artist->images[i]);
 
@@ -446,27 +444,25 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, metadb_handle_ptr item, pf
 				throw ex;
 			}
 
-			bool skip = false;
 			for (size_t i = 0; i < done_files.get_count(); i++) {
 				if (done_files[i].equals(path)) {
-					skip = true;
+					write_this = false;
 					continue;
 				}
 			}
-			if (skip) {
-				continue;
+			if (write_this) {
+				done_files.append_single_val(path);
 			}
-			done_files.append_single_val(path);
 		}
 
-		if (!write_it && i != 0) {
+		if (!write_this && !(i == 0 && embed_it)) {
 			continue;
 		}
 
 		MemoryBlock buffer;
 		g_discogs->fetch_image(buffer, artist->images[i], p_abort);
 
-		if (write_it) {
+		if (write_this) {
 			if (CONF.artist_art_overwrite || !filesystem::g_exists(path, p_abort)) {
 				g_discogs->write_image(buffer, path, p_abort);
 			}

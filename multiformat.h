@@ -67,7 +67,7 @@ public:
 	titleformat_hook_impl_multiformat(threaded_process_status &p_status, const Release_ptr *release = nullptr, const ReleaseDisc_ptr *disc = nullptr, const ReleaseTrack_ptr *track = nullptr) :
 		p_status(p_status), release(release), release_disc(disc), release_track(track) {}
 	titleformat_hook_impl_multiformat(const Artist_ptr *artist) : artist(artist), p_status(f_status) {}
-	titleformat_hook_impl_multiformat(threaded_process_status &p_status, const Artist_ptr *artist) : artist(artist), p_status(p_status) {}
+	titleformat_hook_impl_multiformat(threaded_process_status &p_status, const MasterRelease_ptr *master_release, const Release_ptr *release, const Artist_ptr *artist) : artist(artist), master_release(master_release), release(release), p_status(p_status) {}
 	titleformat_hook_impl_multiformat(threaded_process_status &p_status, const MasterRelease_ptr *master_release, const Release_ptr *release = nullptr,
 		const ReleaseDisc_ptr *release_disc = nullptr, const ReleaseTrack_ptr *release_track = nullptr,
 		const file_info *info = nullptr, persistent_store *pstore = nullptr, persistent_store *prompt_store = nullptr) :

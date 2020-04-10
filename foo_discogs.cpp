@@ -368,7 +368,7 @@ void foo_discogs::save_artist_art(Release_ptr &release, metadb_handle_ptr item, 
 			artist_id << ids[i];
 			Artist_ptr artist = discogs_interface->get_artist(artist_id);
 			if (CONF.save_artist_art || (CONF.embed_artist_art && i == 0)) {
-				save_artist_art(artist, item, done_files, p_status, p_abort);
+				save_artist_art(artist, release, item, done_files, p_status, p_abort);
 			}
 		}
 	}
@@ -380,7 +380,7 @@ void foo_discogs::save_artist_art(Release_ptr &release, metadb_handle_ptr item, 
 }
 
 
-void foo_discogs::save_artist_art(Artist_ptr &artist, metadb_handle_ptr item, pfc::array_t<pfc::string8> &done_files,  threaded_process_status &p_status, abort_callback &p_abort) {
+void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, metadb_handle_ptr item, pfc::array_t<pfc::string8> &done_files, threaded_process_status &p_status, abort_callback &p_abort) {
 	if (!artist->images.get_size()) {
 		return;
 	}
@@ -391,8 +391,10 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, metadb_handle_ptr item, pf
 	bool write_it = CONF.save_artist_art;
 	bool embed_it = CONF.embed_artist_art;
 
+	MasterRelease_ptr master = discogs_interface->get_master_release(release->master_id);
+
 	file_info_impl info;
-	titleformat_hook_impl_multiformat hook(p_status, &artist);
+	titleformat_hook_impl_multiformat hook(p_status, &master, &release, &artist);
 	pfc::string8 directory;
 
 	if (write_it) {

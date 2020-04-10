@@ -257,33 +257,36 @@ void update_art_task::safe_run(threaded_process_status &p_status, abort_callback
 		try {
 			metadb_handle_ptr item = finfo_manager.get_item_handle(i);
 			file_info &finfo = finfo_manager.get_item(i);
-			if (save_album_art) {
-				try {
-					g_discogs->file_info_get_tag(item, finfo, TAG_RELEASE_ID, release_id);
+			
+			Release_ptr release = nullptr;
+			try {
+				g_discogs->file_info_get_tag(item, finfo, TAG_RELEASE_ID, release_id);
 
-					if (release_id.get_length()) {
-						Release_ptr release = discogs_interface->get_release(release_id.get_ptr(), p_status, p_abort);
+				if (release_id.get_length()) {
+					release = discogs_interface->get_release(release_id.get_ptr(), p_status, p_abort);
+					if (save_album_art) {
 						g_discogs->save_album_art(release, item, done_release_files, p_status, p_abort);
 					}
-					else {
-						pfc::string8 formatted_release_name;
-						item->format_title(nullptr, formatted_release_name, g_discogs->release_name_script, nullptr);
-						formatted_release_name << "missing tag DISCOGS_RELEASE_ID";
-						add_error(formatted_release_name);
-					}
 				}
-				catch (network_exception &e) {
-					pfc::string8 error("release ");
-					error << release_id;
-					add_error(error, e, true);
-					throw;
-				}
-				catch (foo_discogs_exception &e) {
-					pfc::string8 error("release ");
-					error << release_id;
-					add_error(error, e);
+				else {
+					pfc::string8 formatted_release_name;
+					item->format_title(nullptr, formatted_release_name, g_discogs->release_name_script, nullptr);
+					formatted_release_name << "missing tag DISCOGS_RELEASE_ID";
+					add_error(formatted_release_name);
 				}
 			}
+			catch (network_exception &e) {
+				pfc::string8 error("release ");
+				error << release_id;
+				add_error(error, e, true);
+				throw;
+			}
+			catch (foo_discogs_exception &e) {
+				pfc::string8 error("release ");
+				error << release_id;
+				add_error(error, e);
+			}
+
 			if (save_artist_art) {
 				try {
 					g_discogs->file_info_get_tag(item, finfo, TAG_ARTIST_ID, artist_id);
@@ -294,7 +297,7 @@ void update_art_task::safe_run(threaded_process_status &p_status, abort_callback
 
 					if (artist_id.get_length()) {
 						Artist_ptr artist = discogs_interface->get_artist(artist_id.get_ptr(), false, p_status, p_abort);
-						g_discogs->save_artist_art(artist, item, done_artist_files, p_status, p_abort);
+						g_discogs->save_artist_art(artist, release, item, done_artist_files, p_status, p_abort);
 					}
 					else {
 						pfc::string8 error(formatted_release_name);

@@ -56,4 +56,4 @@
 
 #include "resource.h"
 
-#define FOO_DISCOGS_VERSION "2.22"
+#define FOO_DISCOGS_VERSION "2.23"

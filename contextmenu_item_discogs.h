@@ -192,7 +192,7 @@ public:
 				break;
 
 			case Configuration:
-				g_discogs->configuration_dialog = new CConfigurationDialog(core_api::get_main_window());
+				static_api_ptr_t<ui_control>()->show_preferences(guid_pref_page);
 				break;
 		}
 	}
@@ -232,7 +232,7 @@ public:
 				p_displayflags = g_discogs->tag_mappings_dialog ? FLAG_GRAYED : 0;
 				break;
 			case Configuration:
-				p_displayflags = g_discogs->configuration_dialog ? FLAG_GRAYED : 0;
+				p_displayflags = /*g_discogs->configuration_dialog ? FLAG_GRAYED :*/ 0;
 				break;
 		}
 		return true;

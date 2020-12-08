@@ -14,17 +14,49 @@
     <ProjectGuid>{C2EAA3A6-BD00-43B4-B7C3-6FCB040F691F}</ProjectGuid>
     <RootNamespace>foo_discogs</RootNamespace>
     <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <PropertyGroup Label="UserMacros">
+    <!-- Order mathers! -->
+    <!--                                                             -->
+    <!-- Component name:                                             -->
+    <!--                                                             -->
+    <FOO_COMPONENT_NAME>foo_discogs</FOO_COMPONENT_NAME>
+    <!--                                                             -->
+    <!--                                                             -->
+    <FOO_USR_FILE>\$(FOO_COMPONENT_NAME)\$(FOO_COMPONENT_NAME).dll</FOO_USR_FILE>
+    <FOO_WORKING_DIR_NORMAL>C:\Foobar\foobar2000.portable</FOO_WORKING_DIR_NORMAL>
+    <FOO_WORKING_DIR_BETA>C:\Foobar\_beta\foobar2000.portable</FOO_WORKING_DIR_BETA>
+    <FOO_USR_DIR_NORMAL>\user-components</FOO_USR_DIR_NORMAL>
+    <FOO_USR_DIR_BETA>\profile\user-components</FOO_USR_DIR_BETA>
+    <!--    normal : set FOO_R_WD to FOO_WORKING_DIR_NORMAL          -->
+    <!--    beta   : set FOO_R_WD to FOO_WORKING_DIR_BETA            -->
+    <!--                                                             -->
+    <FOO_R_WD>$(FOO_WORKING_DIR_NORMAL)</FOO_R_WD>
+    <!--        ....................                                 -->
+    <!--                                                             -->
+    <!--    normal : set FOO_R_USR to FOO_USR_DIR_NORMAL             -->
+    <!--    beta   : set FOO_R_USR to FOO_USR_DIR_BETA               -->
+    <!--                                                             -->
+    <!--                                                             -->
+    <FOO_R_USR>$(FOO_USR_DIR_NORMAL)</FOO_R_USR>
+    <!--         ................                                    -->
+    <!--                                                             -->
+    <!--                                                             -->
+    <FOO_WD>$(FOO_R_WD)</FOO_WD>
+    <FOO_CMD>$(FOO_WD)\foobar2000.exe</FOO_CMD>
+    <FOO_USR>$(FOO_WD)$(FOO_R_USR)</FOO_USR>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v120_xp</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v120_xp</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -32,11 +64,11 @@
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
-    <Import Project="..\..\foo_discogs.props" />
+    <!--Import Project="..\..\foo_discogs.props" /-->
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
-    <Import Project="..\..\foo_discogs.props" />
+    <!--Import Project="..\..\foo_discogs.props" /-->
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
@@ -44,24 +76,24 @@
     <_ProjectFileVersion>12.0.21005.1</_ProjectFileVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
     <IntDir>$(Configuration)\</IntDir>
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
     <IntDir>$(Configuration)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
     <EmbedManifest>false</EmbedManifest>
     <RunCodeAnalysis>false</RunCodeAnalysis>
-    <IncludePath>C:\Users\SW\Desktop\foo_discogs;C:\Users\SW\Desktop\foo_discogs\foobar2000;$(IncludePath)</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>zlib;jansson;C:\Users\SW\Desktop\foo_discogs;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MinimalRebuild>true</MinimalRebuild>
+      <AdditionalIncludeDirectories>..;../..;../../../WTL10_9163/Include;zlib;jansson;../zoomarph libs/liboauthcpp-master/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NDEBUG;_WINDLL;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -70,26 +102,27 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>uxtheme.lib;wininet.lib;winmm.lib;ws2_32.lib;..\..\jansson-2.6\Debug\jansson_d.lib;..\..\libPPUI\Debug\libPPUI.lib;..\..\liboauthcpp\build\Debug\oauthcpp.lib;..\shared\shared.lib;..\SDK\Debug\foobar2000_SDK.lib;..\foobar2000_component_client\Debug\foobar2000_component_client.lib;..\..\pfc\Debug\pfc.lib;..\helpers\Debug\foobar2000_sdk_helpers.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>uxtheme.lib;wininet.lib;winmm.lib;ws2_32.lib;..\zoomarph libs\jansson-2.13.1\build\lib\Debug\jansson_d.lib;$(SolutionDir)$(Configuration)\oauthcpp.lib;$(SolutionDir)$(Configuration)\foobar2000_SDK.lib;$(SolutionDir)$(Configuration)\foobar2000_sdk_helpers.lib;$(SolutionDir)$(Configuration)\foobar2000_component_client.lib;$(SolutionDir)$(Configuration)\libPPUI.lib;$(SolutionDir)$(Configuration)\pfc.lib;..\shared\shared.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>LIBCMT;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention />
       <TargetMachine>MachineX86</TargetMachine>
-      <OutputFile>C:\Users\SW\Desktop\Programs\foobar2000\user-components\foo_discogs\foo_discogs.dll</OutputFile>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <Profile>true</Profile>
     </Link>
     <PostBuildEvent>
-      <Command />
+      <Command>mkdir "$(FOO_USR)\$(FOO_COMPONENT_NAME)"  &amp; copy "$(TargetPath)" "$(FOO_USR)$(FOO_USR_FILE)"</Command>
+      <Message>copying</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <Optimization>MinSpace</Optimization>
-      <AdditionalIncludeDirectories>zlib;jansson;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <AdditionalIncludeDirectories>..;../..;../../../WTL10_9163/Include;zlib;jansson;../zoomarph libs/liboauthcpp-master/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_WINDLL;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
@@ -100,7 +133,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>uxtheme.lib;wininet.lib;winmm.lib;ws2_32.lib;..\..\jansson-2.6\Release\jansson.lib;..\..\libPPUI\Release\libPPUI.lib;..\..\liboauthcpp\build\Release\oauthcpp.lib;..\shared\shared.lib;..\SDK\Release\foobar2000_SDK.lib;..\foobar2000_component_client\Release\foobar2000_component_client.lib;..\..\pfc\Release\pfc.lib;..\helpers\Release\foobar2000_sdk_helpers.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>uxtheme.lib;wininet.lib;winmm.lib;ws2_32.lib;..\zoomarph libs\jansson-2.13.1\build\lib\Release\jansson.lib;$(SolutionDir)$(Configuration)\oauthcpp.lib;$(SolutionDir)$(Configuration)\foobar2000_SDK.lib;$(SolutionDir)$(Configuration)\foobar2000_sdk_helpers.lib;$(SolutionDir)$(Configuration)\foobar2000_component_client.lib;$(SolutionDir)$(Configuration)\libPPUI.lib;$(SolutionDir)$(Configuration)\pfc.lib;..\shared\shared.lib;.\liboauthcpp\oauthcpp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
@@ -111,8 +144,15 @@
       <LinkTimeCodeGeneration>
       </LinkTimeCodeGeneration>
       <AdditionalOptions>/LTCG %(AdditionalOptions)</AdditionalOptions>
-      <OutputFile>C:\Users\SW\Desktop\Programs\foobar2000\user-components\foo_discogs\foo_discogs.dll</OutputFile>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
+      <IgnoreSpecificDefaultLibraries>LIBCMT;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
     </Link>
+    <PostBuildEvent>
+      <Command>mkdir "$(FOO_USR)\$(FOO_COMPONENT_NAME)"  &amp; copy "$(TargetPath)" "$(FOO_USR)$(FOO_USR_FILE)"</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Message>copying</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="configuration_dialog.cpp" />

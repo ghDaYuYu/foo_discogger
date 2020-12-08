@@ -219,6 +219,270 @@ bool new_conf::load() {
 	return changed;
 }
 
+bool new_conf::id_to_val_bool(int id, new_conf in_conf) {
+	
+	switch (id) {
+		case CFG_REPLACE_ANVS:
+			return in_conf.replace_ANVs;
+		case CFG_MOVE_THE_AT_BEGINNING:
+			return in_conf.move_the_at_beginning;
+		case CFG_DISCARD_NUMERIC_SUFFIX:
+			return in_conf.discard_numeric_suffix;
+		case CFG_MATCH_TRACKS_USING_DURATION:
+			return in_conf.match_tracks_using_duration;
+		case CFG_MATCH_TRACKS_USING_NUMBER:
+			return in_conf.match_tracks_using_number;
+		case CFG_SKIP_RELEASE_DLG_IF_MATCHED:
+			return in_conf.skip_release_dialog_if_matched;
+		case CFG_SKIP_FIND_RELEASE_DLG_IF_IDED:
+			return in_conf.skip_find_release_dialog_if_ided;
+		case CFG_SKIP_PREVIEW_DIALOG:
+			return in_conf.skip_preview_dialog;
+		case CFG_ASSUME_TRACKS_SORTED:
+			return in_conf.assume_tracks_sorted;
+		case CFG_SAVE_ALBUM_ART:
+			return in_conf.save_album_art;
+		case CFG_SAVE_ARTIST_ART:
+			return in_conf.save_artist_art;
+		case CFG_ALBUM_ART_EMBED:
+			return in_conf.embed_album_art;
+		case CFG_ARTIST_ART_EMBED:
+			return in_conf.embed_artist_art;
+		case CFG_ALBUM_ART_FETCH_ALL:
+			return in_conf.album_art_fetch_all;
+		case CFG_ALBUM_ART_OVERWRITE:
+			return in_conf.album_art_overwrite;
+		case CFG_ARTIST_ART_FETCH_ALL:
+			return in_conf.artist_art_fetch_all;
+		case CFG_ARTIST_ART_OVERWRITE:
+			return in_conf.artist_art_overwrite;
+		case CFG_DISPLAY_EXACT_MATCHES:
+			return in_conf.display_exact_matches;
+		case CFG_ENABLE_AUTOSEARCH:
+			return in_conf.enable_autosearch;
+		case CFG_DISPLAY_ANVS:
+			return in_conf.display_ANVs;
+		case CFG_REMOVE_OTHER_TAGS:
+			return in_conf.remove_other_tags;
+		case CFG_UPDATE_PREVIEW_CHANGES:
+			return in_conf.update_tags_preview_changes;
+		case CFG_UPDATE_TAGS_MANUALLY_PROMPT:
+			return in_conf.update_tags_manually_match;
+		case CFG_PARSE_HIDDEN_AS_REGULAR:
+			return in_conf.parse_hidden_as_regular;
+		case CFG_SKIP_VIDEO_TRACKS:
+			return in_conf.skip_video_tracks;
+	}
+}
+
+int new_conf::id_to_val_int(int id, new_conf in_conf) {
+	int iret = 0;
+
+	switch (id) {
+		case CFG_UPDATE_ART_FLAGS:
+			return in_conf.update_art_flags;
+		case CFG_FIND_RELEASE_DIALOG_WIDTH:
+			return in_conf.find_release_dialog_width;
+		case CFG_FIND_RELEASE_DIALOG_HEIGHT:
+			return in_conf.find_release_dialog_height;
+		case CFG_RELEASE_DIALOG_WIDTH:
+			return in_conf.release_dialog_width;
+		case CFG_RELEASE_DIALOG_HEIGHT:
+			return in_conf.release_dialog_height;
+		case CFG_EDIT_TAGS_DIALOG_WIDTH:
+			return in_conf.edit_tags_dialog_width;
+		case CFG_EDIT_TAGS_DIALOG_HEIGHT:
+			return in_conf.edit_tags_dialog_height;
+		case CFG_EDIT_TAGS_DIALOG_COL1_WIDTH:
+			return in_conf.edit_tags_dialog_col1_width;
+		case CFG_EDIT_TAGS_DIALOG_COL2_WIDTH:
+			return in_conf.edit_tags_dialog_col2_width;
+		case CFG_EDIT_TAGS_DIALOG_COL3_WIDTH:
+			return in_conf.edit_tags_dialog_col3_width;
+		case CFG_PREVIEW_DIALOG_WIDTH:
+			return in_conf.preview_tags_dialog_width;
+		case CFG_PREVIEW_DIALOG_HEIGHT:
+			return in_conf.preview_tags_dialog_height;
+		case CFG_LAST_CONF_TAB:
+			return in_conf.last_conf_tab;
+		case CFG_PREVIEW_MODE:
+			return in_conf.preview_mode;
+		case CFG_CACHE_MAX_OBJECTS:
+			return in_conf.cache_max_objects;
+	}
+
+	return iret;
+}
+
+void new_conf::id_to_val_str(int id, new_conf in_conf, pfc::string8& out) {
+	
+	switch (id) {
+		case CFG_ALBUM_ART_DIRECTORY_STRING: {
+			pfc::string8 str(in_conf.album_art_directory_string);
+			out.set_string(str, str.get_length());
+			return;
+		}
+		case CFG_ALBUM_ART_FILENAME_STRING:
+		{
+			pfc::string8 str(in_conf.album_art_filename_string);
+			out.set_string(str, str.get_length());
+			return;
+		}
+		case CFG_ARTIST_ART_DIRECTORY_STRING:
+		{
+			pfc::string8 str(in_conf.artist_art_directory_string);
+			out.set_string(str, str.get_length());
+			return;
+		}
+		case CFG_ARTIST_ART_FILENAME_STRING:
+		{
+			pfc::string8 str(in_conf.artist_art_filename_string);
+			out.set_string(str, str.get_length());
+			return;
+		}
+		case CFG_ARTIST_ART_IDS_TITLEFORMAT:
+		{
+			pfc::string8 str(in_conf.artist_art_id_format_string);
+			out.set_string(str, str.get_length());
+			return;
+		}
+		case CFG_OAUTH_TOKEN:
+		{
+			pfc::string8 str(in_conf.oauth_token);
+			out.set_string(str, str.get_length());
+			return;
+		}
+		case CFG_OAUTH_TOKEN_SECRET:
+		{
+			pfc::string8 str(in_conf.oauth_token_secret);
+			out.set_string(str, str.get_length());
+			return;
+		}
+		case CFG_REMOVE_EXCLUDE_TAGS:
+		{
+			pfc::string8 str(in_conf.raw_remove_exclude_tags);
+			out.set_string(str, str.get_length());
+			return;
+		}
+		case CFG_SEARCH_RELEASE_FORMAT_STRING:
+		{
+			pfc::string8 str(in_conf.search_release_format_string);
+			out.set_string(str, str.get_length());
+			return;
+		}
+		case CFG_SEARCH_MASTER_FORMAT_STRING:
+		{
+			pfc::string8 str(in_conf.search_master_format_string);
+			out.set_string(str, str.get_length());
+			return;
+		}
+		case CFG_SEARCH_MASTER_SUB_FORMAT_STRING:
+		{
+			pfc::string8 str(in_conf.search_master_sub_format_string);
+			out.set_string(str, str.get_length());
+			return;
+		}
+		case CFG_DISCOGS_TRACK_FORMAT_STRING:
+		{
+			pfc::string8 str(in_conf.release_discogs_format_string);
+			out.set_string(str, str.get_length());
+			return;
+		}
+		case CFG_FILE_TRACK_FORMAT_STRING:
+		{
+			pfc::string8 str(in_conf.release_file_format_string);
+			out.set_string(str, str.get_length());
+			return;
+		}
+	}
+}
+
+void new_conf::save(ConfFilter cfgfilter, new_conf in_conf) {
+
+	for (unsigned int i = 0; i < cfg_bool_entries.get_count(); i++) {
+		const conf_bool_entry& item = cfg_bool_entries[i];
+		int id = item.id;
+
+		auto filterok =
+			std::find_if(idarray.begin(), idarray.end(), [&](const std::pair<int, int>& e) {
+			return e.first == asi(cfgfilter) && e.second == id;
+				});
+
+		if (filterok != std::end(idarray)) {
+			bool bres = id_to_val_bool(id, in_conf);	
+			cfg_bool_entries.replace_item(i, make_conf_entry(id, bres));
+		}		
+	}
+
+	for (unsigned int i = 0; i < cfg_int_entries.get_count(); i++) {
+		const conf_int_entry& item = cfg_int_entries[i];
+		int id = item.id;
+
+		auto filterok =
+			std::find_if(idarray.begin(), idarray.end(), [&](const std::pair<int, int>& e) {
+			return e.first == asi(cfgfilter) && e.second == id;
+				});
+
+		if (filterok != std::end(idarray)) {
+			cfg_int_entries.replace_item(i, make_conf_entry(id, (int)id_to_val_int(id, in_conf)));
+		}
+	}
+
+	for (unsigned int i = 0; i < cfg_string_entries.get_count(); i++) {
+		const conf_string_entry& item = cfg_string_entries[i];
+		int id = item.id;
+
+		auto filterok =
+			std::find_if(idarray.begin(), idarray.end(), [&](const std::pair<int, int>& e) {
+			return e.first == asi(cfgfilter) && e.second == id;
+				});
+
+		if (filterok != std::end(idarray)) {
+			pfc::string8 str;
+			id_to_val_str(id, in_conf, str);			
+			cfg_string_entries.replace_item(i, make_conf_entry(id, str));
+		}
+	}
+}
+
+void new_conf::save(ConfFilter cfgfilter, new_conf in_conf, int id) {
+	
+	auto filterok =
+		std::find_if(idarray.begin(), idarray.end(), [&](const std::pair<int, int>& e) {
+		return e.first == asi(cfgfilter) && e.second == id;
+			});
+	if (filterok == std::end(idarray)) {
+		//id not part of cfgfilter
+		return;
+	}
+
+	for (unsigned int i = 0; i < cfg_bool_entries.get_count(); i++) {
+		const conf_bool_entry& item = cfg_bool_entries[i];
+		if (item.id == id) {
+			bool bres = id_to_val_bool(id, in_conf);
+			cfg_bool_entries.replace_item(i, make_conf_entry(id, bres));
+			return;
+		}
+	}
+
+	for (unsigned int i = 0; i < cfg_int_entries.get_count(); i++) {
+		const conf_int_entry& item = cfg_int_entries[i];
+		if (item.id == id) {
+			cfg_int_entries.replace_item(i, make_conf_entry(id, id_to_val_int(id, in_conf)));
+			return;
+		}
+	}
+	for (unsigned int i = 0; i < cfg_string_entries.get_count(); i++) {
+		const conf_string_entry& item = cfg_string_entries[i];
+		if (item.id == id) {
+			pfc::string8 str;
+			id_to_val_str(id, in_conf, str);
+			cfg_string_entries.replace_item(i, make_conf_entry(id, str));
+			return;
+		}
+	}
+}
+
 void new_conf::save() {
 	cfg_bool_entries.remove_all();
 	cfg_bool_entries.add_item(make_conf_entry(CFG_REPLACE_ANVS, replace_ANVs));

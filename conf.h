@@ -155,7 +155,107 @@ class new_conf
 {
 public:
 	bool load();
+	int id_to_val_int(int id, new_conf in_conf);
+	bool id_to_val_bool(int id, new_conf in_conf);
+	void id_to_val_str(int id, new_conf in_conf, pfc::string8& out);
 	void save();
+
+	enum class ConfFilter :uint8_t {
+		CONF_FILTER_CONF = 0,
+		CONF_FILTER_FIND,
+		CONF_FILTER_PREVIEW,
+		CONF_FILTER_TAG,
+		CONF_FILTER_TRACK,
+		CONF_FILTER_UPDATE_ART,
+		CONF_FILTER_UPDATE_TAG,
+	};
+
+	template <typename Enumeration>
+	//as_integer...
+	auto asi(Enumeration const value)
+		-> typename std::underlying_type<Enumeration>::type
+	{
+		return static_cast<typename std::underlying_type<Enumeration>::type>(value);
+	}
+
+	std::vector<std::pair<int, int>> idarray
+	{
+		// CONF_FILTER_CONF (configuration_dialog)
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_REPLACE_ANVS },
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_MOVE_THE_AT_BEGINNING},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_DISCARD_NUMERIC_SUFFIX},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_ENABLE_AUTOSEARCH},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_DISPLAY_ANVS},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_SAVE_ALBUM_ART},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_ALBUM_ART_DIRECTORY_STRING},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_ALBUM_ART_FILENAME_STRING},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_ALBUM_ART_FETCH_ALL},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_ALBUM_ART_OVERWRITE},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_ALBUM_ART_EMBED},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_SAVE_ARTIST_ART},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_ARTIST_ART_DIRECTORY_STRING},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_ARTIST_ART_FILENAME_STRING},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_ARTIST_ART_FETCH_ALL},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_ARTIST_ART_OVERWRITE},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_ARTIST_ART_IDS_TITLEFORMAT},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_ARTIST_ART_EMBED},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_OAUTH_TOKEN},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_OAUTH_TOKEN_SECRET},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_REMOVE_OTHER_TAGS},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_REMOVE_EXCLUDE_TAGS},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_MATCH_TRACKS_USING_DURATION},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_MATCH_TRACKS_USING_NUMBER},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_MATCH_TRACKS_USING_META},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_ASSUME_TRACKS_SORTED},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_SKIP_RELEASE_DLG_IF_MATCHED},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_SKIP_FIND_RELEASE_DLG_IF_IDED},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_SEARCH_RELEASE_FORMAT_STRING},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_SEARCH_MASTER_FORMAT_STRING},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_SEARCH_MASTER_SUB_FORMAT_STRING},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_LAST_CONF_TAB},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_DISCOGS_TRACK_FORMAT_STRING},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_FILE_TRACK_FORMAT_STRING},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_SKIP_PREVIEW_DIALOG},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_PARSE_HIDDEN_AS_REGULAR},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_SKIP_VIDEO_TRACKS},
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_CACHE_MAX_OBJECTS},
+
+		// CONF_FILTER_FIND (find_release_dialog)
+		{ asi(ConfFilter::CONF_FILTER_FIND), CFG_DISPLAY_EXACT_MATCHES },
+		{ asi(ConfFilter::CONF_FILTER_FIND), CFG_FIND_RELEASE_DIALOG_WIDTH },
+		{ asi(ConfFilter::CONF_FILTER_FIND), CFG_FIND_RELEASE_DIALOG_HEIGHT },
+
+		// CONF_FILTER_PREVIEW (preview_dialog)
+		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_MODE },
+		//{ asi(ConfFilter::CONF_FILTER_PREVIEW), preview_tags_dialog_col1_width }, missing id
+		//{ asi(ConfFilter::CONF_FILTER_PREVIEW), preview_tags_dialog_col2_width }, missing id
+		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_DIALOG_WIDTH },
+		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_DIALOG_HEIGHT },
+		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_REPLACE_ANVS }, //<<
+
+		// CONF_FILTER_TAG (tag_mappings_dialog)
+		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_EDIT_TAGS_DIALOG_COL1_WIDTH },
+		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_EDIT_TAGS_DIALOG_COL2_WIDTH },
+		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_EDIT_TAGS_DIALOG_COL3_WIDTH },
+		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_PREVIEW_DIALOG_WIDTH },
+		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_PREVIEW_DIALOG_HEIGHT },
+
+		// CONF_FILTER_TRACK (track_matching_dialog)
+		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_FIND_RELEASE_DIALOG_WIDTH },
+		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_FIND_RELEASE_DIALOG_HEIGHT },
+
+		// CONF_FILTER_UPDATE_ART (update_art_dialog)
+		{ asi(ConfFilter::CONF_FILTER_UPDATE_ART), CFG_UPDATE_ART_FLAGS },
+
+		// CONF_FILTER_TAG (update_tags_dialog)
+		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_REPLACE_ANVS },	//<<
+		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_UPDATE_TAGS_MANUALLY_PROMPT },
+		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_UPDATE_PREVIEW_CHANGES },
+		
+	};
+
+	void save(ConfFilter cfgfilter, new_conf in_conf);
+	void save(ConfFilter cfgfilter, new_conf in_conf, int id);
 	void upgrade(foo_discogs_conf3 &old_conf);
 	
 	bool replace_ANVs = false;

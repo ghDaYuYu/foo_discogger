@@ -27,6 +27,19 @@ CConfigurationDialog::~CConfigurationDialog() {
 	g_discogs->configuration_dialog = nullptr;
 }
 
+//copy from libPPUI\CDialogResizeHelper.cpp
+static BOOL GetChildWindowRect(HWND wnd, UINT id, RECT* child)
+{
+	RECT temp;
+	HWND wndChild = GetDlgItem(wnd, id);
+	if (wndChild == NULL) return FALSE;
+	if (!GetWindowRect(wndChild, &temp)) return FALSE;
+	if (!MapWindowPoints(0, wnd, (POINT*)&temp, 2)) return FALSE;
+	*child = temp;
+	return TRUE;
+}
+//
+
 LRESULT CConfigurationDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
 	// get handle of tab control
 	HWND hWndTab = uGetDlgItem(IDC_TAB);

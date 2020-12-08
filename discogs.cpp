@@ -487,9 +487,9 @@ bool track_in_range(const pfc::string8 &pos, const pfc::string8 &start, const pf
 
 pfc::array_t<pfc::string8> blah() {
 	pfc::array_t<pfc::string8> v;
-	v.append_single(",");
-	v.append_single(";");
-	v.append_single(" and ");
+	v.append_single(pfc::string8(","));
+	v.append_single(pfc::string8(";"));
+	v.append_single(pfc::string8(" and "));
 	return v;
 }
 const pfc::array_t<pfc::string8> CREDIT_DELIMS = blah();

@@ -50,7 +50,7 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 	try {
 		const http_request::ptr request = client->create_request("GET");
 		//request->add_header("Accept-Encoding: gzip");
-		if (inflateInit2 != NULL) {
+		if (dllinflateInit2 != NULL) {
 			request->add_header("Accept-Encoding: gzip, deflate");
 		}
 		else {

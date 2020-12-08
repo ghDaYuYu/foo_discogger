@@ -6,9 +6,9 @@
 const char *whitespace = " \t\r\n";
 
 
-dll_inflateInit2 inflateInit2 = NULL;
-dll_inflate inflate = NULL;
-dll_inflateEnd inflateEnd = NULL;
+dll_inflateInit2 dllinflateInit2 = NULL;
+dll_inflate dllinflate = NULL;
+dll_inflateEnd dllinflateEnd = NULL;
 HINSTANCE hGetProcIDDLL = NULL;
 
 
@@ -252,9 +252,9 @@ void load_dlls()
 		console::print("Error loading zlib1.dll");
 		return;
 	}
-	inflateInit2 = (dll_inflateInit2)GetProcAddress(hGetProcIDDLL, "inflateInit2_");
-	inflate = (dll_inflate)GetProcAddress(hGetProcIDDLL, "inflate");
-	inflateEnd = (dll_inflateEnd)GetProcAddress(hGetProcIDDLL, "inflateEnd");
+	dllinflateInit2 = (dll_inflateInit2)GetProcAddress(hGetProcIDDLL, "inflateInit2_");
+	dllinflate = (dll_inflate)GetProcAddress(hGetProcIDDLL, "inflate");
+	dllinflateEnd = (dll_inflateEnd)GetProcAddress(hGetProcIDDLL, "inflateEnd");
 }
 
 
@@ -288,14 +288,14 @@ int myUncompress(Bytef *dest, uLongf *destLen, const Bytef *source, uLong source
 	stream.zalloc = (alloc_func)nullptr;
 	stream.zfree = (free_func)nullptr;
 
-	err = (*inflateInit2)(&stream, 15 + 32, ZLIB_VERSION, (int)sizeof(z_stream));
+	err = (*dllinflateInit2)(&stream, 15 + 32, ZLIB_VERSION, (int)sizeof(z_stream));
 	if (err != Z_OK) {
 		return err;
 	}
 
-	err = (*inflate)(&stream, Z_FINISH);
+	err = (*dllinflate)(&stream, Z_FINISH);
 	if (err != Z_STREAM_END) {
-		(*inflateEnd)(&stream);
+		(*dllinflateEnd)(&stream);
 		if (err == Z_NEED_DICT || (err == Z_BUF_ERROR && stream.avail_in == 0)) {
 			return Z_DATA_ERROR;
 		}
@@ -303,7 +303,7 @@ int myUncompress(Bytef *dest, uLongf *destLen, const Bytef *source, uLong source
 	}
 	*destLen = stream.total_out;
 
-	err = (*inflateEnd)(&stream);
+	err = (*dllinflateEnd)(&stream);
 	return err;
 }
 

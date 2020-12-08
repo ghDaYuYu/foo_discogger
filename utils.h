@@ -14,15 +14,13 @@ typedef int(_cdecl *dll_inflateInit2)(z_stream*, int, const char*, int);
 typedef int(_cdecl *dll_inflate)(z_stream*, int);
 typedef int(_cdecl *dll_inflateEnd)(z_stream*);
 
-extern dll_inflateInit2 inflateInit2;
-extern dll_inflate inflate;
-extern dll_inflateEnd inflateEnd;
+extern dll_inflateInit2 dllinflateInit2;
+extern dll_inflate dllinflate;
+extern dll_inflateEnd dllinflateEnd;
 extern HINSTANCE hGetProcIDDLL;
-
 
 void load_dlls();
 void unload_dlls();
-
 
 struct cmp_str
 {

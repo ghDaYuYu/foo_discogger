@@ -27,10 +27,11 @@ DECLARE_COMPONENT_VERSION(
 FOO_DISCOGS_VERSION,
 "A tagger using the Discogs (https://www.discogs.com) database.\n"
 "\n"
-"Author:  zoomorph\n"
-"Version: "FOO_DISCOGS_VERSION"\n"
+"Original Author:  zoomorph (2.23)\n"
+"Version: "FOO_DISCOGS_VERSION" by DaYuyu\n"
 "Compiled: "__DATE__ "\n"
 "Website: https://bitbucket.org/zoomorph/foo_discogs\n"
+"Mod Website: https://bitbucket.org/fooDaYuyu/foo_discogs\n"
 "\n"
 "Thanks to Michael Pujos (aka bubbleguuum) for starting this project (up to version 1.32).\n"
 "\n"
@@ -81,9 +82,9 @@ foo_discogs::~foo_discogs() {
 	if (tag_mappings_dialog) {
 		tag_mappings_dialog->destroy();
 	}
-	if (configuration_dialog) {
-		configuration_dialog->destroy();
-	}
+	//if (configuration_dialog) {
+	//	configuration_dialog->destroy();
+	//}
 	if (update_art_dialog) {
 		update_art_dialog->destroy();
 	}

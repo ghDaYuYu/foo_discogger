@@ -78,6 +78,10 @@ LRESULT CConfigurationDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 		rcTabDialog.right - rcTabDialog.left, rcTabDialog.bottom - rcTabDialog.top,
 		SWP_NOZORDER | SWP_NOACTIVATE);
 
+	/*
+	// now resize tab control and entire prefs window to fit all controls
+	// (it is necessary to manually move the buttons and resize the dialog
+	//  to ensure correct display on large font (120dpi) screens)
 	// now resize the entire window
 	RECT rcCtrl;
 	::SetRect(&rcCtrl, 0, 0, 6, 26);
@@ -87,7 +91,7 @@ LRESULT CConfigurationDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 	::SetWindowPos(m_hWnd, nullptr,
 		rcCtrl.left, rcCtrl.top, rcCtrl.right - rcCtrl.left, rcCtrl.bottom - rcCtrl.top,
 		SWP_NOZORDER | SWP_NOMOVE);
-
+	*/
 	// position the subdialogs in the inner part of the tab control
 	uSendMessage(hWndTab, TCM_ADJUSTRECT, FALSE, (LPARAM)&rcTabDialog);
 	//fix left white stripe

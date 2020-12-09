@@ -847,7 +847,7 @@ t_uint32 CConfigurationDialog::get_state() {
 void CConfigurationDialog::reset() {
 	BOOL bdummy = FALSE;
 	OnDefaults(0, 0, NULL, bdummy);
-	CONF.save();
+	apply();
 	conf = CONF;
 	conf_dlg_edit = CONF;
 

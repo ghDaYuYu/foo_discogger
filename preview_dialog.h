@@ -17,6 +17,7 @@ private:
 	HWND replace_anv_check;
 
 	bool conf_changed = false;
+	foo_discogs_conf conf;
 
 	bool use_update_tags = false;
 	bool multi_mode = false;

@@ -34,8 +34,8 @@ namespace listview_helper {
 
 
 inline void CTrackMatchingDialog::load_size() {
-	int x = CONF.release_dialog_width;
-	int y = CONF.release_dialog_height;
+	int x = conf.release_dialog_width;
+	int y = conf.release_dialog_height;
 	if (x != 0 && y != 0) {
 		SetWindowPos(nullptr, 0, 0, x, y, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
 
@@ -46,12 +46,14 @@ inline void CTrackMatchingDialog::load_size() {
 }
 
 inline void CTrackMatchingDialog::save_size(int x, int y) {
-	CONF.release_dialog_width = x;
-	CONF.release_dialog_height = y;
+	conf.release_dialog_width = x;
+	conf.release_dialog_height = y;
 	conf_changed = true;
 }
 
 LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
+	conf = CONF;
+	
 	match_failed = uGetDlgItem(IDC_FAILED_TO_MATCH_TRACKS);
 	match_assumed = uGetDlgItem(IDC_ASSUMED_MATCH_TRACKS);
 	match_success = uGetDlgItem(IDC_MATCHED_TRACKS);
@@ -73,7 +75,7 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 		::ShowWindow(uGetDlgItem(IDC_SKIP_BUTTON), false);
 		::ShowWindow(uGetDlgItem(IDCANCEL), true);
 		::ShowWindow(uGetDlgItem(IDC_BACK_BUTTON), true);
-		SendMessage(m_hWnd, DM_SETDEFID, (WPARAM)CONF.skip_preview_dialog ? IDC_WRITE_TAGS_BUTTON : IDC_PREVIEW_TAGS_BUTTON, 0);
+		SendMessage(m_hWnd, DM_SETDEFID, (WPARAM)conf.skip_preview_dialog ? IDC_WRITE_TAGS_BUTTON : IDC_PREVIEW_TAGS_BUTTON, 0);
 	}
 
 	discogs_track_list = uGetDlgItem(IDC_DISCOGS_TRACK_LIST);
@@ -121,7 +123,7 @@ bool CTrackMatchingDialog::initialize() {
 	insert_track_mappings();
 
 	// TODO: assess this! (return value not used? does it work if skip release dialog checked?)
-	if (!multi_mode && tag_writer->match_status == MATCH_SUCCESS && CONF.skip_release_dialog_if_matched) {
+	if (!multi_mode && tag_writer->match_status == MATCH_SUCCESS && conf.skip_release_dialog_if_matched) {
 		generate_track_mappings(tag_writer->track_mappings);
 		service_ptr_t<generate_tags_task> task = new service_impl_t<generate_tags_task>(this, tag_writer, false, use_update_tags);
 		task->start();
@@ -154,8 +156,8 @@ void CTrackMatchingDialog::insert_track_mappings() {
 	ListView_DeleteAllItems(discogs_track_list);
 	ListView_DeleteAllItems(file_list);
 
-	hook.set_custom("DISPLAY_ANVS", CONF.display_ANVs);
-	hook.set_custom("REPLACE_ANVS", CONF.replace_ANVs);
+	hook.set_custom("DISPLAY_ANVS", conf.display_ANVs);
+	hook.set_custom("REPLACE_ANVS", conf.replace_ANVs);
 
 	const size_t count = tag_writer->track_mappings.get_count();
 	for (size_t i = 0; i < count; i++) {
@@ -167,7 +169,7 @@ void CTrackMatchingDialog::insert_track_mappings() {
 			file_info &finfo = tag_writer->finfo_manager->get_item(mapping.file_index);
 			auto item = tag_writer->finfo_manager->items.get_item(mapping.file_index);
 			pfc::string8 formatted_name;
-			CONF.release_file_format_string->run_simple(item->get_location(), &finfo, formatted_name);
+			conf.release_file_format_string->run_simple(item->get_location(), &finfo, formatted_name);
 			pfc::string8 display = pfc::string_filename_ext(formatted_name);
 			const char *length_titleformat = "%length%";
 			pfc::string8 formatted_length;
@@ -184,7 +186,7 @@ void CTrackMatchingDialog::insert_track_mappings() {
 			hook.set_disc(&disc);
 			hook.set_track(&track);
 			pfc::string8 text;
-			CONF.release_discogs_format_string->run_hook(location, &info, &hook, text, nullptr);
+			conf.release_discogs_format_string->run_hook(location, &info, &hook, text, nullptr);
 			pfc::string8 time;
 			if (track->discogs_hidden_duration_seconds) {
 				int duration_seconds = track->discogs_duration_seconds + track->discogs_hidden_duration_seconds;
@@ -217,7 +219,8 @@ LRESULT CTrackMatchingDialog::OnColorStatic(UINT /*uMsg*/, WPARAM wParam, LPARAM
 
 CTrackMatchingDialog::~CTrackMatchingDialog() {
 	if (conf_changed) {
-		CONF.save();
+		CONF.save(new_conf::ConfFilter::CONF_FILTER_TRACK, conf);
+		CONF.load();
 	}
 	g_discogs->track_matching_dialog = nullptr;
 }
@@ -380,7 +383,7 @@ void CTrackMatchingDialog::generate_track_mappings(track_mappings_list_type &tra
 }
 
 bool CTrackMatchingDialog::init_count() {
-	const bool die = !CONF.update_tags_manually_match;
+	const bool die = !conf.update_tags_manually_match;
 	for (size_t i = 0; i < tag_writers.get_count(); i++) {
 		if (tag_writers[i]->skip || tag_writers[i]->match_status == MATCH_SUCCESS || tag_writers[i]->match_status == MATCH_ASSUME) {
 			continue;
@@ -429,7 +432,7 @@ bool CTrackMatchingDialog::get_previous_tag_writer() {
 }
 
 void CTrackMatchingDialog::finished_tag_writers() {
-	service_ptr_t<generate_tags_task_multi> task = new service_impl_t<generate_tags_task_multi>(tag_writers, CONF.update_tags_preview_changes, use_update_tags);
+	service_ptr_t<generate_tags_task_multi> task = new service_impl_t<generate_tags_task_multi>(tag_writers, conf.update_tags_preview_changes, use_update_tags);
 	task->start();
 }
 

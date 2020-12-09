@@ -11,8 +11,8 @@
 
 
 inline void CFindReleaseDialog::load_size() {
-	int x = CONF.find_release_dialog_width;
-	int y = CONF.find_release_dialog_height;
+	int x = conf.find_release_dialog_width;
+	int y = conf.find_release_dialog_height;
 	if (x != 0 && y != 0) {
 		SetWindowPos(nullptr, 0, 0, x, y, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
 
@@ -23,19 +23,23 @@ inline void CFindReleaseDialog::load_size() {
 }
 
 inline void CFindReleaseDialog::save_size(int x, int y) {
-	CONF.find_release_dialog_width = x;
-	CONF.find_release_dialog_height = y;
+	conf.find_release_dialog_width = x;
+	conf.find_release_dialog_height = y;
 	conf_changed = true;
 }
 
 CFindReleaseDialog::~CFindReleaseDialog() {
 	if (conf_changed) {
-		CONF.save();
+		CONF.save(new_conf::ConfFilter::CONF_FILTER_FIND, conf);
+		CONF.load();
 	}
 	g_discogs->find_release_dialog = nullptr;
 }
 
 LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
+	
+	conf = CONF;
+
 	filter_edit = GetDlgItem(IDC_FILTER_EDIT);
 	search_edit = GetDlgItem(IDC_SEARCH_TEXT);
 	artist_list = GetDlgItem(IDC_ARTIST_LIST);
@@ -45,7 +49,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	
 	::SetFocus(search_edit);
 
-	CheckDlgButton(IDC_ONLY_EXACT_MATCHES_CHECK, CONF.display_exact_matches);
+	CheckDlgButton(IDC_ONLY_EXACT_MATCHES_CHECK, conf.display_exact_matches);
 
 	pfc::string8 release_id;
 
@@ -66,7 +70,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	}
 	if (artist) {
 		uSetWindowText(search_edit, artist);
-		if (release_id_unknown && CONF.enable_autosearch && artist[0] != '\0') {
+		if (release_id_unknown && conf.enable_autosearch && artist[0] != '\0') {
 			search_artist();
 		}
 	}
@@ -86,15 +90,19 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	modeless_dialog_manager::g_add(m_hWnd);
 	show();
 
-	if (!g_discogs->gave_oauth_warning && (!CONF.oauth_token.get_length() || !CONF.oauth_token_secret.get_length())) {
+	if (!g_discogs->gave_oauth_warning && (!conf.oauth_token.get_length() || !conf.oauth_token_secret.get_length())) {
 		g_discogs->gave_oauth_warning = true;
-		if (!g_discogs->configuration_dialog) {
-			g_discogs->configuration_dialog = new CConfigurationDialog(core_api::get_main_window());
-			g_discogs->configuration_dialog->show_tab(CONF_OATH_TAB);
+		if (!g_discogs->configuration_dialog) {	
+			static_api_ptr_t<ui_control>()->show_preferences(guid_pref_page);
 		}
+		else {
+			::SetFocus(g_discogs->configuration_dialog->m_hWnd);
+		}
+		g_discogs->configuration_dialog->show_tab(CONF_OATH_TAB);
+
 		uMessageBox(nullptr, "OAuth is required to use the\nDiscogs API. Please configure OAuth.", "Error.", MB_OK);
 	}
-	else if (!release_id_unknown && CONF.skip_find_release_dialog_if_ided) {
+	else if (!release_id_unknown && conf.skip_find_release_dialog_if_ided) {
 		on_write_tags(release_id);
 	}
 	return FALSE;
@@ -185,12 +193,12 @@ void CFindReleaseDialog::filter_releases(const pfc::string8 &filter) {
 
 			if (is_master) {
 				hook->set_master(&(find_release_artist->master_releases[master_index]));
-				CONF.search_master_format_string->run_hook(location, &info, hook.get(), item, nullptr);
+				conf.search_master_format_string->run_hook(location, &info, hook.get(), item, nullptr);
 				item_data = (master_index << 16) | 9999;
 			}
 			else {
 				hook->set_release(&(find_release_artist->releases[release_index]));
-				CONF.search_release_format_string->run_hook(location, &info, hook.get(), item, nullptr);
+				conf.search_release_format_string->run_hook(location, &info, hook.get(), item, nullptr);
 				item_data = (9999 << 16) | release_index;
 			}
 
@@ -215,7 +223,7 @@ void CFindReleaseDialog::filter_releases(const pfc::string8 &filter) {
 				pfc::string8 sub_item;
 				for (size_t j = 0; j < find_release_artist->master_releases[master_index]->sub_releases.get_size(); j++) {
 					hook->set_release(&(find_release_artist->master_releases[master_index]->sub_releases[j]));
-					CONF.search_master_sub_format_string->run_hook(location, &info, hook.get(), sub_item, nullptr);
+					conf.search_master_sub_format_string->run_hook(location, &info, hook.get(), sub_item, nullptr);
 					
 					bool matches = true;
 					if (filter.get_length()) {
@@ -353,7 +361,7 @@ LRESULT CFindReleaseDialog::OnDoubleClickRelease(WORD /*wNotifyCode*/, WORD wID,
 }
 
 LRESULT CFindReleaseDialog::OnCheckOnlyExactMatches(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	CONF.display_exact_matches = IsDlgButtonChecked(IDC_ONLY_EXACT_MATCHES_CHECK) != 0;
+	conf.display_exact_matches = IsDlgButtonChecked(IDC_ONLY_EXACT_MATCHES_CHECK) != 0;
 	conf_changed = true; 
 	fill_artist_list();
 	return FALSE;
@@ -372,7 +380,10 @@ LRESULT CFindReleaseDialog::OnClearFilter(WORD /*wNotifyCode*/, WORD wID, HWND /
 
 LRESULT CFindReleaseDialog::OnConfigure(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	if (!g_discogs->configuration_dialog) {
-		g_discogs->configuration_dialog = new CConfigurationDialog(core_api::get_main_window());
+		static_api_ptr_t<ui_control>()->show_preferences(guid_pref_page);
+	}
+	else {
+		::SetFocus(g_discogs->configuration_dialog->m_hWnd);
 	}
 	return FALSE;
 }

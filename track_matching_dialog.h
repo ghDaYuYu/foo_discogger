@@ -16,6 +16,8 @@ class CTrackMatchingDialog : public MyCDialogImpl<CTrackMatchingDialog>,
 {
 private:
 	bool conf_changed = false;
+	foo_discogs_conf conf;
+	//foo_discogs_conf conf_dlg_edit;
 
 	bool use_update_tags = false;
 	bool multi_mode = false;

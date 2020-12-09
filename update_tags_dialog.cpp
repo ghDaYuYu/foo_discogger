@@ -10,14 +10,21 @@ CUpdateTagsDialog::CUpdateTagsDialog(HWND p_parent, metadb_handle_list items) : 
 }
 
 CUpdateTagsDialog::~CUpdateTagsDialog() {
+	if (conf_changed) {
+		CONF.save(new_conf::ConfFilter::CONF_FILTER_UPDATE_TAG, conf);
+		CONF.load();
+	}
 	g_discogs->update_tags_dialog = nullptr;
 }
 
 LRESULT CUpdateTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
+	
+	conf = CONF;
+
 	CheckRadioButton(IDC_UPDATE_RADIO, IDC_WRITE_RADIO, IDC_UPDATE_RADIO);
-	CheckDlgButton(IDC_MANUALLY_PROMPT, CONF.update_tags_manually_match);
-	CheckDlgButton(IDC_PREVIEW_ALL_CHANGES, CONF.update_tags_preview_changes);
-	CheckDlgButton(IDC_UPD_TAGS_REPLACE_ANV_CHECK, CONF.replace_ANVs);
+	CheckDlgButton(IDC_MANUALLY_PROMPT, conf.update_tags_manually_match);
+	CheckDlgButton(IDC_PREVIEW_ALL_CHANGES, conf.update_tags_preview_changes);
+	CheckDlgButton(IDC_UPD_TAGS_REPLACE_ANV_CHECK, conf.replace_ANVs);
 	modeless_dialog_manager::g_add(m_hWnd);
 	show();
 	return TRUE;
@@ -37,19 +44,19 @@ LRESULT CUpdateTagsDialog::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndC
 }
 
 LRESULT CUpdateTagsDialog::OnCheckManuallyPrompt(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	CONF.update_tags_manually_match = IsDlgButtonChecked(IDC_MANUALLY_PROMPT) != 0;
+	conf.update_tags_manually_match = IsDlgButtonChecked(IDC_MANUALLY_PROMPT) != 0;
 	conf_changed = true;
 	return FALSE;
 }
 
 LRESULT CUpdateTagsDialog::OnCheckPreviewChanges(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	CONF.update_tags_preview_changes = IsDlgButtonChecked(IDC_PREVIEW_ALL_CHANGES) != 0;
+	conf.update_tags_preview_changes = IsDlgButtonChecked(IDC_PREVIEW_ALL_CHANGES) != 0;
 	conf_changed = true;
 	return FALSE;
 }
 
 LRESULT CUpdateTagsDialog::OnCheckReplaceANVs(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	CONF.replace_ANVs = IsDlgButtonChecked(IDC_UPD_TAGS_REPLACE_ANV_CHECK) != 0;
+	conf.replace_ANVs = IsDlgButtonChecked(IDC_UPD_TAGS_REPLACE_ANV_CHECK) != 0;
 	conf_changed = true;
 	return FALSE;
 }
@@ -62,9 +69,10 @@ LRESULT CUpdateTagsDialog::OnEditTagMappings(WORD /*wNotifyCode*/, WORD wID, HWN
 }
 
 void CUpdateTagsDialog::OnFinalMessage(HWND /*hWnd*/) {
-	if (conf_changed) {
-		CONF.save();
-	}
+	//if (conf_changed) {
+	//	CONF.save(new_conf::ConfFilter::CONF_FILTER_UPDATE_TAG, conf);
+	//	CONF.load();
+	//}
 	modeless_dialog_manager::g_remove(m_hWnd);
 	delete this;
 }

@@ -16,7 +16,8 @@ class CFindReleaseDialog : public MyCDialogImpl<CFindReleaseDialog>, public CDia
 {
 private:
 	bool conf_changed = false;
-	
+	foo_discogs_conf conf;
+
 	playable_location_impl location;
 	file_info_impl info;
 

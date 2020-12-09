@@ -8,6 +8,8 @@ class CUpdateArtDialog : public MyCDialogImpl<CUpdateArtDialog>, public CMessage
 {
 private:
 	metadb_handle_list items;
+	bool conf_changed = false;
+	foo_discogs_conf conf;
 
 public:
 	enum { IDD = IDD_UPDATE_ART_DIALOG };

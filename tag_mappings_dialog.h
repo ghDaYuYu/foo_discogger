@@ -17,6 +17,7 @@ private:
 	HWND remove_button;
 	tag_mappings_list_type *tag_mappings = nullptr;
 	bool conf_changed = false;
+	foo_discogs_conf conf;
 
 	CHyperLink help_link;
 

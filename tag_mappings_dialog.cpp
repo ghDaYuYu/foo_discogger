@@ -9,18 +9,18 @@
 
 
 inline void CNewTagMappingsDialog::load_size() {
-	int x = CONF.edit_tags_dialog_width;
-	int y = CONF.edit_tags_dialog_height;
+	int x = conf.edit_tags_dialog_width;
+	int y = conf.edit_tags_dialog_height;
 	if (x != 0 && y != 0) {
 		SetWindowPos(nullptr, 0, 0, x, y, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
 		CRect rectClient;
 		GetClientRect(&rectClient);
 		DlgResize_UpdateLayout(rectClient.Width(), rectClient.Height());
 	}
-	if (CONF.edit_tags_dialog_col1_width != 0) {
-		ListView_SetColumnWidth(GetDlgItem(IDC_TAG_LIST), 0, CONF.edit_tags_dialog_col1_width);
-		ListView_SetColumnWidth(GetDlgItem(IDC_TAG_LIST), 1, CONF.edit_tags_dialog_col2_width);
-		ListView_SetColumnWidth(GetDlgItem(IDC_TAG_LIST), 2, CONF.edit_tags_dialog_col3_width);
+	if (conf.edit_tags_dialog_col1_width != 0) {
+		ListView_SetColumnWidth(GetDlgItem(IDC_TAG_LIST), 0, conf.edit_tags_dialog_col1_width);
+		ListView_SetColumnWidth(GetDlgItem(IDC_TAG_LIST), 1, conf.edit_tags_dialog_col2_width);
+		ListView_SetColumnWidth(GetDlgItem(IDC_TAG_LIST), 2, conf.edit_tags_dialog_col3_width);
 	}
 	else {
 		update_list_width(true);
@@ -28,8 +28,8 @@ inline void CNewTagMappingsDialog::load_size() {
 }
 
 inline void CNewTagMappingsDialog::save_size(int x, int y) {
-	CONF.edit_tags_dialog_width = x;
-	CONF.edit_tags_dialog_height = y;
+	conf.edit_tags_dialog_width = x;
+	conf.edit_tags_dialog_height = y;
 	conf_changed = true;
 }
 
@@ -40,7 +40,8 @@ CNewTagMappingsDialog::CNewTagMappingsDialog(HWND p_parent) {
 
 CNewTagMappingsDialog::~CNewTagMappingsDialog() {
 	if (conf_changed) {
-		CONF.save();
+		CONF.save(new_conf::ConfFilter::CONF_FILTER_TAG, conf);
+		CONF.load();
 	}
 	g_discogs->tag_mappings_dialog = nullptr;
 	if (tag_mappings != nullptr) {
@@ -50,6 +51,9 @@ CNewTagMappingsDialog::~CNewTagMappingsDialog() {
 }
 
 LRESULT CNewTagMappingsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
+	
+	conf = CONF;
+
 	tag_list = GetDlgItem(IDC_TAG_LIST);
 	remove_button = GetDlgItem(IDC_REMOVE_TAG); 
 
@@ -131,9 +135,9 @@ void CNewTagMappingsDialog::update_list_width(bool initialize) {
 		c1 = (int)(ratio * c1);
 		c2 = (int)(ratio * c2);*/
 	}
-	CONF.edit_tags_dialog_col1_width = c1;
-	CONF.edit_tags_dialog_col2_width = c2;
-	CONF.edit_tags_dialog_col3_width = c3;
+	conf.edit_tags_dialog_col1_width = c1;
+	conf.edit_tags_dialog_col2_width = c2;
+	conf.edit_tags_dialog_col3_width = c3;
 	conf_changed = true;
 }
 
@@ -328,13 +332,13 @@ LRESULT CNewTagMappingsDialog::OnColumnResized(LPNMHDR lParam) {
 	int width1 = ListView_GetColumnWidth(GetDlgItem(IDC_TAG_LIST), 0);
 	int width2 = ListView_GetColumnWidth(GetDlgItem(IDC_TAG_LIST), 1);
 	int width3 = ListView_GetColumnWidth(GetDlgItem(IDC_TAG_LIST), 2);
-	bool width_changed = (width1 != CONF.edit_tags_dialog_col1_width ||
-		width2 != CONF.edit_tags_dialog_col2_width ||
-		width3 != CONF.edit_tags_dialog_col3_width);
+	bool width_changed = (width1 != conf.edit_tags_dialog_col1_width ||
+		width2 != conf.edit_tags_dialog_col2_width ||
+		width3 != conf.edit_tags_dialog_col3_width);
 	if (width_changed) {
-		CONF.edit_tags_dialog_col1_width = width1;
-		CONF.edit_tags_dialog_col2_width = width2;
-		CONF.edit_tags_dialog_col3_width = width3;
+		conf.edit_tags_dialog_col1_width = width1;
+		conf.edit_tags_dialog_col2_width = width2;
+		conf.edit_tags_dialog_col3_width = width3;
 		conf_changed = true;
 	}
 	return FALSE;

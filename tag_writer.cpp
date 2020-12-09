@@ -416,11 +416,13 @@ void TagWriter::generate_tags(bool use_update_tags, threaded_process_status &p_s
 
 	for (size_t i = 0; i < TAGS.get_size(); i++) {
 		const tag_mapping_entry &entry = TAGS.get_item_ref(i);
-		if ((!use_update_tags && entry.enable_write) || (use_update_tags && entry.enable_update)) {
+		//if ((!use_update_tags && entry.enable_write) || (use_update_tags && entry.enable_update)) {
+		if ((entry.enable_write) || (entry.enable_update)) {
 			tag_result_ptr result = std::make_shared<tag_result>();
 			
 			bool multiple_results = false;
 			bool multiple_old_results = false;
+			bool result_approved = false;
 			
 			for (size_t j = 0; j < track_mappings.get_count(); j++) {
 				const track_mapping &mapping = track_mappings[j];
@@ -478,6 +480,12 @@ void TagWriter::generate_tags(bool use_update_tags, threaded_process_status &p_s
 							old_value.append_item(info.meta_get(entry.tag_name, i));
 						}
 					}
+					// approving result (1/2)
+					if (entry.enable_write && old_count == 0)
+						result_approved = true;
+					if (entry.enable_update)
+						result_approved = true;
+                    //
 					old_value.encode();
 					if (!multiple_old_results) {
 						for (size_t k = 0; k < result->old_value.get_size(); k++) {
@@ -512,10 +520,21 @@ void TagWriter::generate_tags(bool use_update_tags, threaded_process_status &p_s
 					}
 				}
 			}
+			else {
+				result->changed = true;
+				changed = true;
+			}
 
-			result->tag_entry = &entry;
+			// approving result (2/2)
+
+			if (entry.enable_update && !result->changed)
+				result_approved = false;
+
+			if (result_approved) {
+			  result->tag_entry = &entry;
+			  tag_results.append_single(std::move(result));
+			}
 			
-			tag_results.append_single(std::move(result));
 		}
 	}
 }

@@ -830,7 +830,7 @@ void CConfigurationDialog::on_generate_oauth(HWND wnd) {
 	uGetDlgItemText(wnd, IDC_OAUTH_PIN_EDIT, code);
 
 	if (code.get_length() == 0) {
-		uMessageBox(nullptr, "You must enter a valid PIN code.", "Error.", MB_OK);
+		uMessageBox(m_hWnd, "You must enter a valid PIN code.", "Error.", MB_OK);
 		return;
 	}
 

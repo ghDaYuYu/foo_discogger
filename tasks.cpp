@@ -769,7 +769,7 @@ void test_oauth_process_callback::safe_run(threaded_process_status &p_status, ab
 }
 
 void test_oauth_process_callback::on_success(HWND p_wnd) {
-	uMessageBox(nullptr, "OAuth is working!", "Success!", MB_OK);
+	uMessageBox(p_wnd, "OAuth is working!", "Success!", MB_OK);
 }
 
 

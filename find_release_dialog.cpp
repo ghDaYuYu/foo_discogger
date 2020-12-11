@@ -100,7 +100,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 		}
 		g_discogs->configuration_dialog->show_tab(CONF_OATH_TAB);
 
-		uMessageBox(nullptr, "OAuth is required to use the\nDiscogs API. Please configure OAuth.", "Error.", MB_OK);
+		uMessageBox(m_hWnd, "OAuth is required to use the\nDiscogs API. Please configure OAuth.", "Error.", MB_OK);
 	}
 	else if (!release_id_unknown && conf.skip_find_release_dialog_if_ided) {
 		on_write_tags(release_id);

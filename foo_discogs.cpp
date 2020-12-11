@@ -31,7 +31,7 @@ FOO_DISCOGS_VERSION,
 "Version: "FOO_DISCOGS_VERSION" by DaYuyu\n"
 "Compiled: "__DATE__ "\n"
 "Website: https://bitbucket.org/zoomorph/foo_discogs\n"
-"Mod Website: https://bitbucket.org/fooDaYuyu/foo_discogs\n"
+"Mod Website: https://github.com/ghDaYuYu/foo_discogs\n"
 "\n"
 "Thanks to Michael Pujos (aka bubbleguuum) for starting this project (up to version 1.32).\n"
 "\n"

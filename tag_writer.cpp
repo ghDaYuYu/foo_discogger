@@ -572,7 +572,9 @@ void TagWriter::write_tags() {
 				write_tag(item, info, *(result->tag_entry), value->get_citems());
 			}
 			else {
-				write_tag(item, info, *(result->tag_entry), value->get_pure_cvalue());
+				pfc::string8 value_lf;
+				value->get_cvalue_lf(value_lf);
+				write_tag(item, info, *(result->tag_entry), value_lf);
 			}
 		}
 

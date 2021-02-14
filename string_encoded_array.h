@@ -1,5 +1,6 @@
 #pragma once
 
+#include<regex>
 #include "exception.h"
 #include "../../pfc/pfc.h"
 
@@ -130,6 +131,30 @@ public:
 		}
 		return value;
 	}
+
+	/* First newline offset or the length of text */
+	static int newline_offset(const char* text)
+	{
+		const char* newline = strchr(text, '\n');
+		if (!newline)
+			return strlen(text);
+		else
+			return (int)(newline - text);
+	}
+
+	inline void get_cvalue_lf(pfc::string8& out) {
+		if (dirty) {
+			encode();
+		}
+		out.set_string(value);
+		if (!value.is_empty()) {
+			t_size lfpos = newline_offset(value.toString());
+			if (lfpos != value.get_length()) {
+				out.set_string(std::regex_replace(out.get_ptr(), std::regex(R"(\r\n|\r|\n)"), "\r\n").c_str());
+			}
+		}
+	}
+
 	inline const pfc::string8& get_pure_cvalue() const {
 		PFC_ASSERT(!dirty);
 		return value;

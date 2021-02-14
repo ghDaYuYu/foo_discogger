@@ -75,7 +75,11 @@ private:
 namespace std
 {
 	template <>
+#if ((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L)
+	struct hash<pfc::string8> 
+#else
 	struct hash<pfc::string8> : public unary_function<pfc::string8, size_t>
+#endif
 	{
 		size_t operator()(const pfc::string8& value) const {
 			const char *str = value.get_ptr();
@@ -89,7 +93,11 @@ namespace std
 	};
 
 	template <>
+#if ((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L)
+	struct equal_to<pfc::string8>
+#else
 	struct equal_to<pfc::string8> : public unary_function<pfc::string8, bool>
+#endif
 	{
 		bool operator()(const pfc::string8& x, const pfc::string8& y) const {
 			return STR_EQUAL(x, y);

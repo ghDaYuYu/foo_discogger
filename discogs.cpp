@@ -1144,6 +1144,7 @@ void Discogs::parseArtistReleases(json_t *root, Artist *artist) {
 					Release_ptr release = discogs_interface->get_release(JSONAttributeString(rel, "id"));
 					release->title = JSONAttributeString(rel, "title");
 					release->search_labels = JSONAttributeString(rel, "label");
+					release->search_major_formats = JSONAttributeStringArray(rel, "major_formats");
 					release->search_formats = JSONAttributeString(rel, "format");
 					release->search_catno = JSONAttributeString(rel, "catno");
 					release->release_year = JSONAttributeString(rel, "year");
@@ -1183,6 +1184,7 @@ void Discogs::parseMasterVersions(json_t *root, MasterRelease *master_release) {
 				release->set_master_release(master);
 				release->title = JSONAttributeString(rel, "title");
 				release->search_labels = JSONAttributeString(rel, "label");
+				release->search_major_formats = JSONAttributeStringArray(rel, "major_formats");
 				release->search_formats = JSONAttributeString(rel, "format");
 				release->search_catno = JSONAttributeString(rel, "catno");
 				release->release_year = JSONAttributeString(rel, "year");

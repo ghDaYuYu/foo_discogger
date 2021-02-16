@@ -752,6 +752,7 @@ namespace Discogs
 		pfc::array_t<pfc::string8> artist_join_fields;
 		pfc::array_t<ReleaseLabel_ptr> labels;
 		pfc::array_t<ReleaseCompany_ptr> companies;
+		pfc::array_t<pfc::string8> search_major_formats;
 		pfc::string8 search_formats;
 		pfc::string8 search_labels;
 		pfc::string8 search_catno;
@@ -859,6 +860,9 @@ namespace Discogs
 		string_encoded_array get_videos() const {
 			return videos;
 		}
+		string_encoded_array get_search_major_formats() const {
+			return search_major_formats;
+		}
 		string_encoded_array get_search_formats() const {
 			return search_formats;
 		}
@@ -901,6 +905,7 @@ namespace Discogs
 			m["GENRES"] = { &Release::get_genres, &Release::load };
 			m["STYLES"] = { &Release::get_styles, &Release::load };
 			m["VIDEOS"] = { &Release::get_videos, &Release::load };
+			m["SEARCH_MAJOR_FORMATS"] = { &Release::get_search_major_formats, &Release::load_preview };
 			m["SEARCH_FORMATS"] = { &Release::get_search_formats, &Release::load_preview };
 			m["SEARCH_LABELS"] = { &Release::get_search_labels, &Release::load_preview };
 			m["SEARCH_CATNOS"] = { &Release::get_search_catno, &Release::load_preview };

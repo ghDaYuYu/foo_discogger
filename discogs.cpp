@@ -1144,8 +1144,17 @@ void Discogs::parseArtistReleases(json_t *root, Artist *artist) {
 					Release_ptr release = discogs_interface->get_release(JSONAttributeString(rel, "id"));
 					release->title = JSONAttributeString(rel, "title");
 					release->search_labels = JSONAttributeString(rel, "label");
-					release->search_major_formats = JSONAttributeStringArray(rel, "major_formats");
-					release->search_formats = JSONAttributeString(rel, "format");
+					
+					//extract major_formats from first csv element
+					pfc::string8 all_formats = JSONAttributeString(rel, "format");
+					pfc::array_t<pfc::string8> flist;
+					tokenize(all_formats, ",", flist, false);
+					//release->search_major_formats:
+					tokenize(flist[0], ",", release->search_major_formats, false);
+					t_size formats_cpos = flist[0].get_length();
+					//release->search_formats:
+					release->search_formats = ltrim(substr(all_formats, formats_cpos + 1, /*pfc_infinite*/ all_formats.get_length() - formats_cpos));
+					
 					release->search_catno = JSONAttributeString(rel, "catno");
 					release->release_year = JSONAttributeString(rel, "year");
 					if (release->release_year.get_length() == 0) {

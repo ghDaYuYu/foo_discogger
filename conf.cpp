@@ -273,6 +273,8 @@ bool new_conf::id_to_val_bool(int id, new_conf in_conf) {
 		case CFG_SKIP_VIDEO_TRACKS:
 			return in_conf.skip_video_tracks;
 	}
+	assert(false);
+	return false;
 }
 
 int new_conf::id_to_val_int(int id, new_conf in_conf) {
@@ -310,7 +312,7 @@ int new_conf::id_to_val_int(int id, new_conf in_conf) {
 		case CFG_CACHE_MAX_OBJECTS:
 			return in_conf.cache_max_objects;
 	}
-
+	assert(false);
 	return iret;
 }
 
@@ -395,6 +397,7 @@ void new_conf::id_to_val_str(int id, new_conf in_conf, pfc::string8& out) {
 			return;
 		}
 	}
+	assert(false);
 }
 
 void new_conf::save(ConfFilter cfgfilter, new_conf in_conf) {

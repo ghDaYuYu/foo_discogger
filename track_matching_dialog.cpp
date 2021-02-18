@@ -1,5 +1,5 @@
 #include "stdafx.h"
-
+#include "resource.h"
 #include "track_matching_dialog.h"
 #include "preview_dialog.h"
 #include "tasks.h"
@@ -17,7 +17,7 @@ namespace listview_helper {
 	{
 		pfc::stringcvt::string_os_from_utf8 os_string_temp(p_name);
 
-		RECT rect = { 0, 0, p_width_dlu, 0 };
+		RECT rect = { 0, 0, static_cast<LONG>(p_width_dlu), 0 };
 		MapDialogRect(GetParent(p_listview), &rect);
 
 		LVCOLUMN data = {};

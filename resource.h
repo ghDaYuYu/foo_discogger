@@ -8,6 +8,7 @@
 #define IDD_DIALOG_UPDATE_TAGS          110
 #define IDD_DIALOG_CONF_TAGGING         111
 #define IDD_DIALOG_CONF_ART             113
+#define IDI_SCROLL                      113
 #define IDD_DIALOG_CONF_OAUTH           114
 #define IDD_DIALOG_TAG_MAPPINGS         116
 #define IDD_DIALOG_CONF_FIND_RELEASE_DIALOG 122

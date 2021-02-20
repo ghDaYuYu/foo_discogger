@@ -16,7 +16,8 @@ private:
 	HWND tag_list;
 	HWND remove_button;
 	tag_mappings_list_type *tag_mappings = nullptr;
-	bool conf_changed = false;
+	bool conf_ui_changed = false;
+	bool conf_mapping_changed = false;
 	foo_discogs_conf conf;
 
 	CHyperLink help_link;
@@ -26,6 +27,26 @@ private:
 	void update_list_width(bool initialize=false);
 	void update_tag(int pos, const tag_mapping_entry *entry);
 	void show_context_menu(CPoint &pt, int selection);
+
+	void haschanged() {
+		conf_mapping_changed = cfg_tag_mappings.get_count() != tag_mappings->get_count();
+		if (!conf_mapping_changed) {
+			for (unsigned int i = 0; i < cfg_tag_mappings.get_count(); i++) {
+				if (!cfg_tag_mappings.get_item(i).equals(tag_mappings->get_item(i))) {
+					conf_mapping_changed = true;
+					break;
+				}
+			}
+		}
+		onchanged();
+	}
+
+	void onchanged() {
+		CWindow btnapply = uGetDlgItem(IDAPPLY);
+		btnapply.EnableWindow(conf_mapping_changed);
+	}
+
+	void applymappings();
 
 	bool TableEdit_IsColumnEditable(size_t subItem) const override {
 		return subItem == 0 || subItem == 1;
@@ -51,6 +72,10 @@ private:
 		}
 	}
 
+	void TableEdit_Finished() {
+		haschanged();
+	}
+
 	void trigger_add_new() {
 		PostMessage(MSG_ADD_NEW, 0, 0);
 	}
@@ -69,13 +94,15 @@ private:
 			return false;
 		}
 		delete_entry(index);
+		tag_mappings->remove_by_idx(index);
+		
+		haschanged();
 		return true;
 	}
 
 	void delete_entry(int index) {
 		ListView_DeleteItem(tag_list, index);
-		tag_mappings->remove_by_idx(index);
-		
+
 		int total = ListView_GetItemCount(tag_list);
 		if (index < total) {
 			listview_helper::select_single_item(tag_list, index);

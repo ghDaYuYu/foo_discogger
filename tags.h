@@ -38,6 +38,20 @@ public:
 		*t = *this;
 		return t;
 	}
+
+	bool equals(const tag_mapping_entry& a) {
+		bool rbres = true;
+		if (stricmp_utf8(tag_name, a.tag_name) ||
+			enable_write != a.enable_write ||
+			enable_update != a.enable_update ||
+			freeze_write != a.freeze_write ||
+			freeze_update != a.freeze_update ||
+			freeze_tag_name != a.freeze_tag_name ||
+			stricmp_utf8(pfc::string8(formatting_script), pfc::string8(a.formatting_script)))
+			return false;
+		else
+			return true;
+	}
 };
 
 

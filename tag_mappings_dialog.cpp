@@ -30,7 +30,7 @@ inline void CNewTagMappingsDialog::load_size() {
 inline void CNewTagMappingsDialog::save_size(int x, int y) {
 	conf.edit_tags_dialog_width = x;
 	conf.edit_tags_dialog_height = y;
-	conf_changed = true;
+	conf_ui_changed = true;
 }
 
 CNewTagMappingsDialog::CNewTagMappingsDialog(HWND p_parent) {
@@ -39,7 +39,7 @@ CNewTagMappingsDialog::CNewTagMappingsDialog(HWND p_parent) {
 }
 
 CNewTagMappingsDialog::~CNewTagMappingsDialog() {
-	if (conf_changed) {
+	if (conf_ui_changed) {
 		CONF.save(new_conf::ConfFilter::CONF_FILTER_TAG, conf);
 		CONF.load();
 	}
@@ -78,6 +78,7 @@ LRESULT CNewTagMappingsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LP
 	load_size();
 	modeless_dialog_manager::g_add(m_hWnd);
 	show();
+	onchanged();
 	return FALSE;
 }
 
@@ -100,10 +101,16 @@ void CNewTagMappingsDialog::insert_tag(int pos, const tag_mapping_entry *entry) 
 }
 
 void CNewTagMappingsDialog::update_tag(int pos, const tag_mapping_entry *entry) {
+	if (tag_mappings->get_item(pos).equals(*entry))
+		return;
+	
 	tag_mappings->replace_item_ex(pos, *entry);
 	const char *text = (entry->enable_update ? (entry->enable_write ? TEXT_WRITE_UPDATE : TEXT_UPDATE) :
 		(entry->enable_write ? TEXT_WRITE : TEXT_DISABLED));
 	listview_helper::set_item_text(tag_list, pos, 2, text);
+
+	haschanged();
+
 }
 
 void CNewTagMappingsDialog::refresh_item(int pos) {
@@ -138,24 +145,28 @@ void CNewTagMappingsDialog::update_list_width(bool initialize) {
 	conf.edit_tags_dialog_col1_width = c1;
 	conf.edit_tags_dialog_col2_width = c2;
 	conf.edit_tags_dialog_col3_width = c3;
-	conf_changed = true;
+	conf_ui_changed = true;
 }
 
-LRESULT CNewTagMappingsDialog::OnOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+void CNewTagMappingsDialog::applymappings() {
 	set_tag_mappings(tag_mappings);
-	destroy();
+	conf_mapping_changed = false;
 	if (g_discogs->preview_tags_dialog) {
 		g_discogs->preview_tags_dialog->tag_mappings_updated();
 	}
+}
+
+LRESULT CNewTagMappingsDialog::OnOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+	if (conf_mapping_changed) {
+		applymappings();
+	}
+	destroy();
 	return TRUE;
 }
 
 LRESULT CNewTagMappingsDialog::OnApply(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	pfc::string8 text;
-	set_tag_mappings(tag_mappings);
-	if (g_discogs->preview_tags_dialog) {
-		g_discogs->preview_tags_dialog->tag_mappings_updated();
-	}
+	applymappings();
+	onchanged();
 	return FALSE;
 }
 
@@ -171,6 +182,7 @@ LRESULT CNewTagMappingsDialog::OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /
 	}
 	tag_mappings = copy_default_tag_mappings();
 	insert_tag_mappings();
+	haschanged();
 	return FALSE;
 }
 
@@ -214,6 +226,7 @@ LRESULT CNewTagMappingsDialog::OnImport(WORD /*wNotifyCode*/, WORD wID, HWND /*h
 	}
 	delete buf;
 	insert_tag_mappings();
+	haschanged();
 	return FALSE;
 }
 
@@ -339,7 +352,7 @@ LRESULT CNewTagMappingsDialog::OnColumnResized(LPNMHDR lParam) {
 		conf.edit_tags_dialog_col1_width = width1;
 		conf.edit_tags_dialog_col2_width = width2;
 		conf.edit_tags_dialog_col3_width = width3;
-		conf_changed = true;
+		conf_ui_changed = true;
 	}
 	return FALSE;
 }

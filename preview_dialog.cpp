@@ -154,9 +154,16 @@ void CPreviewTagsDialog::insert_tag_results() {
 	}
 	return output;
 }*/
-
+static pfc::array_t<string_encoded_array>GetPreviewValue(const tag_result_ptr& result) {
+	pfc::array_t<string_encoded_array> value;
+	if (!result->result_approved && result->changed)
+		return result->old_value;
+	else
+		return result->value;
+}
 void CPreviewTagsDialog::TableEdit_GetField(size_t item, size_t subItem, pfc::string_base & out, size_t & lineCount) {
-	if (item < tag_writer->tag_results.get_count() && subItem == 1 && tag_writer->tag_results[item]->value.get_size() > 1) {
+	pfc::array_t<string_encoded_array> value = GetPreviewValue(tag_writer->tag_results[item]);
+	if (item < tag_writer->tag_results.get_count() && subItem == 1 && value.get_size() > 1) {
 		return;
 	}
 	else {
@@ -276,7 +283,7 @@ pfc::string8 print_difference(const pfc::array_t<string_encoded_array> &input, c
 
 void CPreviewTagsDialog::insert_tag_result(int pos, const tag_result_ptr &result) {
 	if (conf.preview_mode == PREVIEW_NORMAL) {
-		listview_helper::insert_item2(tag_results_list, pos, result->tag_entry->tag_name, print_normal(result->value), 0);
+		listview_helper::insert_item2(tag_results_list, pos, result->tag_entry->tag_name, print_normal(GetPreviewValue(result)), 0);
 	}
 	else if (conf.preview_mode == PREVIEW_DIFFERENCE) {
 		listview_helper::insert_item2(tag_results_list, pos, result->tag_entry->tag_name, print_difference(result->value, result->old_value, !result->result_approved && result->changed), 0);
@@ -293,7 +300,8 @@ void CPreviewTagsDialog::refresh_item(int pos) {
 	const tag_result_ptr &result = tag_writer->tag_results[pos];
 	listview_helper::set_item_text(tag_results_list, pos, 0, result->tag_entry->tag_name);
 	if (conf.preview_mode == PREVIEW_NORMAL) {
-		listview_helper::set_item_text(tag_results_list, pos, 1, print_normal(result->value));
+		pfc::array_t<string_encoded_array> value = GetPreviewValue(result);
+		listview_helper::set_item_text(tag_results_list, pos, 1, print_normal(value));
 	}
 	else if (conf.preview_mode == PREVIEW_DIFFERENCE) {
 		listview_helper::set_item_text(tag_results_list, pos, 1, print_difference(result->value, result->old_value, !result->result_approved && result->changed));
@@ -506,12 +514,16 @@ LRESULT CPreviewTagsDialog::OnColumnResized(LPNMHDR lParam) {
 	return FALSE;
 }
 LRESULT CPreviewTagsDialog::OnEdit(UINT uMsg, WPARAM wParam, LPARAM lParam) {
-	TableEdit_Start(wParam, lParam);
+	t_size item = wParam;
+	t_size subItem = lParam;
+	if (tag_writer->tag_results[item]->result_approved)
+		TableEdit_Start(wParam, lParam);
 	return FALSE;
 }
 
 
 #define DISABLED_RGB	RGB(150, 150, 150)
+#define CHANGE_NOT_APPROVED_RGB	RGB(150, 100, 100)
 
 LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam, BOOL& bHandled) {
 	if (generating_tags) {
@@ -520,12 +532,10 @@ LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam, BOOL& bHand
 	LPNMLVCUSTOMDRAW lplvcd = (LPNMLVCUSTOMDRAW)lParam;
 	int pos = (int)lplvcd->nmcd.dwItemSpec;
 	int sub_item;
-	const tag_mapping_entry* entry;
 	bool bresults = tag_writer->tag_results.size() > 0;
-
-	if (bresults)
-		entry = tag_writer->tag_results[pos]->tag_entry;
-
+	const tag_mapping_entry* entry = bresults ?
+		tag_writer->tag_results[pos]->tag_entry: nullptr;
+	
 	switch (lplvcd->nmcd.dwDrawStage) {
 	case CDDS_PREPAINT: {
 		//TODO: create EnableEx(true | false | noresult)
@@ -550,9 +560,18 @@ LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam, BOOL& bHand
 
 	case CDDS_SUBITEM | CDDS_ITEMPREPAINT:
 		sub_item = lplvcd->iSubItem;
-		if (entry && (sub_item == 0 || sub_item == 1) && entry->freeze_tag_name) {
-			lplvcd->clrText = DISABLED_RGB;
-			return CDRF_NEWFONT;
+		if (entry && (sub_item == 0 || sub_item == 1)) {
+			if (entry->freeze_tag_name) {
+				lplvcd->clrText = DISABLED_RGB;
+				return CDRF_NEWFONT;
+			}
+			else if (!tag_writer->tag_results[pos]->result_approved &&
+				tag_writer->tag_results[pos]->changed) {
+				if (BST_CHECKED == uButton_GetCheck(m_hWnd, IDC_VIEW_NORMAL)) {
+					lplvcd->clrText = CHANGE_NOT_APPROVED_RGB;
+					return CDRF_NEWFONT;
+				}
+			}
 		}
 		/*else if (sub_item == 2 && entry.freeze_write && entry.freeze_update) {
 			lplvcd->clrText = DISABLED_RGB;

@@ -164,7 +164,9 @@ static const GUID guid_pref_page =
 class preferences_page_myimpl : public preferences_page_impl<CConfigurationDialog> {
 
 public:
-	const char* get_name() { return "Foo_Discogs"; }
+	const char* get_name() {
+		return "Discogs Tagger";
+	}
 	GUID get_guid() { return guid_pref_page; }
 	GUID get_parent_guid() { return guid_tag_writing; /*guid_tools*/; }
 };

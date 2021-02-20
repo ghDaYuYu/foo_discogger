@@ -237,7 +237,7 @@ pfc::string8 print_normal(const pfc::array_t<string_encoded_array> &input) {
 	return result;
 }
 
-pfc::string8 print_difference(const pfc::array_t<string_encoded_array> &input, const pfc::array_t<string_encoded_array> &old_input, bool skipped) {
+pfc::string8 print_difference(const pfc::array_t<string_encoded_array> &input, const pfc::array_t<string_encoded_array> &old_input) {
 	const size_t count = input.get_count();
 	const size_t old_count = old_input.get_count();
 	const size_t max_count = max(count, old_count);
@@ -277,8 +277,7 @@ pfc::string8 print_difference(const pfc::array_t<string_encoded_array> &input, c
 			result << "(" << changes << " changed) " << join(parts, "; ");
 		}
 	}
-	pfc::string8 skipwarn = skipped ? "(!)" :  "";
-	return skipwarn << result;
+	return result;
 }
 
 void CPreviewTagsDialog::insert_tag_result(int pos, const tag_result_ptr &result) {
@@ -286,7 +285,7 @@ void CPreviewTagsDialog::insert_tag_result(int pos, const tag_result_ptr &result
 		listview_helper::insert_item2(tag_results_list, pos, result->tag_entry->tag_name, print_normal(GetPreviewValue(result)), 0);
 	}
 	else if (conf.preview_mode == PREVIEW_DIFFERENCE) {
-		listview_helper::insert_item2(tag_results_list, pos, result->tag_entry->tag_name, print_difference(result->value, result->old_value, !result->result_approved && result->changed), 0);
+		listview_helper::insert_item2(tag_results_list, pos, result->tag_entry->tag_name, print_difference(result->value, result->old_value), 0);
 	}
 	else if (conf.preview_mode == PREVIEW_ORIGINAL) {
 		listview_helper::insert_item2(tag_results_list, pos, result->tag_entry->tag_name, print_normal(result->old_value), 0);
@@ -304,7 +303,7 @@ void CPreviewTagsDialog::refresh_item(int pos) {
 		listview_helper::set_item_text(tag_results_list, pos, 1, print_normal(value));
 	}
 	else if (conf.preview_mode == PREVIEW_DIFFERENCE) {
-		listview_helper::set_item_text(tag_results_list, pos, 1, print_difference(result->value, result->old_value, !result->result_approved && result->changed));
+		listview_helper::set_item_text(tag_results_list, pos, 1, print_difference(result->value, result->old_value));
 	}
 	else if (conf.preview_mode == PREVIEW_ORIGINAL) {
 		listview_helper::set_item_text(tag_results_list, pos, 1, print_normal(result->old_value));

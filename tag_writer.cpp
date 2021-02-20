@@ -466,26 +466,37 @@ void TagWriter::generate_tags(bool use_update_tags, threaded_process_status &p_s
 				// TODO: read old values separately so they don't have to be re-read multiple times...
 
 				try {
+
 					const size_t old_count = info.meta_get_count_by_name(entry.tag_name);
 					string_encoded_array old_value;
+
+					// APPROVING 1/2 (count based)
+
 					if (old_count == 0) {
-						// ??
-					}
-					else if (old_count == 1) {
-						old_value.set_value(info.meta_get(entry.tag_name, 0));
+
+						result->result_approved = entry.enable_write;
+
 					}
 					else {
-						for (size_t i = 0; i < old_count; i++) {
-							old_value.append_item(info.meta_get(entry.tag_name, i));
+
+						result->result_approved = entry.enable_update;
+
+						if (old_count == 1) {
+							
+							old_value.set_value(info.meta_get(entry.tag_name, 0));
+
+						}
+						else {
+
+							for (size_t i = 0; i < old_count; i++) {
+								old_value.append_item(info.meta_get(entry.tag_name, i));
+							}
+
 						}
 					}
-					// approving result (1/2)
-					if (entry.enable_write && old_count == 0)
-						result->result_approved = true;
-					if (entry.enable_update)
-						result->result_approved = true;
-					//
+
 					old_value.encode();
+
 					if (!multiple_old_results) {
 						for (size_t k = 0; k < result->old_value.get_size(); k++) {
 							if (result->old_value[k].get_cvalue() != old_value.get_cvalue()) {
@@ -494,6 +505,7 @@ void TagWriter::generate_tags(bool use_update_tags, threaded_process_status &p_s
 							}
 						}
 					}
+					
 					result->old_value.append_single(old_value);
 				}
 				catch (std::exception &e) {
@@ -524,16 +536,14 @@ void TagWriter::generate_tags(bool use_update_tags, threaded_process_status &p_s
 				changed = true;
 			}
 
-			// approving result (2/2)
+			// APPROVING 2/2 (change based)
 
-			if (entry.enable_update && !result->changed)
+			if (!result->changed)
 				result->result_approved = false;
 
-			
 			result->tag_entry = &entry;
 			tag_results.append_single(std::move(result));
-			
-			
+
 		}
 	}
 }

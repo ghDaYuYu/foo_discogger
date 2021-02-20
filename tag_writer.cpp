@@ -422,8 +422,7 @@ void TagWriter::generate_tags(bool use_update_tags, threaded_process_status &p_s
 			
 			bool multiple_results = false;
 			bool multiple_old_results = false;
-			bool result_approved = false;
-			
+
 			for (size_t j = 0; j < track_mappings.get_count(); j++) {
 				const track_mapping &mapping = track_mappings[j];
 				
@@ -482,10 +481,10 @@ void TagWriter::generate_tags(bool use_update_tags, threaded_process_status &p_s
 					}
 					// approving result (1/2)
 					if (entry.enable_write && old_count == 0)
-						result_approved = true;
+						result->result_approved = true;
 					if (entry.enable_update)
-						result_approved = true;
-                    //
+						result->result_approved = true;
+					//
 					old_value.encode();
 					if (!multiple_old_results) {
 						for (size_t k = 0; k < result->old_value.get_size(); k++) {
@@ -528,12 +527,12 @@ void TagWriter::generate_tags(bool use_update_tags, threaded_process_status &p_s
 			// approving result (2/2)
 
 			if (entry.enable_update && !result->changed)
-				result_approved = false;
+				result->result_approved = false;
 
-			if (result_approved) {
-			  result->tag_entry = &entry;
-			  tag_results.append_single(std::move(result));
-			}
+			
+			result->tag_entry = &entry;
+			tag_results.append_single(std::move(result));
+			
 			
 		}
 	}
@@ -541,6 +540,7 @@ void TagWriter::generate_tags(bool use_update_tags, threaded_process_status &p_s
 
 void TagWriter::write_tags() {
 	finfo_manager->invalidate_all();
+	bool binvalidate = false;
 
 	for (size_t i = 0; i < track_mappings.get_count(); i++) {
 		const track_mapping &mapping = track_mappings[i];
@@ -560,21 +560,25 @@ void TagWriter::write_tags() {
 
 			string_encoded_array *value;
 
-			if (result->value.get_size() == 1) {
-				value = &(result->value[0]);
-			}
-			else {
-				value = &(result->value[i]);
-			}
+			if (result->result_approved) {
 
-			if (value->has_array()) {
-				value->limit_depth(1);
-				write_tag(item, info, *(result->tag_entry), value->get_citems());
-			}
-			else {
-				pfc::string8 value_lf;
-				value->get_cvalue_lf(value_lf);
-				write_tag(item, info, *(result->tag_entry), value_lf);
+				if (result->value.get_size() == 1) {
+					value = &(result->value[0]);
+				}
+				else {
+					value = &(result->value[i]);
+				}
+
+				if (value->has_array()) {
+					value->limit_depth(1);
+					write_tag(item, info, *(result->tag_entry), value->get_citems());
+				}
+				else {
+					pfc::string8 value_lf;
+					value->get_cvalue_lf(value_lf);
+					write_tag(item, info, *(result->tag_entry), value_lf);
+				}
+				binvalidate = true;
 			}
 		}
 
@@ -600,14 +604,15 @@ void TagWriter::write_tags() {
 				}
 				if (remove) {
 					info.meta_remove_index(j);
+					binvalidate = true;
 				}
 				else {
 					j++;
 				}
 			}
 		}
-
-		finfo_manager->validate_item(file_index);
+		if (binvalidate)
+			finfo_manager->validate_item(file_index);
 	}
 }
 

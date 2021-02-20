@@ -34,6 +34,7 @@ public:
 	pfc::array_t<string_encoded_array> value;
 	pfc::array_t<string_encoded_array> old_value;
 	bool changed = false;
+	bool result_approved = false;
 };
 typedef std::shared_ptr<tag_result> tag_result_ptr;
 

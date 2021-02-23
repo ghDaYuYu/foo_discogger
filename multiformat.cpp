@@ -287,6 +287,29 @@ bool titleformat_hook_impl_multiformat::process_function(titleformat_text_out * 
 				params[0].replace(params[1], params[2]);
 				result = &params[0];
 			}
+			else {
+				wrong_param_count = true;
+			}
+		}
+
+		else if (pfc::strcmp_ex(p_name, p_name_length, "multi_replace_exp", pfc::infinite_size) == 0) {
+			if (param_count == 3) {
+				params[0].replace_exp(params[1], params[2]);
+				result = &params[0];
+			}
+			else {
+				wrong_param_count = true;
+			}
+		}
+
+		else if (pfc::strcmp_ex(p_name, p_name_length, "multi_search_exp", pfc::infinite_size) == 0) {
+			if (param_count == 2) {
+				params[0].search_exp(params[1]);
+				result = &params[0];
+			}
+			else {
+				wrong_param_count = true;
+			}
 		}
 
 		else if (pfc::strcmp_ex(p_name, p_name_length, "multi_trim", pfc::infinite_size) == 0) {

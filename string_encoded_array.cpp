@@ -552,6 +552,73 @@ bool string_encoded_array::_replace(const string_encoded_array &find, const stri
 	return value.replace_string(find.value, with.value) != 0;
 }
 
+bool string_encoded_array::_replace_exp(const string_encoded_array& find, const string_encoded_array& with) {
+	PFC_ASSERT(m_depth == 0);
+	if (find.m_depth != m_depth) {
+		array_param_too_deep(2);
+	}
+	else if (with.m_depth != m_depth) {
+		array_param_too_deep(3);
+	}
+	std::regex regex_v;
+	try {
+		regex_v = std::regex(find.value);
+	}
+	catch (std::regex_error e) {
+		value.set_string(e.what());
+		return false;
+	}
+
+	int occurrences = 0;
+	std::string strval(value.toString());
+	std::sregex_iterator begin = std::sregex_iterator(strval.begin(), strval.end(), regex_v);
+	std::sregex_iterator end = std::sregex_iterator();
+
+	for (std::sregex_iterator i = begin; i != end; i++) {
+		occurrences++;
+	}
+
+	try {
+		value.set_string(std::regex_replace(value.get_ptr(), regex_v, with.value.c_str()).c_str());
+	}
+	catch (std::regex_error e) {
+		value.set_string(e.what());
+		return false;
+	}
+	return (begin != end);
+}
+
+bool string_encoded_array::_search_exp(const string_encoded_array& find) {
+	PFC_ASSERT(m_depth == 0);
+	if (find.m_depth != m_depth) {
+		array_param_too_deep(2);
+	}
+
+	std::regex regex_v;
+	std::smatch match;
+
+	try {
+		regex_v = std::regex(find.value);
+	}
+	catch (std::regex_error e) {
+		value.set_string(e.what());
+		return false;
+	}
+	
+	std::string str(value.toString());
+	try {
+		if (std::regex_search(str, match, regex_v))
+			value = "1";
+		else
+			value = "";
+	}
+	catch (std::regex_error e) {
+		value = "";
+		return false;
+	}
+	return true;
+}
+
 bool string_encoded_array::_trim() {
 	PFC_ASSERT(m_depth == 0);
 	pfc::string8 old = value;

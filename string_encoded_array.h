@@ -1,6 +1,6 @@
 #pragma once
 
-#include<regex>
+#include <regex>
 #include "exception.h"
 #include "../../pfc/pfc.h"
 
@@ -37,6 +37,8 @@ private:
 	bool _zip(const string_encoded_array&);
 	bool _zip2(const string_encoded_array&);
 	bool _replace(const string_encoded_array&, const string_encoded_array&);
+	bool _replace_exp(const string_encoded_array&, const string_encoded_array&);
+	bool _search_exp(const string_encoded_array&);
 	bool _trim();
 	bool _wrap(const string_encoded_array&);
 	bool _pad(const string_encoded_array&, const string_encoded_array&);
@@ -270,6 +272,12 @@ public:
 	}
 	inline void replace(const string_encoded_array &find, const string_encoded_array &with) {
 		branch_execute(&string_encoded_array::_replace, find, with, 0);
+	}
+	inline void replace_exp(const string_encoded_array& find, const string_encoded_array& with) {
+		branch_execute(&string_encoded_array::_replace_exp, find, with, 0);
+	}
+	inline void search_exp(const string_encoded_array& find) {
+		branch_execute(&string_encoded_array::_search_exp, find, 0);
 	}
 	inline void trim() {
 		branch_execute(&string_encoded_array::_trim, 0);

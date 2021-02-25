@@ -605,13 +605,19 @@ LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam, BOOL& bHand
 	case CDDS_SUBITEM | CDDS_ITEMPREPAINT:
 		sub_item = lplvcd->iSubItem;
 		if (entry && (sub_item == 0 || sub_item == 1)) {
+			bool bresview = get_preview_mode() == PREVIEW_NORMAL;
+			bool bchgdiscarded = !tag_writer->tag_results[pos]->result_approved &&
+				tag_writer->tag_results[pos]->changed;
+
 			if (entry->freeze_tag_name) {
-				lplvcd->clrText = DISABLED_RGB;
+				if (bchgdiscarded && bresview)
+					lplvcd->clrText = CHANGE_NOT_APPROVED_RGB;
+				else
+					lplvcd->clrText = DISABLED_RGB;
 				return CDRF_NEWFONT;
 			}
-			else if (!tag_writer->tag_results[pos]->result_approved &&
-				tag_writer->tag_results[pos]->changed) {
-				if (BST_CHECKED == uButton_GetCheck(m_hWnd, IDC_VIEW_NORMAL)) {
+			else if (bchgdiscarded) {
+				if (bresview) {
 					lplvcd->clrText = CHANGE_NOT_APPROVED_RGB;
 					return CDRF_NEWFONT;
 				}

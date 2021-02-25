@@ -581,6 +581,10 @@ BOOL CConfigurationDialog::on_tagging_dialog_message(HWND wnd, UINT msg, WPARAM 
 			if (!g_discogs->tag_mappings_dialog) {
 				g_discogs->tag_mappings_dialog = new CNewTagMappingsDialog(core_api::get_main_window());
 			}
+			else {
+				CDialogImpl* tmdlg = pfc::downcast_guarded<CDialogImpl*>(g_discogs->tag_mappings_dialog);
+				::SetFocus(tmdlg->m_hWnd);
+			}
 		}
 		else {
 			if ((HIWORD(wp) == BN_CLICKED) || (HIWORD(wp) == EN_UPDATE)) {

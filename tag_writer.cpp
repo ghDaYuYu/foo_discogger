@@ -648,6 +648,7 @@ void TagWriter::write_tag(metadb_handle_ptr item, file_info &info, const tag_map
 				meta = info.meta_set(entry.tag_name, tag_values[i].get_pure_cvalue());
 			}
 			else {
+				//DEBUG
 				info.meta_add_value(meta, tag_values[i].get_pure_cvalue());
 			}
 		}

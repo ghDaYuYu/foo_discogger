@@ -60,7 +60,11 @@ inline bool CPreviewTagsDialog::build_current_cfg() {
 	int colwidth2 = ListView_GetColumnWidth(GetDlgItem(IDC_PREVIEW_LIST), 1);
 
 	//preview mode
-	bres = bres || conf.preview_mode != get_preview_mode();
+	if (int preview_mode = get_preview_mode(); preview_mode != conf.preview_mode) {
+		conf.preview_mode = preview_mode;
+		bres = bres || true;
+	}
+	
 	//columns
 	if (colwidth1 != conf.preview_tags_dialog_col1_width || colwidth2 != conf.preview_tags_dialog_col2_width) {
 		conf.preview_tags_dialog_col1_width = colwidth1;

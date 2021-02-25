@@ -45,6 +45,7 @@ private:
 	void update_list_width(bool initialize = false);
 
 	bool initialize();
+	void GlobalReplace_ANV(bool state);
 
 	bool TableEdit_IsColumnEditable(size_t subItem) const override {
 		return subItem == 1;

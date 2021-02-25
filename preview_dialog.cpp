@@ -319,25 +319,14 @@ void CPreviewTagsDialog::tag_mappings_updated() {
 	task->start();
 }
 
-void CPreviewTagsDialog::update_list_width(bool initialize) {
-	CRect client_rectangle;
-	::GetClientRect(tag_results_list, &client_rectangle);
-	int width = client_rectangle.Width();
 
-	int c1, c2;
-	if (initialize) {
-		c1 = width / 3;
-		c2 = width / 3 * 2;
-		ListView_SetColumnWidth(tag_results_list, 0, c1);
-		ListView_SetColumnWidth(tag_results_list, 1, c2);
+void CPreviewTagsDialog::GlobalReplace_ANV(bool state) {
+	CONF.replace_ANVs = state;
+	if (g_discogs->configuration_dialog) {
+		CDialogImpl* cfgdlg = pfc::downcast_guarded<CDialogImpl*>(g_discogs->configuration_dialog);
+		SendMessage(cfgdlg->m_hWnd, 
+			WM_CUSTOM_ANV_CHANGED, 0, state);
 	}
-	else {
-		c1 = ListView_GetColumnWidth(tag_results_list, 0);
-		c2 = ListView_GetColumnWidth(tag_results_list, 1);
-	}
-	conf.preview_tags_dialog_col1_width = c1;
-	conf.preview_tags_dialog_col2_width = c2;
-	conf_changed = true;
 }
 
 LRESULT CPreviewTagsDialog::OnCheckReplaceANVs(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {

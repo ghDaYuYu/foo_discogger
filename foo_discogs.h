@@ -2,6 +2,8 @@
 
 #pragma warning(disable:4996)
 
+#include <WinUser.h>
+
 #include "discogs_interface.h"
 #include "tags.h"
 #include "error_manager.h"
@@ -10,6 +12,7 @@
 
 using namespace Discogs;
 
+const UINT WM_CUSTOM_ANV_CHANGED = WM_USER + 100;
 
 class CFindReleaseDialog;
 class CTrackMatchingDialog;

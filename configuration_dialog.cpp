@@ -216,6 +216,15 @@ LRESULT CConfigurationDialog::OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*
 	return FALSE;
 }
 
+LRESULT CConfigurationDialog::OnCustomAnvChanged(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/) {
+	conf.replace_ANVs = lParam;
+	if (g_hWndTabDialog[CONF_TAGGING_TAB]) {
+		uButton_SetCheck(g_hWndTabDialog[CONF_TAGGING_TAB],
+			IDC_ENABLE_ANV_CHECK, conf.replace_ANVs);
+	}
+	return FALSE;
+}
+
 LRESULT CConfigurationDialog::OnDestroy(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled) {
 	if (conf.last_conf_tab != g_current_tab) {
 		conf.last_conf_tab = g_current_tab;

@@ -36,10 +36,10 @@ FOO_DISCOGS_VERSION,
 "Thanks to Michael Pujos (aka bubbleguuum) for starting this project (up to version 1.32).\n"
 "\n"
 "This plugin uses the following open source libraries (thanks to their respective authors):\n"
-"jansson - JSON Parser: http://www.digip.org/jansson/\n"
-"liboauthcpp - OAuth library: https://github.com/sirikata/liboauthcpp\n"
 "\n"
-"Discogs' staff are assholes. Avoid paying them fees when possible!")
+"jansson - JSON Parser: http://www.digip.org/jansson/\n"
+"liboauthcpp - OAuth library: https://github.com/sirikata/liboauthcpp\n")
+/*Pshht, Pshht*/
 
 #define MIN(a,b) ((a)<(b)?(a):(b))
 

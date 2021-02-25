@@ -14,9 +14,7 @@ class CPreviewTagsDialog : public MyCDialogImpl<CPreviewTagsDialog>,
 private:
 	metadb_handle_list items;
 	HWND tag_results_list;
-	HWND replace_anv_check;
 
-	bool conf_changed = false;
 	foo_discogs_conf conf;
 
 	bool use_update_tags = false;
@@ -42,7 +40,8 @@ private:
 	}
 
 	void insert_tag_result(int pos, const tag_result_ptr &result);
-	void update_list_width(bool initialize = false);
+	void set_preview_mode(int mode);
+	int get_preview_mode();
 
 	bool initialize();
 	void GlobalReplace_ANV(bool state);
@@ -79,12 +78,14 @@ public:
 	}
 
 	void load_size();
-	void save_size(int x, int y);
+	bool build_current_cfg();
+	void pushcfg();
 
 	MY_BEGIN_MSG_MAP(CPreviewTagsDialog)
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
 		COMMAND_ID_HANDLER(IDC_WRITE_TAGS_BUTTON, OnWriteTags)
 		COMMAND_ID_HANDLER(IDC_BACK_BUTTON, OnBack)
+		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
 		COMMAND_ID_HANDLER(IDC_SKIP_BUTTON, OnMultiSkip)
 		COMMAND_ID_HANDLER(IDC_REPLACE_ANV_CHECK, OnCheckReplaceANVs)
@@ -97,7 +98,6 @@ public:
 		NOTIFY_HANDLER_EX(IDC_PREVIEW_LIST, NM_CLICK, OnListClick)
 		//NOTIFY_HANDLER_EX(IDC_PREVIEW_LIST, NM_DBLCLK, OnListDoubleClick)
 		NOTIFY_HANDLER_EX(IDC_PREVIEW_LIST, LVN_KEYDOWN, OnListKeyDown)
-		NOTIFY_CODE_HANDLER_EX(HDN_ENDTRACK, OnColumnResized)
 		MESSAGE_HANDLER_EX(MSG_EDIT, OnEdit)
 		//MESSAGE_HANDLER_EX(WM_CONTEXTMENU, OnContextMenu)
 		NOTIFY_HANDLER(IDC_PREVIEW_LIST, NM_CUSTOMDRAW, OnCustomDraw)
@@ -127,7 +127,6 @@ public:
 
 		void DlgResize_UpdateLayout(int cxWidth, int cyHeight) {
 			CDialogResize<CPreviewTagsDialog>::DlgResize_UpdateLayout(cxWidth, cyHeight);
-			save_size(cxWidth, cyHeight);
 		}
 
 		CPreviewTagsDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags) : tag_writer(tag_writer), use_update_tags(use_update_tags) {
@@ -149,6 +148,7 @@ public:
 
 		LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 		LRESULT OnWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+		LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 		LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 		LRESULT OnMultiSkip(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 		LRESULT OnBack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
@@ -160,7 +160,6 @@ public:
 		LRESULT OnListClick(LPNMHDR lParam);
 		//LRESULT OnListDoubleClick(LPNMHDR lParam);
 		LRESULT OnListKeyDown(LPNMHDR lParam);
-		LRESULT OnColumnResized(LPNMHDR lParam);
 		LRESULT OnEdit(UINT uMsg, WPARAM wParam, LPARAM lParam);
 		//LRESULT OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam);
 		LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR pnmh, BOOL& bHandled);

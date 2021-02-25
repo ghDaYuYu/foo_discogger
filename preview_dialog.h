@@ -22,6 +22,7 @@ private:
 	size_t multi_count = 0;
 
 	bool generating_tags = false;
+	int totalwrites = 0; int totalupdates = 0;
 
 	TagWriter_ptr tag_writer;
 	pfc::array_t<TagWriter_ptr> tag_writers;
@@ -40,6 +41,10 @@ private:
 	}
 
 	void insert_tag_result(int pos, const tag_result_ptr &result);
+	void compute_stats(tag_results_list_type tag_results);
+	void reset_tag_result_stats();
+	void display_tag_result_stats();
+
 	void set_preview_mode(int mode);
 	int get_preview_mode();
 
@@ -123,6 +128,7 @@ public:
 			DLGRESIZE_CONTROL(IDCANCEL, DLSZ_MOVE_X)
 			DLGRESIZE_CONTROL(IDC_SKIP_BUTTON, DLSZ_MOVE_X)
 			DLGRESIZE_CONTROL(IDC_PREVIEW_LIST, DLSZ_SIZE_X | DLSZ_SIZE_Y)
+			DLGRESIZE_CONTROL(IDC_PREVIEW_STATS, DLSZ_MOVE_X)
 		END_DLGRESIZE_MAP()
 
 		void DlgResize_UpdateLayout(int cxWidth, int cyHeight) {
@@ -166,7 +172,7 @@ public:
 
 		void refresh_item(int pos);
 
-		void insert_tag_results();
+		void insert_tag_results(bool computestat);
 		void tag_mappings_updated();
 		void cb_generate_tags();
 

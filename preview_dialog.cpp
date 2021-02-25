@@ -160,12 +160,32 @@ bool CPreviewTagsDialog::initialize() {
 			log_msg("GdiPlus error (GetHBITMAP)");
 		}
 	}
-	insert_tag_results();
+	insert_tag_results(true);
 	return true;
 }
 
-void CPreviewTagsDialog::insert_tag_results() {
+void CPreviewTagsDialog::reset_tag_result_stats() {
+	totalwrites = 0;
+	totalupdates = 0;
+}
+void CPreviewTagsDialog::display_tag_result_stats() {
+	HWND stat_ctrl = uGetDlgItem(IDC_PREVIEW_STATS);
+	std::string strstat = std::to_string(totalwrites);
+	strstat.append(" writes, ");
+	strstat.append(std::to_string(totalupdates));
+	strstat.append(" updates");
+	
+	uSetDlgItemText(m_hWnd, IDC_PREVIEW_STATS, strstat.c_str());
+
+}
+
+void CPreviewTagsDialog::insert_tag_results(bool computestat) {
 	ListView_DeleteAllItems(tag_results_list);
+	if (computestat) {
+		reset_tag_result_stats();
+		compute_stats(tag_writer->tag_results);
+	}
+
 	const size_t count = tag_writer->tag_results.get_count();
 	for (unsigned int i = 0; i < count; i++) {
 		insert_tag_result(i, tag_writer->tag_results[i]);
@@ -403,8 +423,7 @@ LRESULT CPreviewTagsDialog::OnChangePreviewMode(WORD /*wNotifyCode*/, WORD wID, 
 	int sel = ListView_GetSelectionMark(tag_results_list);
 
 	SendMessage(tag_results_list, WM_SETREDRAW, FALSE, 0);
-	
-	insert_tag_results();
+	insert_tag_results(false);
 
 	SendMessage(tag_results_list, LVM_ENSUREVISIBLE,
 		SendMessage(tag_results_list, LVM_GETITEMCOUNT, 0, 0) - 1, TRUE); //Rool to the end
@@ -429,7 +448,7 @@ LRESULT CPreviewTagsDialog::OnWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*h
 
 void CPreviewTagsDialog::cb_generate_tags() {
 	generating_tags = false;
-	insert_tag_results();
+	insert_tag_results(true);
 	enable(true);
 }
 
@@ -573,6 +592,31 @@ LRESULT CPreviewTagsDialog::OnEdit(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 #define DISABLED_RGB	RGB(150, 150, 150)
 #define CHANGE_NOT_APPROVED_RGB	RGB(150, 100, 100)
 
+void CPreviewTagsDialog::compute_stats(tag_results_list_type tag_results) {
+	const size_t rescount = tag_writer->tag_results.get_count();
+	for (unsigned int i = 0; i < rescount; i++) {
+		
+		const tag_result_ptr res = tag_writer->tag_results[i];
+		const tag_mapping_entry* entry = res->tag_entry;
+		bool discarded = !res->result_approved &&
+			res->changed;
+		if (!discarded) {
+			if (res->changed) {
+				int cvsize = res->old_value.get_ptr()->get_cvalue().get_length();
+				if (res->old_value.size() == 0 || cvsize == 0) {
+					if (entry->enable_write)
+						totalwrites++;
+				}
+				else {
+					if (entry->enable_update)
+						totalupdates++;
+				}
+			}
+			else {
+				//nothing to do
+			}
+		}
+	} 
 LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam, BOOL& bHandled) {
 	if (generating_tags) {
 		return CDRF_DODEFAULT;
@@ -635,6 +679,9 @@ LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam, BOOL& bHand
 			lplvcd->clrText = DEFAULT_RGB;
 			return CDRF_NEWFONT;
 		}*/
+	case CDDS_POSTPAINT:
+		display_tag_result_stats();
+		return CDRF_DODEFAULT;
 	}
 	return CDRF_DODEFAULT;
 }

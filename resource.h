@@ -17,6 +17,7 @@
 #define IDD_DIALOG_MATCH_TRACKS         128
 #define IDD_DIALOG_PROMPT               130
 #define IDD_DIALOG_CONF_CACHING_DIALOG  133
+#define IDC_PREVIEW_STATS               1004
 #define IDC_EDIT_TAG_MAPPINGS_BUTTON    1029
 #define IDC_MOVE_UP_BUTTON              1035
 #define IDC_MOVE_DOWN_BUTTON            1036
@@ -130,9 +131,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        113
+#define _APS_NEXT_RESOURCE_VALUE        114
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1003
+#define _APS_NEXT_CONTROL_VALUE         1005
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

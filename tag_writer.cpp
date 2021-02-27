@@ -434,7 +434,23 @@ void TagWriter::generate_tags(bool use_update_tags, threaded_process_status &p_s
 				int disc_index = mapping.discogs_disc;
 				int trac_index = mapping.discogs_track;
 				
-				metadb_handle_ptr item = finfo_manager->get_item_handle(file_index);
+				metadb_handle_ptr item = nullptr;
+				
+				try {
+					//TODO: should have been checked earlier
+					if (file_index < finfo_manager->get_item_count()) {
+						item = finfo_manager->get_item_handle(file_index);
+					}
+					else {
+						//no more files available (more tracks than files)
+						//break track loop and keep processing tags
+						break;
+					}
+				}
+				catch (std::exception e) {
+					std::string dbexception(e.what());
+					continue;
+				}
 				file_info &info = finfo_manager->get_item(file_index);
 
 				const ReleaseDisc_ptr &disc = release->discs[disc_index];

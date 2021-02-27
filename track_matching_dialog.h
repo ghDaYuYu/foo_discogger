@@ -73,10 +73,12 @@ public:
 		MESSAGE_HANDLER(WM_CTLCOLORSTATIC, OnColorStatic)
 		COMMAND_ID_HANDLER(IDC_MOVE_UP_BUTTON, OnMoveTrackUp)
 		COMMAND_ID_HANDLER(IDC_MOVE_DOWN_BUTTON, OnMoveTrackDown)
-		COMMAND_ID_HANDLER(IDC_REMOVE_DISCOGS_TRACK_BUTTON, OnRemoveDiscogsTrack)
-		COMMAND_ID_HANDLER(IDC_REMOVE_FILE_TRACK_BUTTON, OnRemoveFileTrack)
-		NOTIFY_HANDLER_EX(IDC_FILE_LIST, LVN_KEYDOWN, OnFileListKeyDown)
-		NOTIFY_HANDLER_EX(IDC_DISCOGS_TRACK_LIST, LVN_KEYDOWN, OnDiscogsListKeyDown)
+		COMMAND_ID_HANDLER(IDC_REMOVE_DISCOGS_TRACK_BUTTON, OnRemoveTrackButton)
+		COMMAND_ID_HANDLER(IDC_REMOVE_FILE_TRACK_BUTTON, OnRemoveTrackButton)
+		NOTIFY_HANDLER_EX(IDC_FILE_LIST, LVN_KEYDOWN, OnListKeyDown)
+		NOTIFY_HANDLER_EX(IDC_DISCOGS_TRACK_LIST, LVN_KEYDOWN, OnListKeyDown)
+		NOTIFY_HANDLER_EX(IDC_FILE_LIST, NM_RCLICK, OnListRClick)
+		NOTIFY_HANDLER_EX(IDC_DISCOGS_TRACK_LIST, NM_RCLICK, OnListRClick)
 		COMMAND_ID_HANDLER(IDC_PREVIEW_TAGS_BUTTON, OnPreviewTags)
 		COMMAND_ID_HANDLER(IDC_WRITE_TAGS_BUTTON, OnWriteTags)
 		COMMAND_ID_HANDLER(IDC_NEXT_BUTTON, OnMultiNext)
@@ -149,8 +151,7 @@ public:
 	LRESULT OnColorStatic(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
 	LRESULT OnMoveTrackUp(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnMoveTrackDown(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnRemoveDiscogsTrack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnRemoveFileTrack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnRemoveTrackButton(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnPreviewTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnMultiNext(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
@@ -158,8 +159,10 @@ public:
 	LRESULT OnBack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnMultiSkip(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnFileListKeyDown(LPNMHDR lParam);
-	LRESULT OnDiscogsListKeyDown(LPNMHDR lParam);
+	LRESULT OnListKeyDown(LPNMHDR lParam);
+	LRESULT OnListRClick(LPNMHDR lParam);
+	
+	LRESULT list_key_down(HWND wnd, LPNMHDR lParam);
 
 	bool initialize();
 	bool get_next_tag_writer();

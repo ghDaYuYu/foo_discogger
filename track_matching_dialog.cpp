@@ -6,6 +6,8 @@
 #include "utils.h"
 #include "multiformat.h"
 
+#include "track_matching_lv_helpers.h"
+
 #define ENCODE_DISCOGS(d,t)		((d==-1||t==-1) ? -1 : ((d<<16)|t))
 #define DECODE_DISCOGS_DISK(i)	((i==-1) ? -1 : (i>>16))
 #define DECODE_DISCOGS_TRACK(i)	((i==-1) ? -1 : (i & 0xFFFF))
@@ -89,8 +91,9 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 	update_list_width(discogs_track_list, true);
 	update_list_width(file_list, true);
 
-	ListView_SetExtendedListViewStyleEx(discogs_track_list, LVS_EX_FULLROWSELECT, LVS_EX_FULLROWSELECT);
-	ListView_SetExtendedListViewStyleEx(file_list, LVS_EX_FULLROWSELECT, LVS_EX_FULLROWSELECT);
+	ListView_SetExtendedListViewStyle(discogs_track_list, LVS_EX_FULLROWSELECT /*| LVS_SHOWSELALWAYS*/);
+	ListView_SetExtendedListViewStyle(file_list, LVS_EX_FULLROWSELECT);
+
 
 	DlgResize_Init(true, true);
 	load_size();
@@ -120,6 +123,7 @@ bool CTrackMatchingDialog::initialize() {
 	else {
 		::ShowWindow(match_success, true);
 	}
+
 	insert_track_mappings();
 
 	// TODO: assess this! (return value not used? does it work if skip release dialog checked?)
@@ -160,10 +164,11 @@ void CTrackMatchingDialog::insert_track_mappings() {
 	hook.set_custom("REPLACE_ANVS", conf.replace_ANVs);
 
 	const size_t count = tag_writer->track_mappings.get_count();
+
 	for (size_t i = 0; i < count; i++) {
 		const track_mapping & mapping = tag_writer->track_mappings[i];
 		if (mapping.file_index == -1) {
-			listview_helper::insert_item(file_list, i, "", -1);
+			//no_file;
 		}
 		else {
 			file_info &finfo = tag_writer->finfo_manager->get_item(mapping.file_index);
@@ -225,96 +230,22 @@ CTrackMatchingDialog::~CTrackMatchingDialog() {
 	g_discogs->track_matching_dialog = nullptr;
 }
 
-void CTrackMatchingDialog::list_swap_items(HWND list, unsigned int pos1, unsigned int pos2) {
-	const unsigned LOCAL_BUFFER_SIZE = 4096;
-	LVITEM lvi1, lvi2;
-	UINT uMask = LVIF_TEXT | LVIF_IMAGE | LVIF_INDENT | LVIF_PARAM | LVIF_STATE;
-	char buffer1[LOCAL_BUFFER_SIZE + 1];
-	char buffer2[LOCAL_BUFFER_SIZE + 1];
-	lvi1.pszText = (LPWSTR)buffer1;
-	lvi2.pszText = (LPWSTR)buffer2;
-	lvi1.cchTextMax = sizeof(buffer1);
-	lvi2.cchTextMax = sizeof(buffer2);
-
-	lvi1.mask = uMask;
-	lvi1.stateMask = (UINT)-1;
-	lvi1.iItem = pos1;
-	lvi1.iSubItem = 0;
-	BOOL result1 = ListView_GetItem(list, &lvi1);
-
-	lvi2.mask = uMask;
-	lvi2.stateMask = (UINT)-1;
-	lvi2.iItem = pos2;
-	lvi2.iSubItem = 0;
-	BOOL result2 = ListView_GetItem(list, &lvi2);
-
-	if (result1 && result2) {
-		lvi1.iItem = pos2;
-		lvi2.iItem = pos1;
-		lvi1.mask = uMask;
-		lvi2.mask = uMask;
-		lvi1.stateMask = (UINT)-1;
-		lvi2.stateMask = (UINT)-1;
-		//swap the items
-		ListView_SetItem(list, &lvi1);
-		ListView_SetItem(list, &lvi2);
-
-		int total_columns = Header_GetItemCount(ListView_GetHeader(list));
-		// Loop for swapping each column in the items.
-		for (int i = 1; i < total_columns; i++) {
-			buffer1[0] = '\0';
-			buffer2[0] = '\0';
-			ListView_GetItemText(list, pos1, i, (LPWSTR)buffer1, LOCAL_BUFFER_SIZE);
-			ListView_GetItemText(list, pos2, i, (LPWSTR)buffer2, LOCAL_BUFFER_SIZE);
-			ListView_SetItemText(list, pos2, i, (LPWSTR)buffer1);
-			ListView_SetItemText(list, pos1, i, (LPWSTR)buffer2);
-		}
-	}
-}
 
 LRESULT CTrackMatchingDialog::OnMoveTrackUp(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	int direction;
-	size_t limit;
-	//size_t max_selected = max(release->get_total_track_count(), items.get_count());
-	direction = -1;
-	limit = 0;
-	// TODO: support moving more than 1 at a time, arbitrarily
-	int nselected = ListView_GetSelectedCount(discogs_track_list);
-	if (nselected == 1) {
-		int index = ListView_GetNextItem(discogs_track_list, -1, LVNI_SELECTED);
-		if (index != -1 && index != limit) {
-			list_swap_items(discogs_track_list, index, index + direction);
-			ListView_SetItemState(discogs_track_list, index + direction, LVIS_SELECTED, LVIS_SELECTED);
-		}
-	}
+	move_selected_items_up(discogs_track_list);
 	return FALSE;
 }
 
 LRESULT CTrackMatchingDialog::OnMoveTrackDown(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	int direction;
-	size_t limit;
-	size_t max_selected = max(tag_writer->release->get_total_track_count(), tag_writer->finfo_manager->items.get_count());
-	direction = 1;
-	limit = max_selected - 1;
-	// TODO: support moving more than 1 at a time, arbitrarily
-	int nselected = ListView_GetSelectedCount(discogs_track_list);
-	if (nselected == 1) {
-		int index = ListView_GetNextItem(discogs_track_list, -1, LVNI_SELECTED);
-		if (index != -1 && index != limit) {
-			list_swap_items(discogs_track_list, index, index + direction);
-			ListView_SetItemState(discogs_track_list, index + direction, LVIS_SELECTED, LVIS_SELECTED);
-		}
-	}
+	move_selected_items_down(discogs_track_list);
 	return FALSE;
 }
 
-LRESULT CTrackMatchingDialog::OnRemoveDiscogsTrack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	remove_selected_items(discogs_track_list);
-	return FALSE;
-}
-
-LRESULT CTrackMatchingDialog::OnRemoveFileTrack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	remove_selected_items(file_list);
+LRESULT CTrackMatchingDialog::OnRemoveTrackButton(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+	if (wID == IDC_REMOVE_DISCOGS_TRACK_BUTTON)
+		remove_items(discogs_track_list, false);
+	else
+		remove_items(file_list, false);
 	return FALSE;
 }
 
@@ -508,60 +439,123 @@ void CTrackMatchingDialog::update_list_width(HWND list, bool initialize) {
 	ListView_SetColumnWidth(list, 0, c1);
 	ListView_SetColumnWidth(list, 1, c2);
 }
+LRESULT CTrackMatchingDialog::list_key_down(HWND wnd, LPNMHDR lParam) {
+	HWND wndList = wnd;
+	NMLVKEYDOWN* info = reinterpret_cast<NMLVKEYDOWN*>(lParam);
 
-LRESULT CTrackMatchingDialog::OnFileListKeyDown(LPNMHDR lParam) {
-	NMLVKEYDOWN * info = reinterpret_cast<NMLVKEYDOWN*>(lParam);
+	bool shift = (GetKeyState(VK_SHIFT) & 0x8000) == 0x8000;
+	bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000);
+
 	switch (info->wVKey) {
-		case VK_DELETE:
-			remove_selected_items(file_list);
+	case VK_DELETE:
+		remove_items(wndList, false);
+		return TRUE;
+
+	case VK_DOWN:
+		switch (GetHotkeyModifierFlags()) {
+		case MOD_CONTROL:
+			move_selected_items_down(wndList);
 			return TRUE;
+		default:
+			return FALSE;
+		}
 
-		case VK_DOWN:
-			switch (GetHotkeyModifierFlags()) {
-				case MOD_CONTROL:
-					move_selected_items_down(file_list);
-					return TRUE;
-				default:
-					return FALSE;
-			}
+	case VK_UP:
+		switch (GetHotkeyModifierFlags()) {
+		case MOD_CONTROL:
+			move_selected_items_up(wndList);
+			return TRUE;
+		default:
+			return FALSE;
+		}
 
-		case VK_UP:
-			switch (GetHotkeyModifierFlags()) {
-				case MOD_CONTROL:
-					move_selected_items_up(file_list);
-					return TRUE;
-				default:
-					return FALSE;
-			}
+	case 0x41: //'a' select all - invert selection
+		if (shift && ctrl) {
+			invert_selected_items(wndList);
+			return TRUE;
+		}
+		else if (ctrl) {
+			select_all_items(wndList);
+			return TRUE;
+		}
+		else
+			return FALSE;
+
+	case 0x43: //'c' crop
+		if (shift && ctrl) {
+			;
+			return TRUE;
+		}
+		else if (ctrl) {
+		    //crop
+			remove_items(wndList, true);
+			return TRUE;
+		}
+		else
+			return FALSE;
 	}
 	return FALSE;
 }
+LRESULT CTrackMatchingDialog::OnListKeyDown(LPNMHDR lParam) {
+	HWND wnd = ((LPNMHDR)lParam)->hwndFrom;
+	list_key_down(wnd, lParam);
+	return 0;
+}
 
-LRESULT CTrackMatchingDialog::OnDiscogsListKeyDown(LPNMHDR lParam) {
-	NMLVKEYDOWN * info = reinterpret_cast<NMLVKEYDOWN*>(lParam);
-	switch (info->wVKey) {
-		case VK_DELETE:
-			remove_selected_items(discogs_track_list);
-			return TRUE;
-
-		case VK_DOWN:
-			switch (GetHotkeyModifierFlags()) {
-				case MOD_CONTROL:
-					move_selected_items_down(discogs_track_list);
-					return TRUE;
-				default:
-					return FALSE;
-			}
-
-		case VK_UP:
-			switch (GetHotkeyModifierFlags()) {
-				case MOD_CONTROL:
-					move_selected_items_up(discogs_track_list);
-					return TRUE;
-				default:
-					return FALSE;
-			}
+bool track_context_menu(HWND wnd, LPARAM coords) {
+	POINT* pf = (POINT*)coords;
+	if ((LPARAM)pf == (LPARAM)(-1)) {
+		CRect rect;
+		CWindow(wnd).GetWindowRect(&rect);
+		pf = &rect.CenterPoint();
 	}
+	
+	try {
+		int coords_x = pf->x, coords_y = pf->y;
+		enum { ID_SELECT_ALL = 1, ID_INVERT_SELECTION, ID_REMOVE, ID_CROP };
+		HMENU menu = CreatePopupMenu();
+		bool bitems = (ListView_GetItemCount(wnd) > 0);
+		bool bselection = (ListView_GetSelectedCount(wnd) > 0);
+		uAppendMenu(menu, MF_STRING | (bitems? 0 : MF_DISABLED), ID_SELECT_ALL, "Select all\tCtrl+a");
+		uAppendMenu(menu, MF_STRING | (bselection? 0 : MF_DISABLED), ID_INVERT_SELECTION, "Invert selection\tCtrl+Shift+a");
+		uAppendMenu(menu, MF_STRING | (bselection? 0 : MF_DISABLED), ID_REMOVE, "Remove\tDel");
+		uAppendMenu(menu, MF_STRING | (bselection? 0 : MF_DISABLED), ID_CROP, "Crop\tCtrl+c");
+		
+		int cmd = TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, coords_x, coords_y, 0, wnd, 0);
+		DestroyMenu(menu);
+		switch (cmd)
+		{
+			case ID_SELECT_ALL:
+			{
+				select_all_items(wnd);
+				return true;
+			}
+			case ID_INVERT_SELECTION:
+			{
+				invert_selected_items(wnd);
+				return true;
+			}
+			case ID_REMOVE:
+			{
+				remove_items(wnd, false);
+				return true;
+			}
+			case ID_CROP:
+			{
+				remove_items(wnd, true);
+				return true; // found;
+			}
+		}
+	}
+	catch (...) {}
+	return false;
+}
+
+LRESULT CTrackMatchingDialog::OnListRClick(LPNMHDR lParam) {
+	HWND wnd = ((LPNMHDR)lParam)->hwndFrom;
+	NMITEMACTIVATE* info = reinterpret_cast<NMITEMACTIVATE*>(lParam);
+	POINT coords; GetCursorPos(&coords);
+	track_context_menu(wnd, (LPARAM)&coords);
 	return FALSE;
 }
 

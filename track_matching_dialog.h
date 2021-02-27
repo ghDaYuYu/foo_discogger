@@ -7,6 +7,8 @@
 #include "multiformat.h"
 #include "tag_writer.h"
 
+#include "track_matching_discogs_listctrl.h"
+
 using namespace Discogs;
 
 

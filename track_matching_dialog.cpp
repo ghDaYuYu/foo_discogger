@@ -164,13 +164,11 @@ void CTrackMatchingDialog::insert_track_mappings() {
 	hook.set_custom("REPLACE_ANVS", conf.replace_ANVs);
 
 	const size_t count = tag_writer->track_mappings.get_count();
-
+	titleformat_object::ptr lenght_script;
+	static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(lenght_script, "%length%");
 	for (size_t i = 0; i < count; i++) {
 		const track_mapping & mapping = tag_writer->track_mappings[i];
-		if (mapping.file_index == -1) {
-			//no_file;
-		}
-		else {
+    	if (i < tag_writer->finfo_manager->items.get_count()) {
 			file_info &finfo = tag_writer->finfo_manager->get_item(mapping.file_index);
 			auto item = tag_writer->finfo_manager->items.get_item(mapping.file_index);
 			pfc::string8 formatted_name;
@@ -249,62 +247,30 @@ LRESULT CTrackMatchingDialog::OnRemoveTrackButton(WORD /*wNotifyCode*/, WORD wID
 	return FALSE;
 }
 
-void CTrackMatchingDialog::remove_selected_items(HWND list) {
-	int index;
-	int end = ListView_GetItemCount(list);
-	while ((index = ListView_GetNextItem(list, -1, LVNI_SELECTED)) != -1) {
-		ListView_DeleteItem(list, index);
-		listview_helper::insert_item(list, end, "", -1);
-	}
-}
-
-void CTrackMatchingDialog::move_selected_items_down(HWND list) {
-	pfc::array_t<int> swap;
-	int index = -1;
-	while ((index = ListView_GetNextItem(list, index, LVNI_SELECTED)) != -1) {
-		swap.append_single(index);
-	}
-	int end = ListView_GetItemCount(list);
-	for (size_t i = swap.get_size() - 1; i >= 0; i--) {
-		if (swap[i] == end) {
-			end--;
-		}
-		else if (swap[i] < end) {
-			list_swap_items(list, swap[i], swap[i] + 1);
-		}
-	}
-}
-
-void CTrackMatchingDialog::move_selected_items_up(HWND list) {
-	pfc::array_t<int> swap;
-	int index = -1;
-	while ((index = ListView_GetNextItem(list, index, LVNI_SELECTED)) != -1) {
-		swap.append_single(index);
-	}
-	int start = 0;
-	for (size_t i = 0; i < swap.get_size(); i++) {
-		if (swap[i] == start) {
-			start++;
-		}
-		else if (swap[i] > start) {
-			list_swap_items(list, swap[i], swap[i] - 1);
-		}
-	}
-}
-
 void CTrackMatchingDialog::generate_track_mappings(track_mappings_list_type &track_mappings) {
 	track_mappings.force_reset();
-	const size_t count = ListView_GetItemCount(discogs_track_list);
-	for (size_t i = 0; i < count; i++) {
+	const size_t count_d = ListView_GetItemCount(discogs_track_list);
+	const size_t count_f = ListView_GetItemCount(file_list);
+	int dindex; int findex;
+	for (size_t i = 0; i < count_d; i++) {
+		findex = -1;
 		track_mapping track;
-		LVITEM lvi;
-		lvi.mask = LVIF_PARAM;
-		lvi.iItem = i;
-		lvi.iSubItem = 0;
-		ListView_GetItem(discogs_track_list, &lvi);
-		int dindex = (int)lvi.lParam;
-		ListView_GetItem(file_list, &lvi);
-		int findex = (int)lvi.lParam;
+		LVITEM lvi_d;
+		ZeroMemory(&lvi_d, sizeof(lvi_d));
+		lvi_d.mask = LVIF_PARAM;
+		lvi_d.iItem = i;
+		lvi_d.iSubItem = 0;
+		ListView_GetItem(discogs_track_list, &lvi_d);
+		dindex = lvi_d.lParam;
+		if (i < count_f) {
+			LVITEM lvi_f;
+			ZeroMemory(&lvi_f, sizeof(lvi_f));
+			lvi_f.mask = LVIF_PARAM;
+			lvi_f.iItem = i;
+			lvi_f.iSubItem = 0;
+			ListView_GetItem(file_list, &lvi_f);
+			findex = lvi_f.lParam;
+		}
 		track.enabled = (findex != -1 && dindex != -1);
 		track.discogs_disc = DECODE_DISCOGS_DISK(dindex);
 		track.discogs_track = DECODE_DISCOGS_TRACK(dindex);

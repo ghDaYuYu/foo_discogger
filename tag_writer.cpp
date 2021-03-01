@@ -17,7 +17,7 @@ void TagWriter::match_tracks() {
 	match_status = compute_discogs_track_order(track_mappings);
 	if (match_status != MATCH_SUCCESS) {
 		track_mappings.force_reset();
-		const size_t count = finfo_manager->items.get_count();
+		const size_t filecount = finfo_manager->items.get_count();
 		for (size_t i = 0; i < release->discs.get_count(); i++) {
 			for (size_t j = 0; j < release->discs[i]->tracks.get_count(); j++) {
 				track_mapping mapping;
@@ -25,14 +25,14 @@ void TagWriter::match_tracks() {
 				mapping.discogs_disc = i;
 				mapping.discogs_track = j;
 				mapping.file_index = track_mappings.get_count();
-				if (mapping.file_index >= 0 && (size_t)mapping.file_index >= count) {
+				if (mapping.file_index > filecount - 1) {
 					mapping.file_index = -1;
 				}
 				track_mappings.append_single(mapping);
 			}
 		}
-		if (count > track_mappings.get_count()) {
-			const size_t extra = count - track_mappings.get_count();
+		if (filecount > track_mappings.get_count()) {
+			const size_t extra = filecount - track_mappings.get_count();
 			for (size_t i = 0; i < extra; i++) {
 				track_mapping mapping;
 				mapping.enabled = true;

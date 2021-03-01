@@ -90,7 +90,6 @@ FB2K_STREAM_WRITER_OVERLOAD(tag_mapping_entry) {
 typedef pfc::list_t<tag_mapping_entry> tag_mappings_list_type;
 typedef cfg_objList<tag_mapping_entry> cfg_tag_mappings_list_type;
 
-
 extern void init_tag_mappings();
 extern void init_default_tag_mappings();
 extern pfc::list_t<tag_mapping_entry> * copy_tag_mappings();

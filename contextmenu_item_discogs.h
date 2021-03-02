@@ -10,10 +10,13 @@
 #include "update_tags_dialog.h"
 #include "tags.h"
 
-
 // {2C6B4148-365D-4585-BA74-724F06192E4A}
 static const GUID guid_WriteTags =
 {0x2c6b4148, 0x365d, 0x4585, {0xba, 0x74, 0x72, 0x4f, 0x6, 0x19, 0x2e, 0x4c}};
+
+// {99649CA2-0759-4E29-8CBA-FA5D4F496CAC}
+static const GUID guid_WriteTagsDropId =
+{0x99649ca2, 0x759, 0x4e29, {0x8c, 0xba, 0xfa, 0x5d, 0x4f, 0x49, 0x6c, 0xac}};
 
 // {8A4C8171-0FA6-4137-BC12-C00C451693D5}
 static const GUID guid_UpdateTags =
@@ -77,6 +80,7 @@ private:
 	enum MenuIndex
 	{
 		WriteTags,
+		WriteTagsDropId,
 		UpdateTags,
 		UpdateArt,
 		DisplayReleasePage,
@@ -96,7 +100,7 @@ public:
 	}
 
 	unsigned get_num_items() override {
-		return 11;
+		return 12;
 	}
 
 	void get_item_name(unsigned p_index, pfc::string_base & p_out) override {
@@ -134,6 +138,10 @@ public:
 			case Configuration:
 				p_out = "Configuration...";
 				break;
+			case WriteTagsDropId: {
+				p_out = "Write Tags (Update Release Id)...";
+				break;
+			}
 
 		}
 	}
@@ -152,7 +160,7 @@ public:
 
 		switch (p_index) {
 			case WriteTags:
-				g_discogs->find_release_dialog = new CFindReleaseDialog(core_api::get_main_window(), p_data);
+				g_discogs->find_release_dialog = new CFindReleaseDialog(core_api::get_main_window(), p_data, false);
 				break;
 
 			case UpdateTags:
@@ -194,6 +202,10 @@ public:
 			case Configuration:
 				static_api_ptr_t<ui_control>()->show_preferences(guid_pref_page);
 				break;
+
+			case WriteTagsDropId:
+				g_discogs->find_release_dialog = new CFindReleaseDialog(core_api::get_main_window(), p_data, true);
+				break;
 		}
 	}
 
@@ -204,6 +216,10 @@ public:
 			case WriteTags:
 				p_displayflags = !g_discogs->locked_operation && !g_discogs->find_release_dialog && !g_discogs->track_matching_dialog && !g_discogs->preview_tags_dialog ? 0 : FLAG_GRAYED;
 				break;
+			case WriteTagsDropId: {
+				p_displayflags = !g_discogs->locked_operation && !g_discogs->find_release_dialog && !g_discogs->track_matching_dialog && !g_discogs->preview_tags_dialog ? 0 : FLAG_GRAYED;
+				break;
+			}
 			case UpdateTags:
 				p_displayflags = !g_discogs->locked_operation && !g_discogs->update_tags_dialog && !g_discogs->find_release_dialog && !g_discogs->track_matching_dialog && !g_discogs->preview_tags_dialog ? 0 : FLAG_GRAYED;
 				break;
@@ -242,6 +258,8 @@ public:
 		switch (p_index) {
 			case WriteTags:
 				return guid_WriteTags;
+			case WriteTagsDropId:
+				return guid_WriteTagsDropId;
 			case UpdateTags:
 				return guid_UpdateTags;
 			case UpdateArt:
@@ -270,6 +288,9 @@ public:
 		switch (p_index) {
 			case WriteTags:
 				p_out = "Write Tags";
+				break;
+			case WriteTagsDropId:
+				p_out = "Write Tags (Update Release Id)";
 				break;
 			case UpdateTags:
 				p_out = "Update Tags";
@@ -300,6 +321,14 @@ public:
 				break;
 		}
 		return true;
+	}
+
+	bool item_is_mappable_shortcut(unsigned p_index)
+	{
+		if (p_index == WriteTagsDropId)
+			return false;
+		else
+			return true;
 	}
 };
 

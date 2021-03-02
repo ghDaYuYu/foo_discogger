@@ -15,6 +15,7 @@ class search_artist_process_callback;
 class CFindReleaseDialog : public MyCDialogImpl<CFindReleaseDialog>, public CDialogResize<CFindReleaseDialog>, public CMessageFilter
 {
 private:
+	bool dropId = false;
 	bool conf_changed = false;
 	foo_discogs_conf conf;
 
@@ -112,7 +113,7 @@ public:
 		save_size(cxWidth, cyHeight);
 	}
 
-	CFindReleaseDialog(HWND p_parent, metadb_handle_list items) : items(items) {
+	CFindReleaseDialog(HWND p_parent, metadb_handle_list items, bool dropId) : items(items), dropId(dropId) {
 		find_release_artist = nullptr;
 		Create(p_parent);
 	};

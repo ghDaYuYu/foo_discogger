@@ -70,14 +70,14 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	}
 	if (artist) {
 		uSetWindowText(search_edit, artist);
-		if (release_id_unknown && conf.enable_autosearch && artist[0] != '\0') {
+		if ((release_id_unknown || dropId) && conf.enable_autosearch && artist[0] != '\0') {
 			search_artist();
 		}
 	}
 	else {
 		uSetWindowText(search_edit, "");
 	}
-	uSendMessage(m_hWnd, DM_SETDEFID, (WPARAM)release_id_unknown ? IDC_SEARCH_BUTTON : IDC_PROCESS_RELEASE_BUTTON, 0);
+	uSendMessage(m_hWnd, DM_SETDEFID, (WPARAM)dropId || release_id_unknown ? IDC_SEARCH_BUTTON : IDC_PROCESS_RELEASE_BUTTON, 0);
 
 	const char *album = finfo.meta_get("ALBUM", 0);
 	if (album && strcmp(album, "") != 0) {
@@ -102,7 +102,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 
 		uMessageBox(m_hWnd, "OAuth is required to use the\nDiscogs API. Please configure OAuth.", "Error.", MB_OK);
 	}
-	else if (!release_id_unknown && conf.skip_find_release_dialog_if_ided) {
+	else if ((!release_id_unknown && !dropId) && conf.skip_find_release_dialog_if_ided) {
 		on_write_tags(release_id);
 	}
 	return FALSE;

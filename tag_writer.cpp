@@ -615,14 +615,14 @@ void TagWriter::write_tags() {
 				bool remove = true;
 				for (size_t k = 0; k < TAGS.get_size(); k++) {
 					auto &tag = TAGS.get_item_ref(k);
-					if (STR_EQUAL(tag_name, tag.tag_name)) {
+					if (pfc::stringCompareCaseInsensitive(tag_name, tag.tag_name) == 0) {
 						remove = false;
 						break;
 					}
 				}
 				if (remove) {
 					for (size_t k = 0; k < CONF.remove_exclude_tags.get_size(); k++) {
-						if (STR_EQUAL(tag_name, CONF.remove_exclude_tags[k])) {
+						if (pfc::stringCompareCaseInsensitive(tag_name, CONF.remove_exclude_tags[k]) == 0) {
 							remove = false;
 							break;
 						}

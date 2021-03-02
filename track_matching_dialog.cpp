@@ -14,14 +14,12 @@
 
 
 namespace listview_helper {
-	
+
 	unsigned insert_column(HWND p_listview, unsigned p_index, const char * p_name, unsigned p_width_dlu, int fmt)
 	{
 		pfc::stringcvt::string_os_from_utf8 os_string_temp(p_name);
-
 		RECT rect = { 0, 0, static_cast<LONG>(p_width_dlu), 0 };
 		MapDialogRect(GetParent(p_listview), &rect);
-
 		LVCOLUMN data = {};
 		data.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_FMT;
 		data.fmt = fmt;
@@ -33,7 +31,6 @@ namespace listview_helper {
 		else return (unsigned)ret;
 	}
 }
-
 
 inline void CTrackMatchingDialog::load_size() {
 	int x = conf.release_dialog_width;
@@ -56,9 +53,7 @@ inline void CTrackMatchingDialog::save_size(int x, int y) {
 LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
 	conf = CONF;
 	
-	match_failed = uGetDlgItem(IDC_FAILED_TO_MATCH_TRACKS);
-	match_assumed = uGetDlgItem(IDC_ASSUMED_MATCH_TRACKS);
-	match_success = uGetDlgItem(IDC_MATCHED_TRACKS);
+
 
 	if (multi_mode) {
 		::ShowWindow(uGetDlgItem(IDC_WRITE_TAGS_BUTTON), false);
@@ -109,20 +104,46 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 	return TRUE;
 }
 
-bool CTrackMatchingDialog::initialize() {
-	::ShowWindow(match_failed, false);
-	::ShowWindow(match_assumed, false);
-	::ShowWindow(match_success, false);
+void CTrackMatchingDialog::update_match_message_display(pfc::string8 override) {
 
-	if (tag_writer->match_status == MATCH_FAIL) {
-		::ShowWindow(match_failed, true);
+	HWND ctrl_match_msg = uGetDlgItem(IDC_MATCH_TRACKS_MSG);
+	pfc::string8 newmessage;
+
+	int local_status;
+	const int local_override = -100;
+	if (override.length() > 0)
+		local_status = local_override;
+	else
+		local_status = tag_writer->match_status;
+
+	switch (local_status) {
+	case local_override:
+		newmessage.set_string(match_manual);
+		goto showwindow;
+	case MATCH_FAIL:
+		newmessage.set_string(match_failed);
+		goto showwindow;
+	case MATCH_ASSUME:
+		newmessage.set_string(match_assumed);
+		goto showwindow;
+	case MATCH_SUCCESS:
+		newmessage.set_string(match_success);
+		goto showwindow;
+	case MATCH_NA:
+		newmessage.set_string("NA");
+		goto showwindow;
+
+	default:
+		newmessage.set_string("UNKNOWN");
+	showwindow:
+		uSetDlgItemText(m_hWnd, IDC_MATCH_TRACKS_MSG, newmessage);
+		::ShowWindow(ctrl_match_msg, newmessage.length() > 0);
 	}
-	else if (tag_writer->match_status == MATCH_ASSUME) {
-		::ShowWindow(match_assumed, true);
-	}
-	else {
-		::ShowWindow(match_success, true);
-	}
+}
+
+bool CTrackMatchingDialog::initialize() {
+
+	update_match_message_display();
 
 	insert_track_mappings();
 
@@ -134,26 +155,6 @@ bool CTrackMatchingDialog::initialize() {
 		return FALSE;
 	}
 	return TRUE;
-}
-
-pfc::string8 duration_to_str(int seconds) {
-	int hours = seconds / 3600;
-	seconds %= 3600;
-	int minutes = seconds / 60;
-	seconds = seconds % 60;
-	pfc::string8 result = "";
-	if (hours) {
-		result << hours << ":";
-	}
-	if (hours && minutes < 10) {
-		result << "0";
-	}
-	result << minutes << ":";
-	if (seconds < 10) {
-		result << "0";
-	}
-	result << seconds;
-	return result;
 }
 
 void CTrackMatchingDialog::insert_track_mappings() {
@@ -174,13 +175,12 @@ void CTrackMatchingDialog::insert_track_mappings() {
 			pfc::string8 formatted_name;
 			conf.release_file_format_string->run_simple(item->get_location(), &finfo, formatted_name);
 			pfc::string8 display = pfc::string_filename_ext(formatted_name);
-			const char *length_titleformat = "%length%";
 			pfc::string8 formatted_length;
-			item->format_title(nullptr, formatted_length, titleformat_object_wrapper(length_titleformat), nullptr);
-			listview_helper::insert_item2(file_list, i, display, formatted_length, mapping.file_index);
+			item->format_title(nullptr, formatted_length, lenght_script, nullptr);
+			listview_helper::insert_item2(file_list, i, display, formatted_length,(LPARAM)mapping.file_index);
 		}
 		if (mapping.discogs_disc == -1 && mapping.discogs_track == -1) {
-			listview_helper::insert_item(discogs_track_list, i, "", -1);
+			//TODO: further testing on more files than discogs tracks
 		}
 		else {
 			const ReleaseDisc_ptr disc = tag_writer->release->discs[mapping.discogs_disc];
@@ -206,9 +206,18 @@ void CTrackMatchingDialog::insert_track_mappings() {
 }
 
 LRESULT CTrackMatchingDialog::OnColorStatic(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/) {
-	if ((HWND)lParam == match_failed || (HWND)lParam == match_assumed) {
-		SetBkMode((HDC)wParam, TRANSPARENT);
-		SetTextColor((HDC)wParam, RGB(255, 0, 0));
+	if ((HWND)lParam == uGetDlgItem(IDC_MATCH_TRACKS_MSG)) {
+
+		pfc::string8 match_msg;
+		uGetDlgItemText(m_hWnd, IDC_MATCH_TRACKS_MSG, match_msg);
+
+		if (!stricmp_utf8(match_msg, match_failed) 
+			|| !stricmp_utf8(match_msg, match_assumed)
+			|| !stricmp_utf8(match_msg, match_manual)) {
+
+			SetBkMode((HDC)wParam, TRANSPARENT);
+			SetTextColor((HDC)wParam, RGB(255, 0, 0));
+		}
 	}
 	/*else if ((HWND)lParam == match_success) {
 		SetBkMode((HDC)wParam, TRANSPARENT);
@@ -231,15 +240,18 @@ CTrackMatchingDialog::~CTrackMatchingDialog() {
 
 LRESULT CTrackMatchingDialog::OnMoveTrackUp(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	move_selected_items_up(discogs_track_list);
+	update_match_message_display(match_manual);
 	return FALSE;
 }
 
 LRESULT CTrackMatchingDialog::OnMoveTrackDown(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+	update_match_message_display(match_manual);
 	move_selected_items_down(discogs_track_list);
 	return FALSE;
 }
 
 LRESULT CTrackMatchingDialog::OnRemoveTrackButton(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+	update_match_message_display(match_manual);
 	if (wID == IDC_REMOVE_DISCOGS_TRACK_BUTTON)
 		remove_items(discogs_track_list, false);
 	else
@@ -405,6 +417,7 @@ void CTrackMatchingDialog::update_list_width(HWND list, bool initialize) {
 	ListView_SetColumnWidth(list, 0, c1);
 	ListView_SetColumnWidth(list, 1, c2);
 }
+
 LRESULT CTrackMatchingDialog::list_key_down(HWND wnd, LPNMHDR lParam) {
 	HWND wndList = wnd;
 	NMLVKEYDOWN* info = reinterpret_cast<NMLVKEYDOWN*>(lParam);
@@ -415,12 +428,14 @@ LRESULT CTrackMatchingDialog::list_key_down(HWND wnd, LPNMHDR lParam) {
 	switch (info->wVKey) {
 	case VK_DELETE:
 		remove_items(wndList, false);
+		update_match_message_display(match_manual);
 		return TRUE;
 
 	case VK_DOWN:
 		switch (GetHotkeyModifierFlags()) {
 		case MOD_CONTROL:
 			move_selected_items_down(wndList);
+			update_match_message_display(match_manual);
 			return TRUE;
 		default:
 			return FALSE;
@@ -430,6 +445,7 @@ LRESULT CTrackMatchingDialog::list_key_down(HWND wnd, LPNMHDR lParam) {
 		switch (GetHotkeyModifierFlags()) {
 		case MOD_CONTROL:
 			move_selected_items_up(wndList);
+			update_match_message_display(match_manual);
 			return TRUE;
 		default:
 			return FALSE;
@@ -455,6 +471,7 @@ LRESULT CTrackMatchingDialog::list_key_down(HWND wnd, LPNMHDR lParam) {
 		else if (ctrl) {
 		    //crop
 			remove_items(wndList, true);
+			update_match_message_display(match_manual);
 			return TRUE;
 		}
 		else
@@ -468,7 +485,7 @@ LRESULT CTrackMatchingDialog::OnListKeyDown(LPNMHDR lParam) {
 	return 0;
 }
 
-bool track_context_menu(HWND wnd, LPARAM coords) {
+bool CTrackMatchingDialog::track_context_menu(HWND wnd, LPARAM coords) {
 	POINT* pf = (POINT*)coords;
 	if ((LPARAM)pf == (LPARAM)(-1)) {
 		CRect rect;
@@ -482,10 +499,10 @@ bool track_context_menu(HWND wnd, LPARAM coords) {
 		HMENU menu = CreatePopupMenu();
 		bool bitems = (ListView_GetItemCount(wnd) > 0);
 		bool bselection = (ListView_GetSelectedCount(wnd) > 0);
-		uAppendMenu(menu, MF_STRING | (bitems? 0 : MF_DISABLED), ID_SELECT_ALL, "Select all\tCtrl+a");
-		uAppendMenu(menu, MF_STRING | (bselection? 0 : MF_DISABLED), ID_INVERT_SELECTION, "Invert selection\tCtrl+Shift+a");
+		uAppendMenu(menu, MF_STRING | (bitems? 0 : MF_DISABLED), ID_SELECT_ALL, "Select all\tCtrl+A");
+		uAppendMenu(menu, MF_STRING | (bselection? 0 : MF_DISABLED), ID_INVERT_SELECTION, "Invert selection\tCtrl+Shift+A");
 		uAppendMenu(menu, MF_STRING | (bselection? 0 : MF_DISABLED), ID_REMOVE, "Remove\tDel");
-		uAppendMenu(menu, MF_STRING | (bselection? 0 : MF_DISABLED), ID_CROP, "Crop\tCtrl+c");
+		uAppendMenu(menu, MF_STRING | (bselection? 0 : MF_DISABLED), ID_CROP, "Crop\tCtrl+C");
 		
 		int cmd = TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, coords_x, coords_y, 0, wnd, 0);
 		DestroyMenu(menu);
@@ -504,11 +521,13 @@ bool track_context_menu(HWND wnd, LPARAM coords) {
 			case ID_REMOVE:
 			{
 				remove_items(wnd, false);
+				update_match_message_display(match_manual);
 				return true;
 			}
 			case ID_CROP:
 			{
 				remove_items(wnd, true);
+				update_match_message_display(match_manual);
 				return true; // found;
 			}
 		}

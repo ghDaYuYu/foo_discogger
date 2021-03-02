@@ -7,10 +7,7 @@
 #include "multiformat.h"
 #include "tag_writer.h"
 
-#include "track_matching_discogs_listctrl.h"
-
 using namespace Discogs;
-
 
 class CTrackMatchingDialog : public MyCDialogImpl<CTrackMatchingDialog>,
 	public CDialogResize<CTrackMatchingDialog>,
@@ -45,21 +42,15 @@ private:
 	titleformat_hook_impl_multiformat hook;
 
 	HWND discogs_track_list, file_list;
-	HWND match_failed, match_assumed, match_success;
-
+	
 	void load_size();
 	void save_size(int x, int y);
 
 	void insert_track_mappings();
 	void list_swap_items(HWND list, unsigned int pos1, unsigned int pos2);
-
-	void remove_selected_items(HWND list);
-	void move_selected_items_up(HWND list);
-	void move_selected_items_down(HWND list);
-
 	void generate_track_mappings(track_mappings_list_type &track_mappings);
-
 	void update_list_width(HWND list, bool initialize=false);
+	bool track_context_menu(HWND wnd, LPARAM coords);
 
 public:
 	enum { IDD = IDD_DIALOG_MATCH_TRACKS };
@@ -93,17 +84,12 @@ public:
 		DLGRESIZE_CONTROL(IDC_TRACKLIST_GROUP, DLSZ_SIZE_X | DLSZ_SIZE_Y)
 		DLGRESIZE_CONTROL(IDC_DISCOGS_TRACK_LIST, DLSZ_SIZE_Y)
 		DLGRESIZE_CONTROL(IDC_FILE_LIST, DLSZ_SIZE_Y)
-		DLGRESIZE_CONTROL(IDC_REMOVE_FILE_TRACK_BUTTON, DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDC_FAILED_TO_MATCH_TRACKS, DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDC_ASSUMED_MATCH_TRACKS, DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDC_MATCHED_TRACKS, DLSZ_MOVE_Y)
+		DLGRESIZE_CONTROL(IDC_MATCH_TRACKS_MSG, DLSZ_MOVE_Y)
 		BEGIN_DLGRESIZE_GROUP()
 			DLGRESIZE_CONTROL(IDC_DISCOGS_TRACK_LIST, DLSZ_SIZE_X)
 			DLGRESIZE_CONTROL(IDC_FILE_LIST, DLSZ_SIZE_X)
 			DLGRESIZE_CONTROL(IDC_REMOVE_FILE_TRACK_BUTTON, DLSZ_MOVE_X)
-			DLGRESIZE_CONTROL(IDC_FAILED_TO_MATCH_TRACKS, DLSZ_MOVE_X)
-			DLGRESIZE_CONTROL(IDC_ASSUMED_MATCH_TRACKS, DLSZ_MOVE_X)
-			DLGRESIZE_CONTROL(IDC_MATCHED_TRACKS, DLSZ_MOVE_X)
+			DLGRESIZE_CONTROL(IDC_MATCH_TRACKS_MSG, DLSZ_MOVE_X)		
 		END_DLGRESIZE_GROUP()
 		DLGRESIZE_CONTROL(IDC_REMOVE_DISCOGS_TRACK_BUTTON, DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_MOVE_UP_BUTTON, DLSZ_MOVE_Y)
@@ -165,6 +151,7 @@ public:
 	LRESULT list_key_down(HWND wnd, LPNMHDR lParam);
 
 	bool initialize();
+	void update_match_message_display(pfc::string8 override = "");
 	bool get_next_tag_writer();
 	bool get_previous_tag_writer();
 

@@ -7,8 +7,7 @@
 //
 // Generated from the TEXTINCLUDE 2 resource.
 //
-#include "WinResrc.h"
-#define IDC_STATIC -1
+#include "afxres.h"
 
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
@@ -33,14 +32,7 @@ END
 
 2 TEXTINCLUDE 
 BEGIN
-    "#include ""WinResrc.h""\r\n"
-    "#define IDC_STATIC -1\r\n"
-    "\0"
-END
-
-3 TEXTINCLUDE 
-BEGIN
-    "#define IDC_STATIC -1\r\n"
+    "#include ""afxres.h""\r\n"
     "\0"
 END
 
@@ -128,16 +120,6 @@ IDD_DIALOG_TAG_MAPPINGS AFX_DIALOG_LAYOUT
 BEGIN
     0
 END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Icon
-//
-
-// Icon with lowest ID value placed first to ensure application icon
-// remains consistent on all systems.
-IDI_SCROLL              ICON                    "..\\..\\libPPUI\\IDI_SCROLL.ico"
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -327,9 +309,7 @@ BEGIN
     PUSHBUTTON      "Move up",IDC_MOVE_UP_BUTTON,69,168,50,14
     PUSHBUTTON      "Move down",IDC_MOVE_DOWN_BUTTON,123,168,50,14
     PUSHBUTTON      "Remove",IDC_REMOVE_FILE_TRACK_BUTTON,277,168,50,14
-    RTEXT           "FAILED TO MATCH TRACK ORDER",IDC_FAILED_TO_MATCH_TRACKS,402,170,121,10
-    RTEXT           "MATCHED TRACK ORDER",IDC_MATCHED_TRACKS,404,170,119,10
-    RTEXT           "ASSUMED TRACK ORDER",IDC_ASSUMED_MATCH_TRACKS,404,170,119,9
+    RTEXT           "ASSUMED TRACK ORDER",IDC_MATCH_TRACKS_MSG,404,170,119,9
     PUSHBUTTON      "<< Back",IDC_BACK_BUTTON,313,191,50,14
     PUSHBUTTON      "Write tags",IDC_WRITE_TAGS_BUTTON,367,191,50,14
     PUSHBUTTON      "Preview tags",IDC_PREVIEW_TAGS_BUTTON,421,191,50,14
@@ -359,7 +339,7 @@ BEGIN
     DEFPUSHBUTTON   "Write tags",IDC_WRITE_TAGS_BUTTON,229,228,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,283,228,50,14
     PUSHBUTTON      "Skip",IDC_SKIP_BUTTON,283,228,50,14
-    CTEXT           "0 writes, 0 updates",IDC_PREVIEW_STATS,344,230,83,8
+    CTEXT           "0 writes, 0 updates",IDC_PREVIEW_STATS,344,230,83,11
 END
 
 IDD_DIALOG_PROMPT DIALOGEX 0, 0, 258, 60
@@ -527,6 +507,16 @@ BEGIN
 END
 #endif    // APSTUDIO_INVOKED
 
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_SCROLL              ICON                    "..\\..\\libPPUI\\IDI_SCROLL.ico"
+
 #endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
 
@@ -537,7 +527,7 @@ END
 //
 // Generated from the TEXTINCLUDE 3 resource.
 //
-#define IDC_STATIC -1
+
 
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED

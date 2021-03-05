@@ -168,12 +168,42 @@ void CFindReleaseDialog::insert_item(const pfc::string8 &item, int list_index, i
 	uSendMessage(release_list, LB_SETITEMDATA, list_index, (LPARAM)item_data);
 }
 
+int assist_id_marker(int dropId, const pfc::string8 currentid, int currentndx, pfc::string8& out) {
+	int ires = -1;
+	if (dropId == std::atoi(currentid)) {
+		ires = currentndx;
+		out.add_string(" <");
+	}
+	return ires;
+}
+
 void CFindReleaseDialog::filter_releases(const pfc::string8 &filter) {
 	uSendMessage(release_list, LB_RESETCONTENT, 0, 0);
 
 	if (!find_release_artist) {
 		return;
 	}
+
+	//Write Tags (Update ReleaseId) menu option
+	//TODO: recheck first and second run
+	//first run - getting the initial master
+	//second run to expand
+
+	int drop_release_id;
+	int list_index_dropId = -1;
+	
+	pfc::string8 tmp_release_id; bool release_id_unknown = true;
+	file_info_impl finfo;	metadb_handle_ptr item = items[0];
+	item->get_info(finfo);
+
+	if (g_discogs->file_info_get_tag(item, finfo, TAG_RELEASE_ID, tmp_release_id)) {
+		drop_release_id = std::atoi(tmp_release_id.get_ptr());
+		release_id_unknown = false;
+	}
+
+	bool assist_dropId = (!release_id_unknown && dropId);
+	//..
+
 	
 	int list_index = 0;
 	int master_index = 0, release_index = 0;
@@ -215,8 +245,15 @@ void CFindReleaseDialog::filter_releases(const pfc::string8 &filter) {
 				}
 			}
 			if (matches) {
+				if (assist_dropId && list_index_dropId == -1) {
+					list_index_dropId =	assist_id_marker(drop_release_id,
+						find_release_artist->releases[release_index]->id,
+						list_index, item);
+				}
+
 				insert_item(item, list_index, item_data);
 				list_index++;
+
 				inserted = true;
 			}
 			if (is_master) {
@@ -242,6 +279,13 @@ void CFindReleaseDialog::filter_releases(const pfc::string8 &filter) {
 							inserted = true;
 						}
 						item_data = (master_index << 16) | j;
+
+						if (assist_dropId && list_index_dropId == -1) {
+							list_index_dropId = assist_id_marker(drop_release_id,
+								find_release_artist->master_releases[master_index]->sub_releases[j]->id,
+								list_index, sub_item);
+						}
+
 						insert_item(sub_item, list_index, item_data);
 						list_index++;
 					}

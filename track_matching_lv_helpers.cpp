@@ -71,38 +71,48 @@
 	//Moves the selected items up one level
 	void move_selected_items_up(HWND list)
 	{
-
+		t_size newfocus = pfc_infinite;
 		for (int i = 0; i < ListView_GetItemCount(list); i++)
 		{
-			if (ListView_IsItemSelected(list, i))//identify the selected item
+			if (ListView_IsItemSelected(list, i))
 			{
+				if (i == 0) return;
 				//swap with the top item(move up)
+				
 				if (i > 0 && !ListView_IsItemSelected(list, i - 1))
 				{
 					list_swap_items(list, i, i - 1);
+					if (newfocus == pfc_infinite) newfocus = i;
 					ListView_SetItemState(list, i - 1, LVIS_SELECTED, 0x000F);
 				}
 			}
 		}
+		if (newfocus != pfc_infinite)
+			ListView_SetItemState(list, newfocus, /*LVIS_SELECTED |*/ LVIS_FOCUSED, LVIS_FOCUSED);
 	}
 
 	//Moves the selected items up one level
 	void move_selected_items_down(HWND list)
 	{
+		t_size newfocus = pfc_infinite;
 		int startindex = ListView_GetItemCount(list) - 1;
 		for (int i = startindex; i > -1; i--)
 		{
 			if (ListView_IsItemSelected(list, i))//identify the selected item
 			{
+				if (i == startindex) return;
 				//swap with the lower item(move down)
 				if (i < startindex && !ListView_IsItemSelected(list, i + 1))
 				{
 					list_swap_items(list, i, i + 1);
+					if (newfocus == pfc_infinite) newfocus = i;
 					ListView_SetItemState(list, i + 1, LVIS_SELECTED, 0x000F);
 				}
 
 			}
 		}
+		if (newfocus != pfc_infinite)
+		ListView_SetItemState(list, newfocus, /*LVIS_SELECTED | */LVIS_FOCUSED, LVIS_FOCUSED);
 	}
 
 	void remove_items(HWND list, bool bcrop) {
@@ -131,13 +141,14 @@
 		}
 
 		if (!bcrop && ListView_GetItemCount(list) > 0) {
-			ListView_SetItemState(list, nextfocus > 0 ? nextfocus - 1 : 0, LVIS_FOCUSED, 0x000F);
+			ListView_SetItemState(list, nextfocus > 0 ? nextfocus - 1 : 0, LVIS_FOCUSED | LVIS_SELECTED, 0x000F);
 		}
 	}
 
 	void select_all_items(HWND list) {
 		ListView_SetItemState(list, -1, LVIS_SELECTED, 0x000F);
 		ListView_SetItemState(list, 0, LVIS_FOCUSED, 0x000F);
+		ListView_SetItemState(list, -1, LVIS_SELECTED, 0x000F);
 	}
 
 	void invert_selected_items(HWND list) {
@@ -153,5 +164,5 @@
 			::SendMessage(list, LVM_SETITEMSTATE, (WPARAM)i, (LPARAM)&lvi);
 		}
 
-		ListView_SetItemState(list, newfsel, LVIS_FOCUSED, 0x000F);
+		ListView_SetItemState(list, newfsel, LVIS_FOCUSED | LVIS_SELECTED, 0x000F);
 	}

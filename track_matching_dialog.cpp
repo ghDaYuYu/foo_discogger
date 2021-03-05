@@ -11,7 +11,8 @@
 #define ENCODE_DISCOGS(d,t)		((d==-1||t==-1) ? -1 : ((d<<16)|t))
 #define DECODE_DISCOGS_DISK(i)	((i==-1) ? -1 : (i>>16))
 #define DECODE_DISCOGS_TRACK(i)	((i==-1) ? -1 : (i & 0xFFFF))
-
+#define DISABLED_RGB	RGB(150, 150, 150)
+#define CHANGE_NOT_APPROVED_RGB	RGB(150, 100, 100)
 
 namespace listview_helper {
 
@@ -104,14 +105,14 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 	return TRUE;
 }
 
-void CTrackMatchingDialog::update_match_message_display(pfc::string8 override) {
+void CTrackMatchingDialog::match_message_update(pfc::string8 match_msg) {
 
 	HWND ctrl_match_msg = uGetDlgItem(IDC_MATCH_TRACKS_MSG);
 	pfc::string8 newmessage;
 
 	int local_status;
 	const int local_override = -100;
-	if (override.length() > 0)
+	if (match_msg.length() > 0)
 		local_status = local_override;
 	else
 		local_status = tag_writer->match_status;
@@ -143,7 +144,7 @@ void CTrackMatchingDialog::update_match_message_display(pfc::string8 override) {
 
 bool CTrackMatchingDialog::initialize() {
 
-	update_match_message_display();
+	match_message_update();
 
 	insert_track_mappings();
 
@@ -240,18 +241,18 @@ CTrackMatchingDialog::~CTrackMatchingDialog() {
 
 LRESULT CTrackMatchingDialog::OnMoveTrackUp(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	move_selected_items_up(discogs_track_list);
-	update_match_message_display(match_manual);
+	match_message_update(match_manual);
 	return FALSE;
 }
 
 LRESULT CTrackMatchingDialog::OnMoveTrackDown(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	update_match_message_display(match_manual);
+	match_message_update(match_manual);
 	move_selected_items_down(discogs_track_list);
 	return FALSE;
 }
 
 LRESULT CTrackMatchingDialog::OnRemoveTrackButton(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	update_match_message_display(match_manual);
+	match_message_update(match_manual);
 	if (wID == IDC_REMOVE_DISCOGS_TRACK_BUTTON)
 		remove_items(discogs_track_list, false);
 	else
@@ -427,15 +428,17 @@ LRESULT CTrackMatchingDialog::list_key_down(HWND wnd, LPNMHDR lParam) {
 
 	switch (info->wVKey) {
 	case VK_DELETE:
+
 		remove_items(wndList, false);
-		update_match_message_display(match_manual);
+		match_message_update(match_manual);
 		return TRUE;
 
 	case VK_DOWN:
 		switch (GetHotkeyModifierFlags()) {
 		case MOD_CONTROL:
+
 			move_selected_items_down(wndList);
-			update_match_message_display(match_manual);
+			match_message_update(match_manual);
 			return TRUE;
 		default:
 			return FALSE;
@@ -444,8 +447,9 @@ LRESULT CTrackMatchingDialog::list_key_down(HWND wnd, LPNMHDR lParam) {
 	case VK_UP:
 		switch (GetHotkeyModifierFlags()) {
 		case MOD_CONTROL:
+
 			move_selected_items_up(wndList);
-			update_match_message_display(match_manual);
+			match_message_update(match_manual);
 			return TRUE;
 		default:
 			return FALSE;
@@ -469,9 +473,9 @@ LRESULT CTrackMatchingDialog::list_key_down(HWND wnd, LPNMHDR lParam) {
 			return TRUE;
 		}
 		else if (ctrl) {
-		    //crop
+
 			remove_items(wndList, true);
-			update_match_message_display(match_manual);
+			match_message_update(match_manual);
 			return TRUE;
 		}
 		else
@@ -520,14 +524,17 @@ bool CTrackMatchingDialog::track_context_menu(HWND wnd, LPARAM coords) {
 			}
 			case ID_REMOVE:
 			{
+
 				remove_items(wnd, false);
-				update_match_message_display(match_manual);
+				match_message_update(match_manual);
+
 				return true;
 			}
 			case ID_CROP:
 			{
+
 				remove_items(wnd, true);
-				update_match_message_display(match_manual);
+				match_message_update(match_manual);
 				return true; // found;
 			}
 		}

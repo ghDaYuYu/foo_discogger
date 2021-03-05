@@ -46,6 +46,11 @@ static const std::map<const char*, const char*, cmp_str> MONTH_NAMES = {
 	{"12", "Dec"}
 };
 
+static const pfc::string8 match_failed("FAILED TO MATCH TRACK ORDER");
+static const pfc::string8 match_success("MATCHED TRACK ORDER");
+static const pfc::string8 match_assumed("ASSUMED TRACK ORDER");
+static const pfc::string8 match_manual("...");
+
 typedef pfc::array_t<t_uint8> MemoryBlock;
 
 // Trim whitespace from strings

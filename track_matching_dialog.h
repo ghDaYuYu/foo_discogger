@@ -7,10 +7,7 @@
 #include "multiformat.h"
 #include "tag_writer.h"
 
-#include "track_matching_discogs_listctrl.h"
-
 using namespace Discogs;
-
 
 class CTrackMatchingDialog : public MyCDialogImpl<CTrackMatchingDialog>,
 	public CDialogResize<CTrackMatchingDialog>,
@@ -45,21 +42,15 @@ private:
 	titleformat_hook_impl_multiformat hook;
 
 	HWND discogs_track_list, file_list;
-	HWND match_failed, match_assumed, match_success;
-
+	
 	void load_size();
 	void save_size(int x, int y);
 
 	void insert_track_mappings();
 	void list_swap_items(HWND list, unsigned int pos1, unsigned int pos2);
-
-	void remove_selected_items(HWND list);
-	void move_selected_items_up(HWND list);
-	void move_selected_items_down(HWND list);
-
 	void generate_track_mappings(track_mappings_list_type &track_mappings);
-
 	void update_list_width(HWND list, bool initialize=false);
+	bool track_context_menu(HWND wnd, LPARAM coords);
 
 public:
 	enum { IDD = IDD_DIALOG_MATCH_TRACKS };

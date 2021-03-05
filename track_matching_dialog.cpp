@@ -90,6 +90,8 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 	ListView_SetExtendedListViewStyle(discogs_track_list, LVS_EX_FULLROWSELECT /*| LVS_SHOWSELALWAYS*/);
 	ListView_SetExtendedListViewStyle(file_list, LVS_EX_FULLROWSELECT);
 
+	list_drop_handler.Initialize(m_hWnd, discogs_track_list, file_list);
+	list_drop_handler.SetNotifier(stdf_change_notifier);
 
 	DlgResize_Init(true, true);
 	load_size();

@@ -6,6 +6,7 @@
 #include "file_info_manager.h"
 #include "multiformat.h"
 #include "tag_writer.h"
+#include "track_match_lstdrop.h"
 
 using namespace Discogs;
 
@@ -16,7 +17,6 @@ class CTrackMatchingDialog : public MyCDialogImpl<CTrackMatchingDialog>,
 private:
 	bool conf_changed = false;
 	foo_discogs_conf conf;
-	//foo_discogs_conf conf_dlg_edit;
 
 	bool use_update_tags = false;
 	bool multi_mode = false;
@@ -42,7 +42,13 @@ private:
 	titleformat_hook_impl_multiformat hook;
 
 	HWND discogs_track_list, file_list;
-	
+	MatchListDropHandler list_drop_handler;
+
+	std::function<bool(HWND wndlist)>stdf_change_notifier =
+		[this](HWND x) -> bool {
+		match_message_update(match_manual);
+		return true; };
+		
 	void load_size();
 	void save_size(int x, int y);
 
@@ -53,6 +59,7 @@ private:
 	bool track_context_menu(HWND wnd, LPARAM coords);
 
 public:
+
 	enum { IDD = IDD_DIALOG_MATCH_TRACKS };
 
 	virtual BOOL PreTranslateMessage(MSG* pMsg) override {
@@ -62,14 +69,14 @@ public:
 	MY_BEGIN_MSG_MAP(CTrackMatchingDialog)
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
 		MESSAGE_HANDLER(WM_CTLCOLORSTATIC, OnColorStatic)
+		NOTIFY_HANDLER_EX(IDC_FILE_LIST, NM_RCLICK, OnListRClick)
+		NOTIFY_HANDLER_EX(IDC_DISCOGS_TRACK_LIST, NM_RCLICK, OnListRClick)
+		NOTIFY_HANDLER_EX(IDC_FILE_LIST, LVN_KEYDOWN, OnListKeyDown)
+		NOTIFY_HANDLER_EX(IDC_DISCOGS_TRACK_LIST, LVN_KEYDOWN, OnListKeyDown)
 		COMMAND_ID_HANDLER(IDC_MOVE_UP_BUTTON, OnMoveTrackUp)
 		COMMAND_ID_HANDLER(IDC_MOVE_DOWN_BUTTON, OnMoveTrackDown)
 		COMMAND_ID_HANDLER(IDC_REMOVE_DISCOGS_TRACK_BUTTON, OnRemoveTrackButton)
 		COMMAND_ID_HANDLER(IDC_REMOVE_FILE_TRACK_BUTTON, OnRemoveTrackButton)
-		NOTIFY_HANDLER_EX(IDC_FILE_LIST, LVN_KEYDOWN, OnListKeyDown)
-		NOTIFY_HANDLER_EX(IDC_DISCOGS_TRACK_LIST, LVN_KEYDOWN, OnListKeyDown)
-		NOTIFY_HANDLER_EX(IDC_FILE_LIST, NM_RCLICK, OnListRClick)
-		NOTIFY_HANDLER_EX(IDC_DISCOGS_TRACK_LIST, NM_RCLICK, OnListRClick)
 		COMMAND_ID_HANDLER(IDC_PREVIEW_TAGS_BUTTON, OnPreviewTags)
 		COMMAND_ID_HANDLER(IDC_WRITE_TAGS_BUTTON, OnWriteTags)
 		COMMAND_ID_HANDLER(IDC_NEXT_BUTTON, OnMultiNext)
@@ -77,23 +84,29 @@ public:
 		COMMAND_ID_HANDLER(IDC_BACK_BUTTON, OnBack)
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
 		COMMAND_ID_HANDLER(IDC_SKIP_BUTTON, OnMultiSkip)
+		CHAIN_MSG_MAP_MEMBER(list_drop_handler)
 		CHAIN_MSG_MAP(CDialogResize<CTrackMatchingDialog>)
 	MY_END_MSG_MAP()
-
 	BEGIN_DLGRESIZE_MAP(CTrackMatchingDialog)
 		DLGRESIZE_CONTROL(IDC_TRACKLIST_GROUP, DLSZ_SIZE_X | DLSZ_SIZE_Y)
 		DLGRESIZE_CONTROL(IDC_DISCOGS_TRACK_LIST, DLSZ_SIZE_Y)
 		DLGRESIZE_CONTROL(IDC_FILE_LIST, DLSZ_SIZE_Y)
-		DLGRESIZE_CONTROL(IDC_MATCH_TRACKS_MSG, DLSZ_MOVE_Y)
-		BEGIN_DLGRESIZE_GROUP()
-			DLGRESIZE_CONTROL(IDC_DISCOGS_TRACK_LIST, DLSZ_SIZE_X)
-			DLGRESIZE_CONTROL(IDC_FILE_LIST, DLSZ_SIZE_X)
-			DLGRESIZE_CONTROL(IDC_REMOVE_FILE_TRACK_BUTTON, DLSZ_MOVE_X)
-			DLGRESIZE_CONTROL(IDC_MATCH_TRACKS_MSG, DLSZ_MOVE_X)		
-		END_DLGRESIZE_GROUP()
+		DLGRESIZE_CONTROL(IDC_REMOVE_FILE_TRACK_BUTTON, DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_REMOVE_DISCOGS_TRACK_BUTTON, DLSZ_MOVE_Y)
+		BEGIN_DLGRESIZE_GROUP()
+		DLGRESIZE_CONTROL(IDC_STATIC_FILE_LST_TITLE, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_DISCOGS_TRACK_LIST, DLSZ_SIZE_X)
+		DLGRESIZE_CONTROL(IDC_FILE_LIST, DLSZ_SIZE_X)
+		DLGRESIZE_CONTROL(IDC_REMOVE_DISCOGS_TRACK_BUTTON, DLSZ_MOVE_X)
+		END_DLGRESIZE_GROUP()
 		DLGRESIZE_CONTROL(IDC_MOVE_UP_BUTTON, DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_MOVE_DOWN_BUTTON, DLSZ_MOVE_Y)
+		BEGIN_DLGRESIZE_GROUP()
+		DLGRESIZE_CONTROL(IDC_DISCOGS_TRACK_LIST, DLSZ_SIZE_X)
+		DLGRESIZE_CONTROL(IDC_FILE_LIST, DLSZ_SIZE_X)
+		DLGRESIZE_CONTROL(IDC_REMOVE_FILE_TRACK_BUTTON, DLSZ_MOVE_X)
+		END_DLGRESIZE_GROUP()
+		DLGRESIZE_CONTROL(IDC_MATCH_TRACKS_MSG, DLSZ_MOVE_X | DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_BACK_BUTTON, DLSZ_MOVE_X | DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_PREVIEW_TAGS_BUTTON, DLSZ_MOVE_X | DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_WRITE_TAGS_BUTTON, DLSZ_MOVE_X | DLSZ_MOVE_Y)
@@ -111,15 +124,13 @@ public:
 	}
 
 	CTrackMatchingDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags = false) : 
-			tag_writer(tag_writer), use_update_tags(use_update_tags) {
+			tag_writer(tag_writer), use_update_tags(use_update_tags), list_drop_handler() {
 		g_discogs->track_matching_dialog = this;
 		Create(p_parent);
 	}
 	CTrackMatchingDialog(HWND p_parent, pfc::array_t<TagWriter_ptr> tag_writers, bool use_update_tags = false) :
-			tag_writers(tag_writers), use_update_tags(use_update_tags), multi_mode(true) {
-		
+			tag_writers(tag_writers), use_update_tags(use_update_tags), multi_mode(true), list_drop_handler() {
 		g_discogs->track_matching_dialog = this;
-
 		tag_writer = nullptr;
 
 		if (init_count()) {
@@ -131,6 +142,7 @@ public:
 		}
 	}
 	~CTrackMatchingDialog();
+
 	void CTrackMatchingDialog::OnFinalMessage(HWND /*hWnd*/) override;
 
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
@@ -151,6 +163,7 @@ public:
 	LRESULT list_key_down(HWND wnd, LPNMHDR lParam);
 
 	bool initialize();
+	void match_message_update(pfc::string8 local_msg = "");
 	bool get_next_tag_writer();
 	bool get_previous_tag_writer();
 

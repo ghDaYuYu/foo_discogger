@@ -4,7 +4,6 @@
 #include "file_info_manager.h"
 #include "error_manager.h"
 
-#define MATCH_MANUAL	-2
 #define MATCH_NA		-1
 #define MATCH_SUCCESS	0
 #define MATCH_FAIL		1

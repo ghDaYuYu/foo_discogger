@@ -129,7 +129,10 @@ bool CPreviewTagsDialog::initialize() {
 	}
 
 	bool release_has_anv = tag_writer->release->has_anv();
+	HWND wnd_anv = uGetDlgItem(IDC_REPLACE_ANV_CHECK);
 	CheckDlgButton(IDC_REPLACE_ANV_CHECK, release_has_anv && conf.replace_ANVs);
+	//Done on CDDS_PREPAINT
+	//::EnableWindow(wnd_anv, release_has_anv);
 
 	// Album art
 	if (tag_writer->release->small_art.get_size() > 0 && (conf.save_album_art || conf.embed_album_art)) {
@@ -388,9 +391,12 @@ void CPreviewTagsDialog::GlobalReplace_ANV(bool state) {
 }
 
 LRESULT CPreviewTagsDialog::OnCheckReplaceANVs(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	conf.replace_ANVs = IsDlgButtonChecked(IDC_REPLACE_ANV_CHECK) != 0;
-	conf_changed = true;
-	tag_mappings_updated();
+	bool local_replace_ANV = IsDlgButtonChecked(IDC_REPLACE_ANV_CHECK);
+	if (CONF.replace_ANVs != local_replace_ANV) {
+		conf.replace_ANVs = local_replace_ANV;
+		GlobalReplace_ANV(local_replace_ANV);
+		tag_mappings_updated();
+	} 
 	return FALSE;
 }
 

@@ -981,6 +981,12 @@ pfc::string8 getYearFromReleased(pfc::string8 released) {
 	return "";
 }
 
+pfc::string8 remove_dot_2spaces(pfc::string8 in) {
+	pfc::string8_fastalloc buffer;
+	uReplaceString(buffer, in, pfc_infinite, ".  ", 3, ". ", 2, false);
+	return buffer;
+}
+
 void Discogs::parseRelease(Release *release, json_t *root) {
 	assert_is_object(root);
 
@@ -991,7 +997,7 @@ void Discogs::parseRelease(Release *release, json_t *root) {
 	release->country = JSONAttributeString(root, "country");
 	release->genres = JSONAttributeStringArray(root, "genres");
 	release->styles = JSONAttributeStringArray(root, "styles");
-	release->notes = JSONAttributeString(root, "notes");
+	release->notes = remove_dot_2spaces(JSONAttributeString(root, "notes"));
 	release->discogs_total_discs = std::stoi(JSONAttributeString(root, "format_quantity").get_ptr());
 	release->barcode = JSONAttributeObjectArrayAttributeStringWhere(root, "identifiers", "value", "type", "Barcode");
 	release->weight = JSONAttributeString(root, "estimated_weight");

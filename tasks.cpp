@@ -725,7 +725,12 @@ void process_release_callback::safe_run(threaded_process_status &p_status, abort
 			}
 
 			p_status.set_item("Fetching small album art...");
-			discogs_interface->fetcher->fetch_url(release->images[0]->url150, "", release->small_art, p_abort, false);
+			try {
+				discogs_interface->fetcher->fetch_url(release->images[0]->url150, "", release->small_art, /*dummy_abort*/p_abort, false);
+			}
+			catch (foo_discogs_exception& e) {
+				add_error("Fetching small album art", e, false);
+			}
 		}
 	}
 

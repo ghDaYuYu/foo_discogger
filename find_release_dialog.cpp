@@ -95,12 +95,12 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 		if (!g_discogs->configuration_dialog) {	
 			static_api_ptr_t<ui_control>()->show_preferences(guid_pref_page);
 		}
-		else {
-			::SetFocus(g_discogs->configuration_dialog->m_hWnd);
-		}
-		g_discogs->configuration_dialog->show_tab(CONF_OATH_TAB);
+		g_discogs->configuration_dialog->show_oauth_msg(
+				"OAuth is required to use the Discogs API.\n Please configure OAuth.",
+				true);
 
-		uMessageBox(m_hWnd, "OAuth is required to use the\nDiscogs API. Please configure OAuth.", "Error.", MB_OK);
+		::SetFocus(g_discogs->configuration_dialog->m_hWnd);
+		
 	}
 	else if ((!release_id_unknown && !dropId) && conf.skip_find_release_dialog_if_ided) {
 		on_write_tags(release_id);

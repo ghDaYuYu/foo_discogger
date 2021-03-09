@@ -337,9 +337,34 @@ void CConfigurationDialog::init_art_dialog(HWND wnd) {
 void CConfigurationDialog::init_oauth_dialog(HWND wnd) {
 	token_edit = ::uGetDlgItem(wnd, IDC_OAUTH_TOKEN_EDIT);
 	secret_edit = ::uGetDlgItem(wnd, IDC_OAUTH_SECRET_EDIT);
+	oauth_msg = ::uGetDlgItem(wnd, IDC_STATIC_CONF_OAUTH_MSG);
 
 	uSetWindowText(token_edit, conf.oauth_token);
 	uSetWindowText(secret_edit, conf.oauth_token_secret);
+
+	HWND wndIconOk = ::uGetDlgItem(g_hWndCurrentTab, IDC_STATIC_OAUTH_ICO_OK);
+	HWND wndIconErr = ::uGetDlgItem(g_hWndCurrentTab, IDC_STATIC_OAUTH_ICO_ERROR);
+	::ShowWindow(wndIconOk, SW_HIDE);
+	::ShowWindow(wndIconErr, SW_HIDE);
+	uSetWindowText(oauth_msg, "");
+}
+
+void CConfigurationDialog::show_oauth_msg(pfc::string8 msg, bool iserror) {
+	if (g_current_tab != CONF_OATH_TAB)
+		g_discogs->configuration_dialog->show_tab(CONF_OATH_TAB);
+
+	HWND wndIconOk = ::uGetDlgItem(g_hWndCurrentTab, IDC_STATIC_OAUTH_ICO_OK);
+	HWND wndIconErr = ::uGetDlgItem(g_hWndCurrentTab, IDC_STATIC_OAUTH_ICO_ERROR);
+
+	if (msg.length() > 0) {
+		::ShowWindow(wndIconOk, iserror? SW_HIDE : SW_SHOW);
+		::ShowWindow(wndIconErr, iserror? SW_SHOW : SW_HIDE);
+	}
+	else {
+		::ShowWindow(wndIconOk, SW_HIDE);
+		::ShowWindow(wndIconOk, SW_HIDE);
+	}
+	uSetDlgItemText(g_hWndCurrentTab, IDC_STATIC_CONF_OAUTH_MSG, msg);
 }
 
 void CConfigurationDialog::save_tagging_dialog(HWND wnd, bool dlgbind) {
@@ -811,6 +836,7 @@ BOOL CConfigurationDialog::on_oauth_dialog_message(HWND wnd, UINT msg, WPARAM wp
 					}
 					break;
 			}
+			break;
 	}
 	return FALSE;
 }
@@ -843,7 +869,7 @@ void CConfigurationDialog::on_generate_oauth(HWND wnd) {
 	uGetDlgItemText(wnd, IDC_OAUTH_PIN_EDIT, code);
 
 	if (code.get_length() == 0) {
-		uMessageBox(m_hWnd, "You must enter a valid PIN code.", "Error.", MB_OK);
+		show_oauth_msg("You must enter a valid PIN code.", true);
 		return;
 	}
 
@@ -861,6 +887,7 @@ void CConfigurationDialog::reset() {
 	BOOL bdummy = FALSE;
 	OnDefaults(0, 0, NULL, bdummy);
 	apply();
+	
 	conf = CONF;
 	conf_dlg_edit = CONF;
 

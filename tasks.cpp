@@ -769,7 +769,13 @@ void test_oauth_process_callback::safe_run(threaded_process_status &p_status, ab
 }
 
 void test_oauth_process_callback::on_success(HWND p_wnd) {
-	uMessageBox(p_wnd, "OAuth is working!", "Success!", MB_OK);
+	if (!g_discogs->configuration_dialog) {
+		static_api_ptr_t<ui_control>()->show_preferences(guid_pref_page);
+	}
+	g_discogs->configuration_dialog->show_oauth_msg(
+		"OAuth is working!\nSuccess!", false);
+
+	::SetFocus(g_discogs->configuration_dialog->m_hWnd);
 }
 
 

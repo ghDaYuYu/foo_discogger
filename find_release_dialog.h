@@ -11,6 +11,8 @@ class expand_master_release_process_callback;
 class get_artist_process_callback;
 class search_artist_process_callback;
 
+extern struct mounted_param  myparam;
+
 
 class CFindReleaseDialog : public MyCDialogImpl<CFindReleaseDialog>, public CDialogResize<CFindReleaseDialog>, public CMessageFilter
 {
@@ -33,7 +35,11 @@ private:
 	Artist_ptr find_release_artist;
 
 	void insert_item(const pfc::string8 &item, int list_index, int item_data);
-
+	void get_item_text(HWND list, int list_index, int col, pfc::string8& out);
+	void get_item_param(HWND list, int list_index, int col, LPARAM& out_p);
+	void get_mounted_param(mounted_param& pm, LPARAM lparam);
+	mounted_param get_mounted_param(LPARAM lparam);
+	
 	HWND artist_list, release_list;
 	HWND release_url_edit, search_edit, filter_edit;
 

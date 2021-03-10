@@ -239,6 +239,33 @@ void CFindReleaseDialog::on_search_artist_done(pfc::array_t<Artist_ptr> &p_artis
 	fill_artist_list();
 }
 
+void CFindReleaseDialog::get_item_text(HWND list, int list_index, int col, pfc::string8& out) {
+	LVITEM lvitem = { 0 };
+	const int strsize = 1024;
+	wchar_t str[strsize + 1] = { 0 };
+	lvitem.cchTextMax = strsize;
+	lvitem.mask = LVIF_TEXT;
+	lvitem.iItem = list_index;
+	lvitem.iSubItem = col;
+	lvitem.pszText = str;
+	int res = ListView_GetItem(list, &lvitem);
+
+	pfc::stringcvt::string_utf8_from_os os_to_utf8(lvitem.pszText);
+	out.set_string(os_to_utf8);
+}
+
+void CFindReleaseDialog::get_item_param(HWND list, int list_index, int col, LPARAM& out_p) {
+	
+	LVITEM lvitem = { 0 };
+	lvitem.mask = LVIF_PARAM;
+	lvitem.iItem = list_index;
+	lvitem.iSubItem = col;
+	int res = ListView_GetItem(list, &lvitem);
+
+	out_p = MAKELPARAM(LOWORD(lvitem.lParam), HIWORD(lvitem.lParam));
+	//out_p = lvitem.lParam;
+}
+
 void CFindReleaseDialog::insert_item(const pfc::string8 &item, int list_index, int item_data) {
 	uSendMessageText(release_list, LB_ADDSTRING, 0, item.get_ptr());
 	uSendMessage(release_list, LB_SETITEMDATA, list_index, (LPARAM)item_data);
@@ -395,22 +422,27 @@ void CFindReleaseDialog::on_release_selected(int list_index) {
 	if (this->active_task) {
 		return;
 	}
-	int item_data = (int)uSendMessage(release_list, LB_GETITEMDATA, list_index, 0);
-	int master_index = item_data >> 16;
-	int release_index = item_data & 0xFFFF;
+	
+	LPARAM out_p;
+	get_item_param(release_list, list_index, 0, out_p);
+	int item_data = (int)out_p;
+	mounted_param myparam =	get_mounted_param(myparam);
+
 	pfc::string8 selected_id;
-	if (master_index != 9999 && release_index == 9999) {
-		expand_master_release(find_release_artist->master_releases[master_index], list_index);
-		selected_id = find_release_artist->master_releases[master_index]->main_release_id;
+
+	if (myparam.bmaster && !myparam.brelease) {
+		expand_master_release(find_release_artist->master_releases[myparam.master_ndx], list_index);
+		selected_id = find_release_artist->master_releases[myparam.master_ndx]->main_release_id;
 	}
-	else if (master_index != 9999) {
-		selected_id = find_release_artist->master_releases[master_index]->sub_releases[release_index]->id;
+	else if (myparam.bmaster) {
+		selected_id = find_release_artist->master_releases[myparam.master_ndx]->sub_releases[myparam.release_ndx]->id;
 	}
 	else {
-		selected_id = find_release_artist->releases[release_index]->id;
+		selected_id = find_release_artist->releases[myparam.release_ndx]->id;
 	}
 	uSetWindowText(release_url_edit, selected_id.get_ptr());
 	uSendMessage(m_hWnd, DM_SETDEFID, IDC_PROCESS_RELEASE_BUTTON, 0);
+
 }
 
 LRESULT CFindReleaseDialog::OnEditReleaseIdText(WORD wNotifyCode, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
@@ -462,14 +494,21 @@ LRESULT CFindReleaseDialog::OnSelectRelease(WORD /*wNotifyCode*/, WORD wID, HWND
 LRESULT CFindReleaseDialog::OnDoubleClickRelease(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	int pos = (int)uSendMessage(release_list, LB_GETCURSEL, 0, 0);
 	if (pos != -1) {
-		int item_data = (int)uSendMessage(release_list, LB_GETITEMDATA, pos, 0);
-		int master_index = item_data >> 16;
-		int release_index = item_data & 0xFFFF;
+
+		LV_ITEM lvi;
+		lvi.iItem = pos;
+		lvi.mask = LVIF_PARAM;
+		ListView_GetItem(release_list, &lvi);
+		mounted_param mp = get_mounted_param(lvi.lParam);
+		
+		int master_index = mp.master_ndx;
+		int release_index = mp.release_ndx;
+
 		pfc::string8 url; 
-		if (master_index != 9999 && release_index == 9999) {
+		if (mp.bmaster && !mp.brelease) {
 			url << "https://www.discogs.com/master/" << find_release_artist->master_releases[master_index]->id;
 		}
-		else if (master_index != 9999) {
+		else if (mp.bmaster) {
 			url << "https://www.discogs.com/release/" << find_release_artist->master_releases[master_index]->sub_releases[release_index]->id;
 		}
 		else {
@@ -482,7 +521,6 @@ LRESULT CFindReleaseDialog::OnDoubleClickRelease(WORD /*wNotifyCode*/, WORD wID,
 
 LRESULT CFindReleaseDialog::OnCheckOnlyExactMatches(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	conf.display_exact_matches = IsDlgButtonChecked(IDC_ONLY_EXACT_MATCHES_CHECK) != 0;
-	conf_changed = true; 
 	fill_artist_list();
 	return FALSE;
 }

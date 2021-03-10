@@ -12,13 +12,20 @@ class get_artist_process_callback;
 class search_artist_process_callback;
 
 extern struct mounted_param  myparam;
+enum class runHook { rhMaster, rhRelease, rhSubrelease, rhUndef};
 
 
-class CFindReleaseDialog : public MyCDialogImpl<CFindReleaseDialog>, public CDialogResize<CFindReleaseDialog>, public CMessageFilter
+
+extern struct find_lv_config cfg_lv;
+
+class CFindReleaseDialog : public MyCDialogImpl<CFindReleaseDialog>,
+	public CDialogResize<CFindReleaseDialog>,
+	public CMessageFilter
 {
 private:
 	bool dropId = false;
-	bool conf_changed = false;
+	int list_index_dropId = -1;
+
 	foo_discogs_conf conf;
 
 	playable_location_impl location;
@@ -34,12 +41,19 @@ private:
 	pfc::array_t<Artist_ptr> find_release_artists;
 	Artist_ptr find_release_artist;
 
+	std::vector<std::pair<int, int>> vec_icol_subitems;
+	void update_sorted_icol_map(bool reset);
+
 	void insert_item(const pfc::string8 &item, int list_index, int item_data);
+	int insert_item_row(const std::list<std::pair<int, pfc::string8>>coldata, int list_index, int item_data);
+
+	void reset_default_columns(bool reset);
 	void get_item_text(HWND list, int list_index, int col, pfc::string8& out);
 	void get_item_param(HWND list, int list_index, int col, LPARAM& out_p);
 	void get_mounted_param(mounted_param& pm, LPARAM lparam);
 	mounted_param get_mounted_param(LPARAM lparam);
-	
+	void run_hook_columns(std::list<std::pair<int, pfc::string8>>&col_data_list, runHook ismaster, runHook is_subrelease);
+
 	HWND artist_list, release_list;
 	HWND release_url_edit, search_edit, filter_edit;
 
@@ -52,7 +66,7 @@ private:
 	//TODO: add persistence to find release dialog columns
 
 	void fill_artist_list();
-	void select_first_release();
+	void select_first_release(int list_index_dropId = 0);
 	void filter_releases(const pfc::string8 &text);
 
 	void search_artist();
@@ -89,8 +103,9 @@ public:
 		COMMAND_ID_HANDLER(IDC_FILTER_EDIT, OnEditFilterText)
 		COMMAND_HANDLER(IDC_ARTIST_LIST, LBN_SELCHANGE, OnSelectArtist)
 		COMMAND_HANDLER(IDC_ARTIST_LIST, LBN_DBLCLK, OnDoubleClickArtist)
-		COMMAND_HANDLER(IDC_RELEASE_LIST, LBN_SELCHANGE, OnSelectRelease)
+		NOTIFY_HANDLER(IDC_RELEASE_LIST, /*LVN_ODSTATECHANGED*/LVN_ITEMCHANGED, OnListViewItemChanged)
 		COMMAND_HANDLER(IDC_RELEASE_LIST, LBN_DBLCLK, OnDoubleClickRelease)
+		NOTIFY_HANDLER(IDC_RELEASE_LIST, NM_CUSTOMDRAW, OnCustomDraw)
 		COMMAND_ID_HANDLER(IDC_ONLY_EXACT_MATCHES_CHECK, OnCheckOnlyExactMatches)
 		COMMAND_ID_HANDLER(IDC_SEARCH_BUTTON, OnSearch)
 		COMMAND_ID_HANDLER(IDC_CLEAR_FILTER_BUTTON, OnClearFilter)
@@ -140,7 +155,8 @@ public:
 	LRESULT OnEditFilterText(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnSelectArtist(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnDoubleClickArtist(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnSelectRelease(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnCustomDraw(int wParam, LPNMHDR lParam, BOOL bHandled);
+	LRESULT OnListViewItemChanged(int, LPNMHDR hdr, BOOL&);
 	LRESULT OnDoubleClickRelease(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCheckOnlyExactMatches(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnSearch(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);

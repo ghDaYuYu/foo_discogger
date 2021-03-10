@@ -9,30 +9,106 @@
 #include "resource.h"
 #include "utils.h"
 
+//compensate gripp offset
+//TODO: dpi check
+struct rzgripp {
+	int x; 
+	int y;
+	bool grip;
+} mygripp { 22, 56, true};
+
 
 inline void CFindReleaseDialog::load_size() {
-	int x = conf.find_release_dialog_width;
-	int y = conf.find_release_dialog_height;
-	if (x != 0 && y != 0) {
-		SetWindowPos(nullptr, 0, 0, x, y, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
 
-		CRect rectClient;
-		GetClientRect(&rectClient);
-		DlgResize_UpdateLayout(rectClient.Width(), rectClient.Height());
+	CRect rcCli;
+
+	int grippx = 22;
+	int grippy = 56;
+	int width = conf.find_release_dialog_width;
+	int height = conf.find_release_dialog_height;
+
+	if (width != 0 && height != 0) {
+		SetWindowPos(nullptr, 0, 0, width + mygripp.x, height + mygripp.y, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+	}
+
+	//columns
+
+	CRect rcCli;
+	::GetClientRect(release_list, &rcCli);
+	int width = rcCli.Width();
+
+	ListView_SetColumnWidth(release_list, 0, width);
+
 	}
 }
 
-inline void CFindReleaseDialog::save_size(int x, int y) {
-	conf.find_release_dialog_width = x;
-	conf.find_release_dialog_height = y;
-	conf_changed = true;
-}
-
-CFindReleaseDialog::~CFindReleaseDialog() {
+void CFindReleaseDialog::pushcfg() {
+	bool conf_changed = build_current_cfg();
 	if (conf_changed) {
 		CONF.save(new_conf::ConfFilter::CONF_FILTER_FIND, conf);
 		CONF.load();
 	}
+}
+
+inline bool CFindReleaseDialog::build_current_cfg() {
+	bool bres = false;
+
+	//check global settings
+	conf.display_exact_matches = IsDlgButtonChecked(IDC_ONLY_EXACT_MATCHES_CHECK) != 0;
+
+	bool local_display_exact_matches = IsDlgButtonChecked(IDC_ONLY_EXACT_MATCHES_CHECK);
+	if (CONF.display_exact_matches != conf.display_exact_matches &&
+		conf.display_exact_matches != local_display_exact_matches) {
+
+		conf.display_exact_matches = local_display_exact_matches;
+		bres = bres || true;
+	}
+
+	//... nothing here	
+
+	//get current ui dimensions
+
+	CRect rcDlg;
+	GetClientRect(&rcDlg);
+
+	int dlgwidth = rcDlg.Width();
+	int dlgheight = rcDlg.Height();
+
+	//dlg size
+
+	if (dlgheight != conf.find_release_dialog_height || dlgwidth != conf.find_release_dialog_width) {
+		conf.find_release_dialog_width = dlgwidth;
+		conf.find_release_dialog_height = dlgheight;
+		bres = bres || true;
+	}
+	
+	return bres;
+}
+
+LRESULT CFindReleaseDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
+	pushcfg();
+	return 0;
+}
+
+LRESULT CFindReleaseDialog::OnOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+	pfc::string8 text;
+	uGetWindowText(release_url_edit, text);
+	pfc::string8 release_id = text.get_ptr();
+	release_id = trim(release_id);
+	extract_id_from_url(release_id);
+	extract_release_from_link(release_id);
+	if (release_id.get_length() != 0) {
+		on_write_tags(release_id);
+	}
+	return TRUE;
+}
+
+LRESULT CFindReleaseDialog::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+	destroy();
+	return TRUE;
+}
+
+CFindReleaseDialog::~CFindReleaseDialog() {
 	g_discogs->find_release_dialog = nullptr;
 }
 
@@ -85,8 +161,8 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	}
 
 	DlgResize_Init(true, true);
-
 	load_size();
+
 	modeless_dialog_manager::g_add(m_hWnd);
 	show();
 

@@ -40,7 +40,10 @@ private:
 	service_ptr_t<expand_master_release_process_callback> *active_task = nullptr;
 
 	void load_size();
-	void save_size(int x, int y);
+	bool build_current_cfg();
+	void pushcfg();
+
+	//TODO: add persistence to find release dialog columns
 
 	void fill_artist_list();
 	void select_first_release();
@@ -74,6 +77,7 @@ public:
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
 		COMMAND_ID_HANDLER(IDC_PROCESS_RELEASE_BUTTON, OnOK)
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
+		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		COMMAND_ID_HANDLER(IDC_RELEASE_URL_TEXT, OnEditReleaseIdText)
 		COMMAND_ID_HANDLER(IDC_SEARCH_TEXT, OnEditSearchText)
 		COMMAND_ID_HANDLER(IDC_FILTER_EDIT, OnEditFilterText)
@@ -110,7 +114,6 @@ public:
 
 	void DlgResize_UpdateLayout(int cxWidth, int cyHeight) {
 		CDialogResize<CFindReleaseDialog>::DlgResize_UpdateLayout(cxWidth, cyHeight);
-		save_size(cxWidth, cyHeight);
 	}
 
 	CFindReleaseDialog(HWND p_parent, metadb_handle_list items, bool dropId) : items(items), dropId(dropId) {
@@ -118,12 +121,14 @@ public:
 		Create(p_parent);
 	};
 	~CFindReleaseDialog();
+	
 	void OnFinalMessage(HWND /*hWnd*/) override;
 	
 
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnEditReleaseIdText(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnEditSearchText(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnEditFilterText(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);

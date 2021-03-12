@@ -173,6 +173,14 @@ void CTrackMatchingDialog::insert_track_mappings() {
 			hook.set_release(&tag_writer->release);
 			hook.set_disc(&disc);
 			hook.set_track(&track);
+
+			if (i == 0) {
+				pfc::string8 compact_release;
+				CONF.search_master_sub_format_string->run_hook(location, &info, &hook, compact_release, nullptr);
+				int l = compact_release.get_length();
+				uSetDlgItemText(m_hWnd, IDC_STATIC_MATCH_TRACKING_REL_NAME, ltrim(compact_release));
+			}
+
 			pfc::string8 text;
 			conf.release_discogs_format_string->run_hook(location, &info, &hook, text, nullptr);
 			pfc::string8 time;

@@ -795,55 +795,56 @@ LRESULT CFindReleaseDialog::OnCustomDraw(int wParam, LPNMHDR lParam, BOOL bHandl
 	
 	LPNMLVCUSTOMDRAW lplvcd = (LPNMLVCUSTOMDRAW)lParam;
 	int pos = (int)lplvcd->nmcd.dwItemSpec;
-	if (ListView_GetItemCount(release_list) == 0) return CDRF_DODEFAULT;
-		
+
 	LPARAM lp = MAKELPARAM(0, 0);;
 	get_item_param(release_list, pos, 0, lp);
-	int drop_release_id;
-	pfc::string8 tmp_release_id; bool release_id_unknown = true;
-	file_info_impl finfo;	metadb_handle_ptr item = items[0];
-	item->get_info(finfo);
-
-	if (g_discogs->file_info_get_tag(item, finfo, TAG_RELEASE_ID, tmp_release_id)) {
-		drop_release_id = std::atoi(tmp_release_id.get_ptr());
-		release_id_unknown = false;
-	}
-
-	bool assist_dropId = (!release_id_unknown && dropId);
 
 	switch (lplvcd->nmcd.dwDrawStage) {
-	
-        case CDDS_PREPAINT: 
-            return CDRF_NOTIFYITEMDRAW;
-    
-        case CDDS_ITEMPREPAINT: {
-            int master_lst_ndx = lplvcd->nmcd.lItemlParam >> 16;
-            int release_lst_ndx = lplvcd->nmcd.lItemlParam & 0xFFFF;
-            bool bmaster = (master_lst_ndx != 9999);
-            bool brelease = (release_lst_ndx != 9999);
-    
-            if (brelease && dropId && (list_index_dropId == pos))
-            {
-                lplvcd->clrText = RGB(0, 0, 0);
-                lplvcd->clrTextBk = RGB(230, 230, 230);
-                return CDRF_NEWFONT;
-            }
-            else {
-                if (brelease) {
-                    lplvcd->clrText = RGB(0, 0, 0);
-                    lplvcd->clrTextBk = RGB(255, 255, 255);
-                }
-                else {
-                    lplvcd->clrText = RGB(50, 50, 50);
-                    lplvcd->clrTextBk = RGB(240, 240, 240);
-                }
-                return CDRF_NEWFONT;
-            }
-            break;
-        }
-        case CDDS_SUBITEM | CDDS_ITEMPREPAINT:
-            return CDRF_NEWFONT;
-        }
+	case CDDS_PREPAINT: 
+		return CDRF_NOTIFYITEMDRAW;
+
+	case CDDS_ITEMPREPAINT: {
+		mounted_param myparam = get_mounted_param(lplvcd->nmcd.lItemlParam);
+		if (myparam.brelease && dropId && (dropId_ndx == pos))
+		{
+			//customize item appearance
+			lplvcd->clrText = hlfrcolor; //RGB(0, 0, 0);
+			lplvcd->clrTextBk = hlcolor; // RGB(230, 230, 230);
+			return CDRF_NEWFONT;
+		}
+		else {
+			if (myparam.brelease) {
+				lplvcd->clrText = RGB(0, 0, 0);
+				lplvcd->clrTextBk = RGB(255, 255, 255);
+			}
+			else {
+				lplvcd->clrText = htcolor; //RGB(50, 50, 50);
+				lplvcd->clrTextBk = RGB(240, 240, 240);
+			}
+			return CDRF_NEWFONT;
+		}
+		break;
+	}
+	case CDDS_SUBITEM | CDDS_ITEMPREPAINT:
+		if (0 == lplvcd->iSubItem)
+		{
+			lplvcd->clrText = RGB(255, 0, 0);
+			lplvcd->clrTextBk = RGB(255, 255, 255);
+			return CDRF_NEWFONT;
+		}
+		else if (1 == lplvcd->iSubItem)
+		{
+			lplvcd->clrTextBk = RGB(0, 255, 0);
+			lplvcd->clrTextBk = RGB(255, 255, 255);
+
+			return CDRF_NEWFONT;
+		} else if (2 == lplvcd->iSubItem)
+		{
+			lplvcd->clrTextBk = RGB(0, 255, 0);
+			lplvcd->clrTextBk = RGB(255, 255, 255);
+
+			return CDRF_NEWFONT;
+		}
 	}
 	return CDRF_DODEFAULT;
 }

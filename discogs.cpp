@@ -418,7 +418,19 @@ void Discogs::parseReleaseCredits(json_t *element, pfc::array_t<ReleaseCredit_pt
 			credit->roles = artist->roles;
 			credit->full_roles = artist->full_roles;
 			credit->artists.append_single(artist);
-			addReleaseTrackCredits(tracks, credit, release);
+			
+			//TODO:
+			//patch: tokenize_multi(...) issue parsing "A1 to A6 B1 to B3, B5"
+			//https://www.discogs.com/The-Cribs-Mens-Needs-Womens-Needs-Whatever/release/6963878
+
+			try {
+				addReleaseTrackCredits(tracks, credit, release);
+			}
+			catch (parser_exception& e) {
+				pfc::string8 error;
+				error << ("(skipped) ") << e.what() << "\n";
+				popup_message::g_show(error.get_ptr(), "Error(s)", popup_message::icon_error);
+			}
 		}
 		else {
 			if (!artist->raw_roles.get_length() || (credits.get_size() && STR_EQUAL(artist->raw_roles, credits[credits.get_size() - 1]->raw_roles))) {

@@ -15,14 +15,16 @@ using namespace Gdiplus;
 
 
 inline void CPreviewTagsDialog::load_size() {
-	int x = conf.preview_tags_dialog_width;
-	int y = conf.preview_tags_dialog_height;
-	if (x != 0 && y != 0) {
-		SetWindowPos(nullptr, 0, 0, x, y, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
-		CRect rectClient;
-		GetClientRect(&rectClient);
-		DlgResize_UpdateLayout(rectClient.Width(), rectClient.Height());
+
+	int width = conf.preview_tags_dialog_width;
+	int height = conf.preview_tags_dialog_height;
+	CRect offset;
+	client_center_offset(core_api::get_main_window(), offset, width, height);
+
+	if (width != 0 && height != 0) {
+		SetWindowPos(nullptr, offset.left, offset.top, width + mygripp.x, height + mygripp.y, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
 	}
+
 	if (conf.preview_tags_dialog_col1_width != 0) {
 		ListView_SetColumnWidth(GetDlgItem(IDC_PREVIEW_LIST), 0, conf.preview_tags_dialog_col1_width);
 		ListView_SetColumnWidth(GetDlgItem(IDC_PREVIEW_LIST), 1, conf.preview_tags_dialog_col2_width);
@@ -41,7 +43,10 @@ inline void CPreviewTagsDialog::load_size() {
 
 inline bool CPreviewTagsDialog::build_current_cfg() {
 	bool bres = false;
-	//TODO: replace_ANV setting has already been transfered (OnClick())
+
+	//check global settings
+	
+	//replace_ANV setting has already been transfered (OnClick())
 	bool local_replace_ANV = IsDlgButtonChecked(IDC_REPLACE_ANV_CHECK);
 	if (CONF.replace_ANVs!= conf.replace_ANVs &&
 		conf.replace_ANVs != local_replace_ANV) {
@@ -379,7 +384,6 @@ void CPreviewTagsDialog::tag_mappings_updated() {
 	service_ptr_t<generate_tags_task> task = new service_impl_t<generate_tags_task>(this, tag_writer, use_update_tags);
 	task->start();
 }
-
 
 void CPreviewTagsDialog::GlobalReplace_ANV(bool state) {
 	CONF.replace_ANVs = state;

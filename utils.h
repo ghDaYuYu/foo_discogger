@@ -46,6 +46,23 @@ static const std::map<const char*, const char*, cmp_str> MONTH_NAMES = {
 	{"12", "Dec"}
 };
 
+//compensate gripp offset
+//TODO: dpi check
+static const struct rzgripp {
+	int x;
+	int y;
+	bool grip;
+} mygripp{ 22, 56, true };
+
+static const struct mounted_param {
+	int master_ndx;
+	int release_ndx;
+	bool bmaster;
+	bool brelease;
+};
+
+extern void client_center_offset(HWND wnd_main, CRect& out, int width_cli, int height_cli);
+
 static const pfc::string8 match_failed("FAILED TO MATCH TRACK ORDER");
 static const pfc::string8 match_success("MATCHED TRACK ORDER");
 static const pfc::string8 match_assumed("ASSUMED TRACK ORDER");

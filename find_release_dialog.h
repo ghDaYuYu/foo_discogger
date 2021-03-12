@@ -88,10 +88,10 @@ private:
 
 public:
 	enum { IDD = IDD_DIALOG_FIND_RELEASE };
+	//COMMAND_ID_HANDLER(IDC_FILTER_EDIT, OnEditFilterText)
 
-	virtual BOOL PreTranslateMessage(MSG* pMsg) override {
-		return ::IsDialogMessage(m_hWnd, pMsg);
-	}
+#pragma warning( push )
+#pragma warning( disable : 26454 )
 
 	MY_BEGIN_MSG_MAP(CFindReleaseDialog)
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
@@ -112,6 +112,8 @@ public:
 		COMMAND_ID_HANDLER(IDC_CONFIGURE_BUTTON, OnConfigure)
 		CHAIN_MSG_MAP(CDialogResize<CFindReleaseDialog>)
 	MY_END_MSG_MAP()
+
+#pragma warning( pop )
 
 	BEGIN_DLGRESIZE_MAP(CFindReleaseDialog)
 		DLGRESIZE_CONTROL(IDC_LABEL_RELEASE_ID, DLSZ_MOVE_X | DLSZ_MOVE_Y)
@@ -144,7 +146,10 @@ public:
 	~CFindReleaseDialog();
 	
 	void OnFinalMessage(HWND /*hWnd*/) override;
-	
+
+	virtual BOOL PreTranslateMessage(MSG* pMsg) override {
+		return ::IsDialogMessage(m_hWnd, pMsg);
+	}
 
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);

@@ -149,24 +149,28 @@ mounted_param CFindReleaseDialog::get_mounted_param(LPARAM lparam) {
 
 inline void CFindReleaseDialog::load_size() {
 
-	CRect rcCli;
-
-	int grippx = 22;
-	int grippy = 56;
 	int width = conf.find_release_dialog_width;
 	int height = conf.find_release_dialog_height;
 
+	CRect offset;	
+	client_center_offset(core_api::get_main_window(), offset, width, height);
+
 	if (width != 0 && height != 0) {
-		SetWindowPos(nullptr, 0, 0, width + mygripp.x, height + mygripp.y, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+		SetWindowPos(core_api::get_main_window(), offset.left, offset.top, width + mygripp.x, height + mygripp.y, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
 	}
 
 	//columns
 
-	CRect rcCli;
-	::GetClientRect(release_list, &rcCli);
-	int width = rcCli.Width();
+	if (false /*TODO: columns persistance*/) {
+		//ListView_SetColumnWidth(GetDlgItem(IDC_FIND_RELEASE_LIST), 0, conf.find_dialog_col1_width);
+		//ListView_SetColumnWidth(GetDlgItem(IDC_FIND_RELEASE_LIST), 1, conf.find_dialog_col2_width);
+	}
+	else {
+		CRect rcCli;
+		::GetClientRect(release_list, &rcCli);
+		int width = rcCli.Width();
 
-	ListView_SetColumnWidth(release_list, 0, width);
+		ListView_SetColumnWidth(release_list, 0, width);
 
 	}
 }

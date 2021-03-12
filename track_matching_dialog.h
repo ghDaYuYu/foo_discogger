@@ -15,7 +15,7 @@ class CTrackMatchingDialog : public MyCDialogImpl<CTrackMatchingDialog>,
 	public CMessageFilter
 {
 private:
-	bool conf_changed = false;
+
 	foo_discogs_conf conf;
 
 	bool use_update_tags = false;
@@ -50,7 +50,8 @@ private:
 		return true; };
 		
 	void load_size();
-	void save_size(int x, int y);
+	bool build_current_cfg();
+	void pushcfg();
 
 	void insert_track_mappings();
 	void list_swap_items(HWND list, unsigned int pos1, unsigned int pos2);
@@ -83,6 +84,7 @@ public:
 		COMMAND_ID_HANDLER(IDC_PREVIOUS_BUTTON, OnMultiPrev)
 		COMMAND_ID_HANDLER(IDC_BACK_BUTTON, OnBack)
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
+		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		COMMAND_ID_HANDLER(IDC_SKIP_BUTTON, OnMultiSkip)
 		CHAIN_MSG_MAP_MEMBER(list_drop_handler)
 		CHAIN_MSG_MAP(CDialogResize<CTrackMatchingDialog>)
@@ -93,11 +95,13 @@ public:
 		DLGRESIZE_CONTROL(IDC_FILE_LIST, DLSZ_SIZE_Y)
 		DLGRESIZE_CONTROL(IDC_REMOVE_FILE_TRACK_BUTTON, DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_REMOVE_DISCOGS_TRACK_BUTTON, DLSZ_MOVE_Y)
+		DLGRESIZE_CONTROL(IDC_STATIC_MATCH_TRACKING_REL_NAME, DLSZ_MOVE_Y)
 		BEGIN_DLGRESIZE_GROUP()
 		DLGRESIZE_CONTROL(IDC_STATIC_FILE_LST_TITLE, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_DISCOGS_TRACK_LIST, DLSZ_SIZE_X)
 		DLGRESIZE_CONTROL(IDC_FILE_LIST, DLSZ_SIZE_X)
 		DLGRESIZE_CONTROL(IDC_REMOVE_DISCOGS_TRACK_BUTTON, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_STATIC_MATCH_TRACKING_REL_NAME, DLSZ_SIZE_X)
 		END_DLGRESIZE_GROUP()
 		DLGRESIZE_CONTROL(IDC_MOVE_UP_BUTTON, DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_MOVE_DOWN_BUTTON, DLSZ_MOVE_Y)
@@ -118,9 +122,6 @@ public:
 
 	void DlgResize_UpdateLayout(int cxWidth, int cyHeight) {
 		CDialogResize<CTrackMatchingDialog>::DlgResize_UpdateLayout(cxWidth, cyHeight);
-		update_list_width(discogs_track_list);
-		update_list_width(file_list);
-		save_size(cxWidth, cyHeight);
 	}
 
 	CTrackMatchingDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags = false) : 
@@ -156,6 +157,7 @@ public:
 	LRESULT OnMultiPrev(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnBack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnMultiSkip(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnListKeyDown(LPNMHDR lParam);
 	LRESULT OnListRClick(LPNMHDR lParam);
@@ -172,4 +174,5 @@ public:
 	void enable(bool v) override;
 	void destroy_all();
 	void go_back();
+
 };

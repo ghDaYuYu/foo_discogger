@@ -8,14 +8,23 @@
 #define WRITE_UPDATE_COL_WIDTH  85
 
 
+void CNewTagMappingsDialog::pushcfg(bool force) {
+	bool conf_changed = build_current_cfg();
+	if (conf_changed || force) {
+		CONF.save(new_conf::ConfFilter::CONF_FILTER_TAG, conf);
+		CONF.load();
+	}
+}
+
 inline void CNewTagMappingsDialog::load_size() {
-	int x = conf.edit_tags_dialog_width;
-	int y = conf.edit_tags_dialog_height;
-	if (x != 0 && y != 0) {
-		SetWindowPos(nullptr, 0, 0, x, y, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
-		CRect rectClient;
-		GetClientRect(&rectClient);
-		DlgResize_UpdateLayout(rectClient.Width(), rectClient.Height());
+	int width = conf.edit_tags_dialog_width;
+	int height = conf.edit_tags_dialog_height;
+
+	CRect offset;
+	client_center_offset(core_api::get_main_window(), offset, width, height);
+
+	if (width != 0 && height != 0) {
+		SetWindowPos(nullptr, offset.left, offset.top, width + mygripp.x, height + mygripp.y, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
 	}
 	if (conf.edit_tags_dialog_col1_width != 0) {
 		ListView_SetColumnWidth(GetDlgItem(IDC_TAG_LIST), 0, conf.edit_tags_dialog_col1_width);
@@ -27,10 +36,63 @@ inline void CNewTagMappingsDialog::load_size() {
 	}
 }
 
-inline void CNewTagMappingsDialog::save_size(int x, int y) {
-	conf.edit_tags_dialog_width = x;
-	conf.edit_tags_dialog_height = y;
-	conf_ui_changed = true;
+inline bool CNewTagMappingsDialog::build_current_cfg() {
+
+	bool bres = false;
+
+	//check global settings
+	bres = bres | get_mapping_changed();
+
+	//..
+
+	CRect rcDlg;
+	GetClientRect(&rcDlg);
+
+	int dlgwidth = rcDlg.Width();
+	int dlgheight = rcDlg.Height();
+
+	//dlg size
+
+	if (dlgwidth != conf.edit_tags_dialog_width || dlgheight != conf.edit_tags_dialog_height) {
+		conf.edit_tags_dialog_width = dlgwidth;
+		conf.edit_tags_dialog_height = dlgheight;
+		bres = bres || true;
+	}
+
+	//columns size
+	int width1 = ListView_GetColumnWidth(GetDlgItem(IDC_TAG_LIST), 0);
+	int width2 = ListView_GetColumnWidth(GetDlgItem(IDC_TAG_LIST), 1);
+	int width3 = ListView_GetColumnWidth(GetDlgItem(IDC_TAG_LIST), 2);
+
+	if ((width1 != conf.edit_tags_dialog_col1_width ||
+		width2 != conf.edit_tags_dialog_col2_width ||
+		width3 != conf.edit_tags_dialog_col3_width)) {
+		
+		conf.edit_tags_dialog_col1_width = width1;
+		conf.edit_tags_dialog_col2_width = width2;
+		conf.edit_tags_dialog_col3_width = width3;
+	}
+
+	return bres;
+}
+
+bool CNewTagMappingsDialog::get_mapping_changed() {
+	bool mapping_changed = cfg_tag_mappings.get_count() != tag_mappings->get_count();
+	if (!mapping_changed) {
+		for (unsigned int i = 0; i < cfg_tag_mappings.get_count(); i++) {
+			if (!cfg_tag_mappings.get_item(i).equals(tag_mappings->get_item(i))) {
+				mapping_changed = true;
+				break;
+			}
+		}
+	}
+
+	return mapping_changed;
+}
+
+void CNewTagMappingsDialog::on_mapping_changed(bool changed) {
+	CWindow btnapply = uGetDlgItem(IDAPPLY);
+	btnapply.EnableWindow(changed);
 }
 
 CNewTagMappingsDialog::CNewTagMappingsDialog(HWND p_parent) {
@@ -39,10 +101,7 @@ CNewTagMappingsDialog::CNewTagMappingsDialog(HWND p_parent) {
 }
 
 CNewTagMappingsDialog::~CNewTagMappingsDialog() {
-	if (conf_ui_changed) {
-		CONF.save(new_conf::ConfFilter::CONF_FILTER_TAG, conf);
-		CONF.load();
-	}
+	
 	g_discogs->tag_mappings_dialog = nullptr;
 	if (tag_mappings != nullptr) {
 		delete tag_mappings;
@@ -74,11 +133,12 @@ LRESULT CNewTagMappingsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LP
 
 	insert_tag_mappings();
 
-	DlgResize_Init(true, true); 
+	DlgResize_Init(mygripp.grip, true); 
 	load_size();
 	modeless_dialog_manager::g_add(m_hWnd);
 	show();
-	onchanged();
+	
+	on_mapping_changed(get_mapping_changed());
 	return FALSE;
 }
 
@@ -109,7 +169,7 @@ void CNewTagMappingsDialog::update_tag(int pos, const tag_mapping_entry *entry) 
 		(entry->enable_write ? TEXT_WRITE : TEXT_DISABLED));
 	listview_helper::set_item_text(tag_list, pos, 2, text);
 
-	haschanged();
+	on_mapping_changed(get_mapping_changed());
 
 }
 
@@ -142,23 +202,22 @@ void CNewTagMappingsDialog::update_list_width(bool initialize) {
 		c1 = (int)(ratio * c1);
 		c2 = (int)(ratio * c2);*/
 	}
-	conf.edit_tags_dialog_col1_width = c1;
-	conf.edit_tags_dialog_col2_width = c2;
-	conf.edit_tags_dialog_col3_width = c3;
-	conf_ui_changed = true;
 }
 
 void CNewTagMappingsDialog::applymappings() {
 	set_tag_mappings(tag_mappings);
-	conf_mapping_changed = false;
+	pushcfg(true);
+	on_mapping_changed(get_mapping_changed());
+
 	if (g_discogs->preview_tags_dialog) {
 		g_discogs->preview_tags_dialog->tag_mappings_updated();
 	}
 }
 
 LRESULT CNewTagMappingsDialog::OnOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	if (conf_mapping_changed) {
+	if (build_current_cfg()) {
 		applymappings();
+		pushcfg(true);
 	}
 	destroy();
 	return TRUE;
@@ -166,13 +225,19 @@ LRESULT CNewTagMappingsDialog::OnOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndC
 
 LRESULT CNewTagMappingsDialog::OnApply(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	applymappings();
-	onchanged();
+	pushcfg(true);
 	return FALSE;
 }
 
 LRESULT CNewTagMappingsDialog::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+	conf = CONF;
 	destroy();
 	return TRUE;
+}
+
+LRESULT CNewTagMappingsDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
+	pushcfg(false);
+	return 0;
 }
 
 LRESULT CNewTagMappingsDialog::OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
@@ -182,7 +247,7 @@ LRESULT CNewTagMappingsDialog::OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /
 	}
 	tag_mappings = copy_default_tag_mappings();
 	insert_tag_mappings();
-	haschanged();
+	on_mapping_changed(get_mapping_changed());
 	return FALSE;
 }
 
@@ -226,7 +291,7 @@ LRESULT CNewTagMappingsDialog::OnImport(WORD /*wNotifyCode*/, WORD wID, HWND /*h
 	}
 	delete buf;
 	insert_tag_mappings();
-	haschanged();
+	on_mapping_changed(get_mapping_changed());
 	return FALSE;
 }
 
@@ -341,21 +406,6 @@ LRESULT CNewTagMappingsDialog::OnListKeyDown(LPNMHDR lParam) {
 	}
 }
 
-LRESULT CNewTagMappingsDialog::OnColumnResized(LPNMHDR lParam) {
-	int width1 = ListView_GetColumnWidth(GetDlgItem(IDC_TAG_LIST), 0);
-	int width2 = ListView_GetColumnWidth(GetDlgItem(IDC_TAG_LIST), 1);
-	int width3 = ListView_GetColumnWidth(GetDlgItem(IDC_TAG_LIST), 2);
-	bool width_changed = (width1 != conf.edit_tags_dialog_col1_width ||
-		width2 != conf.edit_tags_dialog_col2_width ||
-		width3 != conf.edit_tags_dialog_col3_width);
-	if (width_changed) {
-		conf.edit_tags_dialog_col1_width = width1;
-		conf.edit_tags_dialog_col2_width = width2;
-		conf.edit_tags_dialog_col3_width = width3;
-		conf_ui_changed = true;
-	}
-	return FALSE;
-}
 LRESULT CNewTagMappingsDialog::OnEdit(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	TableEdit_Start(wParam, lParam);
 	return FALSE;

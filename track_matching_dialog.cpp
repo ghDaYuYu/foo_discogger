@@ -33,28 +33,10 @@ namespace listview_helper {
 	}
 }
 
-inline void CTrackMatchingDialog::load_size() {
-	int x = conf.release_dialog_width;
-	int y = conf.release_dialog_height;
-	if (x != 0 && y != 0) {
-		SetWindowPos(nullptr, 0, 0, x, y, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
-
-		CRect rectClient;
-		GetClientRect(&rectClient);
-		DlgResize_UpdateLayout(rectClient.Width(), rectClient.Height());
-	}
-}
-
-inline void CTrackMatchingDialog::save_size(int x, int y) {
-	conf.release_dialog_width = x;
-	conf.release_dialog_height = y;
-	conf_changed = true;
-}
-
 LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
 	conf = CONF;
-	
 
+	pfc::string8 match_msg;
 
 	if (multi_mode) {
 		::ShowWindow(uGetDlgItem(IDC_WRITE_TAGS_BUTTON), false);
@@ -93,7 +75,7 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 	list_drop_handler.Initialize(m_hWnd, discogs_track_list, file_list);
 	list_drop_handler.SetNotifier(stdf_change_notifier);
 
-	DlgResize_Init(true, true);
+	DlgResize_Init(mygripp.grip, true);
 	load_size();
 	modeless_dialog_manager::g_add(m_hWnd);
 	show();
@@ -107,14 +89,14 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 	return TRUE;
 }
 
-void CTrackMatchingDialog::match_message_update(pfc::string8 match_msg) {
+void CTrackMatchingDialog::match_message_update(pfc::string8 local_msg) {
 
 	HWND ctrl_match_msg = uGetDlgItem(IDC_MATCH_TRACKS_MSG);
 	pfc::string8 newmessage;
 
 	int local_status;
 	const int local_override = -100;
-	if (match_msg.length() > 0)
+	if (local_msg.length() > 0)
 		local_status = local_override;
 	else
 		local_status = tag_writer->match_status;
@@ -384,6 +366,62 @@ LRESULT CTrackMatchingDialog::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hW
 		destroy_all();
 	}
 	return TRUE;
+}
+
+
+void CTrackMatchingDialog::pushcfg() {
+	bool conf_changed = build_current_cfg();
+	if (conf_changed) {
+		CONF.save(new_conf::ConfFilter::CONF_FILTER_TRACK, conf);
+		CONF.load();
+	}
+}
+
+inline bool CTrackMatchingDialog::build_current_cfg() {
+	bool bres = false;
+
+	//check global settings
+
+	//get current ui dimensions
+
+	CRect rcDlg;
+	GetClientRect(&rcDlg);
+
+	int dlgwidth = rcDlg.Width();
+	int dlgheight = rcDlg.Height();
+
+	//dlg size
+
+	if (dlgwidth != conf.release_dialog_width || dlgheight != conf.release_dialog_height) {
+		conf.release_dialog_width = dlgwidth;
+		conf.release_dialog_height = dlgheight;
+		bres = bres || true;
+	}
+
+	return bres;
+}
+
+inline void CTrackMatchingDialog::load_size() {
+
+	int width = conf.release_dialog_width;
+	int height = conf.release_dialog_height;
+
+	CRect offset;
+	client_center_offset(core_api::get_main_window(), offset, width, height);
+
+	if (width != 0 && height != 0) {
+		SetWindowPos(core_api::get_main_window(), offset.left, offset.top, width + mygripp.x, height + mygripp.y, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+	}
+	else {
+		CRect rectClient;
+		GetClientRect(&rectClient);
+		DlgResize_UpdateLayout(rectClient.Width(), rectClient.Height());
+	}
+}
+
+LRESULT CTrackMatchingDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
+	pushcfg();
+	return 0;
 }
 
 LRESULT CTrackMatchingDialog::OnMultiSkip(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {

@@ -16,8 +16,6 @@ private:
 	HWND tag_list;
 	HWND remove_button;
 	tag_mappings_list_type *tag_mappings = nullptr;
-	bool conf_ui_changed = false;
-	bool conf_mapping_changed = false;
 	foo_discogs_conf conf;
 
 	CHyperLink help_link;
@@ -27,24 +25,6 @@ private:
 	void update_list_width(bool initialize=false);
 	void update_tag(int pos, const tag_mapping_entry *entry);
 	void show_context_menu(CPoint &pt, int selection);
-
-	void haschanged() {
-		conf_mapping_changed = cfg_tag_mappings.get_count() != tag_mappings->get_count();
-		if (!conf_mapping_changed) {
-			for (unsigned int i = 0; i < cfg_tag_mappings.get_count(); i++) {
-				if (!cfg_tag_mappings.get_item(i).equals(tag_mappings->get_item(i))) {
-					conf_mapping_changed = true;
-					break;
-				}
-			}
-		}
-		onchanged();
-	}
-
-	void onchanged() {
-		CWindow btnapply = uGetDlgItem(IDAPPLY);
-		btnapply.EnableWindow(conf_mapping_changed);
-	}
 
 	void applymappings();
 
@@ -73,7 +53,7 @@ private:
 	}
 
 	void TableEdit_Finished() {
-		haschanged();
+		on_mapping_changed(get_mapping_changed());
 	}
 
 	void trigger_add_new() {
@@ -96,7 +76,7 @@ private:
 		delete_entry(index);
 		tag_mappings->remove_by_idx(index);
 		
-		haschanged();
+		on_mapping_changed(get_mapping_changed());
 		return true;
 	}
 
@@ -124,13 +104,18 @@ public:
 	}
 
 	void load_size();
-	void save_size(int x, int y);
+	bool build_current_cfg();
+	void pushcfg(bool force);
+	bool get_mapping_changed();
+	void on_mapping_changed(bool changed);
+
 
 	MY_BEGIN_MSG_MAP(CNewTagMappingsDialog)
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
 		COMMAND_ID_HANDLER(IDOK, OnOK)
 		COMMAND_ID_HANDLER(IDAPPLY, OnApply)
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
+		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		COMMAND_ID_HANDLER(IDC_DEFAULT_TAGS, OnDefaults)
 		COMMAND_ID_HANDLER(IDC_IMPORT_TAGS, OnImport)
 		COMMAND_ID_HANDLER(IDC_EXPORT_TAGS, OnExport)
@@ -140,7 +125,6 @@ public:
 		NOTIFY_HANDLER_EX(IDC_TAG_LIST, NM_CLICK, OnListClick)
 		NOTIFY_HANDLER_EX(IDC_TAG_LIST, NM_DBLCLK, OnListDoubleClick)
 		NOTIFY_HANDLER_EX(IDC_TAG_LIST, LVN_KEYDOWN, OnListKeyDown)
-		NOTIFY_CODE_HANDLER_EX(HDN_ENDTRACK, OnColumnResized)
 		MESSAGE_HANDLER_EX(MSG_EDIT, OnEdit)
 		MESSAGE_HANDLER_EX(MSG_ADD_NEW, OnAddNew)
 		MESSAGE_HANDLER_EX(WM_CONTEXTMENU, OnContextMenu)
@@ -167,7 +151,6 @@ public:
 
 	void DlgResize_UpdateLayout(int cxWidth, int cyHeight) {
 		CDialogResize<CNewTagMappingsDialog>::DlgResize_UpdateLayout(cxWidth, cyHeight);
-		save_size(cxWidth, cyHeight);
 	}
 
 	CNewTagMappingsDialog(HWND p_parent);
@@ -178,6 +161,7 @@ public:
 	LRESULT OnOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnApply(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnImport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnExport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
@@ -191,7 +175,7 @@ public:
 	LRESULT OnEdit(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	LRESULT OnAddNew(UINT, WPARAM, LPARAM);
 	LRESULT OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam);
-	LRESULT CNewTagMappingsDialog::OnCustomDraw(int idCtrl, LPNMHDR pnmh, BOOL& bHandled);
+	LRESULT OnCustomDraw(int idCtrl, LPNMHDR pnmh, BOOL& bHandled);
 
 	void refresh_item(int pos);
 

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <future>
+#include <condition_variable>
+
 #include "foo_discogs.h"
 #include "resource.h"
 #include "file_info_manager.h"
@@ -24,7 +27,56 @@ class CFindReleaseDialog : public MyCDialogImpl<CFindReleaseDialog>,
 {
 private:
 	bool dropId = false;
-	int list_index_dropId = -1;
+	int dropId_ndx = -1;
+
+	std::vector<std::thread> m_threads;
+	std::mutex m_threadsMutex;
+	bool m_finished_task{ true };
+	std::mutex m_finishedMutex;
+	std::condition_variable m_finishedCondVar;
+
+	static void removeThread(CFindReleaseDialog* dlg, std::thread::id id)
+	{
+		std::lock_guard<std::mutex> lock(dlg->m_threadsMutex);
+		auto iter = std::find_if(dlg->m_threads.begin(), dlg->m_threads.end(), [=](std::thread& t) { return (t.get_id() == id); });
+		if (iter != dlg->m_threads.end())
+		{
+			iter->detach();
+			dlg->m_threads.erase(iter);
+		}
+	}
+
+	//consumer
+	std::function<bool(CFindReleaseDialog* dlg, int list_index)> stdf_wait_consume =
+		[this](CFindReleaseDialog* dlg, int list_index) -> bool {
+			{
+				std::unique_lock <std::mutex > lk{ m_finishedMutex };
+				m_finishedCondVar.wait(lk, [dlg] {
+					return dlg->m_finished_task;
+					});
+			}
+			
+			bool lvev = SendMessage(release_list, LVM_ENSUREVISIBLE,
+				SendMessage(release_list, LVM_GETITEMCOUNT, 0, 0) - 1, TRUE); //Rool to the end
+			SendMessage(release_list, LVM_ENSUREVISIBLE, list_index, TRUE); //Roll back to top position
+
+			LPARAM lparam;
+			get_item_param(release_list, list_index, 0, lparam);
+			mounted_param myparam = get_mounted_param(lparam);
+
+			pfc::string8 selected_id;
+			if (myparam.bmaster && !myparam.brelease)
+				selected_id = find_release_artist->master_releases[myparam.master_ndx]->main_release_id;
+			else
+			if (myparam.bmaster)
+				selected_id = find_release_artist->master_releases[myparam.master_ndx]->sub_releases[myparam.release_ndx]->id;
+			else
+				selected_id = find_release_artist->releases[myparam.release_ndx]->id;
+
+			uSetWindowText(release_url_edit, selected_id);
+
+		return true; 
+	};
 
 	foo_discogs_conf conf;
 

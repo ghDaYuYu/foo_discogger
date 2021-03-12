@@ -242,6 +242,10 @@ LRESULT CFindReleaseDialog::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWnd
 }
 
 CFindReleaseDialog::~CFindReleaseDialog() {
+	for (auto& thread : m_threads) {
+		if (thread.joinable())
+			thread.join();
+	}
 	g_discogs->find_release_dialog = nullptr;
 }
 
@@ -689,8 +693,32 @@ void CFindReleaseDialog::select_first_release() {
 	}
 }
 
-void CFindReleaseDialog::on_release_selected(int list_index) {
-	if (this->active_task) {
+void CFindReleaseDialog::on_release_selected(int selection_index) {
+	m_item_selected = selection_index;
+	if (selection_index > -1) {
+		if (!dropId && dropId_ndx != selection_index) {
+			dropId_ndx = selection_index;
+		}
+		else {
+			//list_index_dropId = list_index;
+		}
+	}
+	int list_count = ListView_GetItemCount(release_list);
+	bool finished;
+	{
+		std::lock_guard<std::mutex> lk(m_finishedMutex);
+		finished = m_finished_task;
+	}
+	if (!finished || !list_count) {
+		//consumer
+		std::thread th ([this, selection_index]() {
+			stdf_wait_consume(this, selection_index);
+			(void)std::async(removeThread, this, std::this_thread::get_id());
+		});
+			
+		std::lock_guard<std::mutex> lock(m_threadsMutex);
+		m_threads.push_back(std::move(th));
+		
 		return;
 	}
 	
@@ -755,6 +783,16 @@ LRESULT CFindReleaseDialog::OnDoubleClickArtist(WORD /*wNotifyCode*/, WORD wID, 
 }
 
 LRESULT CFindReleaseDialog::OnCustomDraw(int wParam, LPNMHDR lParam, BOOL bHandled) {
+	int thcount;
+	{
+		std::lock_guard<std::mutex> lock(m_threadsMutex);
+		thcount = m_threads.size();
+	}
+
+	
+	if (thcount > 0 || m_updating_list) return 0;
+	if (ListView_GetItemCount(release_list) == 0) return CDRF_DODEFAULT;
+	
 	LPNMLVCUSTOMDRAW lplvcd = (LPNMLVCUSTOMDRAW)lParam;
 	int pos = (int)lplvcd->nmcd.dwItemSpec;
 	if (ListView_GetItemCount(release_list) == 0) return CDRF_DODEFAULT;
@@ -958,6 +996,15 @@ void CFindReleaseDialog::on_expand_master_release_done(const MasterRelease_ptr &
 }
 
 void CFindReleaseDialog::on_expand_master_release_complete() {
+
+	//producer
+	m_finishedCondVar.notify_all();
+	{
+		std::lock_guard<std::mutex> lk(m_finishedMutex);
+		m_finished_task = true;
+	}
+	m_finishedCondVar.notify_all();
+
 	active_task = NULL;
 }
 
@@ -967,7 +1014,14 @@ void CFindReleaseDialog::expand_master_release(MasterRelease_ptr &release, int p
 	}
 	service_ptr_t<expand_master_release_process_callback> task = 
 		new service_impl_t<expand_master_release_process_callback>(release, pos);
+	
+	{
+		std::lock_guard<std::mutex> lk(m_finishedMutex);
+		m_finished_task = false;
+	}
+
 	active_task = &task;
+
 	task->start(m_hWnd);
 }
 

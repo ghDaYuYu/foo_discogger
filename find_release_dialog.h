@@ -15,7 +15,7 @@ class get_artist_process_callback;
 class search_artist_process_callback;
 
 enum class runHook { rhMaster, rhRelease, rhSubrelease, rhUndef};
-enum class updRelSrc { Artist, Releases, Filter, Undef };
+enum class updRelSrc { Artist, Releases, Filter, ArtistList, Undef };
 
 
 
@@ -26,14 +26,27 @@ class CFindReleaseDialog : public MyCDialogImpl<CFindReleaseDialog>,
 	public CMessageFilter
 {
 private:
-	bool dropId = false;
-	int dropId_ndx = -1;
+
+	bool m_dropId = false;
+	int m_dropId_index = -1;
+	bool m_dropId_changed = false;
 
 	std::vector<std::thread> m_threads;
 	std::mutex m_threadsMutex;
 	bool m_finished_task{ true };
 	std::mutex m_finishedMutex;
 	std::condition_variable m_finishedCondVar;
+
+	bool m_updating_list;
+	t_size m_release_selected_index;
+	pfc::string8 m_artist_search;
+	pfc::string8 m_results_filter;
+
+	t_size m_artist_index;
+
+	COLORREF hlcolor;
+	COLORREF hlfrcolor;
+	COLORREF htcolor;
 
 	static void removeThread(CFindReleaseDialog* dlg, std::thread::id id)
 	{
@@ -47,7 +60,7 @@ private:
 	}
 
 	//consumer
-	std::function<bool(CFindReleaseDialog* dlg, int list_index)> stdf_wait_consume =
+	std::function<bool(CFindReleaseDialog* dlg, t_size list_index)> stdf_wait_consume =
 		[this](CFindReleaseDialog* dlg, int list_index) -> bool {
 			{
 				std::unique_lock <std::mutex > lk{ m_finishedMutex };
@@ -55,26 +68,14 @@ private:
 					return dlg->m_finished_task;
 					});
 			}
-			
-			bool lvev = SendMessage(release_list, LVM_ENSUREVISIBLE,
-				SendMessage(release_list, LVM_GETITEMCOUNT, 0, 0) - 1, TRUE); //Rool to the end
-			SendMessage(release_list, LVM_ENSUREVISIBLE, list_index, TRUE); //Roll back to top position
-
+			if (list_index == pfc_infinite) {
+				return true;
+			}
 			LPARAM lparam;
 			get_item_param(release_list, list_index, 0, lparam);
 			mounted_param myparam = get_mounted_param(lparam);
-
-			pfc::string8 selected_id;
-			if (myparam.bmaster && !myparam.brelease)
-				selected_id = find_release_artist->master_releases[myparam.master_ndx]->main_release_id;
-			else
-			if (myparam.bmaster)
-				selected_id = find_release_artist->master_releases[myparam.master_ndx]->sub_releases[myparam.release_ndx]->id;
-			else
-				selected_id = find_release_artist->releases[myparam.release_ndx]->id;
-
+			pfc::string8 selected_id = get_param_id(myparam);
 			uSetWindowText(release_url_edit, selected_id);
-
 		return true; 
 	};
 
@@ -118,14 +119,15 @@ private:
 	//TODO: add persistence to find release dialog columns
 
 	void fill_artist_list();
-	void select_release(int list_index_dropId = 0);
+	void select_release(int list_index = 0);
 	void update_releases(const pfc::string8 &filter, updRelSrc updsrc);
+	void expand_releases(const pfc::string8 &filter, updRelSrc updsrc, t_size master_index);
 
 	void search_artist();
 	void on_search_artist_done(pfc::array_t<Artist_ptr> &p_artist_exact_matches, const pfc::array_t<Artist_ptr> &p_artist_other_matches);
 
-	void get_selected_artist_releases();
-	void on_get_artist_done(Artist_ptr &artist);
+	void get_selected_artist_releases(updRelSrc updsrc);
+	void on_get_artist_done(updRelSrc updsrc, Artist_ptr &artist);
 
 	void on_write_tags(const pfc::string8 &release_id);
 
@@ -133,12 +135,13 @@ private:
 	void on_expand_master_release_done(const MasterRelease_ptr &master_release, int pos, threaded_process_status &p_status, abort_callback &p_abort);
 	void on_expand_master_release_complete();
 
-	void on_release_selected(int pos);
+	void on_release_selected(t_size pos);
 
 	void extract_id_from_url(pfc::string8 &s);
 	void extract_release_from_link(pfc::string8 &s);
 
 public:
+
 	enum { IDD = IDD_DIALOG_FIND_RELEASE };
 	//COMMAND_ID_HANDLER(IDC_FILTER_EDIT, OnEditFilterText)
 
@@ -193,6 +196,7 @@ public:
 
 	CFindReleaseDialog(HWND p_parent, metadb_handle_list items, bool dropId) : items(items), dropId(dropId) {
 		find_release_artist = nullptr;
+		m_release_selected_index = pfc_infinite;
 		Create(p_parent);
 	};
 	~CFindReleaseDialog();

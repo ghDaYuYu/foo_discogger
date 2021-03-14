@@ -213,12 +213,14 @@ private:
 class get_artist_process_callback : public foo_discogs_threaded_process_callback
 {
 public:
-	get_artist_process_callback(const char *artist_id) : m_artist_id(artist_id) {}
+	get_artist_process_callback(updRelSrc updsrc, const char *artist_id)
+		: m_updsrc(updsrc), m_artist_id(artist_id) {}
 	void start(HWND parent);
 
 private:
 	pfc::string8 m_artist_id;
 	Artist_ptr m_artist;
+	updRelSrc m_updsrc;
 
 	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;

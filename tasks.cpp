@@ -630,7 +630,7 @@ void get_artist_process_callback::safe_run(threaded_process_status &p_status, ab
 
 void get_artist_process_callback::on_success(HWND p_wnd) {
 	if (g_discogs->find_release_dialog && m_artist) {
-		g_discogs->find_release_dialog->on_get_artist_done(m_artist);
+		g_discogs->find_release_dialog->on_get_artist_done(m_updsrc, m_artist);
 	}
 }
 

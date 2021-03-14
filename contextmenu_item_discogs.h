@@ -163,6 +163,10 @@ public:
 				g_discogs->find_release_dialog = new CFindReleaseDialog(core_api::get_main_window(), p_data, false);
 				break;
 
+			case WriteTagsDropId:
+				g_discogs->find_release_dialog = new CFindReleaseDialog(core_api::get_main_window(), p_data, true);
+				break;
+
 			case UpdateTags:
 				g_discogs->update_tags_dialog = new CUpdateTagsDialog(core_api::get_main_window(), p_data);
 				break;
@@ -201,10 +205,6 @@ public:
 
 			case Configuration:
 				static_api_ptr_t<ui_control>()->show_preferences(guid_pref_page);
-				break;
-
-			case WriteTagsDropId:
-				g_discogs->find_release_dialog = new CFindReleaseDialog(core_api::get_main_window(), p_data, true);
 				break;
 		}
 	}
@@ -325,10 +325,7 @@ public:
 
 	bool item_is_mappable_shortcut(unsigned p_index)
 	{
-		if (p_index == WriteTagsDropId)
-			return false;
-		else
-			return true;
+		return true;
 	}
 };
 

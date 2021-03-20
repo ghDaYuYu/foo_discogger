@@ -18,12 +18,15 @@ enum class updRelSrc { Artist, Releases, Filter, ArtistList, Undef };
 
 struct id_tracker {
 
+	bool enabled = false;
 	bool amr = false;
 	bool release = false;
 	bool master = false;
 	bool artist = false;
-	int release_index = -1;
-	int master_index = -1;
+	t_size release_i = pfc_infinite; //array index
+	t_size master_i = pfc_infinite;  //array index
+	int release_index = -1; //list index
+	int master_index = -1;  //list index
 	bool release_lv_set = false;
 	//bool master_lv_set = false;
 	int release_id = pfc_infinite;
@@ -31,8 +34,10 @@ struct id_tracker {
 	int artist_id = pfc_infinite;
 
 	bool id_tracker::release_tracked() {
-		return (release_id != pfc_infinite &&
+		return (
+			enabled && 
 			release &&
+			release_id != pfc_infinite &&
 			release_index == -1);
 	}
 
@@ -143,11 +148,13 @@ private:
 	mounted_param get_mounted_param(t_size item_index);
 	int get_mounted_lparam(mounted_param myparam);
 	pfc::string8 get_param_id(mounted_param myparam);
+	pfc::string8 get_param_id_master(mounted_param myparam);
 	bool get_lvstate_tracker(t_size list_index);
 	void set_lvstate_expanded(t_size item_index, bool val);
 	bool get_lvstate_expanded(t_size list_index);
 
 	bool init_tracker();
+	void init_tracker_i(pfc::string8 filter_master, pfc::string8 filter_release, bool expanded, bool fast);
 
 	void reset_default_columns(bool reset);
 
@@ -212,8 +219,8 @@ public:
 	CFindReleaseDialog(HWND p_parent, metadb_handle_list items, bool conf_release_id_tracker)
 		: items(items) {
 
-		_idtracker.release = conf_release_id_tracker;
-		_idtracker.master = conf_release_id_tracker;
+		_idtracker.enabled = conf_release_id_tracker;
+		
 		m_release_selected_index = pfc_infinite;
 
 		find_release_artist = nullptr;
@@ -258,6 +265,9 @@ public:
 	friend class search_artist_process_callback;
 
 	void enable(bool is_enabled) override;
+	void setitems(metadb_handle_list track_matching_items) {
+		items = track_matching_items;
+	}
 };
 
 

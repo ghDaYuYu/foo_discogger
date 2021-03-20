@@ -293,7 +293,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	
 	if (m_artist_search.get_length()) {
 		uSetWindowText(search_edit, m_artist_search);
-		if (conf.enable_autosearch && (release_id_unknown || _idtracker.release)) {
+		if (conf.enable_autosearch && _idtracker.artist) {
 			search_artist();
 		}
 	}
@@ -302,8 +302,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	load_size();
 
 	modeless_dialog_manager::g_add(m_hWnd);
-	show();
-
+	
 	if (!g_discogs->gave_oauth_warning && (!conf.oauth_token.get_length() || !conf.oauth_token_secret.get_length())) {
 		g_discogs->gave_oauth_warning = true;
 		if (!g_discogs->configuration_dialog) {	
@@ -316,21 +315,22 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 		::SetFocus(g_discogs->configuration_dialog->m_hWnd);
 		
 	}
-	else if (!_idtracker.release &&	conf.skip_find_release_dialog_if_ided) {
-
-		on_write_tags(release_id);
+	else if (conf.skip_find_release_dialog_if_ided && _idtracker.release) {
+		on_write_tags(pfc::toString(_idtracker.release_id).c_str());
 	}
+	else
+		show();
 
 	//default button
-	UINT default = !release_id_unknown ? IDC_PROCESS_RELEASE_BUTTON
+	UINT default = _idtracker.release ? IDC_PROCESS_RELEASE_BUTTON
 		: artist ? IDC_CLEAR_FILTER_BUTTON : IDC_SEARCH_BUTTON ;
 	uSendMessage(m_hWnd, WM_NEXTDLGCTL,(WPARAM)(HWND)GetDlgItem(default), TRUE);
 
 	//update_releases(m_results_filter, updRelSrc::Undef, false);
 
 	m_bNoEnChange = true;
-
-	uSetWindowText(filter_edit, filter ? filter : "");
+	if (!_idtracker.amr)
+		uSetWindowText(filter_edit, filter ? filter : "");
 
 	m_bNoEnChange = false;
 
@@ -367,31 +367,47 @@ void CFindReleaseDialog::fill_artist_list(bool force_exact) {
 
 void CFindReleaseDialog::on_get_artist_done(updRelSrc updsrc, Artist_ptr &artist) {
 
+		HWND wndNext = uGetDlgItem(IDC_PROCESS_RELEASE_BUTTON);
+		::EnableWindow(wndNext, TRUE);
+
 	find_release_artist = artist;
 	hook = std::make_shared<titleformat_hook_impl_multiformat>(&find_release_artist);
-	
-	//int release_id = -1;
-	int master_id = -1;
+
+	PFC_ASSERT(items.get_size() > 0);
 
 	pfc::string8 buffer;
-
-	file_info_impl finfo;	metadb_handle_ptr item = items[0];
+	file_info_impl finfo;
 	item->get_info(finfo);
+	metadb_handle_ptr item = items[0];
 
-	if (_idtracker.release) {
-		if (g_discogs->file_info_get_tag(item, finfo, TAG_RELEASE_ID, buffer)) {
-			if (buffer.get_length() > 0) {
-				_idtracker.release_id = std::atoi(buffer.get_ptr());
+	const char* album = finfo.meta_get("ALBUM", 0);
+	pfc::string8 filter(album? album : "");
+	//TODO: release id or master id or artiest id missing?
+	//make up filter (album)
+	if (_idtracker.amr) {
+	    //check unfiltered array
+		init_tracker_i("", "", false, true);
+	
+		bool albumdone = false;
+		pfc::string8 mtitle = _idtracker.master_i  != pfc_infinite? find_release_artist->master_releases[_idtracker.master_i]->title : "";
+		pfc::string8 rtitle = _idtracker.release_i == pfc_infinite ? ""
+			:	_idtracker.master_id == pfc_infinite ? find_release_artist->releases[_idtracker.release_i]->title
+			: find_release_artist->master_releases[_idtracker.master_i]->sub_releases[_idtracker.release_i]->title;
+
+		if (stricmp_utf8(filter, mtitle)) {
+			pfc::string8 buffer(filter);
+			if (buffer.has_prefix(mtitle)) {
+				filter.set_string(mtitle);
+			}
+			else {
+				filter = "";
 			}
 		}
+        //check with filter
+		init_tracker_i(mtitle, rtitle, false, true);
 	}
-	if (_idtracker.master) {
-		if (g_discogs->file_info_get_tag(item, finfo, TAG_MASTER_RELEASE_ID, buffer)) {
-			if (buffer.get_length() > 0) {
-				master_id = std::atoi(buffer.get_ptr());
-			}
-		}
-	}
+
+	m_results_filter = filter;
 
 	//update release list view
 
@@ -401,19 +417,31 @@ void CFindReleaseDialog::on_get_artist_done(updRelSrc updsrc, Artist_ptr &artist
 
 	m_vec_lv_items = m_vec_build_lv_items;
 
-	//selection
+	m_bNoEnChange = true;
+		uSetWindowText(filter_edit, filter);
+	m_bNoEnChange = false;
 
 	int list_count = ListView_GetItemCount(release_list);
-
-	if (list_count && _idtracker.release && _idtracker.release_id != -1) {
-
-		if (_idtracker.release_index != -1)
-			select_release(_idtracker.release_index);
-		else if (_idtracker.master_index != -1)
-			select_release(_idtracker.master_index);
-		else
-			//spawn (reenters update_releases as updSrc::Releases)
-			select_release(0);
+    
+    //list selection
+	if (list_count) {
+		if (_idtracker.amr) {
+			if (_idtracker.release_index != -1)
+				select_release(_idtracker.release_index);
+			else if (_idtracker.master_index != -1)
+				select_release(_idtracker.master_index);
+			else
+				//spawn (reenters as updSrc::Release)
+				select_release(0);
+		}
+		else {
+			if (_idtracker.release_i != pfc_infinite && _idtracker.release_index != -1) {
+				select_release(_idtracker.release_index);
+			}
+			else {
+				//TODO: continue
+			}
+		}
 	}
 }
 
@@ -430,11 +458,18 @@ void CFindReleaseDialog::OnFinalMessage(HWND /*hWnd*/) {
 }
 
 void CFindReleaseDialog::on_search_artist_done(pfc::array_t<Artist_ptr> &p_artist_exact_matches, const pfc::array_t<Artist_ptr> &p_artist_other_matches) {
+	
+	if (!_idtracker.amr) {
+		HWND wndNext = uGetDlgItem(IDC_PROCESS_RELEASE_BUTTON);
+		::EnableWindow(wndNext, TRUE);
+	}
+	
 	artist_exact_matches = p_artist_exact_matches;
 	artist_other_matches = p_artist_other_matches;
 	if (!artist_exact_matches.get_size() && artist_other_matches.get_size()) {
 		CheckDlgButton(IDC_ONLY_EXACT_MATCHES_CHECK, false);
 	}
+	//spawn
 	fill_artist_list(_idtracker.amr);
 }
 
@@ -526,7 +561,10 @@ pfc::string8 CFindReleaseDialog::run_hook_columns(row_col_data& row_data, int it
 
 	row_data.col_data_list.clear();
 
+	bool bmainrelease = false;
 	bool runhook = true;
+
+	CONF.search_master_format_string->run_hook(location, &info, hook.get(), search_formatted, nullptr);
 
 	for (unsigned int i = 0; i < vec_icol_subitems.size(); i++)
 	{
@@ -534,14 +572,7 @@ pfc::string8 CFindReleaseDialog::run_hook_columns(row_col_data& row_data, int it
 
 		if (myparam.bmaster && !myparam.brelease) {
 
-			pfc::string8 iddebug;
-			id_script->run_hook(location, &info, hook.get(), iddebug, nullptr);
-			pfc::string8 iddebug_main;
-			id_script_main->run_hook(location, &info, hook.get(), iddebug, nullptr);
-
 			id_script = "%MASTER_RELEASE_ID%";
-			if (!search_formatted.get_length())
-				CONF.search_master_format_string->run_hook(location, &info, hook.get(), search_formatted, nullptr);
 			
 			if (!stricmp_utf8(walk_cfg.name, "Id")) {
 				column_script = "%MASTER_RELEASE_ID%";
@@ -566,10 +597,11 @@ pfc::string8 CFindReleaseDialog::run_hook_columns(row_col_data& row_data, int it
 		else {
 
 			if (myparam.bmaster && myparam.brelease) {
-
 				//hook->set_release(&(find_release_artist->master_releases[master_index]->sub_releases[subrelease]));
-				if (!search_formatted.get_length())
-					CONF.search_master_sub_format_string->run_hook(location, &info, hook.get(), search_formatted, nullptr);
+				pfc::string8 main_release_id = find_release_artist->master_releases[myparam.master_ndx]->main_release->id;
+				pfc::string8 this_release_id = find_release_artist->master_releases[myparam.master_ndx]->sub_releases[myparam.release_ndx]->id;
+
+				bmainrelease = !stricmp_utf8(main_release_id, this_release_id);
 
 				if (!stricmp_utf8(walk_cfg.name, "Title")) {
 					pfc::string8 buffer("'  '");
@@ -585,9 +617,6 @@ pfc::string8 CFindReleaseDialog::run_hook_columns(row_col_data& row_data, int it
 			else
 			{
 				//hook->set_release(&(find_release_artist->releases[release_index]));
-				if (!search_formatted.get_length())
-					CONF.search_release_format_string->run_hook(location, &info, hook.get(), search_formatted, nullptr);
-				
 				if (!stricmp_utf8(walk_cfg.name, "Master/Release")) {
 					column_script = conf.search_release_format_string;
 				}
@@ -599,6 +628,10 @@ pfc::string8 CFindReleaseDialog::run_hook_columns(row_col_data& row_data, int it
 		if (runhook) {
 			pfc::string8 column_content;
 			column_script->run_hook(location, &info, hook.get(), column_content, nullptr);
+			if (bmainrelease) {
+				//uReplaceString(buffer, column_content, pfc_infinite, "     ", 5, "  *  ", 5, false);
+				column_content.replace_string("     ", "  * ", 0);
+			}
 			row_data.col_data_list.emplace_back(std::make_pair(walk_cfg.icol, column_content));
 		}
 	}
@@ -688,14 +721,17 @@ bool CFindReleaseDialog::init_tracker() {
 	
 	if (g_discogs->file_info_get_tag(item, finfo, TAG_RELEASE_ID, release_id)) {
 		_idtracker.release_id = atoi(release_id);
+		_idtracker.release = true;
 		release_id_unknown = false;
 	}
 	if (g_discogs->file_info_get_tag(item, finfo, TAG_MASTER_RELEASE_ID, master_id)) {
 		_idtracker.master_id = atoi(master_id);
+		_idtracker.master = true;
 		master_id_unknown = false;
 	}
 	if (g_discogs->file_info_get_tag(item, finfo, TAG_ARTIST_ID, artist_id)) {
 		_idtracker.artist_id = atoi(artist_id);
+		_idtracker.artist = true;
 		artist_id_unknown = false;
 	}
 
@@ -731,6 +767,73 @@ bool CFindReleaseDialog::init_tracker() {
 	}
 
 	return _idtracker.amr;
+}
+
+void CFindReleaseDialog::init_tracker_i(pfc::string8 filter_master, pfc::string8 filter_release, bool expanded, bool fast) {
+
+	bool filtered = filter_master.get_length() > 0;
+	bool matches_master = true;
+	bool matches_release = true;
+	_idtracker.master_i = pfc_infinite;
+	_idtracker.release_i = pfc_infinite;
+
+	int pos = -1;
+	if (_idtracker.amr || _idtracker.release) {
+		int master_ndx = 0; int release_ndx = 0; bool master_done = false; bool release_done = false;
+		for (size_t walk = 0; walk < find_release_artist->search_order_master.get_size(); walk++) {
+			if (master_done && release_done && fast) break;
+			bool bmaster = find_release_artist->search_order_master[walk];
+			if (bmaster) {
+				MasterRelease_ptr mr_p = find_release_artist->master_releases[master_ndx];
+				if (filtered) 
+					matches_master = !stricmp_utf8(mr_p->title, filter_master);
+				
+				if (matches_master && atoi(find_release_artist->master_releases[master_ndx]->id) == _idtracker.master_id) {
+					pos++;
+					_idtracker.master_i = master_ndx;
+					_idtracker.master_index = pos;
+					
+					master_done = true;
+				}
+				for (size_t j = 0; j < find_release_artist->master_releases[master_ndx]->sub_releases.size(); j++) {
+					Release_ptr r_p = find_release_artist->master_releases[master_ndx]->sub_releases[j];
+					if(filtered)
+						matches_release = !stricmp_utf8(r_p->title, filter_release);
+					
+					if (matches_release && atoi(find_release_artist->master_releases[master_ndx]->sub_releases[j]->id) == _idtracker.release_id) {
+						_idtracker.release_i = j;
+						_idtracker.release_index = pos + j;
+						if (!_idtracker.master) {
+							_idtracker.master_i = master_ndx;
+							_idtracker.master_index = pos;
+							_idtracker.master = true;
+						}
+						release_done = true;
+					}
+				}
+			}
+			else {
+				Release_ptr r_p = find_release_artist->releases[release_ndx];
+				if (filtered)
+					matches_release = !stricmp_utf8(r_p->title, filter_release);
+
+				if (matches_release && atoi(find_release_artist->releases[release_ndx]->id) == _idtracker.release_id) {
+					pos++;
+					_idtracker.release_i = release_ndx;
+					_idtracker.release_index = pos;
+					_idtracker.master_i = pfc_infinite;
+					_idtracker.master_index = -1;
+
+					release_done = true; master_done = true;
+				}
+			}
+
+			if (bmaster)
+				master_ndx++;
+			else
+				release_ndx++;
+		}
+	}
 }
 
 void CFindReleaseDialog::update_releases(const pfc::string8& filter, updRelSrc updsrc, bool init_expand) {
@@ -972,6 +1075,15 @@ pfc::string8 CFindReleaseDialog::get_param_id(mounted_param myparam) {
 	return res_selected_id;
 }
 
+pfc::string8 CFindReleaseDialog::get_param_id_master(mounted_param myparam) {
+
+	pfc::string8 res_selected_id;
+	if (myparam.bmaster && !myparam.brelease)
+		res_selected_id = find_release_artist->master_releases[myparam.master_ndx]->id;
+
+	return res_selected_id;
+}
+
 void CFindReleaseDialog::on_release_selected(t_size selection_index) {
 
 	mounted_param myparam = get_mounted_param(selection_index);
@@ -983,6 +1095,12 @@ void CFindReleaseDialog::on_release_selected(t_size selection_index) {
 
 	if (myparam.bmaster && !myparam.brelease) {
 
+		pfc::string8 release_url;
+		if (_idtracker.amr && (atoi(get_param_id_master(myparam)) == _idtracker.master_id)) 
+			release_url.set_string(std::to_string(_idtracker.release_id).c_str());
+		else
+			release_url.set_string(get_param_id(myparam));
+		
 		bool expanded = get_lvstate_expanded(selection_index);
 		
 		if (expanded) {
@@ -994,9 +1112,6 @@ void CFindReleaseDialog::on_release_selected(t_size selection_index) {
 				abort_callback_dummy dummy;
 				fake_threaded_process_status fstatus;
 				on_expand_master_release_done(master_release, selection_index, fstatus, dummy);
-				pfc::string8 id = get_param_id(myparam).get_ptr();
-				uSetWindowText(release_url_edit, get_param_id(myparam).get_ptr());
-
 			}
 			else {
 				//spawn
@@ -1006,7 +1121,8 @@ void CFindReleaseDialog::on_release_selected(t_size selection_index) {
 		else
 		{
 			pfc::string8 id = get_param_id(myparam).get_ptr();
-			uSetWindowText(release_url_edit, get_param_id(myparam).get_ptr());
+			uSetWindowText(release_url_edit, release_url);
+
 			t_size totalsubs = find_release_artist->master_releases[myparam.master_ndx]->sub_releases.get_count();
 			for (t_size walk = 0; walk < totalsubs; walk++) {
 				if (get_lvstate_tracker(selection_index + 1))
@@ -1272,7 +1388,7 @@ LRESULT CFindReleaseDialog::OnCheckReleasesShowId(WORD /*wNotifyCode*/, WORD wID
 	ListView_DeleteAllItems(release_list);
 	if (find_release_artist) {
 		if (g_discogs->find_release_dialog && find_release_artist) {
-			g_discogs->find_release_dialog->on_get_artist_done(updRelSrc::ArtistList, find_release_artist);
+			update_releases(m_results_filter, updRelSrc::Undef, false);
 		}
 	}
 	ListView_RedrawItems(release_list, 0, ListView_GetGroupCount(release_list));
@@ -1352,7 +1468,14 @@ void CFindReleaseDialog::on_expand_master_release_done(const MasterRelease_ptr &
 		master_row->second = 1;
 	}
 	mounted_param myparam = get_mounted_param((t_size)list_index);
-	uSetWindowText(release_url_edit, get_param_id(myparam).get_ptr());
+
+	pfc::string8 release_url;
+	if (_idtracker.amr && (atoi(master_release->id) == _idtracker.master_id)) 
+			release_url.set_string(std::to_string(_idtracker.release_id).c_str());
+	else 
+		release_url.set_string(get_param_id(myparam));
+
+	uSetWindowText(release_url_edit, release_url);
 	
 }
 
@@ -1374,6 +1497,10 @@ void CFindReleaseDialog::expand_master_release(MasterRelease_ptr &release, int p
 }
 
 void CFindReleaseDialog::get_selected_artist_releases(updRelSrc updsrc) {
+
+		HWND wndNext = uGetDlgItem(IDC_PROCESS_RELEASE_BUTTON);
+		::EnableWindow(wndNext, FALSE);
+
 	int pos = (int)uSendMessage(artist_list, LB_GETCURSEL, 0, 0);
 	if (pos != -1) {
 		Artist_ptr &artist = find_release_artists[pos];
@@ -1384,6 +1511,10 @@ void CFindReleaseDialog::get_selected_artist_releases(updRelSrc updsrc) {
 }
 
 void CFindReleaseDialog::search_artist() {
+
+		HWND wndNext = uGetDlgItem(IDC_PROCESS_RELEASE_BUTTON);
+		::EnableWindow(wndNext, FALSE);
+
 	service_ptr_t<search_artist_process_callback> task =
 		new service_impl_t<search_artist_process_callback>(m_artist_search.get_ptr());
 	task->start(m_hWnd);

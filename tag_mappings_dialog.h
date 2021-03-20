@@ -5,6 +5,80 @@
 #include "resource.h"
 #include "tags.h"
 
+#include "libPPUI/CEditWithButtons.h"
+
+#ifndef tstring
+typedef std::basic_string< TCHAR > tstring;
+#endif
+
+class CEditWithButtonsDim : public CEditWithButtons {
+
+public:
+
+	typedef CEditWithButtons TParent;
+	BEGIN_MSG_MAP_EX(CEditWithButtonsDim)
+	MSG_WM_PAINT(OnPaint)
+	MSG_WM_SETFOCUS(OnSetFocus)
+	MSG_WM_KILLFOCUS(OnKillFocus)
+	CHAIN_MSG_MAP(TParent)
+	END_MSG_MAP()
+
+	void OnPaint(HDC)
+	{
+		PAINTSTRUCT paint;
+		CDCHandle dc(BeginPaint(&paint));
+		//system brush, no need delete
+		CBrushHandle brush;
+		brush.CreateSysColorBrush(COLOR_WINDOW);
+		dc.FillRect(&paint.rcPaint, brush);
+		dc.SelectFont(HFONT(GetStockObject(DEFAULT_GUI_FONT)));
+
+		if (m_isDim == true)
+		{
+			dc.SetTextColor(m_dimColor);
+			dc.SetTextAlign(TA_LEFT);
+			dc.TextOut(paint.rcPaint.left + EC_LEFTMARGIN/*(paint.rcPaint.right - paint.rcPaint.left) / 2*/, 1, m_dimText.c_str());
+		}
+		else
+		{
+			dc.SetTextColor(GetSysColor(COLOR_BTNTEXT));
+			dc.SetTextAlign(TA_LEFT);
+			int length = GetWindowTextLength() + 1;
+			TCHAR* text = new TCHAR[length];
+			GetWindowText(text, length);
+			dc.TextOut(paint.rcPaint.left + EC_LEFTMARGIN, 1, text);
+			delete[] text;
+		}
+		EndPaint(&paint);
+	}
+
+	void OnSetFocus(HWND hWnd)
+	{
+		DefWindowProc();
+		if (GetWindowTextLength() == 0)
+		{
+			m_isDim = false;
+			Invalidate();
+		}
+	}
+
+	void OnKillFocus(HWND hWnd)
+	{
+		DefWindowProc();
+		if (GetWindowTextLength() == 0)
+		{
+			m_isDim = true;
+			Invalidate();
+		}
+	}
+
+private:
+	bool m_getDlgCodeHandled;
+	bool m_isDim;
+	tstring m_dimText = L" Highlight Tag";
+	DWORD m_dimColor = RGB(150, 150, 150);
+};
+
 
 class CNewTagMappingsDialog : public MyCDialogImpl<CNewTagMappingsDialog>,
 	public CDialogResize<CNewTagMappingsDialog>,
@@ -19,6 +93,9 @@ private:
 	foo_discogs_conf conf;
 
 	CHyperLink help_link;
+
+	pfc::string highlight_label;
+	CEditWithButtonsDim cewb_highlight;
 
 	void insert_tag_mappings();
 	void insert_tag(int pos, const tag_mapping_entry *entry);
@@ -116,6 +193,7 @@ public:
 		COMMAND_ID_HANDLER(IDAPPLY, OnApply)
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
+		COMMAND_ID_HANDLER(IDC_EDIT_TAG_MATCH_HL, OnEditHLText)
 		COMMAND_ID_HANDLER(IDC_DEFAULT_TAGS, OnDefaults)
 		COMMAND_ID_HANDLER(IDC_IMPORT_TAGS, OnImport)
 		COMMAND_ID_HANDLER(IDC_EXPORT_TAGS, OnExport)
@@ -162,6 +240,7 @@ public:
 	LRESULT OnApply(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+	LRESULT OnEditHLText(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnImport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnExport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);

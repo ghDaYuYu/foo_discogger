@@ -123,6 +123,10 @@ LRESULT CNewTagMappingsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LP
 	ListView_SetExtendedListViewStyleEx(tag_list, LVS_EX_GRIDLINES, LVS_EX_GRIDLINES);
 	ListView_SetExtendedListViewStyleEx(tag_list, LVS_EX_FULLROWSELECT, LVS_EX_FULLROWSELECT);
 
+	HWND wnd_hl = GetDlgItem(IDC_EDIT_TAG_MATCH_HL);
+	cewb_highlight.SubclassWindow(wnd_hl);
+	cewb_highlight.AddClearButton(L"", false);
+
 	help_link.SubclassWindow(GetDlgItem(IDC_SYNTAX_HELP));
 	pfc::string8 url(core_api::get_profile_path());
 	url << "\\user-components\\foo_discogs\\foo_discogs_help.html";
@@ -137,8 +141,14 @@ LRESULT CNewTagMappingsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LP
 	load_size();
 	modeless_dialog_manager::g_add(m_hWnd);
 	show();
-	
+
 	on_mapping_changed(get_mapping_changed());
+	UINT default = IDOK;
+	//TODO: fix dim edit initialization 
+	uSendMessage(m_hWnd, WM_NEXTDLGCTL, (WPARAM)(HWND)GetDlgItem(IDC_EDIT_TAG_MATCH_HL), TRUE);
+	//
+	uSendMessage(m_hWnd, WM_NEXTDLGCTL, (WPARAM)(HWND)GetDlgItem(default), TRUE);
+
 	return FALSE;
 }
 
@@ -238,6 +248,41 @@ LRESULT CNewTagMappingsDialog::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*h
 LRESULT CNewTagMappingsDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
 	pushcfg(false);
 	return 0;
+}
+
+LRESULT CNewTagMappingsDialog::OnEditHLText(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& /*bHandled*/) {
+	if (wNotifyCode == EN_SETFOCUS || wNotifyCode == EN_CHANGE) {
+		if (wNotifyCode == EN_CHANGE)
+		{
+			pfc::string8 buffer;
+			uGetWindowText(hWndCtl, buffer);
+			highlight_label = trim(buffer);
+            //TODO: flickering
+			CRect listrc;
+			::GetClientRect(tag_list, &listrc);
+			int first = -1; int last = -1;
+			for (int walk = 0; walk < ListView_GetItemCount(tag_list); walk++) {
+				CRect lvrc;
+				ListView_GetItemRect(tag_list, walk, lvrc, LVIR_BOUNDS);
+				if (PtInRect(listrc, CPoint(lvrc.left, lvrc.top))) {
+					if (first < 0) first = walk;
+				}
+				else {
+					if (first > -1) {
+						last = walk;
+						break;
+					}
+				}
+			}
+			if (first > -1 && last > -1) {
+				ListView_RedrawItems(tag_list, first, last);
+				CRect arc;
+				::GetClientRect(tag_list, &arc);
+				InvalidateRect(arc, false);
+			}
+		}
+	}
+	return FALSE;
 }
 
 LRESULT CNewTagMappingsDialog::OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
@@ -528,6 +573,8 @@ LRESULT CNewTagMappingsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam , BOOL& b
 	}
 	const tag_mapping_entry &entry = tag_mappings->get_item_ref(pos);
 
+	bool do_hlight = false;
+
 	switch (lplvcd->nmcd.dwDrawStage) {
 		case CDDS_PREPAINT:
 			return CDRF_NOTIFYITEMDRAW;
@@ -537,10 +584,19 @@ LRESULT CNewTagMappingsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam , BOOL& b
 
 		case CDDS_SUBITEM | CDDS_ITEMPREPAINT:
 			sub_item = lplvcd->iSubItem;
+			if (sub_item == 0 && highlight_label.get_length()) {
+				do_hlight = pfc::string(tag_mappings->get_item(pos).tag_name).contains(highlight_label);
+			}
+			if (do_hlight)
+				lplvcd->clrTextBk = /*hlcolor;*/ RGB(215, 215, 215);
+
 			if ((sub_item == 0 || sub_item == 1) && entry.freeze_tag_name) {
 				lplvcd->clrText = DISABLED_RGB;
-				return CDRF_NEWFONT;
+
 			}
+			if (do_hlight || entry.freeze_tag_name)
+				return CDRF_NEWFONT;
+
 			/*else if (sub_item == 2 && entry.freeze_write && entry.freeze_update) {
 				lplvcd->clrText = DISABLED_RGB;
 				return CDRF_NEWFONT;

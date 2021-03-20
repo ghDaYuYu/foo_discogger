@@ -55,7 +55,11 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 		::ShowWindow(uGetDlgItem(IDC_SKIP_BUTTON), false);
 		::ShowWindow(uGetDlgItem(IDCANCEL), true);
 		::ShowWindow(uGetDlgItem(IDC_BACK_BUTTON), true);
-		SendMessage(m_hWnd, DM_SETDEFID, (WPARAM)conf.skip_preview_dialog ? IDC_WRITE_TAGS_BUTTON : IDC_PREVIEW_TAGS_BUTTON, 0);
+
+		//default button
+		UINT default = conf.skip_preview_dialog ? IDC_WRITE_TAGS_BUTTON
+			: IDC_PREVIEW_TAGS_BUTTON;
+		uSendMessage(m_hWnd, WM_NEXTDLGCTL, (WPARAM)(HWND)GetDlgItem(default), TRUE);
 	}
 
 	discogs_track_list = uGetDlgItem(IDC_DISCOGS_TRACK_LIST);
@@ -69,8 +73,8 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 	update_list_width(discogs_track_list, true);
 	update_list_width(file_list, true);
 
-	ListView_SetExtendedListViewStyle(discogs_track_list, LVS_EX_FULLROWSELECT /*| LVS_SHOWSELALWAYS*/);
-	ListView_SetExtendedListViewStyle(file_list, LVS_EX_FULLROWSELECT);
+	ListView_SetExtendedListViewStyle(discogs_track_list, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER/*| LVS_SHOWSELALWAYS*/);
+	ListView_SetExtendedListViewStyle(file_list, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
 
 	list_drop_handler.Initialize(m_hWnd, discogs_track_list, file_list);
 	list_drop_handler.SetNotifier(stdf_change_notifier);
@@ -223,10 +227,6 @@ LRESULT CTrackMatchingDialog::OnColorStatic(UINT /*uMsg*/, WPARAM wParam, LPARAM
 }
 
 CTrackMatchingDialog::~CTrackMatchingDialog() {
-	if (conf_changed) {
-		CONF.save(new_conf::ConfFilter::CONF_FILTER_TRACK, conf);
-		CONF.load();
-	}
 	g_discogs->track_matching_dialog = nullptr;
 }
 
@@ -619,8 +619,53 @@ void CTrackMatchingDialog::destroy_all() {
 	MyCDialogImpl<CTrackMatchingDialog>::destroy();
 }
 
+pfc::string8 file_info_get_artist_name(file_info_impl finfo, metadb_handle_ptr item) {
+	pfc::string8 artist;
+	g_discogs->file_info_get_tag(item, finfo, "Artist", artist);
+	if (!artist.get_length())
+		g_discogs->file_info_get_tag(item, finfo, "Album Artist", artist);
+	else if (!artist.get_length())
+		g_discogs->file_info_get_tag(item, finfo, "DISCOGS_ARTISTS", artist);
+	else if (!artist.get_length())
+		g_discogs->file_info_get_tag(item, finfo, "DISCOGS_ALBUM_ARTISTS", artist);
+	return artist;
+}
+
 void CTrackMatchingDialog::go_back() {
 	PFC_ASSERT(!multi_mode);
+	
+	pfc::string8 release_id, artist_id,	artist;
+	metadb_handle_list items = tag_writer->finfo_manager->items;
+
+	if (tag_writer->finfo_manager->items.get_size()) {
+		file_info_impl finfo;
+		metadb_handle_ptr item = items[0];
+		item->get_info(finfo);
+		g_discogs->file_info_get_tag(item, finfo, TAG_RELEASE_ID, release_id);
+		g_discogs->file_info_get_tag(item, finfo, TAG_ARTIST_ID, artist_id);
+		if (!artist_id.get_length()) {
+			artist.set_string(file_info_get_artist_name(finfo, item));
+		}
+	}
+
 	destroy();
 	g_discogs->find_release_dialog->show();
+
+	HWND wndFindRelease = g_discogs->find_release_dialog->m_hWnd;
+	UINT default = IDC_PROCESS_RELEASE_BUTTON;
+	
+	if (release_id.get_length()) {
+		
+		g_discogs->find_release_dialog->setitems(items);
+		HWND release_url_edit = ::GetDlgItem(wndFindRelease, IDC_RELEASE_URL_TEXT);
+		uSetWindowText(release_url_edit,release_id.get_ptr());
+
+		if (!artist_id.get_length()) {
+			default = IDC_SEARCH_BUTTON;
+			HWND search_edit = ::GetDlgItem(wndFindRelease, IDC_SEARCH_TEXT);
+			uSetWindowText(search_edit, artist.get_ptr());
+		}
+	}
+
+	uSendMessage(wndFindRelease, WM_NEXTDLGCTL, (WPARAM)(HWND)::GetDlgItem(wndFindRelease, default), TRUE);
 }

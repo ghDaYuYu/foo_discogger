@@ -46,10 +46,32 @@ struct id_tracker {
 		release_lv_set = false;
 	}
 
-	bool id_tracker::release_check(const pfc::string8 currentid, int currentndx) {
+	bool id_tracker::release_check(const pfc::string8 currentid, int currentndx, bool ismaster, int masterndx, int masteri) {
 		if (release_tracked()) {
+			if (ismaster) {
+				if (master_id == std::atoi(currentid)) {
+					master_index = currentndx;
+					return true;
+				}
+			}
+			else
 			if (release_id == std::atoi(currentid)) {
 				release_index = currentndx;
+				if (masteri != -1) {
+					//TODO: continue adding master related info...
+					//master_i = masteri;
+					//master_index = masterndx;
+					//master = true;
+				}
+				return true;
+			}
+		}
+		return false;
+	}
+	bool id_tracker::master_check(const pfc::string8 currentid, int currentndx) {
+		if (release_tracked()) {
+			if (master_id == std::atoi(currentid)) {
+				master_index = currentndx;
 				return true;
 			}
 		}
@@ -75,7 +97,6 @@ class CFindReleaseDialog : public MyCDialogImpl<CFindReleaseDialog>,
 {
 private:
 
-	pfc::string8 m_artist_search;
 	pfc::string8 m_results_filter;
 
 	t_size m_artist_index;
@@ -118,11 +139,11 @@ private:
 	bool build_current_cfg();
 	void pushcfg();
 
-	void fill_artist_list(bool force_exact);
+	void fill_artist_list(bool force_exact, updRelSrc updsrc); //bool from_search);
 	void select_release(int list_index = 0);
 	void update_releases(const pfc::string8& filter, updRelSrc updsrc, bool init_expand);
 	void expand_releases(const pfc::string8& filter, updRelSrc updsrc, t_size master_index, t_size master_pos);
-	void search_artist();
+	void search_artist(bool skip_tracer, pfc::string8 artistname);
 	void on_search_artist_done(pfc::array_t<Artist_ptr> &p_artist_exact_matches, const pfc::array_t<Artist_ptr> &p_artist_other_matches);
 
 	void get_selected_artist_releases(updRelSrc updsrc);
@@ -170,7 +191,7 @@ public:
 		COMMAND_ID_HANDLER(IDC_PROCESS_RELEASE_BUTTON, OnOK)
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
-		COMMAND_ID_HANDLER(IDC_SEARCH_TEXT, OnEditSearchText)
+		COMMAND_ID_HANDLER(IDC_SEARCH_EDIT, OnEditSearchText)
 		COMMAND_ID_HANDLER(IDC_FILTER_EDIT, OnEditFilterText)
 		COMMAND_HANDLER(IDC_ARTIST_LIST, LBN_SELCHANGE, OnSelectArtist)
 		COMMAND_HANDLER(IDC_ARTIST_LIST, LBN_DBLCLK, OnDoubleClickArtist)
@@ -180,9 +201,8 @@ public:
 		NOTIFY_HANDLER(IDC_RELEASE_LIST, NM_CUSTOMDRAW, OnCustomDraw)
 		COMMAND_ID_HANDLER(IDC_ONLY_EXACT_MATCHES_CHECK, OnCheckOnlyExactMatches)
 		COMMAND_ID_HANDLER(IDC_CHECK_RELEASE_SHOW_ID, OnCheckReleasesShowId)
-		COMMAND_ID_HANDLER(IDC_SEARCH_BUTTON, OnSearch)
-		COMMAND_ID_HANDLER(IDC_CLEAR_FILTER_BUTTON, OnClearFilter)
-		COMMAND_ID_HANDLER(IDC_CONFIGURE_BUTTON, OnConfigure)
+		COMMAND_ID_HANDLER(IDC_SEARCH_BUTTON, OnButtonSearch)
+		COMMAND_ID_HANDLER(IDC_CONFIGURE_BUTTON, OnButtonConfigure)
 		CHAIN_MSG_MAP(CDialogResize<CFindReleaseDialog>)
 	MY_END_MSG_MAP()
 
@@ -204,7 +224,6 @@ public:
 		DLGRESIZE_CONTROL(IDC_CHECK_RELEASE_SHOW_ID, DLSZ_MOVE_X)
 			DLGRESIZE_CONTROL(IDC_LABEL_RELEASES, DLSZ_MOVE_X)
 		END_DLGRESIZE_GROUP()
-		
 		DLGRESIZE_CONTROL(IDC_ONLY_EXACT_MATCHES_CHECK, DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_CONFIGURE_BUTTON, DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_STATIC_FIND_REL_REL_NAME, DLSZ_MOVE_Y)

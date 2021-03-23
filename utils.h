@@ -54,14 +54,13 @@ static const struct rzgripp {
 	bool grip;
 } mygripp{ 22, 56, true };
 
-static const struct mounted_param {
+const struct mounted_param {
 	int master_ndx;
 	int release_ndx;
 	bool bmaster;
 	bool brelease;
 };
 
-extern void client_center_offset(HWND wnd_main, CRect& out, int width_cli, int height_cli);
 
 static const pfc::string8 match_failed("FAILED TO MATCH TRACK ORDER");
 static const pfc::string8 match_success("MATCHED TRACK ORDER");
@@ -119,6 +118,16 @@ void erase(pfc::array_t<T> &ar, unsigned int index) {
 		ar[i - i] = ar[i];
 	}
 	ar.set_size_discard(count - 1);
+}
+
+extern bool sortByVal(const std::pair<int, int>& a, const std::pair<int, int>& b);
+
+namespace listview_helper {
+
+	extern unsigned fr_insert_column(HWND p_listview, unsigned p_index, const char* p_name, unsigned p_width_dlu, int fmt);
+	extern unsigned fr_insert_item(HWND p_listview, unsigned p_index, bool is_release_tracker, const char* p_name, LPARAM p_param);
+	extern bool fr_insert_item_subitem(HWND p_listview, unsigned p_index, unsigned p_subitem, const char* p_name, LPARAM p_param);
+
 }
 
 extern void CenterWindow(HWND hwnd, CRect rcCfg, HWND hwndCenter);

@@ -238,10 +238,12 @@ void add_first_if_not_exists(pfc::array_t<pfc::string8> &v, pfc::string8 s) {
 }
 
 void list_replace_text(HWND list, int pos, const char *text) {
-	LRESULT item_data = uSendMessage(list, LB_GETITEMDATA, pos, 0);
-	uSendMessage(list, LB_DELETESTRING, pos, 0);
-	uSendMessageText(list, LB_INSERTSTRING, pos, text);
-	uSendMessage(list, LB_SETITEMDATA, pos, (LPARAM)item_data);
+	pfc::stringcvt::string_os_from_utf8 textOS(text);
+	LV_ITEM lvi;
+	lvi.iItem = pos;
+	lvi.pszText = const_cast<TCHAR*>(textOS.get_ptr());
+	lvi.mask = LVIF_TEXT;
+	ListView_SetItem(list, &lvi);
 }
 
 
@@ -356,6 +358,61 @@ void ensure_directory_exists(const char* dir) {
 		foo_discogs_exception ex;
 		ex << "Error creating directory: \"" << dir << "\" [" << e.what() << "]";
 		throw ex;
+	}
+}
+
+bool sortByVal(const std::pair<int, int>& a, const std::pair<int, int>& b)
+{
+	if (a.second == b.second)
+		return a.first > b.first;
+	return a.second < b.second;
+}
+
+namespace listview_helper {
+
+	unsigned fr_insert_column(HWND p_listview, unsigned p_index, const char* p_name, unsigned p_width_dlu, int fmt)
+	{
+
+		int colcount = ListView_GetColumnCount(p_listview);
+		pfc::stringcvt::string_os_from_utf8 os_string_temp(p_name);
+		RECT rect = { 0, 0, static_cast<LONG>(p_width_dlu), 0 };
+		MapDialogRect(GetParent(p_listview), &rect);
+		LVCOLUMNW data = {};
+		data.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_FMT | LVCF_SUBITEM;
+		data.fmt = fmt;
+		data.cx = rect.right;
+		data.pszText = const_cast<TCHAR*>(os_string_temp.get_ptr());
+		data.iSubItem = colcount/*p_index*/;
+		LRESULT ret = uSendMessage(p_listview, LVM_INSERTCOLUMNW, colcount/*p_index*/, (LPARAM)&data);
+		if (ret < 0) return ~0;
+		else return (unsigned)ret;
+	}
+
+	unsigned fr_insert_item(HWND p_listview, unsigned p_index, bool is_release_tracker, const char* p_name, LPARAM p_param)
+	{
+		if (p_index == ~0) p_index = ListView_GetItemCount(p_listview);
+		LVITEM item = {};
+		pfc::stringcvt::string_os_from_utf8 os_string_temp(p_name);
+		item.mask = LVIF_TEXT | LVIF_PARAM;
+		item.iItem = p_index;
+		item.lParam = p_param;
+		item.pszText = const_cast<TCHAR*>(os_string_temp.get_ptr());
+
+		if (is_release_tracker) {
+			item.mask |= LVIF_STATE;
+			item.stateMask = LVIS_OVERLAYMASK;
+			item.state = INDEXTOOVERLAYMASK(8);
+		}
+
+		LRESULT ret = SendMessage(p_listview, LVM_INSERTITEM, 0, (LPARAM)&item);
+
+		if (ret < 0) return ~0;
+		else return (unsigned)ret;
+	}
+
+	bool fr_insert_item_subitem(HWND p_listview, unsigned p_index, unsigned p_subitem, const char* p_name, LPARAM p_param)
+	{
+		return set_item_text(p_listview, p_index, p_subitem, p_name);
 	}
 }
 

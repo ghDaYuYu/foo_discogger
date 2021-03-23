@@ -14,6 +14,8 @@ typedef int(_cdecl *dll_inflateInit2)(z_stream*, int, const char*, int);
 typedef int(_cdecl *dll_inflate)(z_stream*, int);
 typedef int(_cdecl *dll_inflateEnd)(z_stream*);
 
+extern bool cfg_preview_dialog_diff_tracks;
+
 extern dll_inflateInit2 dllinflateInit2;
 extern dll_inflate dllinflate;
 extern dll_inflateEnd dllinflateEnd;

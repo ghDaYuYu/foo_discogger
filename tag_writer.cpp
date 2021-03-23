@@ -411,7 +411,7 @@ bool check_multiple_results(pfc::array_t<string_encoded_array> where, string_enc
 	return false;
 }
 
-void TagWriter::generate_tags_ori(bool use_update_tags, threaded_process_status &p_status, abort_callback &p_abort) {
+void TagWriter::generate_tags_ori(bool use_update_tags, threaded_process_status& p_status, abort_callback& p_abort) {
 	tag_results.force_reset();
 	changed = false;
 
@@ -423,17 +423,17 @@ void TagWriter::generate_tags_ori(bool use_update_tags, threaded_process_status 
 	MasterRelease_ptr master = discogs_interface->get_master_release(release->master_id);
 
 	for (size_t i = 0; i < TAGS.get_size(); i++) {
-		const tag_mapping_entry &entry = TAGS.get_item_ref(i);
+		const tag_mapping_entry& entry = TAGS.get_item_ref(i);
 		//if ((!use_update_tags && entry.enable_write) || (use_update_tags && entry.enable_update)) {
 		if ((entry.enable_write) || (entry.enable_update)) {
 			tag_result_ptr result = std::make_shared<tag_result>();
-			
+
 			bool multiple_results = false;
 			bool multiple_old_results = false;
 
 			for (size_t j = 0; j < track_mappings.get_count(); j++) {
-				const track_mapping &mapping = track_mappings[j];
-				
+				const track_mapping& mapping = track_mappings[j];
+
 				if (!mapping.enabled) {
 					continue;
 				}
@@ -441,9 +441,9 @@ void TagWriter::generate_tags_ori(bool use_update_tags, threaded_process_status 
 				int file_index = mapping.file_index;
 				int disc_index = mapping.discogs_disc;
 				int trac_index = mapping.discogs_track;
-				
+
 				metadb_handle_ptr item = nullptr;
-				
+
 				try {
 					//TODO: should have been checked earlier
 					if (file_index < finfo_manager->get_item_count()) {
@@ -459,10 +459,10 @@ void TagWriter::generate_tags_ori(bool use_update_tags, threaded_process_status 
 					std::string dbexception(e.what());
 					continue;
 				}
-				file_info &info = finfo_manager->get_item(file_index);
+				file_info& info = finfo_manager->get_item(file_index);
 
-				const ReleaseDisc_ptr &disc = release->discs[disc_index];
-				const ReleaseTrack_ptr &track = disc->tracks[trac_index];
+				const ReleaseDisc_ptr& disc = release->discs[disc_index];
+				const ReleaseTrack_ptr& track = disc->tracks[trac_index];
 
 				titleformat_hook_impl_multiformat hook(p_status, &master, &release, &disc, &track, &info, &track_stores[j], &prompt_store);
 				hook.set_files(finfo_manager);
@@ -481,7 +481,7 @@ void TagWriter::generate_tags_ori(bool use_update_tags, threaded_process_status 
 					}
 					result->value.append_single(value);
 				}
-				catch (foo_discogs_exception &e) {
+				catch (foo_discogs_exception& e) {
 					foo_discogs_exception ex;
 					ex << "Error generating tag " << entry.tag_name << " [" << e.what() << "] for file " << item->get_path();
 					throw ex;
@@ -506,7 +506,7 @@ void TagWriter::generate_tags_ori(bool use_update_tags, threaded_process_status 
 						result->result_approved = entry.enable_update;
 
 						if (old_count == 1) {
-							
+
 							old_value.set_value(info.meta_get(entry.tag_name, 0));
 
 						}
@@ -529,10 +529,10 @@ void TagWriter::generate_tags_ori(bool use_update_tags, threaded_process_status 
 							}
 						}
 					}
-					
+
 					result->old_value.append_single(old_value);
 				}
-				catch (std::exception &e) {
+				catch (std::exception& e) {
 					foo_discogs_exception ex;
 					ex << "Error reading tag " << entry.tag_name << " [" << e.what() << "] for file " << item->get_path();
 					throw ex;
@@ -544,7 +544,7 @@ void TagWriter::generate_tags_ori(bool use_update_tags, threaded_process_status 
 			if (!multiple_old_results) {
 				result->old_value.set_size_discard(1);
 			}
-			
+
 			// calculate whether changed
 			if (result->value.get_count() == result->old_value.get_count()) {
 				for (size_t i = 0; i < result->value.get_count(); i++) {
@@ -572,7 +572,7 @@ void TagWriter::generate_tags_ori(bool use_update_tags, threaded_process_status 
 	}
 }
 
-void TagWriter::generate_tags(bool use_update_tags, threaded_process_status &p_status, abort_callback &p_abort) {
+void TagWriter::generate_tags_new(bool use_update_tags, threaded_process_status &p_status, abort_callback &p_abort) {
 	
 	tag_results.force_reset();
 	changed = false;
@@ -777,7 +777,7 @@ void TagWriter::generate_tags(bool use_update_tags, threaded_process_status &p_s
 	}
 }
 
-void TagWriter::write_tags() {
+void TagWriter::write_tags_new() {
 	
 	finfo_manager->invalidate_all();
 	bool binvalidate = false;
@@ -802,9 +802,110 @@ void TagWriter::write_tags() {
 		for (size_t j = 0; j < count; j++) {
 			const tag_result_ptr &result = tag_results[j];
 
+			if (!stricmp_utf8(result->tag_entry->tag_name, "DISCOGS_RELEASE_ID")) {
+				int debug = 1;
+			}
+
 			string_encoded_array *value;
 
 			if (result->result_approved && (result->r_approved[i] || !diff_tracks)) {
+
+				if (result->value.get_size() == 1) {
+					value = &(result->value[0]);
+				}
+				else {
+					value = &(result->value[i]);
+				}
+
+				if (value->has_array()) {
+					value->limit_depth(1);
+					write_tag(item, info, *(result->tag_entry)/*, result->r_approved*/, value->get_citems());
+				}
+				else {
+					pfc::string8 value_lf;
+					value->get_cvalue_lf(value_lf);
+					write_tag(item, info, *(result->tag_entry), value_lf);
+					//write_tag(item, info, *(result->tag_entry), value->get_pure_cvalue());
+				}
+				binvalidate = true;
+			}
+		}
+
+		if (CONF.remove_other_tags) {
+			size_t j = 0;
+			while (j < info.meta_get_count()) {
+				const char * tag_name = info.meta_enum_name(j);
+				bool remove = true;
+				for (size_t k = 0; k < TAGS.get_size(); k++) {
+					auto &tag = TAGS.get_item_ref(k);
+					//if (STR_EQUAL(tag_name, tag.tag_name)) {
+					if (pfc::stringCompareCaseInsensitive(tag_name, tag.tag_name) == 0) {
+						remove = false;
+						break;
+					}
+				}
+				if (remove) {
+					for (size_t k = 0; k < CONF.remove_exclude_tags.get_size(); k++) {
+						//if (STR_EQUAL(tag_name, CONF.remove_exclude_tags[k])) {
+						if (pfc::stringCompareCaseInsensitive(tag_name, CONF.remove_exclude_tags[k]) == 0) {
+							remove = false;
+							break;
+						}
+					}
+				}
+				if (remove) {
+					info.meta_remove_index(j);
+					binvalidate = true;
+				}
+				else {
+					j++;
+				}
+			}
+		}
+		if (binvalidate)
+			finfo_manager->validate_item(file_index);
+	}
+}
+
+void TagWriter::write_tags () {
+	if (cfg_preview_dialog_diff_tracks)
+		write_tags_new();
+	else
+		write_tags_ori();
+}
+
+void TagWriter::write_tags_ori() {
+
+	finfo_manager->invalidate_all();
+	bool binvalidate = false;
+
+	for (size_t i = 0; i < track_mappings.get_count(); i++) {
+		const track_mapping& mapping = track_mappings[i];
+
+		if (!mapping.enabled) {
+			continue;
+		}
+
+		size_t file_index = mapping.file_index;
+
+		if (file_index > finfo_manager.get()->get_item_count() - 1) {
+			//run out of tracks... skip unmatched files
+			break;
+		}
+		metadb_handle_ptr item = finfo_manager->get_item_handle(file_index);
+		file_info& info = finfo_manager->get_item(file_index);
+
+		const size_t count = tag_results.get_size();
+		for (size_t j = 0; j < count; j++) {
+			const tag_result_ptr& result = tag_results[j];
+
+			if (!stricmp_utf8(result->tag_entry->tag_name, "DISCOGS_TRACK_CREDITS")) {
+				int debug = 1;
+			}
+
+			string_encoded_array* value;
+
+			if (result->result_approved) {
 
 				if (result->value.get_size() == 1) {
 					value = &(result->value[0]);
@@ -829,10 +930,11 @@ void TagWriter::write_tags() {
 		if (CONF.remove_other_tags) {
 			size_t j = 0;
 			while (j < info.meta_get_count()) {
-				const char * tag_name = info.meta_enum_name(j);
+				const char* tag_name = info.meta_enum_name(j);
 				bool remove = true;
 				for (size_t k = 0; k < TAGS.get_size(); k++) {
-					auto &tag = TAGS.get_item_ref(k);
+					auto& tag = TAGS.get_item_ref(k);
+					//if (STR_EQUAL(tag_name, tag.tag_name)) {
 					if (pfc::stringCompareCaseInsensitive(tag_name, tag.tag_name) == 0) {
 						remove = false;
 						break;

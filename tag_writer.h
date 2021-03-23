@@ -63,8 +63,11 @@ public:
 	}
 
 	void generate_tags_ori(bool use_update_tags, threaded_process_status& p_status, abort_callback& p_abort);
-	void generate_tags(bool use_update_tags, threaded_process_status &p_status, abort_callback &p_abort);
+	void generate_tags_new(bool use_update_tags, threaded_process_status &p_status, abort_callback &p_abort);
 	void write_tags();
+	void write_tags_new();
+	void write_tags_ori();
+
 	void match_tracks();
 
 	bool changed = false;

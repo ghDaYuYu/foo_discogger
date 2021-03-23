@@ -5,6 +5,7 @@
 
 const char *whitespace = " \t\r\n";
 
+bool cfg_preview_dialog_diff_tracks = false;
 
 dll_inflateInit2 dllinflateInit2 = NULL;
 dll_inflate dllinflate = NULL;
@@ -539,4 +540,59 @@ void CenterWindow(HWND hwnd, CRect rcCfg, HWND hwndCenter)
 		yTop = rcArea.bottom - nDlgHeight;
 	// Map screen coordinates to child coordinates.
 	//SetWindowPos(hwnd, NULL, xLeft, yTop, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+}
+
+bool sortByVal(const std::pair<int, int>& a, const std::pair<int, int>& b)
+{
+	if (a.second == b.second)
+		return a.first > b.first;
+	return a.second < b.second;
+}
+
+namespace listview_helper {
+
+	unsigned fr_insert_column(HWND p_listview, unsigned p_index, const char* p_name, unsigned p_width_dlu, int fmt)
+	{
+
+		int colcount = ListView_GetColumnCount(p_listview);
+		pfc::stringcvt::string_os_from_utf8 os_string_temp(p_name);
+		RECT rect = { 0, 0, static_cast<LONG>(p_width_dlu), 0 };
+		MapDialogRect(GetParent(p_listview), &rect);
+		LVCOLUMNW data = {};
+		data.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_FMT | LVCF_SUBITEM;
+		data.fmt = fmt;
+		data.cx = rect.right;
+		data.pszText = const_cast<TCHAR*>(os_string_temp.get_ptr());
+		data.iSubItem = colcount/*p_index*/;
+		LRESULT ret = uSendMessage(p_listview, LVM_INSERTCOLUMNW, colcount/*p_index*/, (LPARAM)&data);
+		if (ret < 0) return ~0;
+		else return (unsigned)ret;
+	}
+
+	unsigned fr_insert_item(HWND p_listview, unsigned p_index, bool is_release_tracker, const char* p_name, LPARAM p_param)
+	{
+		if (p_index == ~0) p_index = ListView_GetItemCount(p_listview);
+		LVITEM item = {};
+		pfc::stringcvt::string_os_from_utf8 os_string_temp(p_name);
+		item.mask = LVIF_TEXT | LVIF_PARAM;
+		item.iItem = p_index;
+		item.lParam = p_param;
+		item.pszText = const_cast<TCHAR*>(os_string_temp.get_ptr());
+
+		if (is_release_tracker) {
+			item.mask |= LVIF_STATE;
+			item.stateMask = LVIS_OVERLAYMASK;
+			item.state = INDEXTOOVERLAYMASK(8);
+		}
+
+		LRESULT ret = SendMessage(p_listview, LVM_INSERTITEM, 0, (LPARAM)&item);
+
+		if (ret < 0) return ~0;
+		else return (unsigned)ret;
+	}
+
+	bool fr_insert_item_subitem(HWND p_listview, unsigned p_index, unsigned p_subitem, const char* p_name, LPARAM p_param)
+	{
+		return set_item_text(p_listview, p_index, p_subitem, p_name);
+	}
 }

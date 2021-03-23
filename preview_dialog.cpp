@@ -230,10 +230,18 @@ bool CPreviewTagsDialog::initialize() {
 void CPreviewTagsDialog::display_tag_result_stats() {
 	HWND stat_ctrl = uGetDlgItem(IDC_PREVIEW_STATS);
 	
-	std::string strstat = std::to_string(v_stats.size());
+	if (cfg_preview_dialog_diff_tracks) {
+	
+		HWND stat_ctrl = uGetDlgItem(IDC_PREVIEW_STATS);
+		std::string strstat = std::to_string(totalwrites);
+		strstat.append(" writes, ");
+		strstat.append(std::to_string(totalupdates));
+		strstat.append(" updates");
 
-	uSetDlgItemText(m_hWnd, IDC_PREVIEW_STATS, strstat.c_str());
-
+		uSetDlgItemText(m_hWnd, IDC_PREVIEW_STATS, strstat.c_str());
+	}
+	else
+		uSetDlgItemText(m_hWnd, IDC_PREVIEW_STATS, "");
 }
 
 void CPreviewTagsDialog::insert_tag_results(bool computestat) {
@@ -673,6 +681,12 @@ LRESULT CPreviewTagsDialog::OnEdit(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 #define CHANGE_NOT_APPROVED_RGB	RGB(150, 100, 100)
 
 void CPreviewTagsDialog::compute_stats(tag_results_list_type tag_results) {
+	if (cfg_preview_dialog_diff_tracks)
+		compute_stats_new(tag_results);
+	else
+		compute_stats_ori(tag_results);
+}
+void CPreviewTagsDialog::compute_stats_new(tag_results_list_type tag_results) {
 
 	int createdtags = 0;
 	int updatedtags = 0;
@@ -789,6 +803,43 @@ void CPreviewTagsDialog::compute_stats(tag_results_list_type tag_results) {
 
 
 	} // tag loop
+}
+
+void CPreviewTagsDialog::compute_stats_ori(tag_results_list_type tag_results) {
+	const size_t rescount = tag_writer->tag_results.get_count();
+	for (unsigned int i = 0; i < rescount; i++) {
+
+		const tag_result_ptr res = tag_writer->tag_results[i];
+		const tag_mapping_entry* entry = res->tag_entry;
+		bool discarded = !res->result_approved &&
+			res->changed;
+		if (!discarded) {
+
+			if (!stricmp_utf8(entry->tag_name, "DISCOGS_RATING")
+				|| !stricmp_utf8(entry->tag_name, "DISCOGS_TRACK_CREDITS")) {
+				int kk = 1;
+			}
+
+			if (res->changed) {
+				int debuggs = res->old_value.get_ptr()->get_cvalue().get_length();
+				if (res->old_value.size() == 0 || debuggs == 0) {
+					if (entry->enable_write)
+						totalwrites++;
+					/*else
+						if (entry->enable_update)
+							totalupdates++;*/
+				}
+				else {
+					if (entry->enable_update)
+						totalupdates++;
+				}
+			}
+			else {
+				//an approved non changed??
+				totalupdates = totalupdates;
+			}
+		}
+	} // tag writer tag results count loop
 }
 
 LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam, BOOL& bHandled) {

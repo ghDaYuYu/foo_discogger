@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include <CommCtrl.h>
+#include <atlctrls.h>
 
 #include "find_release_dialog.h"
 #include "configuration_dialog.h"
@@ -200,15 +201,21 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	icex.dwICC = IDC_RELEASE_LIST;
 	InitCommonControlsEx(&icex);
 
+	search_edit = GetDlgItem(IDC_SEARCH_EDIT);
 	filter_edit = GetDlgItem(IDC_FILTER_EDIT);
-	search_edit = GetDlgItem(IDC_SEARCH_TEXT);
 	artist_list = GetDlgItem(IDC_ARTIST_LIST);
 	release_list = GetDlgItem(IDC_RELEASE_LIST);
-	//uSendMessage(release_list, LB_SETHORIZONTALEXTENT, 600, 0);
 	release_url_edit = GetDlgItem(IDC_RELEASE_URL_TEXT);
+	//uSendMessage(release_list, LB_SETHORIZONTALEXTENT, 600, 0);
 
 	ListView_SetExtendedListViewStyle(release_list, LVS_EX_FULLROWSELECT);
 	ListView_SetExtendedListViewStyleEx(release_list, LVS_EX_COLUMNOVERFLOW | LVS_EX_FLATSB | LVS_EX_HEADERDRAGDROP | LVS_EX_GRIDLINES | LVS_EX_AUTOSIZECOLUMNS | LVS_EX_COLUMNSNAPPOINTS /*| LVS_EX_DOUBLEBUFFER*/, LVS_EX_COLUMNOVERFLOW | LVS_EX_FLATSB /*| LVS_EX_HEADERDRAGDROP*/ | LVS_EX_GRIDLINES | LVS_EX_AUTOSIZECOLUMNS | LVS_EX_COLUMNSNAPPOINTS);
+	CheckDlgButton(IDC_ONLY_EXACT_MATCHES_CHECK, conf.display_exact_matches);
+
+	cewb_artist_search.SubclassWindow(search_edit);
+	cewb_artist_search.SetEnterEscHandlers();
+	cewb_release_filter.SubclassWindow(filter_edit);
+	cewb_release_filter.SetEnterEscHandlers();
 
 	reset_default_columns(true);
 
@@ -219,6 +226,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	item->get_info(finfo);
 
 	const char* filter = finfo.meta_get("ALBUM", 0);
+
 	m_results_filter = filter ? filter : "";
 
 	// TODO: make formatting strings out of these
@@ -1515,7 +1523,10 @@ void CFindReleaseDialog::get_selected_artist_releases(updRelSrc updsrc) {
 
 void CFindReleaseDialog::search_artist(bool skip_tracer, pfc::string8 artistname) {
 
-	if (!skip_tracer && _idtracker.artist && _idtracker.artist_id != 1) {
+	//HWND wndNext = uGetDlgItem(IDC_PROCESS_RELEASE_BUTTON);
+	//::EnableWindow(wndNext, FALSE);
+	//todo:debug
+	if (false && !skip_tracer && _idtracker.artist && _idtracker.artist_id != 1) {
 
 		pfc::string8 artist_id;
 		artist_id.set_string(std::to_string(_idtracker.artist_id).c_str());

@@ -43,7 +43,8 @@ private:
 
 	bool generating_tags = false;
 	
-	bool cfg_preview_dialog_diff_tracks = true;
+	int totalwrites = 0; int totalupdates = 0;
+
 	bool cfg_preview_dialog_show_stats = false;
 
 	TagWriter_ptr tag_writer;
@@ -65,6 +66,8 @@ private:
 	void insert_tag_result(int pos, const tag_result_ptr &result);
 
 	void compute_stats(tag_results_list_type tag_results);
+	void compute_stats_ori(tag_results_list_type tag_results);
+	void compute_stats_new(tag_results_list_type tag_results);
 	void reset_stats () {
 		v_stats.clear();
 	}

@@ -130,4 +130,14 @@ namespace listview_helper {
 
 }
 
+extern bool sortByVal(const std::pair<int, int>& a, const std::pair<int, int>& b);
+
+namespace listview_helper {
+
+	extern unsigned fr_insert_column(HWND p_listview, unsigned p_index, const char* p_name, unsigned p_width_dlu, int fmt);
+	extern unsigned fr_insert_item(HWND p_listview, unsigned p_index, bool is_release_tracker, const char* p_name, LPARAM p_param);
+	extern bool fr_insert_item_subitem(HWND p_listview, unsigned p_index, unsigned p_subitem, const char* p_name, LPARAM p_param);
+
+}
+
 extern void CenterWindow(HWND hwnd, CRect rcCfg, HWND hwndCenter);

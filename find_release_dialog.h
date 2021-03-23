@@ -5,6 +5,8 @@
 #include "file_info_manager.h"
 #include "multiformat.h"
 
+#include "ceditwithbuttonsdim.h"
+
 using namespace Discogs;
 
 class expand_master_release_process_callback;
@@ -132,6 +134,8 @@ private:
 
 	HWND artist_list, release_list;
 	HWND release_url_edit, search_edit, filter_edit;
+	CEditWithButtonsDim cewb_artist_search;
+	CEditWithButtonsDim cewb_release_filter;
 
 	service_ptr_t<expand_master_release_process_callback> *active_task = nullptr;
 
@@ -196,8 +200,10 @@ public:
 		COMMAND_HANDLER(IDC_ARTIST_LIST, LBN_SELCHANGE, OnSelectArtist)
 		COMMAND_HANDLER(IDC_ARTIST_LIST, LBN_DBLCLK, OnDoubleClickArtist)
 		NOTIFY_HANDLER(IDC_RELEASE_LIST, /*LVN_ODSTATECHANGED*/LVN_ITEMCHANGED, OnListViewItemChanged)
-		//NOTIFY_HANDLER(IDC_RELEASE_LIST, NM_DBLCLK , OnDoubleClickRelease);
+		NOTIFY_HANDLER(IDC_RELEASE_LIST, LVN_KEYDOWN, OnKeyDownRelease);
+		NOTIFY_HANDLER(IDC_ARTIST_LIST, NM_RCLICK, OnRClickRelease);
 		NOTIFY_HANDLER(IDC_RELEASE_LIST, NM_RCLICK, OnRClickRelease);
+		NOTIFY_HANDLER(IDC_RELEASE_LIST, NM_CLICK, OnClickRelease);
 		NOTIFY_HANDLER(IDC_RELEASE_LIST, NM_CUSTOMDRAW, OnCustomDraw)
 		COMMAND_ID_HANDLER(IDC_ONLY_EXACT_MATCHES_CHECK, OnCheckOnlyExactMatches)
 		COMMAND_ID_HANDLER(IDC_CHECK_RELEASE_SHOW_ID, OnCheckReleasesShowId)
@@ -214,7 +220,6 @@ public:
 		DLGRESIZE_CONTROL(IDC_FILTER_EDIT, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_RESULTS_GROUP, DLSZ_SIZE_X | DLSZ_SIZE_Y)
 		DLGRESIZE_CONTROL(IDC_LABEL_FILTER, DLSZ_MOVE_X)
-		DLGRESIZE_CONTROL(IDC_CLEAR_FILTER_BUTTON, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_ARTIST_LIST, DLSZ_SIZE_Y)
 		DLGRESIZE_CONTROL(IDC_RELEASE_LIST, DLSZ_SIZE_Y)
 		DLGRESIZE_CONTROL(IDC_CHECK_RELEASE_SHOW_ID, DLSZ_MOVE_Y)
@@ -236,7 +241,7 @@ public:
 	}
 
 	CFindReleaseDialog(HWND p_parent, metadb_handle_list items, bool conf_release_id_tracker)
-		: items(items) {
+		: items(items), cewb_artist_search(L"Search artist"), cewb_release_filter(L"Filter releases") {
 
 		_idtracker.enabled = conf_release_id_tracker;
 		
@@ -273,6 +278,8 @@ public:
 	LRESULT OnListViewItemChanged(int, LPNMHDR hdr, BOOL&);
 	//LRESULT OnDoubleClickRelease(int, LPNMHDR hdr, BOOL&);
 	LRESULT OnRClickRelease(int, LPNMHDR hdr, BOOL&); 
+	LRESULT OnClickRelease(int, LPNMHDR hdr, BOOL&);
+	LRESULT OnKeyDownRelease(int, LPNMHDR hdr, BOOL&);
 	LRESULT OnCheckReleasesShowId(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCheckOnlyExactMatches(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnSearch(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);

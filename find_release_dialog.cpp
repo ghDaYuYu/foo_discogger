@@ -1225,10 +1225,7 @@ LRESULT CFindReleaseDialog::OnListViewItemChanged(int, LPNMHDR hdr, BOOL&) {
 	NMLISTVIEW* lpStateChange = reinterpret_cast<NMLISTVIEW*>(hdr);
 	if ((lpStateChange->uNewState ^ lpStateChange->uOldState) & LVIS_SELECTED) {
 		if (lpStateChange->uNewState & LVIS_SELECTED) {
-
-			mounted_param myparam = get_mounted_param((t_size)lpStateChange->iItem);
-			select_release(lpStateChange->iItem);
-
+		    //
 		}
 	}
 	return 0;
@@ -1307,6 +1304,44 @@ LRESULT CFindReleaseDialog::OnRClickRelease(int, LPNMHDR hdr, BOOL&) {
 		}
 	}
 	catch (...) {}
+
+	return 0;
+}
+
+LRESULT CFindReleaseDialog::OnClickRelease(int, LPNMHDR hdr, BOOL&) {
+	LPNMITEMACTIVATE nmListView = (LPNMITEMACTIVATE)hdr;
+
+	t_size list_index = nmListView->iItem;
+	POINT p = nmListView->ptAction;
+
+	mounted_param myparam = get_mounted_param(list_index);
+	select_release(list_index);
+
+	return 0;
+}
+
+LRESULT CFindReleaseDialog::OnKeyDownRelease(int, LPNMHDR hdr, BOOL&) {
+	LPNMITEMACTIVATE nmListView = (LPNMITEMACTIVATE)hdr;
+
+	t_size list_index = ListView_GetSingleSelection(release_list);
+
+	if (list_index != ~0 && hdr->code == LVN_KEYDOWN) {
+		UINT keycode = ((LPNMLVKEYDOWN)hdr)->wVKey;
+		mounted_param myparam = get_mounted_param(list_index);
+		if (myparam.bmaster && !myparam.brelease) {
+			bool expanded = get_lvstate_expanded(list_index);
+			if (keycode == VK_LEFT)
+			{
+				if (expanded)
+					select_release(list_index);
+			}
+			else if (keycode == VK_RIGHT)
+			{
+				if (!expanded)
+					select_release(list_index);
+			}
+		}
+	}
 
 	return 0;
 }

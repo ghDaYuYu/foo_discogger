@@ -19,6 +19,8 @@ void CNewTagMappingsDialog::pushcfg(bool force) {
 inline void CNewTagMappingsDialog::load_size() {
 	int width = conf.edit_tags_dialog_width;
 	int height = conf.edit_tags_dialog_height;
+	CRect rcCfg(0, 0, width, height);
+	::CenterWindow(this->m_hWnd, rcCfg, core_api::get_main_window());
 
 	CRect offset;
 	client_center_offset(core_api::get_main_window(), offset, width, height);

@@ -358,3 +358,73 @@ void ensure_directory_exists(const char* dir) {
 		throw ex;
 	}
 }
+
+void CenterWindow(HWND hwnd, CRect rcCfg, HWND hwndCenter)
+{
+	// Determine owner window to center against.
+	DWORD dwStyle = GetWindowLong(hwnd, GWL_STYLE);
+	if (hwndCenter == NULL)
+	{
+		if (dwStyle & WS_CHILD)
+			hwndCenter = GetParent(hwnd);
+		else
+			hwndCenter = GetWindow(hwnd, GW_OWNER);
+	}
+
+	// Get coordinates of the window relative to its parent.
+	RECT rcDlg;
+	if (rcCfg != CRect()) {
+		rcDlg = rcCfg;
+	}
+	else
+		GetWindowRect(hwnd, &rcDlg);
+
+	RECT rcArea;
+	RECT rcCenter;
+	HWND hwndParent;
+	if ((dwStyle & WS_CHILD) == 0)
+	{
+		// Don't center against invisible or minimized windows.
+		if (hwndCenter != NULL)
+		{
+			DWORD dwStyleCenter = GetWindowLong(hwndCenter, GWL_STYLE);
+			if (!(dwStyleCenter & WS_VISIBLE) || (dwStyleCenter & WS_MINIMIZE))
+				hwndCenter = NULL;
+		}
+
+		// Center within screen coordinates.
+		SystemParametersInfo(SPI_GETWORKAREA, NULL, &rcArea, NULL);
+		if (hwndCenter == NULL)
+			rcCenter = rcArea;
+		else
+			GetWindowRect(hwndCenter, &rcCenter);
+	}
+	else
+	{
+		// Center within parent client coordinates.
+		hwndParent = GetParent(hwnd);
+		GetClientRect(hwndParent, &rcArea);
+		GetClientRect(hwndCenter, &rcCenter);
+		MapWindowPoints(hwndCenter, hwndParent, (POINT*)&rcCenter, 2);
+	}
+
+	int nDlgWidth = rcDlg.right - rcDlg.left;
+	int nDlgHeight = rcDlg.bottom - rcDlg.top;
+
+	// Find dialog's upper left based on rcCenter.
+	int xLeft = (rcCenter.left + rcCenter.right) / 2 - nDlgWidth / 2;
+	int yTop = (rcCenter.top + rcCenter.bottom) / 2 - nDlgHeight / 2;
+
+	// If the dialog is outside the screen, move it inside.
+	if (xLeft < rcArea.left)
+		xLeft = rcArea.left;
+	else if (xLeft + nDlgWidth > rcArea.right)
+		xLeft = rcArea.right - nDlgWidth;
+
+	if (yTop < rcArea.top)
+		yTop = rcArea.top;
+	else if (yTop + nDlgHeight > rcArea.bottom)
+		yTop = rcArea.bottom - nDlgHeight;
+	// Map screen coordinates to child coordinates.
+	//SetWindowPos(hwnd, NULL, xLeft, yTop, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+}

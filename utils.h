@@ -120,3 +120,5 @@ void erase(pfc::array_t<T> &ar, unsigned int index) {
 	}
 	ar.set_size_discard(count - 1);
 }
+
+extern void CenterWindow(HWND hwnd, CRect rcCfg, HWND hwndCenter);

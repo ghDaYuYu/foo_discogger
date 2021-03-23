@@ -124,13 +124,8 @@ inline void CFindReleaseDialog::load_size() {
 
 	int width = conf.find_release_dialog_width;
 	int height = conf.find_release_dialog_height;
-
-	CRect offset;	
-	client_center_offset(core_api::get_main_window(), offset, width, height);
-
-	if (width != 0 && height != 0) {
-		SetWindowPos(core_api::get_main_window(), offset.left, offset.top, width + mygripp.x, height + mygripp.y, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
-	}
+	CRect rcCfg(0,0, width, height);
+	::CenterWindow(this->m_hWnd, rcCfg, core_api::get_main_window());
 
 	//columns
 

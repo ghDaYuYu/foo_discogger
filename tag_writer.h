@@ -15,7 +15,7 @@ struct track_mapping
 	bool enabled;
 	int discogs_disc;
 	int discogs_track;
-	int file_index;
+	t_size file_index;
 
 public:
 	bool operator!=(track_mapping &other) {
@@ -32,6 +32,8 @@ public:
 	const tag_mapping_entry *tag_entry;
 	pfc::array_t<string_encoded_array> value;
 	pfc::array_t<string_encoded_array> old_value;
+	pfc::array_t<bool> r_approved;
+
 	bool changed = false;
 	bool result_approved = false;
 };
@@ -60,6 +62,7 @@ public:
 		force_skip = true;
 	}
 
+	void generate_tags_ori(bool use_update_tags, threaded_process_status& p_status, abort_callback& p_abort);
 	void generate_tags(bool use_update_tags, threaded_process_status &p_status, abort_callback &p_abort);
 	void write_tags();
 	void match_tracks();
@@ -67,6 +70,8 @@ public:
 	bool changed = false;
 	bool skip = false;
 	bool force_skip = false;
+
+	bool diff_tracks = false;
 
 	pfc::string8 error = "";
 

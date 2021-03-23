@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include <CommCtrl.h>
 
 #include "preview_dialog.h"
 #include "tag_mappings_dialog.h"
@@ -10,9 +11,69 @@
 #pragma comment(lib, "gdiplus.lib")
 using namespace Gdiplus;
 
+struct cfg_prev_col {
+	int ndx = 0;
+	int id = 0;
+	int icol = 0;
+	pfc::string8 name = "";
+	pfc::string8 titleformat = "";
+	float width = 0.0f;
+	int celltype = 1;
+	int custtype = 0;
+	bool factory = false;
+	bool default = false;
+	bool enabled = true;
+	bool defuser = false;
+};
 
-#define WRITE_UPDATE_COL_WIDTH  85
+using cfg_prev_ColMap = std::map<std::int32_t, cfg_prev_col>;
 
+const int TOTAL_DEF_COLS = 9;
+const int COL_STAT_COLS = 4;
+const int COL_STAT_POS = 2;
+
+cfg_prev_col column_configs[TOTAL_DEF_COLS] = {
+	//#, ndx, icol, name, tf, width, celltype, factory, default, enabled, defuser
+	{1, 1, 0,"Tag Name", "", 20.0f, 0x0000, 0, true, true, false, false},
+	{2, 2, 1,"Value(s)", "", 40.0f, 0x0000, 0, true, true, false, false},
+	{3, 3, 2,"Tag Write", "", 40.0f, 0x0000, 0, true, false, false, false},
+	{4, 4, 3,"Tag Update", "", 40.0f, 0x0000, 0, true, false, false, false},
+	{5, 5, 4,"Skip (w/u)", "", 40.0f, 0x0000, 0, true,false, false, false},
+	{6, 6, 5,"Equal", "", 40.0f, 0x0000, 0, true, false, false, false},
+	{7, 7, 6,"---x", "", 20.0f, 0x0000, 0, false, false, false, false},
+	{8, 8, 7,"---y", "", 50.0f, 0x0000, 0, false, false, false, false},
+	{100, 10, 0,"---z", "", 200.0f, 0x0000, 0, false, false, false, false},
+};
+
+struct preview_lv_def {
+	bool autoscale = false;
+	cfg_prev_ColMap colmap = {};
+	uint32_t flags = 0;
+} cfg_lv;
+
+static void defaultCfgCols(preview_lv_def& cfg_out) {
+	cfg_out.autoscale = false;
+	cfg_out.colmap.clear();
+	for (int it = 0; it < PFC_TABSIZE(column_configs); it++) {
+		if (!column_configs[it].name.has_prefix("---")) {
+			cfg_prev_col tmp_cfgcol{
+				column_configs[it].id,
+				column_configs[it].ndx,
+				column_configs[it].icol,
+				column_configs[it].name,
+				column_configs[it].titleformat,
+				column_configs[it].width,
+				column_configs[it].celltype,
+				column_configs[it].custtype,
+				column_configs[it].factory,
+				column_configs[it].default,
+				column_configs[it].enabled,
+				column_configs[it].defuser,
+			};
+			cfg_out.colmap.emplace(cfg_out.colmap.size(), tmp_cfgcol);
+		}
+	}
+}
 
 inline void CPreviewTagsDialog::load_size() {
 
@@ -42,7 +103,6 @@ inline bool CPreviewTagsDialog::build_current_cfg() {
 
 	//check global settings
 	
-	//replace_ANV setting has already been transfered (OnClick())
 	bool local_replace_ANV = IsDlgButtonChecked(IDC_REPLACE_ANV_CHECK);
 	if (CONF.replace_ANVs!= conf.replace_ANVs &&
 		conf.replace_ANVs != local_replace_ANV) {
@@ -90,13 +150,14 @@ LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	
 	conf = CONF;
 	
-	tag_results_list = GetDlgItem(IDC_PREVIEW_LIST);
+	defaultCfgCols(cfg_lv);
 
-	listview_helper::insert_column(tag_results_list, 0, "Tag Name", 0);
-	listview_helper::insert_column(tag_results_list, 1, "Value(s)", 0);
+	tag_results_list = GetDlgItem(IDC_PREVIEW_LIST);
 
 	ListView_SetExtendedListViewStyleEx(tag_results_list, LVS_EX_GRIDLINES, LVS_EX_GRIDLINES);
 	ListView_SetExtendedListViewStyleEx(tag_results_list, LVS_EX_FULLROWSELECT, LVS_EX_FULLROWSELECT);
+
+	reset_default_columns(tag_results_list, true);
 
 	set_preview_mode(conf.preview_mode);
 
@@ -130,10 +191,8 @@ bool CPreviewTagsDialog::initialize() {
 	}
 
 	bool release_has_anv = tag_writer->release->has_anv();
-	HWND wnd_anv = uGetDlgItem(IDC_REPLACE_ANV_CHECK);
 	CheckDlgButton(IDC_REPLACE_ANV_CHECK, release_has_anv && conf.replace_ANVs);
-	//Done on CDDS_PREPAINT
-	//::EnableWindow(wnd_anv, release_has_anv);
+	CheckDlgButton(IDC_CHECK_PREV_DLG_DIFF_TRACKS, cfg_preview_dialog_diff_tracks);
 
 	// Album art
 	if (tag_writer->release->small_art.get_size() > 0 && (conf.save_album_art || conf.embed_album_art)) {
@@ -168,17 +227,11 @@ bool CPreviewTagsDialog::initialize() {
 	return true;
 }
 
-void CPreviewTagsDialog::reset_tag_result_stats() {
-	totalwrites = 0;
-	totalupdates = 0;
-}
 void CPreviewTagsDialog::display_tag_result_stats() {
 	HWND stat_ctrl = uGetDlgItem(IDC_PREVIEW_STATS);
-	std::string strstat = std::to_string(totalwrites);
-	strstat.append(" writes, ");
-	strstat.append(std::to_string(totalupdates));
-	strstat.append(" updates");
 	
+	std::string strstat = std::to_string(v_stats.size());
+
 	uSetDlgItemText(m_hWnd, IDC_PREVIEW_STATS, strstat.c_str());
 
 }
@@ -186,7 +239,7 @@ void CPreviewTagsDialog::display_tag_result_stats() {
 void CPreviewTagsDialog::insert_tag_results(bool computestat) {
 	ListView_DeleteAllItems(tag_results_list);
 	if (computestat) {
-		reset_tag_result_stats();
+		v_stats.clear();
 		compute_stats(tag_writer->tag_results);
 	}
 
@@ -354,6 +407,14 @@ void CPreviewTagsDialog::insert_tag_result(int pos, const tag_result_ptr &result
 	else {
 		listview_helper::insert_item2(tag_results_list, pos, result->tag_entry->tag_name, print_stenar(result->value), 0);
 	}
+	
+	if (cfg_preview_dialog_show_stats) {
+		listview_helper::set_item_text(tag_results_list, pos, 2, v_stats.size() > 0 ? pfc::toString(v_stats.at(pos).totalwrites).c_str() : "n/a");
+		listview_helper::set_item_text(tag_results_list, pos, 3, v_stats.size() > 0 ? pfc::toString(v_stats.at(pos).totalupdates).c_str() : "n/a");
+		listview_helper::set_item_text(tag_results_list, pos, 4, v_stats.size() > 0 ? pfc::toString(v_stats.at(pos).totalskips).c_str() : "n/a");
+		listview_helper::set_item_text(tag_results_list, pos, 5, v_stats.size() > 0 ? pfc::toString(v_stats.at(pos).totalwereequal).c_str() : "n/a");
+	}
+
 }
 
 void CPreviewTagsDialog::refresh_item(int pos) {
@@ -372,6 +433,14 @@ void CPreviewTagsDialog::refresh_item(int pos) {
 	}
 	else {
 		listview_helper::set_item_text(tag_results_list, pos, 1, print_stenar(result->value));
+	}
+
+	if (cfg_preview_dialog_show_stats) {
+		listview_helper::set_item_text(tag_results_list, pos, 2, "1");
+		listview_helper::set_item_text(tag_results_list, pos, 3, "2");
+		listview_helper::set_item_text(tag_results_list, pos, 4, "3");
+		listview_helper::set_item_text(tag_results_list, pos, 5, "4");
+	
 	}
 }
 
@@ -397,6 +466,11 @@ LRESULT CPreviewTagsDialog::OnCheckReplaceANVs(WORD /*wNotifyCode*/, WORD wID, H
 		GlobalReplace_ANV(local_replace_ANV);
 		tag_mappings_updated();
 	} 
+	return FALSE;
+}
+
+LRESULT CPreviewTagsDialog::OnCheckDiffTracks(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+	cfg_preview_dialog_diff_tracks = IsDlgButtonChecked(IDC_CHECK_PREV_DLG_DIFF_TRACKS);
 	return FALSE;
 }
 
@@ -537,6 +611,7 @@ LRESULT CPreviewTagsDialog::OnListClick(LPNMHDR lParam) {
 	NMITEMACTIVATE* info = reinterpret_cast<NMITEMACTIVATE*>(lParam);
 	if (info->iItem >= 0) {
 		if (get_preview_mode() == PREVIEW_NORMAL && TableEdit_IsColumnEditable(info->iSubItem)) {
+			//enable edits
 			const tag_result_ptr &result = tag_writer->tag_results[info->iItem];
 			if (!result->tag_entry->freeze_tag_name) {
 				trigger_edit(info->iItem, info->iSubItem);
@@ -585,7 +660,6 @@ LRESULT CPreviewTagsDialog::OnListKeyDown(LPNMHDR lParam) {
 	}
 }
 
-
 LRESULT CPreviewTagsDialog::OnEdit(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	t_size item = wParam;
 	t_size subItem = lParam;
@@ -599,34 +673,129 @@ LRESULT CPreviewTagsDialog::OnEdit(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 #define CHANGE_NOT_APPROVED_RGB	RGB(150, 100, 100)
 
 void CPreviewTagsDialog::compute_stats(tag_results_list_type tag_results) {
-	const size_t rescount = tag_writer->tag_results.get_count();
-	for (unsigned int i = 0; i < rescount; i++) {
+
+	int createdtags = 0;
+	int updatedtags = 0;
+
+	v_stats.clear();
+
+	const size_t tagcount = tag_writer->tag_results.get_count();
+
+	for (unsigned int walk_tag = 0; walk_tag < tagcount; walk_tag++)
+	{
+
+		preview_stats stats;
+
+		const tag_result_ptr res = tag_writer->tag_results[walk_tag];
+
+		//TODO: remove this to limit statistics
+		//if (!res->result_approved) {
+		//	v_stats.emplace_back(stats);
+		//	continue;
+		//}
 		
-		const tag_result_ptr res = tag_writer->tag_results[i];
+
 		const tag_mapping_entry* entry = res->tag_entry;
-		bool discarded = !res->result_approved &&
-			res->changed;
-		if (!discarded) {
-			if (res->changed) {
-				int cvsize = res->old_value.get_ptr()->get_cvalue().get_length();
-				if (res->old_value.size() == 0 || cvsize == 0) {
-					if (entry->enable_write)
-						totalwrites++;
+
+		int subwrites = 0, subupdates = 0, subskips = 0, wereequal = 0;
+
+		const size_t tk_count = res->r_approved.get_count();
+
+		preview_stats before_tag_loop_stats = stats;
+
+		for (int walk_tk = 0; walk_tk < tk_count; walk_tk++) {
+
+			const bool r_approved = res->r_approved[walk_tk];
+
+			string_encoded_array* oldvalue;
+			string_encoded_array* value;
+			int oldvalue_count = res->old_value.get_count();
+			int value_count = res->value.get_count();
+			int oldvalue_size = res->old_value.get_size();
+			int value_size = res->value.get_size();
+
+			if (res->old_value.get_size() == 1) {
+				oldvalue = &(res->old_value[0]);
+			}
+			else {
+				oldvalue = &(res->old_value[walk_tk]);
+			}
+			if (res->value.get_size() == 1) {
+				value = &(res->value[0]);
+			}
+			else {
+				value = &(res->value[walk_tk]);
+			}
+
+			const bool r_changed = stricmp_utf8(oldvalue->get_cvalue(),
+				value->get_cvalue());
+
+			if (r_changed) {
+
+				int old_value_cv_length = oldvalue->get_cvalue().get_length();
+
+				if (old_value_cv_length == 0) {
+					if (entry->enable_write && r_approved) {
+						subwrites++;
+					}
+					else
+						if (entry->enable_update)
+							subskips++;
 				}
 				else {
-					if (entry->enable_update)
-						totalupdates++;
+					if (entry->enable_update && r_approved) {
+						subupdates++;
+					}
+					else {
+						subskips++;
+					}
 				}
 			}
 			else {
-				//nothing to do
+
+				if (r_approved)
+					PFC_ASSERT(false);
+				//no need to update (old val == new val) this tag/track
+				stats.totalwereequal++;
 			}
-		}
-	} 
+
+			if (subwrites) {
+				stats.totalsubwrites += subwrites;
+				stats.totalwrites++;
+				subwrites = 0;
+			}
+			if (subupdates) {
+				stats.totalsubupdates += subupdates;
+				stats.totalupdates++;
+				subupdates = 0;
+			}
+			if (subskips) {
+				stats.totalskips += subskips;
+				subskips = 0;
+			}
+			if (wereequal) {
+				stats.totalwereequal += wereequal;
+				wereequal = 0;
+			}
+			
+		} // track tag loop
+
+		if (before_tag_loop_stats.totalwrites != stats.totalwrites)
+			createdtags++;
+		if (before_tag_loop_stats.totalupdates != stats.totalupdates)
+			updatedtags++;
+
+		v_stats.emplace_back(stats);
+
+
+	} // tag loop
+}
+
 LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam, BOOL& bHandled) {
 	if (generating_tags) {
 		return CDRF_DODEFAULT;
 	}
+
 	LPNMLVCUSTOMDRAW lplvcd = (LPNMLVCUSTOMDRAW)lParam;
 	int pos = (int)lplvcd->nmcd.dwItemSpec;
 	int sub_item;
@@ -635,12 +804,15 @@ LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam, BOOL& bHand
 		tag_writer->tag_results[pos]->tag_entry: nullptr;
 	
 	switch (lplvcd->nmcd.dwDrawStage) {
+
 	case CDDS_PREPAINT: {
 		//TODO: create EnableEx(true | false | noresult)
 		auto ctrl = uGetDlgItem(IDC_WRITE_TAGS_BUTTON);
 		ctrl.EnableWindow(bresults);
 		ctrl = uGetDlgItem(IDC_REPLACE_ANV_CHECK);
 		ctrl.EnableWindow(bresults && tag_writer->release->has_anv());
+		ctrl = uGetDlgItem(IDC_CHECK_PREV_DLG_DIFF_TRACKS);
+		ctrl.EnableWindow(cfg_preview_dialog_diff_tracks);
 		ctrl = uGetDlgItem(IDC_VIEW_NORMAL);
 		ctrl.EnableWindow(bresults);
 		ctrl = uGetDlgItem(IDC_VIEW_DIFFERENCE);
@@ -649,21 +821,25 @@ LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam, BOOL& bHand
 		ctrl.EnableWindow(bresults);
 		ctrl = uGetDlgItem(IDC_VIEW_DEBUG);
 		ctrl.EnableWindow(bresults);
-		
+		display_tag_result_stats();
 		return CDRF_NOTIFYITEMDRAW;
 	}
 
 	case CDDS_ITEMPREPAINT:
 		return CDRF_NOTIFYSUBITEMDRAW;
 
-	case CDDS_SUBITEM | CDDS_ITEMPREPAINT:
+	case CDDS_SUBITEM | CDDS_ITEMPREPAINT: {
 		sub_item = lplvcd->iSubItem;
 		if (entry && (sub_item == 0 || sub_item == 1)) {
-			bool bresview = get_preview_mode() == PREVIEW_NORMAL;
+			bool bresview = get_preview_mode() == PREVIEW_NORMAL; /*BST_CHECKED == uButton_GetCheck(m_hWnd, IDC_VIEW_NORMAL);*/
 			bool bchgdiscarded = !tag_writer->tag_results[pos]->result_approved &&
 				tag_writer->tag_results[pos]->changed;
 
+			//if (sub_item == 0) compute_item(bresults, bchgdiscarded, tag_writer->tag_results[pos], entry);
 			if (entry->freeze_tag_name) {
+				//if (sub_item == 0 || !bchgdiscarded)
+				//	lplvcd->clrText = DISABLED_RGB;
+				//else 
 				if (bchgdiscarded && bresview)
 					lplvcd->clrText = CHANGE_NOT_APPROVED_RGB;
 				else
@@ -677,16 +853,28 @@ LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam, BOOL& bHand
 				}
 			}
 		}
-		/*else if (sub_item == 2 && entry.freeze_write && entry.freeze_update) {
-			lplvcd->clrText = DISABLED_RGB;
+		if (entry && cfg_preview_dialog_show_stats &&
+			(sub_item > 1 && sub_item < 6)) {
+
 			return CDRF_NEWFONT;
-		}*/
-		/*else {
-			lplvcd->clrText = DEFAULT_RGB;
-			return CDRF_NEWFONT;
-		}*/
+
+		}
+	}
+	//TODO: postpaint revision
 	case CDDS_POSTPAINT:
 		display_tag_result_stats();
+		return CDRF_DODEFAULT;
+
+		//else if (sub_item == 2 && entry.freeze_write && entry.freeze_update) {
+		//	lplvcd->clrText = DISABLED_RGB;
+		//	return CDRF_NEWFONT;
+		//}
+		//else {
+		//	lplvcd->clrText = DEFAULT_RGB;
+		//	return CDRF_NEWFONT;
+		//}
+	//case CDDS_POSTPAINT:
+	//	display_tag_result_stats();
 		return CDRF_DODEFAULT;
 	}
 	return CDRF_DODEFAULT;
@@ -703,6 +891,7 @@ void CPreviewTagsDialog::enable(bool is_enabled) {
 	::uEnableWindow(GetDlgItem(IDC_BACK_BUTTON), is_enabled);
 	::uEnableWindow(GetDlgItem(IDC_EDIT_TAG_MAPPINGS_BUTTON), is_enabled);
 	::uEnableWindow(GetDlgItem(IDC_REPLACE_ANV_CHECK), is_enabled);
+	::uEnableWindow(GetDlgItem(IDC_CHECK_PREV_DLG_DIFF_TRACKS), is_enabled);
 	::uEnableWindow(GetDlgItem(IDC_PREVIEW_LIST), is_enabled);
 }
 
@@ -717,6 +906,122 @@ void CPreviewTagsDialog::destroy_all() {
 void CPreviewTagsDialog::go_back() {
 	PFC_ASSERT(!multi_mode);
 	destroy();
-	if (g_discogs->track_matching_dialog)
-	  g_discogs->track_matching_dialog->show();
+	if (g_discogs->track_matching_dialog) {
+		g_discogs->track_matching_dialog->show();
+	}
+}
+
+void CPreviewTagsDialog::reset_default_columns(HWND wndlist, bool breset) {
+    //TODO: revision
+	cfg_prev_ColMap::iterator it;
+
+	for (int i = 0; i < COL_STAT_COLS; i++) {
+		ListView_DeleteColumn(wndlist, COL_STAT_POS);
+	}
+
+	update_sorted_icol_map(breset);
+
+	for (unsigned int i = 0; i < vec_icol_subitems.size(); i++)
+	{
+		cfg_prev_col walk_cfg = cfg_lv.colmap.at(vec_icol_subitems[i].first);
+		if (breset) {
+			if (ListView_GetColumnCount(wndlist) < COL_STAT_POS) {
+				if (walk_cfg.icol < COL_STAT_POS && walk_cfg.enabled) {
+					//insert column
+					int icol = listview_helper::fr_insert_column(wndlist, walk_cfg.icol,
+						walk_cfg.name, (unsigned int)walk_cfg.width, LVCFMT_LEFT);
+					cfg_lv.colmap.at(vec_icol_subitems[i].first).enabled = true;
+				}
+			}
+		}
+		else {
+			if (walk_cfg.icol >= COL_STAT_POS && walk_cfg.enabled) {
+				//insert column
+				int icol = listview_helper::fr_insert_column(wndlist, walk_cfg.icol,
+				walk_cfg.name, (unsigned int)walk_cfg.width, LVCFMT_LEFT);
+				cfg_lv.colmap.at(vec_icol_subitems[i].first).enabled = true;
+			}
+		}
+	}
+}
+
+void CPreviewTagsDialog::update_sorted_icol_map(bool reset) {
+
+	cfg_prev_ColMap& colvals = cfg_lv.colmap;
+	cfg_prev_ColMap::iterator it;
+
+	vec_icol_subitems.clear();
+	for (it = colvals.begin(); it != colvals.end(); it++)
+	{
+		bool bpush = false;
+		if (reset) {
+			if (it->second.default) {
+				it->second.enabled = true;
+				vec_icol_subitems.push_back(std::make_pair(it->first, it->second.icol));
+			}
+			else {
+				it->second.enabled = false;
+			}
+		}
+		else {
+			if (it->second.enabled) {
+				vec_icol_subitems.push_back(std::make_pair(it->first, it->second.icol));
+			}
+			else {
+				//
+			}
+		}
+	}
+
+	std::sort(vec_icol_subitems.begin(), vec_icol_subitems.end(), sortByVal);
+
+}
+
+//TODO: proper mng
+LRESULT CPreviewTagsDialog::OnCheckPreviewShowStats(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+	
+	cfg_preview_dialog_show_stats = !cfg_preview_dialog_show_stats;
+
+	for (int i = 0; i < COL_STAT_COLS; i++) {
+		cfg_prev_col& cfgColClicked = cfg_lv.colmap.at(COL_STAT_POS + i);
+		cfgColClicked.enabled = !cfgColClicked.enabled;
+	}
+
+	if (!cfg_preview_dialog_show_stats) {
+		reset_default_columns(tag_results_list, true);
+	}
+	else {
+	    //TODO: revision
+		int newicol = ListView_GetColumnCount(tag_results_list);
+		int defwidth = ListView_GetColumnWidth(tag_results_list, 0);
+		defwidth += ListView_GetColumnWidth(tag_results_list, 1);
+		CRect reclist;
+		::GetWindowRect(tag_results_list, reclist);
+		int listwidth = reclist.Width();
+		int adjustwidth = defwidth + (4 * 40) - listwidth;
+
+		cfg_lv.colmap.at(2).enabled = true;
+		cfg_lv.colmap.at(3).enabled = true;
+		cfg_lv.colmap.at(4).enabled = true;
+		cfg_lv.colmap.at(5).enabled = true;
+
+		reset_default_columns(tag_results_list, false);
+
+		ListView_SetColumnWidth(tag_results_list, 2, LVSCW_AUTOSIZE_USEHEADER/*LVSCW_AUTOSIZE*/);
+		ListView_SetColumnWidth(tag_results_list, 3, LVSCW_AUTOSIZE_USEHEADER/*LVSCW_AUTOSIZE*/);
+		ListView_SetColumnWidth(tag_results_list, 4, LVSCW_AUTOSIZE_USEHEADER/*LVSCW_AUTOSIZE*/);
+		ListView_SetColumnWidth(tag_results_list, 5, LVSCW_AUTOSIZE_USEHEADER/*LVSCW_AUTOSIZE*/);
+		
+		if (adjustwidth > 0) {
+			ListView_SetColumnWidth(tag_results_list, 1, ListView_GetColumnWidth(tag_results_list, 1) - adjustwidth);
+			ListView_SetColumnWidth(tag_results_list, 0, ListView_GetColumnWidth(tag_results_list, 0) - adjustwidth);
+		}
+		update_sorted_icol_map(false /*sort without reset*/);
+	}
+
+	ListView_DeleteAllItems(tag_results_list);
+	insert_tag_results(true);
+
+	ListView_RedrawItems(tag_results_list, 0, ListView_GetGroupCount(tag_results_list));
+	return FALSE;
 }

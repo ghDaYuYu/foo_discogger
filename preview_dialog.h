@@ -5,6 +5,20 @@
 #include "resource.h"
 #include "tag_writer.h"
 
+#ifndef PREVIEW_STATS_H
+#define PREVIEW_STATS_H
+
+struct preview_stats {
+	int totalwrites = 0;
+	int totalupdates = 0;
+	int totalsubwrites = 0;
+	int totalsubupdates = 0;
+	int totalskips = 0;
+	int totalwereequal = 0;
+};
+
+#endif //PREVIEW_STATS_H
+
 
 class CPreviewTagsDialog : public MyCDialogImpl<CPreviewTagsDialog>,
 	public CDialogResize<CPreviewTagsDialog>,
@@ -20,9 +34,17 @@ private:
 	bool use_update_tags = false;
 	bool multi_mode = false;
 	size_t multi_count = 0;
+	
+	//preview_stats
+	std::vector<preview_stats> v_stats;
+	void reset_default_columns(HWND wndlist, bool breset);
+	std::vector<std::pair<int, int>> vec_icol_subitems;
+	void update_sorted_icol_map(bool reset);
 
 	bool generating_tags = false;
-	int totalwrites = 0; int totalupdates = 0;
+	
+	bool cfg_preview_dialog_diff_tracks = true;
+	bool cfg_preview_dialog_show_stats = false;
 
 	TagWriter_ptr tag_writer;
 	pfc::array_t<TagWriter_ptr> tag_writers;
@@ -41,8 +63,11 @@ private:
 	}
 
 	void insert_tag_result(int pos, const tag_result_ptr &result);
+
 	void compute_stats(tag_results_list_type tag_results);
-	void reset_tag_result_stats();
+	void reset_stats () {
+		v_stats.clear();
+	}
 	void display_tag_result_stats();
 
 	void set_preview_mode(int mode);
@@ -94,17 +119,16 @@ public:
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
 		COMMAND_ID_HANDLER(IDC_SKIP_BUTTON, OnMultiSkip)
 		COMMAND_ID_HANDLER(IDC_REPLACE_ANV_CHECK, OnCheckReplaceANVs)
+		COMMAND_ID_HANDLER(IDC_CHECK_PREV_DLG_DIFF_TRACKS, OnCheckDiffTracks)
+		COMMAND_ID_HANDLER(IDC_CHECK_PREV_DLG_SHOW_STATS, OnCheckPreviewShowStats)
 		COMMAND_ID_HANDLER(IDC_EDIT_TAG_MAPPINGS_BUTTON, OnEditTagMappings)
 		COMMAND_ID_HANDLER(IDC_VIEW_NORMAL, OnChangePreviewMode)
 		COMMAND_ID_HANDLER(IDC_VIEW_DIFFERENCE, OnChangePreviewMode)
 		COMMAND_ID_HANDLER(IDC_VIEW_ORIGINAL, OnChangePreviewMode)
 		COMMAND_ID_HANDLER(IDC_VIEW_DEBUG, OnChangePreviewMode)
-		//NOTIFY_HANDLER_EX(IDC_PREVIEW_LIST, LVN_ITEMCHANGED, OnListItemChanged)
 		NOTIFY_HANDLER_EX(IDC_PREVIEW_LIST, NM_CLICK, OnListClick)
-		//NOTIFY_HANDLER_EX(IDC_PREVIEW_LIST, NM_DBLCLK, OnListDoubleClick)
 		NOTIFY_HANDLER_EX(IDC_PREVIEW_LIST, LVN_KEYDOWN, OnListKeyDown)
 		MESSAGE_HANDLER_EX(MSG_EDIT, OnEdit)
-		//MESSAGE_HANDLER_EX(WM_CONTEXTMENU, OnContextMenu)
 		NOTIFY_HANDLER(IDC_PREVIEW_LIST, NM_CUSTOMDRAW, OnCustomDraw)
 		CHAIN_MSG_MAP(CDialogResize<CPreviewTagsDialog>)
 		MY_END_MSG_MAP()
@@ -113,6 +137,8 @@ public:
 			DLGRESIZE_CONTROL(IDC_ALBUM_ART, DLSZ_MOVE_X)
 			DLGRESIZE_CONTROL(IDC_OPTIONS_GROUP, DLSZ_MOVE_X)
 			DLGRESIZE_CONTROL(IDC_REPLACE_ANV_CHECK, DLSZ_MOVE_X)
+			DLGRESIZE_CONTROL(IDC_CHECK_PREV_DLG_DIFF_TRACKS, DLSZ_MOVE_X)
+			DLGRESIZE_CONTROL(IDC_CHECK_PREV_DLG_SHOW_STATS, DLSZ_MOVE_X)
 			DLGRESIZE_CONTROL(IDC_VIEW_GROUP, DLSZ_MOVE_X)
 			DLGRESIZE_CONTROL(IDC_VIEW_NORMAL, DLSZ_MOVE_X)
 			DLGRESIZE_CONTROL(IDC_VIEW_DIFFERENCE, DLSZ_MOVE_X)
@@ -129,6 +155,7 @@ public:
 			DLGRESIZE_CONTROL(IDC_SKIP_BUTTON, DLSZ_MOVE_X)
 			DLGRESIZE_CONTROL(IDC_PREVIEW_LIST, DLSZ_SIZE_X | DLSZ_SIZE_Y)
 			DLGRESIZE_CONTROL(IDC_PREVIEW_STATS, DLSZ_MOVE_X)
+			DLGRESIZE_CONTROL(IDC_STATIC_PREV_DLG_STATS_TAG_UPD, DLSZ_MOVE_X)
 		END_DLGRESIZE_MAP()
 
 		void DlgResize_UpdateLayout(int cxWidth, int cyHeight) {
@@ -150,7 +177,7 @@ public:
 			}
 		}
 		~CPreviewTagsDialog();
-		void CPreviewTagsDialog::OnFinalMessage(HWND /*hWnd*/) override;
+		void OnFinalMessage(HWND /*hWnd*/) override;
 
 		LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 		LRESULT OnWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
@@ -159,16 +186,16 @@ public:
 		LRESULT OnMultiSkip(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 		LRESULT OnBack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 		LRESULT OnCheckReplaceANVs(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+		LRESULT OnCheckDiffTracks(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+		LRESULT OnCheckPreviewShowStats(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 		LRESULT OnEditTagMappings(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 		LRESULT OnChangePreviewMode(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 		//LRESULT OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 		//LRESULT OnListItemChanged(LPNMHDR lParam);
 		LRESULT OnListClick(LPNMHDR lParam);
-		//LRESULT OnListDoubleClick(LPNMHDR lParam);
 		LRESULT OnListKeyDown(LPNMHDR lParam);
 		LRESULT OnEdit(UINT uMsg, WPARAM wParam, LPARAM lParam);
-		//LRESULT OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam);
-		LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR pnmh, BOOL& bHandled);
+		LRESULT OnCustomDraw(int idCtrl, LPNMHDR pnmh, BOOL& bHandled);
 
 		void refresh_item(int pos);
 

@@ -27,6 +27,7 @@
 #define IDC_STATIC_MATCH_TRACKING_REL_NAME 1012
 #define IDC_STATIC_FIND_REL_REL_NAME    1015
 #define IDC_CHECK_RELEASE_SHOW_ID       1016
+#define IDC_CHECK_PREV_DLG_DIFF_TRACKS  1016
 #define IDC_EDIT_TAG_MATCH_HL           1017
 #define IDC_EDIT_TAG_MAPPINGS_BUTTON    1029
 #define IDC_MOVE_UP_BUTTON              1035
@@ -41,6 +42,7 @@
 #define IDC_ENABLE_ANV_CHECK            1068
 #define IDC_ARTIST_LIST                 1071
 #define IDC_SEARCH_TEXT                 1072
+#define IDC_SEARCH_EDIT                 1072
 #define IDC_SEARCH_BUTTON               1073
 #define IDC_RELEASE_LIST                1074
 #define IDOAUTHTEST                     1075
@@ -141,7 +143,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        122
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1018
+#define _APS_NEXT_CONTROL_VALUE         1020
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

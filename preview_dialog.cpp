@@ -844,6 +844,7 @@ void CPreviewTagsDialog::compute_stats_ori(tag_results_list_type tag_results) {
 
 LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam, BOOL& bHandled) {
 	if (generating_tags) {
+		//TODO: mutex generating_tags
 		return CDRF_DODEFAULT;
 	}
 
@@ -910,23 +911,11 @@ LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam, BOOL& bHand
 			return CDRF_NEWFONT;
 
 		}
+		break;
 	}
-	//TODO: postpaint revision
 	case CDDS_POSTPAINT:
-		display_tag_result_stats();
-		return CDRF_DODEFAULT;
-
-		//else if (sub_item == 2 && entry.freeze_write && entry.freeze_update) {
-		//	lplvcd->clrText = DISABLED_RGB;
-		//	return CDRF_NEWFONT;
-		//}
-		//else {
-		//	lplvcd->clrText = DEFAULT_RGB;
-		//	return CDRF_NEWFONT;
-		//}
-	//case CDDS_POSTPAINT:
-	//	display_tag_result_stats();
-		return CDRF_DODEFAULT;
+		if (!cfg_preview_dialog_diff_tracks)
+			display_tag_result_stats();
 	}
 	return CDRF_DODEFAULT;
 }

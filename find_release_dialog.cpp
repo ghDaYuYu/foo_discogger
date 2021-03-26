@@ -255,6 +255,10 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 			on_write_tags(pfc::toString(_idtracker.release_id).c_str());
 		}
 		else {
+#ifndef DEBUG
+			if (_idtracker.release && _idtracker.release_id != pfc_infinite)
+				uSetWindowText(release_url_edit, pfc::toString(_idtracker.release_id).c_str());
+#endif			
 			show();
 			m_bNoEnChange = true;
 

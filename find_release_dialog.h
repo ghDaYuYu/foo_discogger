@@ -22,18 +22,42 @@ struct id_tracker {
 
 	bool enabled = false;
 	bool amr = false;
-	bool release = false;
-	bool master = false;
+
 	bool artist = false;
-	t_size release_i = pfc_infinite; //array index
+	bool master = false;
+	bool release = false;
+
+	t_size artist_i = pfc_infinite; //array index
 	t_size master_i = pfc_infinite;  //array index
-	int release_index = -1; //list index
+	t_size release_i = pfc_infinite; //array index
+
+	int artist_index = -1; //list_index
 	int master_index = -1;  //list index
-	bool release_lv_set = false;
+	int release_index = -1; //list index
+
+	bool artist_lv_set = false;
 	//bool master_lv_set = false;
-	int release_id = pfc_infinite;
-	int master_id = pfc_infinite;
+	bool release_lv_set = false;
+
 	int artist_id = pfc_infinite;
+	int master_id = pfc_infinite;
+	int release_id = pfc_infinite;
+
+	bool id_tracker::artist_tracked() {
+		return (
+			enabled &&
+			artist &&
+			artist_id != pfc_infinite &&
+			artist_index == -1);
+	}
+
+	bool id_tracker::master_tracked() {
+		return (
+			enabled &&
+			master &&
+			master_id != pfc_infinite &&
+			master_index == -1);
+	}
 
 	bool id_tracker::release_tracked() {
 		return (
@@ -43,38 +67,46 @@ struct id_tracker {
 			release_index == -1);
 	}
 
+	void id_tracker::artist_reset() {
+		artist_index = -1;
+		artist_lv_set = false;
+	}
+
 	void id_tracker::release_reset() {
 		release_index = -1;
 		release_lv_set = false;
 	}
 
-	bool id_tracker::release_check(const pfc::string8 currentid, int currentndx, bool ismaster, int masterndx, int masteri) {
-		if (release_tracked()) {
-			if (ismaster) {
-				if (master_id == std::atoi(currentid)) {
-					master_index = currentndx;
-					return true;
-				}
-			}
-			else
-			if (release_id == std::atoi(currentid)) {
-				release_index = currentndx;
-				if (masteri != -1) {
-					//TODO: continue adding master related info...
-					//master_i = masteri;
-					//master_index = masterndx;
-					//master = true;
-				}
+	bool id_tracker::artist_check(const pfc::string8 currentid, int currentndx) {
+		if (artist_tracked()) {
+			if (artist_id == std::atoi(currentid)) {
+				artist_index = currentndx;
 				return true;
 			}
 		}
 		return false;
 	}
-	bool id_tracker::master_check(const pfc::string8 currentid, int currentndx) {
-		if (release_tracked()) {
-			if (master_id == std::atoi(currentid)) {
-				master_index = currentndx;
-				return true;
+
+	bool id_tracker::release_check(const pfc::string8 currentid, int currentndx, bool ismaster, int masterndx, int masteri) {
+		if (ismaster) {
+			if (master_tracked()) {
+				if (master_id == std::atoi(currentid)) {
+					master_index = currentndx;
+					return true;
+				}
+			}
+		}
+		else {
+			if (release_tracked()) {
+				if (release_id == std::atoi(currentid)) {
+					release_index = currentndx;
+					if (masteri != -1) {
+						//TODO: continue
+						//master_i = ...
+						//marter_ndx = ...
+					}
+					return true;
+				}
 			}
 		}
 		return false;
@@ -167,6 +199,7 @@ private:
 	int insert_item_row(const row_col_data row_data, int list_index, int item_data, t_size master_list_pos);
 	pfc::string8 run_hook_columns(row_col_data& row_data, int item_data);
 	
+	void set_item_param(HWND list, int list_index, int col, LPARAM in_p);
 	void get_item_param(HWND list, int list_index, int col, LPARAM& out_p);
 	void get_mounted_param(mounted_param& pm, LPARAM lparam);
 	mounted_param get_mounted_param(LPARAM lparam);
@@ -174,7 +207,7 @@ private:
 	int get_mounted_lparam(mounted_param myparam);
 	pfc::string8 get_param_id(mounted_param myparam);
 	pfc::string8 get_param_id_master(mounted_param myparam);
-	bool get_lvstate_tracker(t_size list_index);
+	bool get_lvstate_tracker(HWND wnd_lv, t_size list_index);
 	void set_lvstate_expanded(t_size item_index, bool val);
 	bool get_lvstate_expanded(t_size list_index);
 
@@ -199,12 +232,13 @@ public:
 		COMMAND_ID_HANDLER(IDC_FILTER_EDIT, OnEditFilterText)
 		COMMAND_HANDLER(IDC_ARTIST_LIST, LBN_SELCHANGE, OnSelectArtist)
 		COMMAND_HANDLER(IDC_ARTIST_LIST, LBN_DBLCLK, OnDoubleClickArtist)
-		NOTIFY_HANDLER(IDC_RELEASE_LIST, /*LVN_ODSTATECHANGED*/LVN_ITEMCHANGED, OnListViewItemChanged)
+		NOTIFY_HANDLER(IDC_ARTIST_LIST, LVN_ITEMCHANGED, OnArtistListViewItemChanged)
 		NOTIFY_HANDLER(IDC_RELEASE_LIST, LVN_KEYDOWN, OnKeyDownRelease);
 		NOTIFY_HANDLER(IDC_ARTIST_LIST, NM_RCLICK, OnRClickRelease);
 		NOTIFY_HANDLER(IDC_RELEASE_LIST, NM_RCLICK, OnRClickRelease);
 		NOTIFY_HANDLER(IDC_RELEASE_LIST, NM_CLICK, OnClickRelease);
-		NOTIFY_HANDLER(IDC_RELEASE_LIST, NM_CUSTOMDRAW, OnCustomDraw)
+		NOTIFY_HANDLER(IDC_RELEASE_LIST, NM_CUSTOMDRAW, OnCustomDrawReleaseList)
+		NOTIFY_HANDLER(IDC_ARTIST_LIST, NM_CUSTOMDRAW, OnCustomDrawArtistList)
 		COMMAND_ID_HANDLER(IDC_ONLY_EXACT_MATCHES_CHECK, OnCheckOnlyExactMatches)
 		COMMAND_ID_HANDLER(IDC_CHECK_RELEASE_SHOW_ID, OnCheckReleasesShowId)
 		COMMAND_ID_HANDLER(IDC_SEARCH_BUTTON, OnButtonSearch)
@@ -270,21 +304,21 @@ public:
 	LRESULT OnEditFilterText(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnSelectArtist(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnDoubleClickArtist(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnCustomDraw(int wParam, LPNMHDR lParam, BOOL bHandled);
+	LRESULT OnCustomDrawReleaseList(int wParam, LPNMHDR lParam, BOOL bHandled);
+	LRESULT OnCustomDrawArtistList(int wParam, LPNMHDR lParam, BOOL bHandled);
 	LRESULT PointInReleaseListHeader(POINT pt);
 	LRESULT OnRClick(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnListRClick(LPNMHDR lParam);
 	void OnContextColumnCfgMenu(CWindow wnd, CPoint point);
-	LRESULT OnListViewItemChanged(int, LPNMHDR hdr, BOOL&);
+	LRESULT OnArtistListViewItemChanged(int, LPNMHDR hdr, BOOL&);
 	//LRESULT OnDoubleClickRelease(int, LPNMHDR hdr, BOOL&);
 	LRESULT OnRClickRelease(int, LPNMHDR hdr, BOOL&); 
 	LRESULT OnClickRelease(int, LPNMHDR hdr, BOOL&);
 	LRESULT OnKeyDownRelease(int, LPNMHDR hdr, BOOL&);
 	LRESULT OnCheckReleasesShowId(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCheckOnlyExactMatches(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnSearch(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnClearFilter(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnConfigure(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnButtonSearch(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnButtonConfigure(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 
 	friend class expand_master_release_process_callback;
 	friend class get_artist_process_callback;

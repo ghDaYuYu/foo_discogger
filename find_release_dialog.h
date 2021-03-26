@@ -213,6 +213,8 @@ private:
 
 	bool init_tracker();
 	void init_tracker_i(pfc::string8 filter_master, pfc::string8 filter_release, bool expanded, bool fast);
+	void init_filter_i(pfc::string8 filter_master, pfc::string8 filter_release, bool expanded, bool fast,
+		std::vector<std::pair<int, int>> vec_build_lv_items, std::vector<std::pair<int, int>>& vec_lv_items);
 
 	void reset_default_columns(bool reset);
 

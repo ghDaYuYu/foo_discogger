@@ -539,7 +539,7 @@ void CenterWindow(HWND hwnd, CRect rcCfg, HWND hwndCenter)
 	else if (yTop + nDlgHeight > rcArea.bottom)
 		yTop = rcArea.bottom - nDlgHeight;
 	// Map screen coordinates to child coordinates.
-	//SetWindowPos(hwnd, NULL, xLeft, yTop, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+	SetWindowPos(hwnd, core_api::get_main_window(), xLeft - mygripp.x/2, yTop - mygripp.y/2, nDlgWidth + mygripp.x, nDlgHeight + mygripp.y, /*SWP_NOSIZE |*/ SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
 bool sortByVal(const std::pair<int, int>& a, const std::pair<int, int>& b)

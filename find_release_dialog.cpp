@@ -560,13 +560,13 @@ pfc::string8 CFindReleaseDialog::run_hook_columns(row_col_data& row_data, int it
 	bool bmainrelease = false;
 	bool runhook = true;
 
-	CONF.search_master_format_string->run_hook(location, &info, hook.get(), search_formatted, nullptr);
-
 	for (unsigned int i = 0; i < vec_icol_subitems.size(); i++)
 	{
 		cfgcol walk_cfg = cfg_lv.colmap.at(vec_icol_subitems[i].first);
 
 		if (myparam.bmaster && !myparam.brelease) {
+
+			CONF.search_master_format_string->run_hook(location, &info, hook.get(), search_formatted, nullptr);
 
 			id_script = "%MASTER_RELEASE_ID%";
 			
@@ -593,6 +593,9 @@ pfc::string8 CFindReleaseDialog::run_hook_columns(row_col_data& row_data, int it
 		else {
 
 			if (myparam.bmaster && myparam.brelease) {
+
+				CONF.search_master_sub_format_string->run_hook(location, &info, hook.get(), search_formatted, nullptr);
+
 				//hook->set_release(&(find_release_artist->master_releases[master_index]->sub_releases[subrelease]));
 				pfc::string8 main_release_id = find_release_artist->master_releases[myparam.master_ndx]->main_release->id;
 				pfc::string8 this_release_id = find_release_artist->master_releases[myparam.master_ndx]->sub_releases[myparam.release_ndx]->id;
@@ -612,6 +615,8 @@ pfc::string8 CFindReleaseDialog::run_hook_columns(row_col_data& row_data, int it
 			}
 			else
 			{
+				CONF.search_release_format_string->run_hook(location, &info, hook.get(), search_formatted, nullptr);
+
 				//hook->set_release(&(find_release_artist->releases[release_index]));
 				if (!stricmp_utf8(walk_cfg.name, "Master/Release")) {
 					column_script = conf.search_release_format_string;

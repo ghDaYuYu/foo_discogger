@@ -1594,6 +1594,8 @@ LRESULT CFindReleaseDialog::OnCheckReleasesShowId(WORD /*wNotifyCode*/, WORD wID
 	cfgcol& cfgColClicked = cfg_lv.colmap.at(0);
 	cfgColClicked.enabled = !cfgColClicked.enabled;
 
+	t_size selected = ListView_GetSingleSelection(release_list);
+
 	if (!cfgColClicked.enabled) {
 		//delete
 		if (cfgColClicked.icol == 0)
@@ -1618,10 +1620,23 @@ LRESULT CFindReleaseDialog::OnCheckReleasesShowId(WORD /*wNotifyCode*/, WORD wID
 	ListView_DeleteAllItems(release_list);
 	if (find_release_artist) {
 		if (g_discogs->find_release_dialog && find_release_artist) {
-			update_releases(m_results_filter, updRelSrc::Undef, false);
+			//TODO: remove m_release_list_artist_id member 
+			t_size the_artist = !find_release_artist ? pfc_infinite : atoi(find_release_artist->id);
+			t_size prev_id = m_release_list_artist_id;
+			m_release_list_artist_id = the_artist;
+			
+			update_releases(m_results_filter, updRelSrc::Undef, true);
+			
+			m_release_list_artist_id = prev_id;
 		}
 	}
 	ListView_RedrawItems(release_list, 0, ListView_GetGroupCount(release_list));
+
+	if (selected != pfc_infinite) {
+		ListView_SetItemState(release_list, selected, LVIS_SELECTED, LVIS_SELECTED);
+		ListView_EnsureVisible(release_list, selected, FALSE);
+	}
+
 	return FALSE;
 }
 

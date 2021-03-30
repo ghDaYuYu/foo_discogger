@@ -7,7 +7,6 @@
 
 #define WRITE_UPDATE_COL_WIDTH  85
 
-
 void CNewTagMappingsDialog::pushcfg(bool force) {
 	bool conf_changed = build_current_cfg();
 	if (conf_changed || force) {
@@ -22,12 +21,6 @@ inline void CNewTagMappingsDialog::load_size() {
 	CRect rcCfg(0, 0, width, height);
 	::CenterWindow(this->m_hWnd, rcCfg, core_api::get_main_window());
 
-	CRect offset;
-	client_center_offset(core_api::get_main_window(), offset, width, height);
-
-	if (width != 0 && height != 0) {
-		SetWindowPos(nullptr, offset.left, offset.top, width + mygripp.x, height + mygripp.y, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
-	}
 	if (conf.edit_tags_dialog_col1_width != 0) {
 		ListView_SetColumnWidth(GetDlgItem(IDC_TAG_LIST), 0, conf.edit_tags_dialog_col1_width);
 		ListView_SetColumnWidth(GetDlgItem(IDC_TAG_LIST), 1, conf.edit_tags_dialog_col2_width);
@@ -44,8 +37,6 @@ inline bool CNewTagMappingsDialog::build_current_cfg() {
 
 	//check global settings
 	bres = bres | get_mapping_changed();
-
-	//..
 
 	CRect rcDlg;
 	GetClientRect(&rcDlg);
@@ -73,8 +64,9 @@ inline bool CNewTagMappingsDialog::build_current_cfg() {
 		conf.edit_tags_dialog_col1_width = width1;
 		conf.edit_tags_dialog_col2_width = width2;
 		conf.edit_tags_dialog_col3_width = width3;
-	}
 
+		bres = bres || true;
+	}
 	return bres;
 }
 
@@ -88,7 +80,6 @@ bool CNewTagMappingsDialog::get_mapping_changed() {
 			}
 		}
 	}
-
 	return mapping_changed;
 }
 
@@ -97,23 +88,14 @@ void CNewTagMappingsDialog::on_mapping_changed(bool changed) {
 	btnapply.EnableWindow(changed);
 }
 
-CNewTagMappingsDialog::CNewTagMappingsDialog(HWND p_parent) {
-	tag_mappings = copy_tag_mappings();
-	Create(p_parent);
-}
-
-CNewTagMappingsDialog::~CNewTagMappingsDialog() {
-	
-	g_discogs->tag_mappings_dialog = nullptr;
-	if (tag_mappings != nullptr) {
-		delete tag_mappings;
-		tag_mappings = nullptr;
-	}
-}
-
 LRESULT CNewTagMappingsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
 	
 	conf = CONF;
+
+	INITCOMMONCONTROLSEX icex;
+	icex.dwSize = sizeof(icex);
+	icex.dwICC = ICC_LISTVIEW_CLASSES;
+	InitCommonControlsEx(&icex);
 
 	tag_list = GetDlgItem(IDC_TAG_LIST);
 	remove_button = GetDlgItem(IDC_REMOVE_TAG); 
@@ -122,12 +104,11 @@ LRESULT CNewTagMappingsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LP
 	listview_helper::insert_column(tag_list, 1, "Formatting String", 0);
 	listview_helper::insert_column(tag_list, 2, "Enabled", WRITE_UPDATE_COL_WIDTH);
 
-	ListView_SetExtendedListViewStyleEx(tag_list, LVS_EX_GRIDLINES, LVS_EX_GRIDLINES);
-	ListView_SetExtendedListViewStyleEx(tag_list, LVS_EX_FULLROWSELECT, LVS_EX_FULLROWSELECT);
+	ListView_SetExtendedListViewStyleEx(tag_list, LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES | LVS_EX_DOUBLEBUFFER, LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES | LVS_EX_DOUBLEBUFFER);
 
-	HWND wnd_hl = GetDlgItem(IDC_EDIT_TAG_MATCH_HL);
-	cewb_highlight.SubclassWindow(wnd_hl);
-	cewb_highlight.AddClearButton(L"", false);
+	HWND wnd_hledit = GetDlgItem(IDC_EDIT_TAG_MATCH_HL);
+	cewb_highlight.SubclassWindow(wnd_hledit);
+	cewb_highlight.SetEnterEscHandlers();
 
 	help_link.SubclassWindow(GetDlgItem(IDC_SYNTAX_HELP));
 	pfc::string8 url(core_api::get_profile_path());
@@ -141,15 +122,13 @@ LRESULT CNewTagMappingsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LP
 
 	DlgResize_Init(mygripp.grip, true); 
 	load_size();
+
 	modeless_dialog_manager::g_add(m_hWnd);
 	show();
 
 	on_mapping_changed(get_mapping_changed());
-	UINT default = IDOK;
-	//TODO: fix dim edit initialization 
-	uSendMessage(m_hWnd, WM_NEXTDLGCTL, (WPARAM)(HWND)GetDlgItem(IDC_EDIT_TAG_MATCH_HL), TRUE);
-	//
-	uSendMessage(m_hWnd, WM_NEXTDLGCTL, (WPARAM)(HWND)GetDlgItem(default), TRUE);
+
+	uSendMessage(m_hWnd, WM_NEXTDLGCTL, (WPARAM)(HWND)GetDlgItem(IDOK), TRUE);
 
 	return FALSE;
 }
@@ -161,10 +140,10 @@ void CNewTagMappingsDialog::insert_tag_mappings() {
 	}
 }
 
-static const char *TEXT_WRITE_UPDATE = "write + update";
 static const char *TEXT_WRITE = "write";
 static const char *TEXT_UPDATE = "update";
 static const char *TEXT_DISABLED = "disabled";
+static const char *TEXT_WRITE_UPDATE = "write + update";
 
 void CNewTagMappingsDialog::insert_tag(int pos, const tag_mapping_entry *entry) {
 	const char *text = (entry->enable_update ? (entry->enable_write ? TEXT_WRITE_UPDATE : TEXT_UPDATE) :
@@ -182,7 +161,6 @@ void CNewTagMappingsDialog::update_tag(int pos, const tag_mapping_entry *entry) 
 	listview_helper::set_item_text(tag_list, pos, 2, text);
 
 	on_mapping_changed(get_mapping_changed());
-
 }
 
 void CNewTagMappingsDialog::refresh_item(int pos) {
@@ -227,64 +205,34 @@ void CNewTagMappingsDialog::applymappings() {
 }
 
 LRESULT CNewTagMappingsDialog::OnOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+
 	if (build_current_cfg()) {
 		applymappings();
 		pushcfg(true);
 	}
+
 	destroy();
 	return TRUE;
 }
 
 LRESULT CNewTagMappingsDialog::OnApply(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+
 	applymappings();
 	pushcfg(true);
 	return FALSE;
 }
 
 LRESULT CNewTagMappingsDialog::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+	
 	conf = CONF;
 	destroy();
 	return TRUE;
 }
 
 LRESULT CNewTagMappingsDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
+	
 	pushcfg(false);
 	return 0;
-}
-
-LRESULT CNewTagMappingsDialog::OnEditHLText(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& /*bHandled*/) {
-	if (wNotifyCode == EN_SETFOCUS || wNotifyCode == EN_CHANGE) {
-		if (wNotifyCode == EN_CHANGE)
-		{
-			pfc::string8 buffer;
-			uGetWindowText(hWndCtl, buffer);
-			highlight_label = trim(buffer);
-            //TODO: flickering
-			CRect listrc;
-			::GetClientRect(tag_list, &listrc);
-			int first = -1; int last = -1;
-			for (int walk = 0; walk < ListView_GetItemCount(tag_list); walk++) {
-				CRect lvrc;
-				ListView_GetItemRect(tag_list, walk, lvrc, LVIR_BOUNDS);
-				if (PtInRect(listrc, CPoint(lvrc.left, lvrc.top))) {
-					if (first < 0) first = walk;
-				}
-				else {
-					if (first > -1) {
-						last = walk;
-						break;
-					}
-				}
-			}
-			if (first > -1 && last > -1) {
-				ListView_RedrawItems(tag_list, first, last);
-				CRect arc;
-				::GetClientRect(tag_list, &arc);
-				InvalidateRect(arc, false);
-			}
-		}
-	}
-	return FALSE;
 }
 
 LRESULT CNewTagMappingsDialog::OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
@@ -565,9 +513,9 @@ void CNewTagMappingsDialog::show_context_menu(CPoint &pt, int selection) {
 
 #define DISABLED_RGB	RGB(150, 150, 150)
 
-
 LRESULT CNewTagMappingsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam , BOOL& bHandled) {
 	LPNMLVCUSTOMDRAW lplvcd = (LPNMLVCUSTOMDRAW)lParam;
+	
 	size_t pos = lplvcd->nmcd.dwItemSpec;
 	int sub_item;
 	if (tag_mappings->get_count() <= pos) {
@@ -587,7 +535,7 @@ LRESULT CNewTagMappingsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam , BOOL& b
 		case CDDS_SUBITEM | CDDS_ITEMPREPAINT:
 			sub_item = lplvcd->iSubItem;
 			if (sub_item == 0 && highlight_label.get_length()) {
-				do_hlight = pfc::string(tag_mappings->get_item(pos).tag_name).contains(highlight_label);
+				do_hlight = pfc::string(pfc::stringToLower(tag_mappings->get_item(pos).tag_name)).contains(highlight_label);
 			}
 			if (do_hlight)
 				lplvcd->clrTextBk = /*hlcolor;*/ RGB(215, 215, 215);
@@ -613,6 +561,41 @@ LRESULT CNewTagMappingsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam , BOOL& b
 
 LRESULT CNewTagMappingsDialog::OnRemoveTag(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	delete_selection();
+	return FALSE;
+}
+
+LRESULT CNewTagMappingsDialog::OnEditHLText(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& /*bHandled*/) {
+	if (wNotifyCode == EN_SETFOCUS || wNotifyCode == EN_CHANGE) {
+		if (wNotifyCode == EN_CHANGE)
+		{
+			highlight_label = pfc::stringToLower(trim(pfc::string8(uGetWindowText(hWndCtl).c_str())));
+
+			CRect listrc;
+			::GetClientRect(tag_list, &listrc);
+			int first = -1; int last = -1;
+			for (int walk = 0; walk < ListView_GetItemCount(tag_list); walk++) {
+				CRect lvrc;
+				ListView_GetItemRect(tag_list, walk, lvrc, LVIR_BOUNDS);
+
+				if (PtInRect(listrc, CPoint(lvrc.left, lvrc.top))) {
+					if (first < 0) first = walk;
+				}
+				else {
+					if (first > -1) {
+						last = walk;
+						break;
+					}
+				}
+			}
+
+			if (first > -1 && last > -1) {
+				ListView_RedrawItems(tag_list, first, last);
+				CRect arc;
+				::GetClientRect(tag_list, &arc);
+				InvalidateRect(arc, false);
+			}
+		}
+	}
 	return FALSE;
 }
 

@@ -14,7 +14,12 @@ typedef int(_cdecl *dll_inflateInit2)(z_stream*, int, const char*, int);
 typedef int(_cdecl *dll_inflate)(z_stream*, int);
 typedef int(_cdecl *dll_inflateEnd)(z_stream*);
 
-extern bool cfg_preview_dialog_diff_tracks;
+extern bool cfg_preview_dialog_track_map;
+extern bool cfg_preview_dialog_comp_track_map_in_v23;
+extern bool cfg_find_release_dialog_idtracker;
+
+extern double cfg_find_release_colummn_showid_width;
+extern bool cfg_find_release_colummn_showid;
 
 extern dll_inflateInit2 dllinflateInit2;
 extern dll_inflate dllinflate;

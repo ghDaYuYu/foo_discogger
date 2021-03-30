@@ -28,12 +28,12 @@ struct id_tracker {
 	bool release = false;
 
 	t_size artist_i = pfc_infinite; //array index
-	t_size master_i = pfc_infinite;  //array index
-	t_size release_i = pfc_infinite; //array index
+	t_size master_i = pfc_infinite;
+	t_size release_i = pfc_infinite;
 
 	int artist_index = -1; //list_index
-	int master_index = -1;  //list index
-	int release_index = -1; //list index
+	int master_index = -1;
+	int release_index = -1;
 
 	bool artist_lv_set = false;
 	//bool master_lv_set = false;

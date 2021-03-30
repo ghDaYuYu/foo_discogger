@@ -1,8 +1,6 @@
 #include "stdafx.h"
-
 #include "tag_writer.h"
 #include "multiformat.h"
-
 
 TagWriter::TagWriter(file_info_manager_ptr finfo_manager, Release_ptr release) : finfo_manager(finfo_manager), release(release) {
 }
@@ -422,17 +420,21 @@ void TagWriter::generate_tags_ori(bool use_update_tags, threaded_process_status&
 	persistent_store prompt_store;
 	MasterRelease_ptr master = discogs_interface->get_master_release(release->master_id);
 
-	for (size_t i = 0; i < TAGS.get_size(); i++) {
-		const tag_mapping_entry& entry = TAGS.get_item_ref(i);
-		//if ((!use_update_tags && entry.enable_write) || (use_update_tags && entry.enable_update)) {
+	for (size_t wtags = 0; wtags < TAGS.get_size(); wtags++) {
+		const tag_mapping_entry& entry = TAGS.get_item_ref(wtags);
+		
 		if ((entry.enable_write) || (entry.enable_update)) {
+			
 			tag_result_ptr result = std::make_shared<tag_result>();
 
 			bool multiple_results = false;
 			bool multiple_old_results = false;
 
-			for (size_t j = 0; j < track_mappings.get_count(); j++) {
-				const track_mapping& mapping = track_mappings[j];
+			for (size_t wtracks = 0; wtracks < track_mappings.get_count(); wtracks++) {
+				const track_mapping& mapping = track_mappings[wtracks];
+
+				bool tk_added = false;
+				bool tk_changed = false;
 
 				if (!mapping.enabled) {
 					continue;
@@ -445,9 +447,12 @@ void TagWriter::generate_tags_ori(bool use_update_tags, threaded_process_status&
 				metadb_handle_ptr item = nullptr;
 
 				try {
+					
 					//TODO: should have been checked earlier
 					if (file_index < finfo_manager->get_item_count()) {
+
 						item = finfo_manager->get_item_handle(file_index);
+
 					}
 					else {
 						//no more files available (more tracks than files)
@@ -464,7 +469,7 @@ void TagWriter::generate_tags_ori(bool use_update_tags, threaded_process_status&
 				const ReleaseDisc_ptr& disc = release->discs[disc_index];
 				const ReleaseTrack_ptr& track = disc->tracks[trac_index];
 
-				titleformat_hook_impl_multiformat hook(p_status, &master, &release, &disc, &track, &info, &track_stores[j], &prompt_store);
+				titleformat_hook_impl_multiformat hook(p_status, &master, &release, &disc, &track, &info, &track_stores[wtracks], &prompt_store);
 				hook.set_files(finfo_manager);
 
 				pfc::string8 str;
@@ -497,8 +502,17 @@ void TagWriter::generate_tags_ori(bool use_update_tags, threaded_process_status&
 					// APPROVING 1/2 (count based)
 
 					if (old_count == 0) {
+						
+						//not replacing an empty val by another empty val
+						bool approved;
+						string_encoded_array newvalue(result->value[result->value.get_count() - 1]);
+						
+						approved = !newvalue.has_blank() && entry.enable_write;
 
-						result->result_approved = entry.enable_write;
+						result->result_approved = approved;
+
+						result->r_approved.append_single(approved);
+						tk_added = true;
 
 					}
 					else {
@@ -511,11 +525,9 @@ void TagWriter::generate_tags_ori(bool use_update_tags, threaded_process_status&
 
 						}
 						else {
-
 							for (size_t i = 0; i < old_count; i++) {
 								old_value.append_item(info.meta_get(entry.tag_name, i));
 							}
-
 						}
 					}
 
@@ -531,6 +543,22 @@ void TagWriter::generate_tags_ori(bool use_update_tags, threaded_process_status&
 					}
 
 					result->old_value.append_single(old_value);
+
+					tk_changed = false;
+					int last_val_ndx = result->value.get_count() - 1;
+					string_encoded_array newvalue(result->value[last_val_ndx]);
+					string_encoded_array oldvalue(result->old_value[last_val_ndx]);
+					tk_changed = oldvalue.has_diffs(newvalue);
+					
+					// SUBITEMS APPROVING 2/2 (change based)
+
+					if (!tk_added) {
+						result->r_approved.append_single(tk_changed && entry.enable_update);
+					}
+					else {
+						result->r_approved[result->r_approved.get_count() - 1] |= tk_changed && entry.enable_update;
+					}
+					result->result_approved |= result->r_approved[result->r_approved.get_count() - 1];
 				}
 				catch (std::exception& e) {
 					foo_discogs_exception ex;
@@ -545,25 +573,7 @@ void TagWriter::generate_tags_ori(bool use_update_tags, threaded_process_status&
 				result->old_value.set_size_discard(1);
 			}
 
-			// calculate whether changed
-			if (result->value.get_count() == result->old_value.get_count()) {
-				for (size_t i = 0; i < result->value.get_count(); i++) {
-					if (!STR_EQUAL(result->value[i].print(), result->old_value[i].print())) {
-						result->changed = true;
-						changed = true;
-						break;
-					}
-				}
-			}
-			else {
-				result->changed = true;
-				changed = true;
-			}
-
-			// APPROVING 2/2 (change based)
-
-			if (!result->changed)
-				result->result_approved = false;
+			changed = result->result_approved;
 
 			result->tag_entry = &entry;
 			tag_results.append_single(std::move(result));
@@ -572,212 +582,7 @@ void TagWriter::generate_tags_ori(bool use_update_tags, threaded_process_status&
 	}
 }
 
-void TagWriter::generate_tags_new(bool use_update_tags, threaded_process_status &p_status, abort_callback &p_abort) {
-	
-	tag_results.force_reset();
-	changed = false;
-
-	pfc::array_t<persistent_store> track_stores;
-	for (size_t j = 0; j < track_mappings.get_count(); j++) {
-		track_stores.append_single(persistent_store());
-	}
-
-	persistent_store prompt_store;
-	MasterRelease_ptr master = discogs_interface->get_master_release(release->master_id);
-	bool end_of_files = false;
-	
-	for (size_t i = 0; i < TAGS.get_size(); i++) {
-
-		const tag_mapping_entry &entry = TAGS.get_item_ref(i);
-
-		//if ((!use_update_tags && entry.enable_write) || (use_update_tags && entry.enable_update)) {
-
-		if ((entry.enable_write) || (entry.enable_update)) {
-			
-			tag_result_ptr result = std::make_shared <tag_result>();
-			
-			bool multiple_results = false;
-			bool multiple_old_results = false;
-			//bool result_approved = false;
-
-			for (size_t j = 0; j < track_mappings.get_count(); j++) {
-
-				bool tk_changed = false;
-				string_encoded_array value;
-				string_encoded_array old_value;
-
-				const track_mapping &mapping = track_mappings[j];
-
-				if (!mapping.enabled) {
-					continue;//
-				}
-
-				size_t file_index = mapping.file_index;
-				int disc_index = mapping.discogs_disc;
-				int trac_index = mapping.discogs_track;
-				
-				metadb_handle_ptr item = nullptr;
-				
-				try {
-					t_size fsize = finfo_manager->get_item_count();
-					
-					auto dbugndx = (mapping.file_index == -1);
-					if (file_index < finfo_manager->get_item_count()) {
-
-						item = finfo_manager->get_item_handle(file_index);
-						if (item.get_ptr() == nullptr)
-						{
-							continue;//
-						}
-					}
-					else {
-
-						//run out of files for this tag
-						//break track loop, keep processing
-						//outer loop
-						
-						break;//
-					}
-				}
-				catch (std::exception e) {
-					std::string dbexception(e.what());
-					continue;//
-				}
-
-				file_info &info = finfo_manager->get_item(file_index);
-
-				const ReleaseDisc_ptr &disc = release->discs[disc_index];
-				const ReleaseTrack_ptr &track = disc->tracks[trac_index];
-
-				titleformat_hook_impl_multiformat hook(p_status, &master, &release, &disc, &track, &info, &track_stores[j], &prompt_store);
-				hook.set_files(finfo_manager);
-
-//------>> track and hook ready...
-
-				// get new value
-
-				try {
-
-					pfc::string8 strvalue;
-					entry.formatting_script->run_hook(item->get_location(), &info, &hook, strvalue, nullptr);
-					
-					// VALUE
-					value = strvalue;
-					
-					if (!multiple_results)
-						multiple_results = check_multiple_results(result->value, value);
-					
-					// APPEND VALUE
-					result->value.append_single(value);
-
-				}
-				catch (foo_discogs_exception &e) {
-					foo_discogs_exception ex;
-					ex << "Error generating tag " << entry.tag_name << " [" << e.what() << "] for file " << item->get_path();
-					throw ex;
-				}
-
-				// TODO: read old values separately so they don't have to be re-read multiple times...
-
-				try {
-
-					// get old value
-
-					const size_t old_count = info.meta_get_count_by_name(entry.tag_name);
-					
-//------>> approved per track (new/write)
-
-					if (old_count == 0) {
-
-						result->result_approved |= entry.enable_write;
-						
-						result->r_approved.append_single(entry.enable_write);
-
-						// OLD_VALUE
-						old_value.set_value("");
-						
-					}
-					else {
-
-						if (old_count == 1) {
-
-							//single OLD_VALUE
-							old_value.set_value(info.meta_get(entry.tag_name, 0));
-
-						}
-						else {
-							
-							//multivalue OLD_VALUE
-							for (size_t i = 0; i < old_count; i++) {
-								old_value.append_item(info.meta_get(entry.tag_name, i));
-							}
-						}
-					}
-
-					old_value.encode();
-
-					if (!multiple_old_results)
-						multiple_old_results = check_multiple_results(result->old_value, old_value);
-					
-					
-					//APPEND OLD_VALUE
-					result->old_value.append_single(old_value);
-
-//------>> changed ?
-
-					if (!STR_EQUAL(old_value.print(), value.print())) {
-
-						result->changed |= true;
-						changed = true;
-						tk_changed = true;
-						//break;
-					
-					}
-					else {
-
-						result->changed |= false;
-						changed |= false;
-						tk_changed = false;
-
-					}
-
-//------>> approved per track (changed/update)
-
-					bool approved = tk_changed && entry.enable_update;
-
-					if (old_count != 0)	{
-						result->result_approved |= approved;
-						result->r_approved.append_single(approved);
-					}
-
-				}
-				catch (std::exception &e) {
-					foo_discogs_exception ex;
-					ex << "Error reading tag " << entry.tag_name << " [" << e.what() << "] for file " << item->get_path();
-					throw ex;
-				}
-			}
-
-			if (!multiple_results) {
-				result->value.set_size_discard(1);
-			}
-			if (!multiple_old_results) {
-				result->old_value.set_size_discard(1);
-			}
-
-//------>> result overall approval
-
-			if (!/*result->*/changed)
-				result->result_approved = false;
-
-			result->tag_entry = &entry;
-			tag_results.append_single(std::move(result));
-
-		}
-	}
-}
-
-void TagWriter::write_tags_new() {
+void TagWriter::write_tags_track_map() {
 	
 	finfo_manager->invalidate_all();
 	bool binvalidate = false;
@@ -802,13 +607,9 @@ void TagWriter::write_tags_new() {
 		for (size_t j = 0; j < count; j++) {
 			const tag_result_ptr &result = tag_results[j];
 
-			if (!stricmp_utf8(result->tag_entry->tag_name, "DISCOGS_RELEASE_ID")) {
-				int debug = 1;
-			}
-
 			string_encoded_array *value;
 
-			if (result->result_approved && (result->r_approved[i] || !diff_tracks)) {
+			if (result->result_approved && (result->r_approved[i] /*|| !diff_tracks*/)) {
 
 				if (result->value.get_size() == 1) {
 					value = &(result->value[0]);
@@ -868,13 +669,15 @@ void TagWriter::write_tags_new() {
 }
 
 void TagWriter::write_tags () {
-	if (cfg_preview_dialog_diff_tracks)
-		write_tags_new();
+
+	if (cfg_preview_dialog_track_map)
+		write_tags_track_map();
 	else
-		write_tags_ori();
+		write_tags_v23();
+
 }
 
-void TagWriter::write_tags_ori() {
+void TagWriter::write_tags_v23() {
 
 	finfo_manager->invalidate_all();
 	bool binvalidate = false;
@@ -971,8 +774,7 @@ void TagWriter::write_tag(metadb_handle_ptr item, file_info &info, const tag_map
 	}
 }
 
-
-void TagWriter::write_tag(metadb_handle_ptr item, file_info &info, const tag_mapping_entry &entry, const pfc::array_t<string_encoded_array> &tag_values) {
+void TagWriter::write_tag(metadb_handle_ptr item, file_info &info, const tag_mapping_entry &entry/*, const pfc::array_t<bool> &r_approved*/, const pfc::array_t<string_encoded_array> &tag_values) {
 	bool valid = false;
 	size_t i = 0;
 	size_t meta = 0;
@@ -981,11 +783,13 @@ void TagWriter::write_tag(metadb_handle_ptr item, file_info &info, const tag_map
 		if (tag_values[i].get_pure_cvalue().get_length()) {
 			if (!valid) {
 				valid = true;
-				meta = info.meta_set(entry.tag_name, tag_values[i].get_pure_cvalue());
+				meta = info.meta_set(entry.tag_name, pfc::lineEndingsToWin(tag_values[i].get_pure_cvalue()));
+				//meta = info.meta_set(entry.tag_name, tag_values[i].get_pure_cvalue());
 			}
 			else {
 				//DEBUG
-				info.meta_add_value(meta, tag_values[i].get_pure_cvalue());
+				info.meta_add_value(meta, pfc::lineEndingsToWin(tag_values[i].get_pure_cvalue()));
+				//info.meta_add_value(meta, tag_values[i].get_pure_cvalue());
 			}
 		}
 		i++;

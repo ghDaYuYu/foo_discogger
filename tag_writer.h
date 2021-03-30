@@ -9,7 +9,6 @@
 #define MATCH_FAIL		1
 #define MATCH_ASSUME	2
 
-
 struct track_mapping
 {
 	bool enabled;
@@ -37,11 +36,9 @@ public:
 	bool changed = false;
 	bool result_approved = false;
 };
+
 typedef std::shared_ptr<tag_result> tag_result_ptr;
-
-
 typedef pfc::array_t<tag_result_ptr> tag_results_list_type;
-
 
 class TagWriter : public ErrorManager
 {
@@ -62,11 +59,12 @@ public:
 		force_skip = true;
 	}
 
-	void generate_tags_ori(bool use_update_tags, threaded_process_status& p_status, abort_callback& p_abort);
-	void generate_tags_new(bool use_update_tags, threaded_process_status &p_status, abort_callback &p_abort);
+	void generate_tags_ori_unchanged(bool use_update_tags, threaded_process_status& p_status, abort_callback& p_abort);
+	void generate_tags(bool use_update_tags, threaded_process_status& p_status, abort_callback& p_abort);
+
 	void write_tags();
-	void write_tags_new();
-	void write_tags_ori();
+	void write_tags_track_map();
+	void write_tags_v23();
 
 	void match_tracks();
 

@@ -14,11 +14,10 @@ struct preview_stats {
 	int totalsubwrites = 0;
 	int totalsubupdates = 0;
 	int totalskips = 0;
-	int totalwereequal = 0;
+	int totalequal = 0;
 };
 
 #endif //PREVIEW_STATS_H
-
 
 class CPreviewTagsDialog : public MyCDialogImpl<CPreviewTagsDialog>,
 	public CDialogResize<CPreviewTagsDialog>,
@@ -66,11 +65,12 @@ private:
 	void insert_tag_result(int pos, const tag_result_ptr &result);
 
 	void compute_stats(tag_results_list_type tag_results);
-	void compute_stats_ori(tag_results_list_type tag_results);
-	void compute_stats_new(tag_results_list_type tag_results);
+	void compute_stats_v23(tag_results_list_type tag_results);
+	void compute_stats_track_map(tag_results_list_type tag_results);
 	void reset_stats () {
 		v_stats.clear();
 	}
+	void reset_tag_result_stats();
 	void display_tag_result_stats();
 
 	void set_preview_mode(int mode);
@@ -84,7 +84,7 @@ private:
 	}
 
 	size_t TableEdit_GetColumnCount() const override {
-		return 2;
+		return ListView_GetColumnCount(tag_results_list);
 	}
 
 	HWND TableEdit_GetParentWnd() const override {
@@ -122,7 +122,7 @@ public:
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
 		COMMAND_ID_HANDLER(IDC_SKIP_BUTTON, OnMultiSkip)
 		COMMAND_ID_HANDLER(IDC_REPLACE_ANV_CHECK, OnCheckReplaceANVs)
-		COMMAND_ID_HANDLER(IDC_CHECK_PREV_DLG_DIFF_TRACKS, OnCheckDiffTracks)
+		COMMAND_ID_HANDLER(IDC_CHECK_PREV_DLG_DIFF_TRACKS, OnCheckTrackMap)
 		COMMAND_ID_HANDLER(IDC_CHECK_PREV_DLG_SHOW_STATS, OnCheckPreviewShowStats)
 		COMMAND_ID_HANDLER(IDC_EDIT_TAG_MAPPINGS_BUTTON, OnEditTagMappings)
 		COMMAND_ID_HANDLER(IDC_VIEW_NORMAL, OnChangePreviewMode)
@@ -189,12 +189,10 @@ public:
 		LRESULT OnMultiSkip(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 		LRESULT OnBack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 		LRESULT OnCheckReplaceANVs(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-		LRESULT OnCheckDiffTracks(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+		LRESULT OnCheckTrackMap(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 		LRESULT OnCheckPreviewShowStats(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 		LRESULT OnEditTagMappings(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 		LRESULT OnChangePreviewMode(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-		//LRESULT OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-		//LRESULT OnListItemChanged(LPNMHDR lParam);
 		LRESULT OnListClick(LPNMHDR lParam);
 		LRESULT OnListKeyDown(LPNMHDR lParam);
 		LRESULT OnEdit(UINT uMsg, WPARAM wParam, LPARAM lParam);

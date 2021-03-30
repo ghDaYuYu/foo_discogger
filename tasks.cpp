@@ -64,10 +64,8 @@ void generate_tags_task::start() {
 }
 
 void generate_tags_task::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
-	if (cfg_preview_dialog_diff_tracks)
-		tag_writer->generate_tags_new(use_update_tags, p_status, p_abort);
-	else
-		tag_writer->generate_tags_ori(use_update_tags, p_status, p_abort);
+
+	tag_writer->generate_tags(use_update_tags, p_status, p_abort);
 
 	int dbugsz = tag_writer->tag_results.get_count();
 	tag_result_ptr resultdebug = tag_writer->tag_results[0];
@@ -135,10 +133,7 @@ void generate_tags_task_multi::safe_run(threaded_process_status &p_status, abort
 			p_status.set_progress(i + 1, count);
 
 			try {
-				if (cfg_preview_dialog_diff_tracks)
-					tag_writers[i]->generate_tags_new(use_update_tags, p_status, p_abort);
-				else
-					tag_writers[i]->generate_tags_ori(use_update_tags, p_status, p_abort);
+				tag_writers[i]->generate_tags(use_update_tags, p_status, p_abort);
 			}
 			catch (foo_discogs_exception &e) {
 				pfc::string8 error("release ");
@@ -754,6 +749,7 @@ void process_release_callback::safe_run(threaded_process_status &p_status, abort
 }
 
 void process_release_callback::on_success(HWND p_wnd) {
+
 	new CTrackMatchingDialog(core_api::get_main_window(), tag_writer, false);
 }
 

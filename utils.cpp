@@ -5,7 +5,12 @@
 
 const char *whitespace = " \t\r\n";
 
-bool cfg_preview_dialog_diff_tracks = false;
+bool cfg_preview_dialog_track_map = true;
+bool cfg_preview_dialog_comp_track_map_in_v23 = true;
+bool cfg_find_release_dialog_idtracker = true;
+
+double cfg_find_release_colummn_showid_width = 50.0f;
+bool cfg_find_release_colummn_showid = false;
 
 dll_inflateInit2 dllinflateInit2 = NULL;
 dll_inflate dllinflate = NULL;

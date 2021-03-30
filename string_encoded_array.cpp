@@ -3,8 +3,6 @@
 #include "string_encoded_array.h"
 #include "utils.h"
 
-
-
 inline void PRINTDOUBLE(pfc::string8 &v, double d) {
 	std::ostringstream s;
 	s << d;
@@ -604,7 +602,6 @@ bool string_encoded_array::_search_exp(const string_encoded_array& find) {
 		value.set_string(e.what());
 		return false;
 	}
-	
 	std::string str(value.toString());
 	try {
 		if (std::regex_search(str, match, regex_v))

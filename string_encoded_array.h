@@ -152,7 +152,7 @@ public:
 		if (!value.is_empty()) {
 			t_size lfpos = newline_offset(value.toString());
 			if (lfpos != value.get_length()) {
-				out.set_string(std::regex_replace(out.get_ptr(), std::regex(R"(\r\n|\r|\n)"), "\r\n").c_str());
+				out.set_string(pfc::lineEndingsToWin(out));
 			}
 		}
 	}
@@ -254,6 +254,9 @@ public:
 	void unique();
 	void flatten();
 	void force_array(size_t depth=1);
+
+	bool has_diffs(string_encoded_array new_value);
+	bool has_blank();
 
 	inline void join(const pfc::string8 &delim = DEFAULT_JOIN_DELIM) {
 		branch_execute(&string_encoded_array::_join, delim, 1);

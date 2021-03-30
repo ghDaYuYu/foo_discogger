@@ -242,7 +242,6 @@ private:
 	void on_success(HWND p_wnd) override;
 };
 
-
 class process_release_callback : public foo_discogs_threaded_process_callback
 {
 public:

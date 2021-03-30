@@ -32,7 +32,7 @@ const int TOTAL_DEF_COLS = 10;
  
 cfgcol column_configs[TOTAL_DEF_COLS] = {
 	//#, ndx, icol, name, tf, width, celltype, factory, default, enabled, defuser
-	{1, 1, 0,"Id", "%RELEASE_ID%", 50.0f, 0x0000, 0, true, false, false, false}, //min 17.5f
+	{1, 1, 0,"Id", "%RELEASE_ID%", cfg_find_release_colummn_showid_width, 0x0000, 0, true, false, false, false}, //min 17.5f
 	{2, 2, 0,"Title", "%RELEASE_TITLE%", 120.0f, 0x0000, 0, true, false, false, false},
 	{3, 3, 0,"Label", "%RELEASE_SEARCH_LABELS%", 50.0f, 0x0000, 0, true, false, false, false},
 	{4, 4, 0,"Major F", "%RELEASE_SEARCH_MAJOR_FORMATS%", 60.0f, 0x0000, 0, true, false, false, false},
@@ -78,6 +78,7 @@ inline void CFindReleaseDialog::load_size() {
 
 	int width = conf.find_release_dialog_width;
 	int height = conf.find_release_dialog_height;
+	
 	CRect rcCfg(0,0, width, height);
 	::CenterWindow(this->m_hWnd, rcCfg, core_api::get_main_window());
 
@@ -93,7 +94,7 @@ inline void CFindReleaseDialog::load_size() {
 		int width = rcCli.Width();
 
 		ListView_SetColumnWidth(release_list, 0, width);
-
+		ListView_SetColumnWidth(release_list, 1, 0);
 	}
 }
 
@@ -198,7 +199,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 
 	INITCOMMONCONTROLSEX icex;
 	icex.dwSize = sizeof(icex);
-	icex.dwICC = IDC_RELEASE_LIST;
+	icex.dwICC = ICC_LISTVIEW_CLASSES;
 	InitCommonControlsEx(&icex);
 
 	search_edit = GetDlgItem(IDC_SEARCH_EDIT);
@@ -248,13 +249,19 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	if (artist) {
 		//artist search edit
 		uSetWindowText(search_edit, artist);
+
 		if (conf.enable_autosearch && (_idtracker.artist || artist)) {
+
 			search_artist(false, artist); //_idtracker.artist_id will be used if available
+
 		}
 		else {
+
 			if (_idtracker.release && _idtracker.release_id != -1) {
+#ifndef DEBUG
 				uSetWindowText(release_url_edit, 
 					std::to_string(_idtracker.release_id).c_str());
+#endif
 			}
 		}
 	}
@@ -264,15 +271,19 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	modeless_dialog_manager::g_add(m_hWnd);
 	
 	if (OAuthCheck(conf)) {
+
 		if (conf.skip_find_release_dialog_if_ided && _idtracker.release) {
+
 			on_write_tags(pfc::toString(_idtracker.release_id).c_str());
+
 		}
 		else {
-#ifndef DEBUG
+
 			if (_idtracker.release && _idtracker.release_id != pfc_infinite)
 				uSetWindowText(release_url_edit, pfc::toString(_idtracker.release_id).c_str());
-#endif			
+			
 			show();
+
 			m_bNoEnChange = true;
 
 			if (!_idtracker.amr) {
@@ -338,6 +349,7 @@ void CFindReleaseDialog::fill_artist_list(bool force_exact, updRelSrc updsrc) {
 				artist_list, list_index, !_idtracker.artist_lv_set && isdropindex, name.get_ptr(), artists_index);
 			if (isdropindex) _idtracker.release_lv_set = true;
 
+			artists_index++;
 			list_index++;
 		}
 		if (find_release_artists.get_size()) {
@@ -1068,8 +1080,10 @@ void CFindReleaseDialog::expand_releases(const pfc::string8& filter, updRelSrc u
 	try {
 
 		for (size_t j = 0; j < find_release_artist->master_releases[master_index]->sub_releases.get_size(); j++) {
+			
 			row_col_data row_data_subitem;
 			hook->set_release(&(find_release_artist->master_releases[master_index]->sub_releases[j]));
+			
 			item_data = (master_index << 16) | j;
 			pfc::string8 sub_item = run_hook_columns(row_data, item_data);
 
@@ -1291,11 +1305,6 @@ LRESULT CFindReleaseDialog::OnEditFilterText(WORD wNotifyCode, WORD wID, HWND /*
 		}
 		m_results_filter.set_string(buffer);
 	}
-	return FALSE;
-}
-
-LRESULT CFindReleaseDialog::OnClearFilter(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& bHandled) {
-	uSetWindowText(filter_edit, "");
 	return FALSE;
 }
 

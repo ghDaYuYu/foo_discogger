@@ -36,10 +36,10 @@ cfg_prev_col column_configs[TOTAL_DEF_COLS] = {
 	//#, ndx, icol, name, tf, width, celltype, factory, default, enabled, defuser
 	{1, 1, 0,"Tag Name", "", 20.0f, 0x0000, 0, true, true, false, false},
 	{2, 2, 1,"Value(s)", "", 40.0f, 0x0000, 0, true, true, false, false},
-	{3, 3, 2,"Write", "", 26.0f/*40.0f*/, 0x0000, 0, true, false, false, false},
-	{4, 4, 3,"Update", "", 23.0f/*40.0f*/, 0x0000, 0, true, false, false, false},
-	{5, 5, 4,"Skip W/U", "", 23.0f/*40.0f*/, 0x0000, 0, true,false, false, false},
-	{6, 6, 5,"Equal", "", 23.0f/*40.0f*/, 0x0000, 0, true, false, false, false},
+	{3, 3, 2,"Write", "", 40.0f, 0x0000, 0, true, false, false, false},
+	{4, 4, 3,"Update", "", 40.0f, 0x0000, 0, true, false, false, false},
+	{5, 5, 4,"Skip W/U", "", 40.0f, 0x0000, 0, true,false, false, false},
+	{6, 6, 5,"Equal", "", 40.0f, 0x0000, 0, true, false, false, false},
 	{7, 7, 6,"---x", "", 20.0f, 0x0000, 0, false, false, false, false},
 	{8, 8, 7,"---y", "", 50.0f, 0x0000, 0, false, false, false, false},
 	{100, 10, 0,"---z", "", 200.0f, 0x0000, 0, false, false, false, false},
@@ -504,6 +504,8 @@ LRESULT CPreviewTagsDialog::OnCheckTrackMap(WORD /*wNotifyCode*/, WORD wID, HWND
 	cfg_preview_dialog_track_map = IsDlgButtonChecked(IDC_CHECK_PREV_DLG_DIFF_TRACKS);
 	if (ListView_GetItemCount(tag_results_list) > 0) {
 		ListView_RedrawItems(tag_results_list, 0, ListView_GetItemCount(tag_results_list));
+		//TODO: tmp (1/2) fix empty v23 stats when Track map is on
+		compute_stats(tag_writer->tag_results);
 	}
 	return FALSE;
 }
@@ -707,10 +709,14 @@ LRESULT CPreviewTagsDialog::OnEdit(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 #define CHANGE_NOT_APPROVED_RGB	RGB(150, 100, 100)
 
 void CPreviewTagsDialog::compute_stats(tag_results_list_type tag_results) {
+	//TODO: tmp (2/2) fix empty v23 stats when Track map is on
+	reset_tag_result_stats();
+	compute_stats_v23(tag_results);
+
 	if (cfg_preview_dialog_track_map)
 		compute_stats_track_map(tag_results);
 	else {
-		compute_stats_v23(tag_results);
+		//compute_stats_v23(tag_results);
 		if (cfg_preview_dialog_comp_track_map_in_v23)
 			compute_stats_track_map(tag_results);
 	}
@@ -844,15 +850,12 @@ void CPreviewTagsDialog::compute_stats_v23(tag_results_list_type tag_results) {
 				|| !stricmp_utf8(entry->tag_name, "DISCOGS_TRACK_CREDITS")) {
 				int kk = 1;
 			}
-
-			if (res->changed) {
-				int debuggs = res->old_value.get_ptr()->get_cvalue().get_length();
-				if (res->old_value.size() == 0 || debuggs == 0) {
+	
+			if (res->result_approved) {
+				int oldlen = res->old_value.get_ptr()->get_cvalue().get_length();
+				if (res->old_value.size() == 0 || oldlen == 0) {
 					if (entry->enable_write)
 						totalwrites++;
-					/*else
-						if (entry->enable_update)
-							totalupdates++;*/
 				}
 				else {
 					if (entry->enable_update)
@@ -1063,7 +1066,7 @@ LRESULT CPreviewTagsDialog::OnCheckPreviewShowStats(WORD /*wNotifyCode*/, WORD w
 		for (int cc = COL_STAT_POS; cc < COL_STAT_POS + COL_STAT_COLS; cc++) {
 			cfg_lv.colmap.at(cc).enabled = true;
 			ListView_SetColumnWidth(tag_results_list, cc, cfg_lv.colmap.at(cc).width);
-			def_statswidth += cfg_lv.colmap.at(cc).width;
+			def_statswidth += (int)cfg_lv.colmap.at(cc).width;
 		}
 		
 		int newicol = ListView_GetColumnCount(tag_results_list);

@@ -18,7 +18,10 @@ enum class updRelSrc { Artist, Releases, Filter, ArtistList, Undef };
 #ifndef IDTRACKER_H
 #define IDTRACKER_H
 
-struct id_tracker {
+#ifndef IDTRACER_H
+#define IDTRACER_H
+
+struct id_tracer {
 
 	bool enabled = false;
 	bool amr = false;
@@ -43,7 +46,7 @@ struct id_tracker {
 	int master_id = pfc_infinite;
 	int release_id = pfc_infinite;
 
-	bool id_tracker::artist_tracked() {
+	bool id_tracer::artist_tracked() {
 		return (
 			enabled &&
 			artist &&
@@ -51,7 +54,7 @@ struct id_tracker {
 			artist_index == -1);
 	}
 
-	bool id_tracker::master_tracked() {
+	bool id_tracer::master_tracked() {
 		return (
 			enabled &&
 			master &&
@@ -59,7 +62,7 @@ struct id_tracker {
 			master_index == -1);
 	}
 
-	bool id_tracker::release_tracked() {
+	bool id_tracer::release_tracked() {
 		return (
 			enabled && 
 			release &&
@@ -67,17 +70,17 @@ struct id_tracker {
 			release_index == -1);
 	}
 
-	void id_tracker::artist_reset() {
+	void id_tracer::artist_reset() {
 		artist_index = -1;
 		artist_lv_set = false;
 	}
 
-	void id_tracker::release_reset() {
+	void id_tracer::release_reset() {
 		release_index = -1;
 		release_lv_set = false;
 	}
 
-	bool id_tracker::artist_check(const pfc::string8 currentid, int currentndx) {
+	bool id_tracer::artist_check(const pfc::string8 currentid, int currentndx) {
 		if (artist_tracked()) {
 			if (artist_id == std::atoi(currentid)) {
 				artist_index = currentndx;
@@ -87,7 +90,7 @@ struct id_tracker {
 		return false;
 	}
 
-	bool id_tracker::release_check(const pfc::string8 currentid, int currentndx, bool ismaster, int masterndx, int masteri) {
+	bool id_tracer::release_check(const pfc::string8 currentid, int currentndx, bool ismaster, int masterndx, int masteri) {
 		if (ismaster) {
 			if (master_tracked()) {
 				if (master_id == std::atoi(currentid)) {
@@ -113,7 +116,7 @@ struct id_tracker {
 	}
 };
 
-#endif //IDTRACKER_H
+#endif //IDTRACER_H
 
 #ifndef ROW_COLUMN_DATA_H
 #define ROW_COLUMN_DATA_H
@@ -151,11 +154,13 @@ private:
 	pfc::array_t<Artist_ptr> find_release_artists;
 	Artist_ptr find_release_artist;
 
-	id_tracker _idtracker;
+	id_tracer _idtracer;
 	t_size m_release_selected_index;
 
-	std::vector<std::pair<int, int>> m_vec_lv_items;
-	std::vector<std::pair<int, int>> m_vec_build_lv_items;
+	std::vector<std::pair<int, int>> m_vec_lv_items; //master_id, expand state
+	std::vector<std::pair<int, int>> m_vec_build_lv_items; //master_id, expand state
+	std::vector<std::pair<int, int>> m_vec_filter; //master_id, release_id
+
 	std::vector<std::pair<int, int>> vec_icol_subitems;
 	void update_sorted_icol_map(bool reset);
 
@@ -176,9 +181,12 @@ private:
 	void pushcfg();
 
 	void fill_artist_list(bool force_exact, updRelSrc updsrc); //bool from_search);
-	void select_release(int list_index = 0);
+	void select_lv_release(int list_index = 0);
 	void update_releases(const pfc::string8& filter, updRelSrc updsrc, bool init_expand);
+	void update_releases_columns();
 	void expand_releases(const pfc::string8& filter, updRelSrc updsrc, t_size master_index, t_size master_pos);
+	bool set_node_expanded(t_size master_i, int &state, bool build);
+	bool get_node_expanded(t_size master_i, int &out_state);
 	void search_artist(bool skip_tracer, pfc::string8 artistname);
 	void on_search_artist_done(pfc::array_t<Artist_ptr> &p_artist_exact_matches, const pfc::array_t<Artist_ptr> &p_artist_other_matches);
 
@@ -196,7 +204,7 @@ private:
 	void extract_release_from_link(pfc::string8 &s);
 
 	void insert_item(const pfc::string8& item, int list_index, int item_data);
-	int insert_item_row(const row_col_data row_data, int list_index, int item_data, t_size master_list_pos);
+	int insert_item_row(const row_col_data row_data, int list_index, int item_data, bool delete_on_enter);
 	pfc::string8 run_hook_columns(row_col_data& row_data, int item_data);
 	
 	void set_item_param(HWND list, int list_index, int col, LPARAM in_p);
@@ -213,8 +221,8 @@ private:
 
 	bool init_tracker();
 	void init_tracker_i(pfc::string8 filter_master, pfc::string8 filter_release, bool expanded, bool fast);
-	void init_filter_i(pfc::string8 filter_master, pfc::string8 filter_release, bool expanded, bool fast,
-		std::vector<std::pair<int, int>> vec_build_lv_items, std::vector<std::pair<int, int>>& vec_lv_items);
+	void init_filter_i(pfc::string8 filter_master, pfc::string8 filter_release,
+			bool ontitle, bool expanded, bool fast);
 
 	void reset_default_columns(bool reset);
 
@@ -279,13 +287,13 @@ public:
 	CFindReleaseDialog(HWND p_parent, metadb_handle_list items, bool conf_release_id_tracker)
 		: items(items), cewb_artist_search(L"Search artist"), cewb_release_filter(L"Filter releases") {
 
-		_idtracker.enabled = conf_release_id_tracker;
+		_idtracer.enabled = conf_release_id_tracker;
 		
 		m_release_selected_index = pfc_infinite;
 
 		find_release_artist = nullptr;
 
-		Create(p_parent);
+		Create(p_parent);		
 	};
 
 	~CFindReleaseDialog();

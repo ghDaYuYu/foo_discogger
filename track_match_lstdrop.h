@@ -41,6 +41,7 @@ public:
 		m_hWnd = wnd_parent;
 		m_discogs_track_list = wnd_discogs;
 		m_file_list = wnd_files;
+		m_rcPastLastItemSet = false;
 	}
 
 	void SetNotifier(std::function<bool(HWND)>update_notifier) {
@@ -68,6 +69,8 @@ protected:
 	int m_itemDragging;
 	int m_itemTarget;
 	POINT m_itemDragginPoint;
+	RECT m_rcPastLastItem;
+	bool m_rcPastLastItemSet;
 
 	HWND ListControlHitTest(const POINT scrpoint) {
 		HWND wndres = NULL;
@@ -98,7 +101,23 @@ protected:
 			//request notifications for individual listview items
 			return CDRF_NOTIFYITEMDRAW;
 
-		case CDDS_ITEMPREPAINT:
+		case CDDS_ITEMPREPAINT: {
+
+			//if (!m_rcPastLastItemSet) {
+			POINT pt;
+			GetCursorPos(&pt);
+			HWND wndlist = ListControlHitTest(pt);
+			CPoint pi(lplvcd->nmcd.rc.left, lplvcd->nmcd.rc.bottom);
+			::ClientToScreen(m_hWnd, &pi);
+
+			int count = ListView_GetItemCount(wndlist);
+			if (lplvcd->nmcd.dwItemSpec == count - 1) {
+				int h = lplvcd->nmcd.rc.bottom - lplvcd->nmcd.rc.top;
+				m_rcPastLastItem = CRect(CPoint(lplvcd->nmcd.rc.left, lplvcd->nmcd.rc.top + h), CPoint(lplvcd->nmcd.rc.right, lplvcd->nmcd.rc.bottom + h));
+				//m_rcPastLastItemSet = true;
+			}
+			//}  
+
 
 			if (lplvcd->nmcd.dwItemSpec == m_itemTarget)
 			{
@@ -115,8 +134,8 @@ protected:
 				return CDRF_NEWFONT;
 			}
 			break;
-
-			//Before a subitem is drawn
+		}
+		//Before a subitem is drawn
 
 		case CDDS_SUBITEM | CDDS_ITEMPREPAINT:
 			if (m_itemDragging == (int)lplvcd->nmcd.dwItemSpec)
@@ -191,9 +210,16 @@ protected:
 				::ScreenToClient(wndlist, &lvhti.pt);
 				ListView_HitTest(wndlist, &lvhti);
 
+				CPoint lvhtipt(lvhti.pt);
+				::PtInRect(CRect(m_rcPastLastItem), lvhti.pt);
+				t_size lcount = ListView_GetItemCount(wndlist);
+				bool bPastLast = ::PtInRect(CRect(m_rcPastLastItem), lvhti.pt);
+				bPastLast &= lcount > 0;
+				if (bPastLast) m_itemTarget = lcount - 1;
+
 				// Out of the ListView? // Not in an item?
-				if ((lvhti.iItem == -1) || (((lvhti.flags & LVHT_ONITEMLABEL) == 0) &&
-					((lvhti.flags & LVHT_ONITEMSTATEICON) == 0))) {
+				if (!bPastLast && ((lvhti.iItem == -1) || (((lvhti.flags & LVHT_ONITEMLABEL) == 0) &&
+					((lvhti.flags & LVHT_ONITEMSTATEICON) == 0)))) {
 
 					bres = FALSE;
 				}
@@ -201,7 +227,7 @@ protected:
 				{
 					// Dropping into a selected item?
 					LVITEM lvi;
-					lvi.iItem = lvhti.iItem;
+					lvi.iItem = bPastLast? lcount - 1 : lvhti.iItem;
 					lvi.iSubItem = 0;
 					lvi.mask = LVIF_STATE;
 					lvi.stateMask = LVIS_SELECTED;
@@ -227,7 +253,7 @@ protected:
 							lvi.mask = LVIF_STATE | LVIF_IMAGE
 								| LVIF_INDENT | LVIF_PARAM | LVIF_TEXT;
 							ListView_GetItem(wndlist, &lvi);
-							lvi.iItem = lvhti.iItem;
+							lvi.iItem = bPastLast ? lcount : lvhti.iItem;
 							// Insert the main item
 							int iRet = ListView_InsertItem(wndlist, &lvi);
 							if (lvi.iItem < iPos)

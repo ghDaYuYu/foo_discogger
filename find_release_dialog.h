@@ -15,9 +15,6 @@ class search_artist_process_callback;
 
 enum class updRelSrc { Artist, Releases, Filter, ArtistList, Undef };
 
-#ifndef IDTRACKER_H
-#define IDTRACKER_H
-
 #ifndef IDTRACER_H
 #define IDTRACER_H
 

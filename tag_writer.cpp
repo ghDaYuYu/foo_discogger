@@ -409,7 +409,8 @@ bool check_multiple_results(pfc::array_t<string_encoded_array> where, string_enc
 	return false;
 }
 
-void TagWriter::generate_tags_ori(bool use_update_tags, threaded_process_status& p_status, abort_callback& p_abort) {
+void TagWriter::generate_tags(bool use_update_tags, threaded_process_status& p_status, abort_callback& p_abort) {
+	
 	tag_results.force_reset();
 	changed = false;
 
@@ -503,13 +504,11 @@ void TagWriter::generate_tags_ori(bool use_update_tags, threaded_process_status&
 
 					if (old_count == 0) {
 						
-						//not replacing an empty val by another empty val
+						//note: does not approve replacing empty val with another empty val
 						bool approved;
 						string_encoded_array newvalue(result->value[result->value.get_count() - 1]);
 						
 						approved = !newvalue.has_blank() && entry.enable_write;
-
-						result->result_approved = approved;
 
 						result->r_approved.append_single(approved);
 						tk_added = true;
@@ -517,10 +516,8 @@ void TagWriter::generate_tags_ori(bool use_update_tags, threaded_process_status&
 					}
 					else {
 
-						result->result_approved = entry.enable_update;
-
 						if (old_count == 1) {
-
+				
 							old_value.set_value(info.meta_get(entry.tag_name, 0));
 
 						}

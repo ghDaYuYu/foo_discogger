@@ -24,7 +24,6 @@ public:
 
 typedef pfc::array_t<track_mapping> track_mappings_list_type;
 
-
 class tag_result
 {
 public:
@@ -71,8 +70,6 @@ public:
 	bool changed = false;
 	bool skip = false;
 	bool force_skip = false;
-
-	bool diff_tracks = false;
 
 	pfc::string8 error = "";
 

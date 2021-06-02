@@ -78,6 +78,27 @@
 
 #define CFG_CACHE_MAX_OBJECTS				57
 
+//v.200
+//desc. 2101 = 2->V2, 1->int, 01->id)
+
+//bool
+#define CFG_EDIT_TAGS_DIALOG_SHOW_TM_STATS	2001
+#define CFG_FIND_RELEASE_DIALOG_SHOW_ID			2002
+//int
+#define CFG_PREVIEW_TAGS_DIALOG_COL1_WIDTH	2101
+#define CFG_PREVIEW_TAGS_DIALOG_COL2_WIDTH	2102
+
+#define CFG_MATCH_TRACKS_DISCOGS_COL1_WIDTH	2103
+#define CFG_MATCH_TRACKS_DISCOGS_COL2_WIDTH	2104
+#define CFG_MATCH_TRACKS_FILES_COL1_WIDTH	2105
+#define CFG_MATCH_TRACKS_FILES_COL2_WIDTH	2106
+
+
+//string
+#define CFG_EDIT_TAGS_DIALOG_HL_KEYWORD			2201
+//..
+
+
 
 typedef struct
 {
@@ -168,6 +189,9 @@ public:
 		CONF_FILTER_TRACK,
 		CONF_FILTER_UPDATE_ART,
 		CONF_FILTER_UPDATE_TAG,
+		//v.200
+
+		//..
 	};
 
 	template <typename Enumeration>
@@ -219,39 +243,63 @@ public:
 		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_PARSE_HIDDEN_AS_REGULAR},
 		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_SKIP_VIDEO_TRACKS},
 		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_CACHE_MAX_OBJECTS},
+		//v.200
+
+		//..
+
 
 		// CONF_FILTER_FIND (find_release_dialog)
 		{ asi(ConfFilter::CONF_FILTER_FIND), CFG_DISPLAY_EXACT_MATCHES },
 		{ asi(ConfFilter::CONF_FILTER_FIND), CFG_FIND_RELEASE_DIALOG_WIDTH },
 		{ asi(ConfFilter::CONF_FILTER_FIND), CFG_FIND_RELEASE_DIALOG_HEIGHT },
+		//v.200
+		{ asi(ConfFilter::CONF_FILTER_FIND), CFG_FIND_RELEASE_DIALOG_SHOW_ID },
+		//..
 
 		// CONF_FILTER_PREVIEW (preview_dialog)
 		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_MODE },
-		//{ asi(ConfFilter::CONF_FILTER_PREVIEW), preview_tags_dialog_col1_width }, missing id
-		//{ asi(ConfFilter::CONF_FILTER_PREVIEW), preview_tags_dialog_col2_width }, missing id
 		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_DIALOG_WIDTH },
 		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_DIALOG_HEIGHT },
 		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_REPLACE_ANVS }, //<<
+		//v.200
+		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_TAGS_DIALOG_COL1_WIDTH },
+		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_TAGS_DIALOG_COL2_WIDTH },
+		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_EDIT_TAGS_DIALOG_SHOW_TM_STATS },
+		//..
 
 		// CONF_FILTER_TAG (tag_mappings_dialog)
 		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_EDIT_TAGS_DIALOG_COL1_WIDTH },
 		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_EDIT_TAGS_DIALOG_COL2_WIDTH },
 		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_EDIT_TAGS_DIALOG_COL3_WIDTH },
-		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_PREVIEW_DIALOG_WIDTH },
-		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_PREVIEW_DIALOG_HEIGHT },
+		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_EDIT_TAGS_DIALOG_WIDTH },
+		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_EDIT_TAGS_DIALOG_HEIGHT },
+		//v.200
+		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_EDIT_TAGS_DIALOG_HL_KEYWORD },
+		//..
 
 		// CONF_FILTER_TRACK (track_matching_dialog)
-		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_FIND_RELEASE_DIALOG_WIDTH },
-		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_FIND_RELEASE_DIALOG_HEIGHT },
+		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_RELEASE_DIALOG_WIDTH },
+		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_RELEASE_DIALOG_HEIGHT },
+		//v.200
+		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_MATCH_TRACKS_DISCOGS_COL1_WIDTH },
+		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_MATCH_TRACKS_DISCOGS_COL2_WIDTH },
+		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_MATCH_TRACKS_FILES_COL1_WIDTH },
+		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_MATCH_TRACKS_FILES_COL2_WIDTH },
+		//..
 
 		// CONF_FILTER_UPDATE_ART (update_art_dialog)
 		{ asi(ConfFilter::CONF_FILTER_UPDATE_ART), CFG_UPDATE_ART_FLAGS },
+		//v.200
 
-		// CONF_FILTER_TAG (update_tags_dialog)
-		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_REPLACE_ANVS },	//<<
-		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_UPDATE_TAGS_MANUALLY_PROMPT },
-		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_UPDATE_PREVIEW_CHANGES },
-		
+		//..
+
+		// CONF_FILTER_UPDATE_TAG (update_tags_dialog)
+		{ asi(ConfFilter::CONF_FILTER_UPDATE_TAG), CFG_REPLACE_ANVS },	//<<
+		{ asi(ConfFilter::CONF_FILTER_UPDATE_TAG), CFG_UPDATE_TAGS_MANUALLY_PROMPT },
+		{ asi(ConfFilter::CONF_FILTER_UPDATE_TAG), CFG_UPDATE_PREVIEW_CHANGES },
+		//v.200
+
+		//..
 	};
 
 	void save(ConfFilter cfgfilter, new_conf in_conf);
@@ -321,8 +369,8 @@ public:
 	int edit_tags_dialog_col3_width = 0;
 
 	int preview_tags_dialog_width = 0;
-	int preview_tags_dialog_col1_width = 0;
-	int preview_tags_dialog_col2_width = 0;
+	//int preview_tags_dialog_col1_width = 0;
+	//int preview_tags_dialog_col2_width = 0;
 
 	int preview_tags_dialog_height = 0;
 
@@ -345,11 +393,44 @@ public:
 
 	formatting_script release_discogs_format_string = "$ifgreater(%RELEASE_TOTAL_DISCS%,1,%DISC_NUMBER%-,)$num(%TRACK_DISC_TRACK_NUMBER%,2) - $multi_if($multi_and(%ARTISTS_NAME_VARIATION%,$multi_not(%REPLACE_ANVS%)),%ARTISTS_NAME_VARIATION%$multi_if(%DISPLAY_ANVS%,*,),%ARTISTS_NAME%) - %TRACK_TITLE%$ifequal(%TRACK_TOTAL_HIDDEN_TRACKS%,0,,'   [+'%TRACK_TOTAL_HIDDEN_TRACKS%' HIDDEN]')";
 	formatting_script release_file_format_string = "$if($strcmp($ext(%path%),tags),$info(@),%path%)";
+
+	//v.200
+	int preview_tags_dialog_col1_width = 0;
+	int preview_tags_dialog_col2_width = 0;
+	int match_tracks_dialog_discogs_col1_width = 0;
+	int match_tracks_dialog_discogs_col2_width = 0;
+	int match_tracks_dialog_files_col1_width = 0;
+	int match_tracks_dialog_files_col2_width = 0;
+
+	pfc::string8 edit_tags_dlg_hl_keyword = "";
+	bool edit_tags_dlg_show_tm_stats = false;
+	bool find_release_dialog_show_id = false;
+	//..
+
 };
 
 typedef new_conf foo_discogs_conf;
 
 extern new_conf CONF;
+
+//v.200 specs
+struct v200spec {
+
+	//pre v200
+	//const int boolvals = 25;
+	//const int intvals = 16;
+	//const int stringvals = 13;
+	const int boolvals = 27;
+	const int intvals = 22;
+	const int stringvals = 14;
+
+	bool signature(int boolvals, int intvals, int stringvals) {
+		return (this->boolvals == boolvals &&
+				this->intvals == intvals &&
+				this->stringvals == stringvals);
+	}
+};
+
 
 void init_conf();
 

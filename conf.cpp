@@ -4,6 +4,7 @@
 
 new_conf CONF;
 
+v200spec V200;
 
 // {82CB353B-6D23-4D3B-86E1-A5D80EC9CC53}
 static const GUID guid_cfg_bool_values = {0x82cb353b, 0x6d23, 0x4d3b, {0x86, 0xe1, 0xa5, 0xd8, 0xe, 0xc9, 0xcc, 0x53}};
@@ -42,6 +43,10 @@ conf_string_entry make_conf_entry(int i, const pfc::string8 &v) {
 
 bool new_conf::load() {
 	bool changed = false;
+
+	bool isV200 = V200.signature(cfg_bool_entries.get_count(),
+		cfg_int_entries.get_count(), cfg_string_entries.get_count());
+
 	for (unsigned int i = 0; i < cfg_bool_entries.get_count(); i++) {
 		changed = true;
 		const conf_bool_entry &item = cfg_bool_entries[i];
@@ -114,12 +119,29 @@ bool new_conf::load() {
 				break;
 			case CFG_UPDATE_TAGS_MANUALLY_PROMPT:
 				update_tags_manually_match = item.value;
+				break;
 			case CFG_PARSE_HIDDEN_AS_REGULAR:
 				parse_hidden_as_regular = item.value;
+				break;
 			case CFG_SKIP_VIDEO_TRACKS:
 				skip_video_tracks = item.value;
+				break;
+
+			//v.200
+			case CFG_EDIT_TAGS_DIALOG_SHOW_TM_STATS:
+				edit_tags_dlg_show_tm_stats = item.value;
+				break;
+			case CFG_FIND_RELEASE_DIALOG_SHOW_ID:
+				find_release_dialog_show_id = item.value;
+				break;
 		}
 	}
+	if (!isV200) {
+		cfg_bool_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_SHOW_TM_STATS, edit_tags_dlg_show_tm_stats));
+		cfg_bool_entries.add_item(make_conf_entry(CFG_FIND_RELEASE_DIALOG_SHOW_ID, find_release_dialog_show_id));
+	}
+
+
 	for (unsigned int i = 0; i < cfg_int_entries.get_count(); i++) {
 		changed = true; 
 		const conf_int_entry &item = cfg_int_entries[i];
@@ -168,7 +190,36 @@ bool new_conf::load() {
 				break;
 			case CFG_CACHE_MAX_OBJECTS:
 				cache_max_objects = item.value;
+				break;
+			//v.200 (from 1.53 mod dayuyu)
+			case CFG_PREVIEW_TAGS_DIALOG_COL1_WIDTH:
+				preview_tags_dialog_col1_width = item.value;
+				break;
+			case CFG_PREVIEW_TAGS_DIALOG_COL2_WIDTH:
+				preview_tags_dialog_col2_width = item.value;
+				break;
+			case CFG_MATCH_TRACKS_DISCOGS_COL1_WIDTH:
+				match_tracks_dialog_discogs_col1_width = item.value;
+				break;
+			case CFG_MATCH_TRACKS_DISCOGS_COL2_WIDTH:
+				match_tracks_dialog_discogs_col2_width = item.value;
+				break;
+			case CFG_MATCH_TRACKS_FILES_COL1_WIDTH:
+				match_tracks_dialog_files_col1_width = item.value;
+				break;
+			case CFG_MATCH_TRACKS_FILES_COL2_WIDTH:
+				match_tracks_dialog_files_col2_width = item.value;
+				break;
+
 		}
+	}
+	if (!isV200) {
+		cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_COL1_WIDTH, preview_tags_dialog_col1_width));
+		cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_COL2_WIDTH, preview_tags_dialog_col2_width));
+		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_DISCOGS_COL1_WIDTH, match_tracks_dialog_discogs_col1_width));
+		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_DISCOGS_COL2_WIDTH, match_tracks_dialog_discogs_col2_width));
+		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_COL1_WIDTH, match_tracks_dialog_files_col1_width));
+		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_COL2_WIDTH, match_tracks_dialog_files_col2_width));
 	}
 
 	for (unsigned int i = 0; i < cfg_string_entries.get_count(); i++) {
@@ -214,8 +265,18 @@ bool new_conf::load() {
 			case CFG_FILE_TRACK_FORMAT_STRING:
 				release_file_format_string = item.value;
 				break;
+			//v.200 (from 1.53 mod dayuyu)
+			case CFG_EDIT_TAGS_DIALOG_HL_KEYWORD:
+				edit_tags_dlg_hl_keyword = item.value;
+				break;
+
 		}
 	}
+	if (!isV200) {
+		//		CONF_FILTER_PREVIEW
+		cfg_string_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_HL_KEYWORD, edit_tags_dlg_hl_keyword));
+	}
+
 	return changed;
 }
 
@@ -272,6 +333,11 @@ bool new_conf::id_to_val_bool(int id, new_conf in_conf) {
 			return in_conf.parse_hidden_as_regular;
 		case CFG_SKIP_VIDEO_TRACKS:
 			return in_conf.skip_video_tracks;
+		//v.200 (from 1.53 mod 16 dayuyu)
+		case CFG_EDIT_TAGS_DIALOG_SHOW_TM_STATS:
+			return in_conf.edit_tags_dlg_show_tm_stats;
+		case CFG_FIND_RELEASE_DIALOG_SHOW_ID:
+			return in_conf.find_release_dialog_show_id;
 	}
 	assert(false);
 	return false;
@@ -311,6 +377,30 @@ int new_conf::id_to_val_int(int id, new_conf in_conf) {
 			return in_conf.preview_mode;
 		case CFG_CACHE_MAX_OBJECTS:
 			return in_conf.cache_max_objects;
+		//v.200 (from 1.53 mod dayuyu)
+
+		//		CONF_FILTER_CONF
+		//		CONF_FILTER_FIND
+		//		CONF_FILTER_PREVIEW
+		case CFG_PREVIEW_TAGS_DIALOG_COL1_WIDTH:
+			return in_conf.preview_tags_dialog_col1_width;
+		case CFG_PREVIEW_TAGS_DIALOG_COL2_WIDTH:
+			return in_conf.preview_tags_dialog_col2_width;
+		//		CONF_FILTER_TAG
+		//		CONF_FILTER_TRACK
+		case CFG_MATCH_TRACKS_DISCOGS_COL1_WIDTH:
+			return in_conf.match_tracks_dialog_discogs_col1_width;
+		case CFG_MATCH_TRACKS_DISCOGS_COL2_WIDTH:
+			return in_conf.match_tracks_dialog_discogs_col2_width;
+		case CFG_MATCH_TRACKS_FILES_COL1_WIDTH:
+			return in_conf.match_tracks_dialog_files_col1_width;
+		case CFG_MATCH_TRACKS_FILES_COL2_WIDTH:
+			return in_conf.match_tracks_dialog_files_col2_width;
+
+		//		CONF_FILTER_UPDATE_ART
+		//		CONF_FILTER_UPDATE_TAG
+		
+		//..
 	}
 	assert(false);
 	return iret;
@@ -396,6 +486,22 @@ void new_conf::id_to_val_str(int id, new_conf in_conf, pfc::string8& out) {
 			out.set_string(str, str.get_length());
 			return;
 		}
+		//v.200 (from 1.52.mod16 by dayuyu)
+		//		CONF_FILTER_CONF
+		//		CONF_FILTER_FIND
+		//		CONF_FILTER_PREVIEW
+		//		CONF_FILTER_TAG
+		case CFG_EDIT_TAGS_DIALOG_HL_KEYWORD:
+		{
+			pfc::string8 str(in_conf.edit_tags_dlg_hl_keyword);
+			out.set_string(str, str.get_length());
+			return;
+		}
+		//		CONF_FILTER_TRACK
+		//		CONF_FILTER_UPDATE_ART
+		//		CONF_FILTER_UPDATE_TAG
+
+
 	}
 	assert(false);
 }
@@ -408,8 +514,8 @@ void new_conf::save(ConfFilter cfgfilter, new_conf in_conf) {
 
 		auto filterok =
 			std::find_if(idarray.begin(), idarray.end(), [&](const std::pair<int, int>& e) {
-			return e.first == asi(cfgfilter) && e.second == id;
-				});
+				return e.first == asi(cfgfilter) && e.second == id;
+			});
 
 		if (filterok != std::end(idarray)) {
 			bool bres = id_to_val_bool(id, in_conf);	
@@ -423,8 +529,8 @@ void new_conf::save(ConfFilter cfgfilter, new_conf in_conf) {
 
 		auto filterok =
 			std::find_if(idarray.begin(), idarray.end(), [&](const std::pair<int, int>& e) {
-			return e.first == asi(cfgfilter) && e.second == id;
-				});
+				return e.first == asi(cfgfilter) && e.second == id;
+			});
 
 		if (filterok != std::end(idarray)) {
 			cfg_int_entries.replace_item(i, make_conf_entry(id, (int)id_to_val_int(id, in_conf)));
@@ -437,8 +543,8 @@ void new_conf::save(ConfFilter cfgfilter, new_conf in_conf) {
 
 		auto filterok =
 			std::find_if(idarray.begin(), idarray.end(), [&](const std::pair<int, int>& e) {
-			return e.first == asi(cfgfilter) && e.second == id;
-				});
+				return e.first == asi(cfgfilter) && e.second == id;
+			});
 
 		if (filterok != std::end(idarray)) {
 			pfc::string8 str;
@@ -452,8 +558,8 @@ void new_conf::save(ConfFilter cfgfilter, new_conf in_conf, int id) {
 	
 	auto filterok =
 		std::find_if(idarray.begin(), idarray.end(), [&](const std::pair<int, int>& e) {
-		return e.first == asi(cfgfilter) && e.second == id;
-			});
+			return e.first == asi(cfgfilter) && e.second == id;
+		});
 	if (filterok == std::end(idarray)) {
 		//id not part of cfgfilter
 		return;
@@ -513,6 +619,9 @@ void new_conf::save() {
 	cfg_bool_entries.add_item(make_conf_entry(CFG_UPDATE_TAGS_MANUALLY_PROMPT, update_tags_manually_match));
 	cfg_bool_entries.add_item(make_conf_entry(CFG_PARSE_HIDDEN_AS_REGULAR, parse_hidden_as_regular));
 	cfg_bool_entries.add_item(make_conf_entry(CFG_SKIP_VIDEO_TRACKS, skip_video_tracks));
+	//v.200 (from 1.53 mod 16 dayuyu)
+	cfg_bool_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_SHOW_TM_STATS, edit_tags_dlg_show_tm_stats));
+	cfg_bool_entries.add_item(make_conf_entry(CFG_FIND_RELEASE_DIALOG_SHOW_ID, find_release_dialog_show_id));
 
 	cfg_int_entries.remove_all();
 	cfg_int_entries.add_item(make_conf_entry(CFG_UPDATE_ART_FLAGS, update_art_flags));
@@ -531,6 +640,14 @@ void new_conf::save() {
 	cfg_int_entries.add_item(make_conf_entry(CFG_LAST_CONF_TAB, last_conf_tab));
 	cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_MODE, preview_mode));
 	cfg_int_entries.add_item(make_conf_entry(CFG_CACHE_MAX_OBJECTS, cache_max_objects));
+	//v.200 (from 1.53 mod 16 dayuyu)
+	cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_COL1_WIDTH, preview_tags_dialog_col1_width));
+	cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_COL2_WIDTH, preview_tags_dialog_col2_width));
+	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_DISCOGS_COL1_WIDTH, match_tracks_dialog_discogs_col1_width));
+	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_DISCOGS_COL2_WIDTH, match_tracks_dialog_discogs_col2_width));
+	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_COL1_WIDTH, match_tracks_dialog_files_col1_width));
+	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_COL2_WIDTH, match_tracks_dialog_files_col2_width));
+	//..
 
 	cfg_string_entries.remove_all();
 	cfg_string_entries.add_item(make_conf_entry(CFG_ALBUM_ART_DIRECTORY_STRING, pfc::string8((const char *)album_art_directory_string)));
@@ -546,6 +663,9 @@ void new_conf::save() {
 	cfg_string_entries.add_item(make_conf_entry(CFG_DISCOGS_TRACK_FORMAT_STRING, pfc::string8((const char *)release_discogs_format_string)));
 	cfg_string_entries.add_item(make_conf_entry(CFG_FILE_TRACK_FORMAT_STRING, pfc::string8((const char *)release_file_format_string)));
 	cfg_string_entries.add_item(make_conf_entry(CFG_ARTIST_ART_IDS_TITLEFORMAT, pfc::string8((const char *)artist_art_id_format_string)));
+	//v.200 (from 1.53 mod dayuyu)
+	cfg_string_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_HL_KEYWORD, pfc::string8((const char*)edit_tags_dlg_hl_keyword)));
+	//..
 }
 
 

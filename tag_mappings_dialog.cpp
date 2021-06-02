@@ -67,6 +67,15 @@ inline bool CNewTagMappingsDialog::build_current_cfg() {
 
 		bres = bres || true;
 	}
+
+	//highlight keyword
+	pfc::string8 hl_word;
+	uGetDlgItemText(m_hWnd, IDC_EDIT_TAG_MATCH_HL, hl_word);
+	if (stricmp_utf8(hl_word, conf.edit_tags_dlg_hl_keyword)) {
+		conf.edit_tags_dlg_hl_keyword = hl_word;
+		bres = bres || true;
+	}
+		
 	return bres;
 }
 
@@ -109,6 +118,8 @@ LRESULT CNewTagMappingsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LP
 	HWND wnd_hledit = GetDlgItem(IDC_EDIT_TAG_MATCH_HL);
 	cewb_highlight.SubclassWindow(wnd_hledit);
 	cewb_highlight.SetEnterEscHandlers();
+
+	uSetWindowText(wnd_hledit, conf.edit_tags_dlg_hl_keyword);
 
 	help_link.SubclassWindow(GetDlgItem(IDC_SYNTAX_HELP));
 	pfc::string8 url(core_api::get_profile_path());
@@ -253,17 +264,19 @@ LRESULT CNewTagMappingsDialog::OnImport(WORD /*wNotifyCode*/, WORD wID, HWND /*h
 	ZeroMemory(&ofn, sizeof(ofn));
 	ofn.lStructSize = sizeof(ofn);
 	ofn.hwndOwner = m_hWnd;
-	ofn.lpstrFilter = NULL;
+	ofn.lpstrFilter = "Tag Mapping Files (*.tm)\0*.tm\0All Files (*.*)\0*.*\0";
 	ofn.lpstrFile = filename;
 	ofn.nMaxFile = MAX_PATH;
 	ofn.lpstrTitle = "Load from file...";
 	ofn.Flags = OFN_DONTADDTORECENT | OFN_FILEMUSTEXIST;
+
 	if (GetOpenFileNameA(&ofn)) {
 		log_msg(filename);
 	}
 	if (!strlen(filename)) {
 		return FALSE;
 	}
+
 	service_ptr_t<file> f;
 	abort_callback_impl p_abort;
 	tag_mapping_entry *buf = new tag_mapping_entry();
@@ -297,21 +310,32 @@ LRESULT CNewTagMappingsDialog::OnExport(WORD /*wNotifyCode*/, WORD wID, HWND /*h
 	ZeroMemory(&ofn, sizeof(ofn));
 	ofn.lStructSize = sizeof(ofn);
 	ofn.hwndOwner = m_hWnd;
-	ofn.lpstrFilter = NULL;
+	ofn.lpstrFilter = "Tag Mapping Files (*.tm)\0*.tm\0All Files (*.*)\0*.*\0";
 	ofn.lpstrFile = filename;
 	ofn.nMaxFile = MAX_PATH;
 	ofn.lpstrTitle = "Save to file...";
 	ofn.Flags = OFN_DONTADDTORECENT;
-	if (GetSaveFileNameA(&ofn)) {
-		log_msg(filename);
-	}
+
+	GetSaveFileNameA(&ofn);
+
 	if (!strlen(filename)) {
 		return FALSE;
 	}
+
+	pfc::string8 outExt;
+	pfc::string8 filterExt = ofn.nFilterIndex == 1 ? ".tm" : "";
+	outExt << "." <<  pfc::string_extension(filename);
+	if (outExt.get_length() == 1) outExt = "";
+
+	pfc::string8 strFinalName(filename);
+	if ((ofn.nFilterIndex == 1) && (stricmp_utf8(outExt, ".tm"))) {
+			strFinalName << filterExt;
+	}
+	
 	service_ptr_t<file> f;
 	abort_callback_impl p_abort;
 	try {
-		filesystem::g_open(f, filename, foobar2000_io::filesystem::open_mode_write_new, p_abort);
+		filesystem::g_open(f, strFinalName.get_ptr(), foobar2000_io::filesystem::open_mode_write_new, p_abort);
 		stream_writer_formatter<false> swf(*f.get_ptr(), p_abort);
 		for (size_t i = 0; i < tag_mappings->get_count(); i++) {
 			const tag_mapping_entry &e = tag_mappings->get_item(i);
@@ -565,35 +589,35 @@ LRESULT CNewTagMappingsDialog::OnRemoveTag(WORD /*wNotifyCode*/, WORD wID, HWND 
 }
 
 LRESULT CNewTagMappingsDialog::OnEditHLText(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& /*bHandled*/) {
-	if (wNotifyCode == EN_SETFOCUS || wNotifyCode == EN_CHANGE) {
-		if (wNotifyCode == EN_CHANGE)
-		{
-			highlight_label = pfc::stringToLower(trim(pfc::string8(uGetWindowText(hWndCtl).c_str())));
+	if (wNotifyCode == EN_CHANGE)
+	{
+		highlight_label = pfc::stringToLower(trim(pfc::string8(uGetWindowText(hWndCtl).c_str())));
 
-			CRect listrc;
-			::GetClientRect(tag_list, &listrc);
-			int first = -1; int last = -1;
-			for (int walk = 0; walk < ListView_GetItemCount(tag_list); walk++) {
-				CRect lvrc;
-				ListView_GetItemRect(tag_list, walk, lvrc, LVIR_BOUNDS);
+		CRect listrc;
+		::GetClientRect(tag_list, &listrc);
+		int first = -1; int last = -1;
+		for (int walk = 0; walk < ListView_GetItemCount(tag_list); walk++) {
+			CRect lvrc;
+			ListView_GetItemRect(tag_list, walk, lvrc, LVIR_BOUNDS);
 
-				if (PtInRect(listrc, CPoint(lvrc.left, lvrc.top))) {
-					if (first < 0) first = walk;
+			if (PtInRect(listrc, CPoint(lvrc.left, lvrc.top))) {
+				if (first < 0) {
+					first = last = walk;
 				}
-				else {
-					if (first > -1) {
-						last = walk;
-						break;
-					}
+				else last = walk;
+			}
+			else {
+				if (first > -1) {
+					break;
 				}
 			}
+		}
 
-			if (first > -1 && last > -1) {
-				ListView_RedrawItems(tag_list, first, last);
-				CRect arc;
-				::GetClientRect(tag_list, &arc);
-				InvalidateRect(arc, false);
-			}
+		if (first > -1) {
+			ListView_RedrawItems(tag_list, first, last);
+			CRect arc;
+			::GetClientRect(tag_list, &arc);
+			InvalidateRect(arc, false);
 		}
 	}
 	return FALSE;

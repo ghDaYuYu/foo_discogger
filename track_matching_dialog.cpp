@@ -14,6 +14,8 @@
 #define DISABLED_RGB	RGB(150, 150, 150)
 #define CHANGE_NOT_APPROVED_RGB	RGB(150, 100, 100)
 
+#define DEF_TIME_COL_WIDTH 60
+
 namespace listview_helper {
 
 	unsigned insert_column(HWND p_listview, unsigned p_index, const char * p_name, unsigned p_width_dlu, int fmt)
@@ -147,6 +149,10 @@ bool CTrackMatchingDialog::initialize() {
 }
 
 void CTrackMatchingDialog::insert_track_mappings() {
+
+	HWND discogs_track_list = uGetDlgItem(IDC_DISCOGS_TRACK_LIST);
+	HWND file_list = uGetDlgItem(IDC_FILE_LIST);
+
 	ListView_DeleteAllItems(discogs_track_list);
 	ListView_DeleteAllItems(file_list);
 
@@ -232,18 +238,22 @@ CTrackMatchingDialog::~CTrackMatchingDialog() {
 
 
 LRESULT CTrackMatchingDialog::OnMoveTrackUp(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+	HWND discogs_track_list = uGetDlgItem(IDC_DISCOGS_TRACK_LIST);
 	move_selected_items_up(discogs_track_list);
 	match_message_update(match_manual);
 	return FALSE;
 }
 
 LRESULT CTrackMatchingDialog::OnMoveTrackDown(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+	HWND discogs_track_list = uGetDlgItem(IDC_DISCOGS_TRACK_LIST);
 	match_message_update(match_manual);
 	move_selected_items_down(discogs_track_list);
 	return FALSE;
 }
 
 LRESULT CTrackMatchingDialog::OnRemoveTrackButton(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+	HWND discogs_track_list = uGetDlgItem(IDC_DISCOGS_TRACK_LIST);
+	HWND file_list = uGetDlgItem(IDC_FILE_LIST);
 	match_message_update(match_manual);
 	if (wID == IDC_REMOVE_DISCOGS_TRACK_BUTTON)
 		remove_items(discogs_track_list, false);
@@ -253,6 +263,8 @@ LRESULT CTrackMatchingDialog::OnRemoveTrackButton(WORD /*wNotifyCode*/, WORD wID
 }
 
 void CTrackMatchingDialog::generate_track_mappings(track_mappings_list_type &track_mappings) {
+	HWND discogs_track_list = uGetDlgItem(IDC_DISCOGS_TRACK_LIST);
+	HWND file_list = uGetDlgItem(IDC_FILE_LIST);
 	track_mappings.force_reset();
 	const size_t count_d = ListView_GetItemCount(discogs_track_list);
 	const size_t count_f = ListView_GetItemCount(file_list);
@@ -387,22 +399,33 @@ void CTrackMatchingDialog::pushcfg() {
 
 inline bool CTrackMatchingDialog::build_current_cfg() {
 	bool bres = false;
-
-	//check global settings
-
 	//get current ui dimensions
-
 	CRect rcDlg;
 	GetClientRect(&rcDlg);
-
 	int dlgwidth = rcDlg.Width();
 	int dlgheight = rcDlg.Height();
-
 	//dlg size
-
 	if (dlgwidth != conf.release_dialog_width || dlgheight != conf.release_dialog_height) {
 		conf.release_dialog_width = dlgwidth;
 		conf.release_dialog_height = dlgheight;
+		bres = bres || true;
+	}
+	//list columns (discogs and files)
+	HWND discogs_list = GetDlgItem(IDC_DISCOGS_TRACK_LIST);
+	HWND file_list = GetDlgItem(IDC_FILE_LIST);
+	std::vector<int> v_woa_discogs = get_woas(discogs_list);
+	std::vector<int> v_woa_files = get_woas(file_list);
+
+	if (v_woa_discogs[0] != conf.match_tracks_dialog_discogs_col1_width ||
+	    v_woa_discogs[1] != conf.match_tracks_dialog_discogs_col2_width ||
+		v_woa_files[0] != conf.match_tracks_dialog_files_col1_width ||
+		v_woa_files[1] != conf.match_tracks_dialog_files_col2_width) {
+
+		conf.match_tracks_dialog_discogs_col1_width = v_woa_discogs[0];
+		conf.match_tracks_dialog_discogs_col2_width = v_woa_discogs[1];
+		conf.match_tracks_dialog_files_col1_width = v_woa_files[0];
+		conf.match_tracks_dialog_files_col2_width = v_woa_files[1];
+
 		bres = bres || true;
 	}
 
@@ -448,14 +471,15 @@ void CTrackMatchingDialog::update_list_width(HWND list, bool initialize) {
 
 	int c1, c2;
 	if (initialize) {
-		c2 = 45;
+		c2 = DEF_TIME_COL_WIDTH;
 	}
 	else {
 		c2 = ListView_GetColumnWidth(list, 1);
 	}
 	c1 = width - c2;
-	ListView_SetColumnWidth(list, 0, c1);
-	ListView_SetColumnWidth(list, 1, c2);
+	const int count = ListView_GetColumnCount(list);
+	ListView_SetColumnWidth(list, count-2, c1);
+	ListView_SetColumnWidth(list, count-1, c2);
 }
 
 LRESULT CTrackMatchingDialog::list_key_down(HWND wnd, LPNMHDR lParam) {
@@ -538,15 +562,19 @@ bool CTrackMatchingDialog::track_context_menu(HWND wnd, LPARAM coords) {
 	
 	try {
 		int coords_x = pf->x, coords_y = pf->y;
-		enum { ID_SELECT_ALL = 1, ID_INVERT_SELECTION, ID_REMOVE, ID_CROP };
+		enum { ID_SELECT_ALL = 1, ID_INVERT_SELECTION, ID_REMOVE, ID_CROP, ID_RESET_COLUMNS, ID_LAYOUT_CENTER };
 		HMENU menu = CreatePopupMenu();
 		bool bitems = (ListView_GetItemCount(wnd) > 0);
 		bool bselection = (ListView_GetSelectedCount(wnd) > 0);
+		bool is_files = wnd == uGetDlgItem(IDC_FILE_LIST);
 		uAppendMenu(menu, MF_STRING | (bitems? 0 : MF_DISABLED), ID_SELECT_ALL, "Select all\tCtrl+A");
 		uAppendMenu(menu, MF_STRING | (bselection? 0 : MF_DISABLED), ID_INVERT_SELECTION, "Invert selection\tCtrl+Shift+A");
 		uAppendMenu(menu, MF_STRING | (bselection? 0 : MF_DISABLED), ID_REMOVE, "Remove\tDel");
 		uAppendMenu(menu, MF_STRING | (bselection? 0 : MF_DISABLED), ID_CROP, "Crop\tCtrl+C");
-		
+		uAppendMenu(menu, MF_STRING | (bitems ? 0 : MF_DISABLED), ID_RESET_COLUMNS, "Reset Columns");
+		if (is_files)
+			uAppendMenu(menu, MF_STRING | (bitems ? 0 : MF_DISABLED), ID_LAYOUT_CENTER, "Center Align");
+
 		int cmd = TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, coords_x, coords_y, 0, wnd, 0);
 		DestroyMenu(menu);
 		switch (cmd)
@@ -563,7 +591,6 @@ bool CTrackMatchingDialog::track_context_menu(HWND wnd, LPARAM coords) {
 			}
 			case ID_REMOVE:
 			{
-
 				remove_items(wnd, false);
 				match_message_update(match_manual);
 
@@ -571,10 +598,50 @@ bool CTrackMatchingDialog::track_context_menu(HWND wnd, LPARAM coords) {
 			}
 			case ID_CROP:
 			{
-
 				remove_items(wnd, true);
 				match_message_update(match_manual);
 				return true; // found;
+			}
+			case ID_RESET_COLUMNS: {
+				CHeaderCtrl header = ListView_GetHeader(wnd);
+				int old_count = header.GetItemCount();
+				if (is_files)
+					init_list_columns(IDC_FILE_LIST, -1);
+				else
+					init_list_columns(IDC_DISCOGS_TRACK_LIST, -1);
+
+				for (;;) {
+					if (old_count <= 0) break;
+					header.DeleteItem(0);
+					old_count--;
+				}
+
+				int new_count = header.GetItemCount();
+				if (new_count) {
+					std::vector<int>order; order.resize(new_count);
+					for (size_t c = 0; c < new_count; ++c) order[c] = (int)c;
+					header.SetOrderArray(new_count, &order[0]);
+				}
+
+				return true;
+			}
+			case ID_LAYOUT_CENTER:
+			{
+				HWND ctrlst = wnd;
+				CHeaderCtrl header = ListView_GetHeader(wnd);
+				int dbug = ListView_GetColumnCount(wnd);
+				for (int i = 0; i < ListView_GetColumnCount(wnd); i++) {
+					HDITEM headerItem = {};
+					headerItem.mask = HDI_FORMAT;
+					header.GetItem(i, &headerItem);
+					headerItem.fmt = (headerItem.fmt & ~HDF_JUSTIFYMASK);
+					headerItem.fmt |= HDF_CENTER;
+					headerItem.mask = HDI_FORMAT;
+					header.SetItem(i, &headerItem);
+				}
+				ListView_RedrawItems(wnd, 0, ListView_GetItemCount(wnd));
+				::UpdateWindow(wnd);
+				return true;
 			}
 		}
 	}

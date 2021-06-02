@@ -41,14 +41,13 @@ private:
 	playable_location_impl location;
 	titleformat_hook_impl_multiformat hook;
 
-	HWND discogs_track_list, file_list;
 	MatchListDropHandler list_drop_handler;
 
 	std::function<bool(HWND wndlist)>stdf_change_notifier =
 		[this](HWND x) -> bool {
 		match_message_update(match_manual);
 		return true; };
-		
+
 	void load_size();
 	bool build_current_cfg();
 	void pushcfg();
@@ -56,6 +55,7 @@ private:
 	void insert_track_mappings();
 	void list_swap_items(HWND list, unsigned int pos1, unsigned int pos2);
 	void generate_track_mappings(track_mappings_list_type &track_mappings);
+	void init_list_columns(int listID, int layout);
 	void update_list_width(HWND list, bool initialize=false);
 	bool track_context_menu(HWND wnd, LPARAM coords);
 

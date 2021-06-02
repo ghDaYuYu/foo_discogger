@@ -554,7 +554,8 @@ void TagWriter::generate_tags(bool use_update_tags, threaded_process_status& p_s
 						result->r_approved.append_single(meta_changed && entry.enable_update);
 					}
 					else {
-						result->r_approved[result->r_approved.get_count() - 1] |= meta_changed && entry.enable_update;
+						PFC_ASSERT(old_count == 0);
+						//nothing to do
 					}
 					result->result_approved |= result->r_approved[result->r_approved.get_count() - 1];
 				}

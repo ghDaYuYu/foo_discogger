@@ -203,8 +203,8 @@ public:
 		void insert_tag_results(bool computestat);
 		void tag_mappings_updated();
 		void cb_generate_tags();
-
-		void enable(bool v) override;
+		void enable(bool v) override { enable(v, true); };
+		void enable(bool v, bool change_focus);
 		void destroy_all();
 		void go_back();
 };

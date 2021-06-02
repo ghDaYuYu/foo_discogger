@@ -43,7 +43,7 @@ void foo_discogs_threaded_process_callback::on_done(HWND p_wnd, bool p_was_abort
 
 generate_tags_task::generate_tags_task(CPreviewTagsDialog *preview_dialog, TagWriter_ptr tag_writer, bool use_update_tags) :
 		tag_writer(tag_writer), preview_dialog(preview_dialog), use_update_tags(use_update_tags) {
-	preview_dialog->enable(false);
+	preview_dialog->enable(false, true);
 }
 
 generate_tags_task::generate_tags_task(CTrackMatchingDialog *track_matching_dialog, TagWriter_ptr tag_writer, bool show_preview_dialog, bool use_update_tags) :
@@ -66,12 +66,6 @@ void generate_tags_task::start() {
 void generate_tags_task::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
 
 	tag_writer->generate_tags(use_update_tags, p_status, p_abort);
-
-	int dbugsz = tag_writer->tag_results.get_count();
-	tag_result_ptr resultdebug = tag_writer->tag_results[0];
-	tag_result_ptr resultdebug2;
-	if (tag_writer->tag_results.get_count() == 2)
-		resultdebug2 = tag_writer->tag_results[1];
 }
 
 void generate_tags_task::on_success(HWND p_wnd) {
@@ -96,7 +90,7 @@ void generate_tags_task::on_abort(HWND p_wnd) {
 
 void generate_tags_task::on_error(HWND p_wnd) {
 	if (preview_dialog) {
-		preview_dialog->enable(true);
+		preview_dialog->enable(true, true);
 	}
 	else {
 		track_matching_dialog->enable(true);
@@ -207,7 +201,7 @@ void write_tags_task_multi::start() {
 void write_tags_task_multi::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
 	const size_t count = tag_writers.get_count();
 	for (size_t i = 0; i < count; i++) {
-		if (!tag_writers[i]->skip && tag_writers[i]->changed) {
+		if (!tag_writers[i]->skip && tag_writers[i]->will_modify) {
 			tag_writers[i]->write_tags();
 		}
 	}
@@ -217,7 +211,7 @@ void write_tags_task_multi::on_success(HWND p_wnd) {
 	const size_t count = tag_writers.get_count();
 	file_info_manager_ptr super_manager = std::make_shared<file_info_manager>();
 	for (size_t i = 0; i < count; i++) {
-		if (!tag_writers[i]->skip && tag_writers[i]->changed) {
+		if (!tag_writers[i]->skip && tag_writers[i]->will_modify) {
 			for (size_t j = 0; j < tag_writers[i]->finfo_manager->get_item_count(); j++) {
 				super_manager->copy_from(*(tag_writers[i]->finfo_manager), j);
 			}

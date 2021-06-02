@@ -1269,3 +1269,34 @@ pfc::string8 string_encoded_array::print_raw() const {
 	}
 	return result;
 }
+
+bool string_encoded_array::has_diffs(string_encoded_array new_value) {
+	bool bres = false;
+	
+	if (has_blank() == true && new_value.has_blank() == true)
+		return false;
+
+	if (has_array() && new_value.has_array()) {
+		return (!STR_EQUAL(print(), new_value.print()));
+	}
+	else if (!has_array() && new_value.has_array()) {
+		return !STR_EQUAL(print(), new_value.print());
+	}
+	else if (has_array() && !new_value.has_array()) {
+		bool str_win_equal = STR_EQUAL(print(), pfc::lineEndingsToWin(new_value.print()));
+		return !str_win_equal;
+	}
+	else if (!has_array() && !new_value.has_array()) {
+		bool str_win_equal = STR_EQUAL(print(), pfc::lineEndingsToWin(new_value.print()));
+		return !str_win_equal;
+	}
+	else {
+		PFC_ASSERT(false);
+	}
+
+	return bres;
+}
+
+bool string_encoded_array::has_blank() {
+	return !print().get_length();
+}

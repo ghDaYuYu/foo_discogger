@@ -412,7 +412,7 @@ bool check_multiple_results(pfc::array_t<string_encoded_array> where, string_enc
 void TagWriter::generate_tags(bool use_update_tags, threaded_process_status& p_status, abort_callback& p_abort) {
 	
 	tag_results.force_reset();
-	changed = false;
+	will_modify = false;
 
 	pfc::array_t<persistent_store> track_stores;
 	for (size_t j = 0; j < track_mappings.get_count(); j++) {
@@ -434,8 +434,8 @@ void TagWriter::generate_tags(bool use_update_tags, threaded_process_status& p_s
 			for (size_t wtracks = 0; wtracks < track_mappings.get_count(); wtracks++) {
 				const track_mapping& mapping = track_mappings[wtracks];
 
-				bool tk_added = false;
-				bool tk_changed = false;
+				bool token_added = false;
+				bool meta_changed = false;
 
 				if (!mapping.enabled) {
 					continue;
@@ -511,7 +511,7 @@ void TagWriter::generate_tags(bool use_update_tags, threaded_process_status& p_s
 						approved = !newvalue.has_blank() && entry.enable_write;
 
 						result->r_approved.append_single(approved);
-						tk_added = true;
+						token_added = true; // approval value (true or false) added
 
 					}
 					else {
@@ -541,19 +541,20 @@ void TagWriter::generate_tags(bool use_update_tags, threaded_process_status& p_s
 
 					result->old_value.append_single(old_value);
 
-					tk_changed = false;
-					int last_val_ndx = result->value.get_count() - 1;
+					meta_changed = false;
+					const int last_val_ndx = result->value.get_count() - 1;
 					string_encoded_array newvalue(result->value[last_val_ndx]);
 					string_encoded_array oldvalue(result->old_value[last_val_ndx]);
-					tk_changed = oldvalue.has_diffs(newvalue);
+					meta_changed = oldvalue.has_diffs(newvalue);
+					result->changed |= meta_changed;
 					
 					// SUBITEMS APPROVING 2/2 (change based)
 
-					if (!tk_added) {
-						result->r_approved.append_single(tk_changed && entry.enable_update);
+					if (!token_added) {
+						result->r_approved.append_single(meta_changed && entry.enable_update);
 					}
 					else {
-						result->r_approved[result->r_approved.get_count() - 1] |= tk_changed && entry.enable_update;
+						result->r_approved[result->r_approved.get_count() - 1] |= meta_changed && entry.enable_update;
 					}
 					result->result_approved |= result->r_approved[result->r_approved.get_count() - 1];
 				}
@@ -570,7 +571,7 @@ void TagWriter::generate_tags(bool use_update_tags, threaded_process_status& p_s
 				result->old_value.set_size_discard(1);
 			}
 
-			changed = result->result_approved;
+			will_modify |= result->result_approved;
 
 			result->tag_entry = &entry;
 			tag_results.append_single(std::move(result));

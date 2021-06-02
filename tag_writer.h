@@ -67,7 +67,7 @@ public:
 
 	void match_tracks();
 
-	bool changed = false;
+	bool will_modify = false;
 	bool skip = false;
 	bool force_skip = false;
 

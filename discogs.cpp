@@ -18,7 +18,7 @@ const ExposedMap<ReleaseArtist> ExposedTags<ReleaseArtist>::exposed_tags = Relea
 const ExposedMap<ReleaseCredit> ExposedTags<ReleaseCredit>::exposed_tags = ReleaseCredit::create_tags_map();
 const ExposedMap<ReleaseFormat> ExposedTags<ReleaseFormat>::exposed_tags = ReleaseFormat::create_tags_map();
 const ExposedMap<ReleaseDisc> ExposedTags<ReleaseDisc>::exposed_tags = ReleaseDisc::create_tags_map();
-const ExposedMap<Image> ExposedTags<Image>::exposed_tags = Image::create_tags_map();
+const ExposedMap<ExpTagsImage> ExposedTags<ExpTagsImage>::exposed_tags = ExpTagsImage::create_tags_map();
 
 
 string_encoded_array Discogs::ReleaseArtist::get_data(pfc::string8 &tag_name, threaded_process_status &p_status, abort_callback &p_abort) {
@@ -593,7 +593,7 @@ void Discogs::parseReleaseSeries(json_t *element, pfc::array_t<ReleaseSeries_ptr
 }
 
 Image_ptr Discogs::parseImage(json_t *element) {
-	Image_ptr image(new Image());
+	Image_ptr image(new ExpTagsImage());
 	// Should we use thumb instead of url150?
 	image->type = JSONAttributeString(element, "type");
 	image->url = JSONAttributeString(element, "resource_url");

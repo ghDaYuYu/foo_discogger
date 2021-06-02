@@ -23,7 +23,7 @@ namespace Discogs
 	extern pfc::string8 format_track_number(int tracknumber);
 
 	
-	class Image : public ExposedTags<Image>
+	class ExpTagsImage : public ExposedTags<ExpTagsImage>
 	{
 	public:
 		pfc::string8 type; // "primary" or "secondary"
@@ -42,15 +42,15 @@ namespace Discogs
 			return url150;
 		}
 
-		static ExposedMap<Image> create_tags_map() {
-			ExposedMap<Image> m;
-			m["TYPE"] = { &Image::get_type, &Image::load };
-			m["URL"] = { &Image::get_url, &Image::load };
-			m["THUMBNAIL_URL"] = { &Image::get_thumbnail_url, &Image::load };
+		static ExposedMap<ExpTagsImage> create_tags_map() {
+			ExposedMap<ExpTagsImage> m;
+			m["TYPE"] = { &ExpTagsImage::get_type, &ExpTagsImage::load };
+			m["URL"] = { &ExpTagsImage::get_url, &ExpTagsImage::load };
+			m["THUMBNAIL_URL"] = { &ExpTagsImage::get_thumbnail_url, &ExpTagsImage::load };
 			return m;
 		}
 	};
-	typedef std::shared_ptr<Image> Image_ptr;
+	typedef std::shared_ptr<ExpTagsImage> Image_ptr;
 	
 
 	class HasImages

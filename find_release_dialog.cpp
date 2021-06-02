@@ -82,20 +82,12 @@ inline void CFindReleaseDialog::load_size() {
 	CRect rcCfg(0,0, width, height);
 	::CenterWindow(this->m_hWnd, rcCfg, core_api::get_main_window());
 
-	//columns
+	CRect rcCli;
+	::GetClientRect(release_list, &rcCli);
+	
+	ListView_SetColumnWidth(release_list, 0, rcCli.Width());
+	ListView_SetColumnWidth(release_list, 1, 0);
 
-	if (false /*TODO: columns cfgs*/) {
-		//ListView_SetColumnWidth(GetDlgItem(IDC_FIND_RELEASE_LIST), 0, conf.find_dialog_col1_width);
-		//ListView_SetColumnWidth(GetDlgItem(IDC_FIND_RELEASE_LIST), 1, conf.find_dialog_col2_width);
-	}
-	else {
-		CRect rcCli;
-		::GetClientRect(release_list, &rcCli);
-		int width = rcCli.Width();
-
-		ListView_SetColumnWidth(release_list, 0, width);
-		ListView_SetColumnWidth(release_list, 1, 0);
-	}
 }
 
 void CFindReleaseDialog::pushcfg() {
@@ -133,6 +125,13 @@ inline bool CFindReleaseDialog::build_current_cfg() {
 	if (dlgheight != conf.find_release_dialog_height || dlgwidth != conf.find_release_dialog_width) {
 		conf.find_release_dialog_width = dlgwidth;
 		conf.find_release_dialog_height = dlgheight;
+		bres = bres || true;
+	}
+
+	//show id column
+	const bool benabled = uButton_GetCheck(m_hWnd, IDC_CHECK_RELEASE_SHOW_ID);
+	if (benabled != conf.find_release_dialog_show_id) {
+		conf.find_release_dialog_show_id = benabled;
 		bres = bres || true;
 	}
 	
@@ -226,6 +225,8 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	int icol = listview_helper::fr_insert_column(artist_list, 0,
 		"Artist", rcartists.Width(), LVCFMT_LEFT);
 
+	ListView_SetOutlineColor(release_list, hlfrcolor);
+	
 	cewb_artist_search.SubclassWindow(search_edit);
 	cewb_artist_search.SetEnterEscHandlers();
 	cewb_release_filter.SubclassWindow(filter_edit);
@@ -260,7 +261,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 			if (_idtracer.release && _idtracer.release_id != -1) {
 #ifndef DEBUG
 				uSetWindowText(release_url_edit, 
-					std::to_string(_idtracker.release_id).c_str());
+					std::to_string(_idtracer.release_id).c_str());
 #endif
 			}
 		}
@@ -268,6 +269,18 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 
 	DlgResize_Init(mygripp.grip, true);
 	load_size();
+
+	if (conf.find_release_dialog_show_id) {
+		//todo: revise hacky
+		uButton_SetCheck(m_hWnd, IDC_CHECK_RELEASE_SHOW_ID, true);
+
+		BOOL bdummy = false;
+		OnCheckReleasesShowId(0, 0, NULL, bdummy);
+	}
+
+	CRect rc;
+	//::GetClientRect(m_hWnd, rc);
+	//DlgResize_UpdateLayout(rc.Width(), rc.Height());
 	modeless_dialog_manager::g_add(m_hWnd);
 	
 	if (OAuthCheck(conf)) {
@@ -424,7 +437,7 @@ void CFindReleaseDialog::on_get_artist_done(updRelSrc updsrc, Artist_ptr &artist
 
 	update_releases(m_results_filter, updsrc, true);
 
-	m_vec_lv_items = m_vec_build_lv_items;
+	//selection
 
 	m_bNoEnChange = true;
 		uSetWindowText(filter_edit, filter);
@@ -1769,7 +1782,12 @@ LRESULT CFindReleaseDialog::OnRClickRelease(int, LPNMHDR hdr, BOOL&) {
 		{
 			pfc::string8 url;
 			if (isArtist) {
-				url << "https://www.discogs.com/artist/" << find_release_artists[list_index]->id;
+				if (find_release_artists.get_count() > 0)
+					url << "https://www.discogs.com/artist/" << find_release_artists[list_index]->id;
+				else
+					if (find_release_artist != NULL)
+						url << "https://www.discogs.com/artist/" << find_release_artist->id;
+
 			}
 			else {
 				if (myparam.is_release()) {
@@ -1783,8 +1801,9 @@ LRESULT CFindReleaseDialog::OnRClickRelease(int, LPNMHDR hdr, BOOL&) {
 						url << "https://www.discogs.com/release/" << find_release_artist->releases[myparam.release_ndx]->id;
 					}
 			}
-			
-			display_url(url);
+			if (url != NULL)
+				display_url(url);
+
 			return true;
 		}
 		}

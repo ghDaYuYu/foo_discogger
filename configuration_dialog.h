@@ -175,5 +175,5 @@ public:
 		return "Discogs Tagger";
 	}
 	GUID get_guid() { return guid_pref_page; }
-	GUID get_parent_guid() { return guid_tag_writing; /*guid_tools*/; }
+	GUID get_parent_guid() { return guid_tagging; }
 };

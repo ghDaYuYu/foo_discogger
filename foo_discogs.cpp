@@ -38,8 +38,9 @@ FOO_DISCOGS_VERSION,
 "This plugin uses the following open source libraries (thanks to their respective authors):\n"
 "\n"
 "jansson - JSON Parser: http://www.digip.org/jansson/\n"
-"liboauthcpp - OAuth library: https://github.com/sirikata/liboauthcpp\n")
-/*Pshht, Pshht*/
+"liboauthcpp - OAuth library: https://github.com/sirikata/liboauthcpp\n"
+"\n\n"
+"This application uses Discogs' API but is not affiliated with, sponsored or endorsed by Discogs.'Discogs' is a trademark of Zink Media, LLC.");
 
 #define MIN(a,b) ((a)<(b)?(a):(b))
 

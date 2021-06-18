@@ -164,6 +164,8 @@ public:
 	
 	LRESULT list_key_down(HWND wnd, LPNMHDR lParam);
 
+	LRESULT PointInReleaseListHeader(POINT pt);
+	LRESULT OnRClick(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	bool initialize();
 	void match_message_update(pfc::string8 local_msg = "");
 	bool get_next_tag_writer();

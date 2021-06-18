@@ -35,10 +35,111 @@ namespace listview_helper {
 	}
 }
 
+void CTrackMatchingDialog::init_list_columns(int listID, int layout) {
+
+	HWND ctrl_list;
+	pfc::string8 list_header;
+	std::vector<int> conf_col_woa;
+	std::vector<int> col_order;
+	std::vector<int> col_align;
+	std::vector<int> col_width;
+
+	DWORD dwStyle = 0L;
+
+	if (listID == IDC_DISCOGS_TRACK_LIST) {
+		ctrl_list = uGetDlgItem(IDC_DISCOGS_TRACK_LIST);
+		list_header = "Discogs";
+		conf_col_woa.push_back(conf.match_tracks_dialog_discogs_col1_width);
+		conf_col_woa.push_back(conf.match_tracks_dialog_discogs_col2_width);
+		if (conf.match_tracks_dialog_discogs_style!=0)
+			dwStyle = static_cast<DWORD>(conf.match_tracks_dialog_discogs_style);
+		else		
+			dwStyle = LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP;
+	}
+	else {
+		ctrl_list = uGetDlgItem(IDC_FILE_LIST);
+		list_header = "Files";
+		conf_col_woa.push_back(conf.match_tracks_dialog_files_col1_width);
+		conf_col_woa.push_back(conf.match_tracks_dialog_files_col2_width);
+
+		if (conf.match_tracks_dialog_files_style != 0)
+			dwStyle = static_cast<DWORD>(conf.match_tracks_dialog_files_style);
+		else
+			dwStyle = LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP;
+	}
+
+	if (layout != -1 && conf_col_woa.at(0) != 0) {
+		
+		int lo = LOWORD(conf_col_woa.at(0));
+		
+		col_order.push_back(lo % 10);
+		col_align.push_back(lo / 10);
+
+		lo = LOWORD(conf_col_woa.at(1));
+
+		col_order.push_back(lo % 10);
+		col_align.push_back(lo / 10);
+
+		col_width.push_back(HIWORD(conf_col_woa.at(0)));
+		col_width.push_back(HIWORD(conf_col_woa.at(1)));
+
+		LVCOLUMN Column;
+		listview_helper::insert_column(ctrl_list, 0, list_header, col_width.at(0), col_align.at(0));
+		listview_helper::insert_column(ctrl_list, 1, "Length", col_width.at(1), col_align.at(1));
+
+		ListView_SetColumnWidth(ctrl_list, 0, col_width.at(0));
+		ListView_SetColumnWidth(ctrl_list, 1, col_width.at(1));
+			
+		Column.mask = LVCF_FMT;
+		Column.fmt = col_align.at(0);
+		ListView_SetColumn(ctrl_list, 0, &Column);
+		Column.fmt = col_align.at(1);
+		ListView_SetColumn(ctrl_list, 1, &Column);
+
+		CHeaderCtrl header = ListView_GetHeader(ctrl_list);
+		header.SetOrderArray(col_order.size(), &col_order[0]);
+	}
+	else {
+
+		conf.match_tracks_dialog_discogs_col1_width = 0;
+		conf.match_tracks_dialog_discogs_col2_width = 0;
+		conf.match_tracks_dialog_files_col1_width = 0;
+		conf.match_tracks_dialog_files_col2_width = 0;
+
+		CHeaderCtrl header = ListView_GetHeader(ctrl_list);
+		pfc::stringcvt::string_os_from_utf8 labelOS(list_header);
+		DWORD fmtFlags = HDF_LEFT;
+		HDITEM item = {};
+		item.mask = HDI_TEXT | HDI_FORMAT;
+		item.fmt = fmtFlags | HDF_STRING;
+		item.pszText = const_cast<TCHAR*>(labelOS.get_ptr());
+		int iColumn;
+		iColumn = header.InsertItem(header.GetItemCount(), &item);
+
+		labelOS.convert("Length");
+		fmtFlags = HDF_RIGHT;
+		item = {};
+		item.mask = HDI_TEXT | HDI_FORMAT;
+		item.fmt = fmtFlags | HDF_STRING;
+		item.pszText = const_cast<TCHAR*>(labelOS.get_ptr());
+		iColumn = header.InsertItem(header.GetItemCount(), &item);
+		
+		update_list_width(ctrl_list, true);
+	}
+
+	ListView_SetExtendedListViewStyle(ctrl_list,  dwStyle);
+
+}
+
 LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
 	conf = CONF;
 
 	pfc::string8 match_msg;
+
+	INITCOMMONCONTROLSEX icex;
+	icex.dwSize = sizeof(icex);
+	icex.dwICC = ICC_LISTVIEW_CLASSES; //IDC_RELEASE_LIST;
+	InitCommonControlsEx(&icex);
 
 	if (multi_mode) {
 		::ShowWindow(uGetDlgItem(IDC_WRITE_TAGS_BUTTON), false);
@@ -64,19 +165,11 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 		uSendMessage(m_hWnd, WM_NEXTDLGCTL, (WPARAM)(HWND)GetDlgItem(default), TRUE);
 	}
 
-	discogs_track_list = uGetDlgItem(IDC_DISCOGS_TRACK_LIST);
-	file_list = uGetDlgItem(IDC_FILE_LIST);
+	HWND discogs_track_list = uGetDlgItem(IDC_DISCOGS_TRACK_LIST);
+	HWND file_list = uGetDlgItem(IDC_FILE_LIST);
 
-	listview_helper::insert_column(discogs_track_list, 0, "Discogs", 0);
-	listview_helper::insert_column(discogs_track_list, 1, "Length", 45, LVCFMT_RIGHT);
-	listview_helper::insert_column(file_list, 0, "Files", 0);
-	listview_helper::insert_column(file_list, 1, "Length", 45, LVCFMT_RIGHT);
-
-	update_list_width(discogs_track_list, true);
-	update_list_width(file_list, true);
-
-	ListView_SetExtendedListViewStyle(discogs_track_list, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER/*| LVS_SHOWSELALWAYS*/);
-	ListView_SetExtendedListViewStyle(file_list, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
+	init_list_columns(IDC_DISCOGS_TRACK_LIST, 0);
+	init_list_columns(IDC_FILE_LIST, 0);
 
 	list_drop_handler.Initialize(m_hWnd, discogs_track_list, file_list);
 	list_drop_handler.SetNotifier(stdf_change_notifier);
@@ -186,7 +279,7 @@ void CTrackMatchingDialog::insert_track_mappings() {
 
 			if (i == 0) {
 				pfc::string8 compact_release;
-				CONF.search_master_sub_format_string->run_hook(location, &info, &hook, compact_release, nullptr);
+				CONF.search_master_sub_format_string->run_hook(location, &info, &hook/*titlehook.get()*/, compact_release, nullptr);
 				int l = compact_release.get_length();
 				uSetDlgItemText(m_hWnd, IDC_STATIC_MATCH_TRACKING_REL_NAME, ltrim(compact_release));
 			}
@@ -397,6 +490,28 @@ void CTrackMatchingDialog::pushcfg() {
 	}
 }
 
+auto get_woas(HWND list) {
+	int ccol = ListView_GetColumnCount(list);
+	std::vector<int> v_order; v_order.resize(ccol);
+	ListView_GetColumnOrderArray(list, ccol, &v_order[0]);
+
+	std::vector<int> v_woa; v_woa.resize(ccol);
+	for (auto it_woa = v_woa.begin(); it_woa != v_woa.end(); ++it_woa) {
+		int index = std::distance(v_woa.begin(), it_woa);
+		int width = ListView_GetColumnWidth(list, index);
+
+		HDITEM headerItem = { 0 };
+		headerItem.mask = HDI_FORMAT;
+		CHeaderCtrl header = ListView_GetHeader(list);
+		header.GetItem(index, &headerItem);
+		int justify_mask = (headerItem.fmt & LVCFMT_JUSTIFYMASK);
+		int lwoa = justify_mask * 10 + v_order[index];
+		int hwoa = width;
+		*it_woa = MAKELPARAM(lwoa, hwoa);
+	}
+	return v_woa;
+}
+
 inline bool CTrackMatchingDialog::build_current_cfg() {
 	bool bres = false;
 	//get current ui dimensions
@@ -410,21 +525,42 @@ inline bool CTrackMatchingDialog::build_current_cfg() {
 		conf.release_dialog_height = dlgheight;
 		bres = bres || true;
 	}
-	//list columns (discogs and files)
 	HWND discogs_list = GetDlgItem(IDC_DISCOGS_TRACK_LIST);
 	HWND file_list = GetDlgItem(IDC_FILE_LIST);
+	DWORD dwStyle = ::SendMessage(discogs_list,
+		LVM_GETEXTENDEDLISTVIEWSTYLE, 0, 0);
+
+	int icomp = static_cast<int>(dwStyle);
+
+	if (icomp != conf.match_tracks_dialog_discogs_style) {
+		conf.match_tracks_dialog_discogs_style = icomp;	
+		bres |= true;
+	}
+
+	dwStyle = ::SendMessage(file_list,
+			LVM_GETEXTENDEDLISTVIEWSTYLE, 0, 0);
+
+	icomp = static_cast<int>(dwStyle);
+
+	if ((icomp != conf.match_tracks_dialog_files_style)) {
+		conf.match_tracks_dialog_files_style = icomp;
+		bres |= true;
+	}
+
+	//list columns (discogs and files)
+
 	std::vector<int> v_woa_discogs = get_woas(discogs_list);
 	std::vector<int> v_woa_files = get_woas(file_list);
 
-	if (v_woa_discogs[0] != conf.match_tracks_dialog_discogs_col1_width ||
-	    v_woa_discogs[1] != conf.match_tracks_dialog_discogs_col2_width ||
-		v_woa_files[0] != conf.match_tracks_dialog_files_col1_width ||
-		v_woa_files[1] != conf.match_tracks_dialog_files_col2_width) {
+		if (v_woa_discogs[0] != conf.match_tracks_dialog_discogs_col1_width ||
+			v_woa_discogs[1] != conf.match_tracks_dialog_discogs_col2_width ||
+			v_woa_files[0] != conf.match_tracks_dialog_files_col1_width ||
+			v_woa_files[1] != conf.match_tracks_dialog_files_col2_width) {
 
-		conf.match_tracks_dialog_discogs_col1_width = v_woa_discogs[0];
-		conf.match_tracks_dialog_discogs_col2_width = v_woa_discogs[1];
-		conf.match_tracks_dialog_files_col1_width = v_woa_files[0];
-		conf.match_tracks_dialog_files_col2_width = v_woa_files[1];
+			conf.match_tracks_dialog_discogs_col1_width = v_woa_discogs[0];
+			conf.match_tracks_dialog_discogs_col2_width = v_woa_discogs[1];
+			conf.match_tracks_dialog_files_col1_width = v_woa_files[0];
+			conf.match_tracks_dialog_files_col2_width = v_woa_files[1];
 
 		bres = bres || true;
 	}
@@ -562,18 +698,34 @@ bool CTrackMatchingDialog::track_context_menu(HWND wnd, LPARAM coords) {
 	
 	try {
 		int coords_x = pf->x, coords_y = pf->y;
-		enum { ID_SELECT_ALL = 1, ID_INVERT_SELECTION, ID_REMOVE, ID_CROP, ID_RESET_COLUMNS, ID_LAYOUT_CENTER };
+		enum { ID_SELECT_ALL = 1, ID_INVERT_SELECTION, ID_REMOVE, ID_CROP, ID_SUBMENU_SELECTOR, ID_RESET_COLUMNS, ID_LAYOUT_CENTER, ID_SHOW_GRID };
 		HMENU menu = CreatePopupMenu();
+		HMENU _childmenuDisplay = CreatePopupMenu();
+		MENUITEMINFO mi1 = { 0 };
+		mi1.cbSize = sizeof(MENUITEMINFO);
+		mi1.fMask = MIIM_SUBMENU | MIIM_STRING | MIIM_ID;
+		mi1.wID = ID_SUBMENU_SELECTOR;
+		mi1.hSubMenu = _childmenuDisplay;
+		mi1.dwTypeData = _T("Display");
+
 		bool bitems = (ListView_GetItemCount(wnd) > 0);
 		bool bselection = (ListView_GetSelectedCount(wnd) > 0);
 		bool is_files = wnd == uGetDlgItem(IDC_FILE_LIST);
+		
+		DWORD dwStyle = ::SendMessage(wnd,
+			LVM_GETEXTENDEDLISTVIEWSTYLE, 0, 0);
+		
 		uAppendMenu(menu, MF_STRING | (bitems? 0 : MF_DISABLED), ID_SELECT_ALL, "Select all\tCtrl+A");
 		uAppendMenu(menu, MF_STRING | (bselection? 0 : MF_DISABLED), ID_INVERT_SELECTION, "Invert selection\tCtrl+Shift+A");
 		uAppendMenu(menu, MF_STRING | (bselection? 0 : MF_DISABLED), ID_REMOVE, "Remove\tDel");
 		uAppendMenu(menu, MF_STRING | (bselection? 0 : MF_DISABLED), ID_CROP, "Crop\tCtrl+C");
-		uAppendMenu(menu, MF_STRING | (bitems ? 0 : MF_DISABLED), ID_RESET_COLUMNS, "Reset Columns");
+		// display submenu
+		uAppendMenu(menu, MF_SEPARATOR, 0, 0);		
+		uAppendMenu(_childmenuDisplay, MF_STRING | (bitems ? 0 : MF_DISABLED), ID_RESET_COLUMNS, "Reset Columns");
+		uAppendMenu(_childmenuDisplay, MF_STRING | (bitems ? 0 : MF_DISABLED) | (dwStyle & LVS_EX_GRIDLINES ? MF_CHECKED : 0), ID_SHOW_GRID, "Show Grid");
 		if (is_files)
-			uAppendMenu(menu, MF_STRING | (bitems ? 0 : MF_DISABLED), ID_LAYOUT_CENTER, "Center Align");
+			uAppendMenu(_childmenuDisplay, MF_STRING | (bitems ? 0 : MF_DISABLED), ID_LAYOUT_CENTER, "Center Align");
+		InsertMenuItem(menu, ID_SUBMENU_SELECTOR, true, &mi1);		
 
 		int cmd = TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, coords_x, coords_y, 0, wnd, 0);
 		DestroyMenu(menu);
@@ -615,8 +767,7 @@ bool CTrackMatchingDialog::track_context_menu(HWND wnd, LPARAM coords) {
 					header.DeleteItem(0);
 					old_count--;
 				}
-
-				int new_count = header.GetItemCount();
+				size_t new_count = header.GetItemCount();
 				if (new_count) {
 					std::vector<int>order; order.resize(new_count);
 					for (size_t c = 0; c < new_count; ++c) order[c] = (int)c;

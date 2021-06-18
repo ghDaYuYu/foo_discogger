@@ -73,6 +73,21 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 
 				pfc::string8 status;
 				r->get_status(status);
+
+				pfc::string8 header;
+				pfc::string8 xratelimits(" RateLimit: ");
+				if (r->get_http_header("X-Discogs-Ratelimit", header)) {
+					xratelimits << header;
+				}
+				if (r->get_http_header("X-Discogs-Ratelimit-Used", header)) {
+					xratelimits << " - Used: " << header;
+				}
+				if (r->get_http_header("X-Discogs-Ratelimit-Remaining", header)) {
+					xratelimits << " - Remaining: " << header;
+				}
+				if (xratelimits.length())
+					log_msg(xratelimits);
+
 				if (pfc::string8(status).find_first("200") == pfc::infinite_size) {
 					pfc::string8 msg("HTTP error status: ");
 					msg << status;

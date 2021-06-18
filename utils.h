@@ -62,12 +62,26 @@ static const struct rzgripp {
 } mygripp{ 22, 56, true };
 
 const struct mounted_param {
-	int master_ndx;
-	int release_ndx;
+	size_t master_ndx;
+	size_t release_ndx;
 	bool bmaster;
 	bool brelease;
-};
 
+	mounted_param(size_t master_ndx, size_t release_ndx, bool bmaster, bool brelease)
+		: master_ndx(master_ndx), release_ndx(release_ndx), bmaster(bmaster), brelease(brelease) {};
+	mounted_param()
+		: master_ndx(~0), release_ndx(~0), bmaster(false), brelease(false) {};
+
+	bool mounted_param::is_master() {
+		return bmaster && !brelease;
+	}
+	bool mounted_param::is_release() {
+		return bmaster && brelease;
+	}
+	bool mounted_param::is_nmrelease() {
+		return !bmaster && brelease;
+	}
+};
 
 static const pfc::string8 match_failed("FAILED TO MATCH TRACK ORDER");
 static const pfc::string8 match_success("MATCHED TRACK ORDER");

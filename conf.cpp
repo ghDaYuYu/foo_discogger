@@ -4,8 +4,6 @@
 
 new_conf CONF;
 
-v200spec V200;
-
 // {82CB353B-6D23-4D3B-86E1-A5D80EC9CC53}
 static const GUID guid_cfg_bool_values = {0x82cb353b, 0x6d23, 0x4d3b, {0x86, 0xe1, 0xa5, 0xd8, 0xe, 0xc9, 0xcc, 0x53}};
 
@@ -43,9 +41,31 @@ conf_string_entry make_conf_entry(int i, const pfc::string8 &v) {
 
 bool new_conf::load() {
 	bool changed = false;
+	// { specs vector, boolvals, intvals, stringvals;
+	vspec v199 { &vec_specs, 25, 16, 13 };
+	vspec v200 { &vec_specs, 27, 22, 14 };
+	vspec v201 { &vec_specs, 28, 28, 14 };
+	vspec v202 { &vec_specs, 28, 29, 14 };
+	
+	vspec* vlast = &vec_specs.at(vec_specs.size() - 1);
 
-	bool isV200 = V200.signature(cfg_bool_entries.get_count(),
-		cfg_int_entries.get_count(), cfg_string_entries.get_count());
+	vspec vLoad = { nullptr, cfg_bool_entries.get_count(),
+		cfg_int_entries.get_count(), cfg_string_entries.get_count() };
+
+	if (vLoad > *vlast) {
+		//version not found
+		//safety reset
+		pfc::string8 title;
+		title << "Problem updating foo_discogs configuration";
+		pfc::string8 msg("The configuration will be reset\n");
+		msg << "Do not close this dialog and backup your setting\n";
+		msg << "before continuing.";
+		return uMessageBox(core_api::get_main_window(), msg, title,
+			MB_APPLMODAL | MB_ICONASTERISK);
+		new_conf reset_conf;
+		reset_conf.save();
+		return true;
+	}
 
 	for (unsigned int i = 0; i < cfg_bool_entries.get_count(); i++) {
 		changed = true;
@@ -127,20 +147,26 @@ bool new_conf::load() {
 				skip_video_tracks = item.value;
 				break;
 
-			//v.200
+			//v200
 			case CFG_EDIT_TAGS_DIALOG_SHOW_TM_STATS:
 				edit_tags_dlg_show_tm_stats = item.value;
 				break;
 			case CFG_FIND_RELEASE_DIALOG_SHOW_ID:
 				find_release_dialog_show_id = item.value;
 				break;
+			//v201
+			case CFG_RELEASE_ENTER_KEY_OVR:
+				release_enter_key_override = item.value;
+
 		}
 	}
-	if (!isV200) {
+	if (vLoad < v200) {
 		cfg_bool_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_SHOW_TM_STATS, edit_tags_dlg_show_tm_stats));
 		cfg_bool_entries.add_item(make_conf_entry(CFG_FIND_RELEASE_DIALOG_SHOW_ID, find_release_dialog_show_id));
 	}
-
+	if (vLoad < v201) {
+		cfg_bool_entries.add_item(make_conf_entry(CFG_RELEASE_ENTER_KEY_OVR, release_enter_key_override));
+	}
 
 	for (unsigned int i = 0; i < cfg_int_entries.get_count(); i++) {
 		changed = true; 
@@ -191,7 +217,7 @@ bool new_conf::load() {
 			case CFG_CACHE_MAX_OBJECTS:
 				cache_max_objects = item.value;
 				break;
-			//v.200 (from 1.53 mod dayuyu)
+			//v200 (mod v16)
 			case CFG_PREVIEW_TAGS_DIALOG_COL1_WIDTH:
 				preview_tags_dialog_col1_width = item.value;
 				break;
@@ -210,16 +236,51 @@ bool new_conf::load() {
 			case CFG_MATCH_TRACKS_FILES_COL2_WIDTH:
 				match_tracks_dialog_files_col2_width = item.value;
 				break;
-
+			//v201 (mod v17)
+			case CFG_MATCH_TRACKS_DISCOGS_STYLE:
+				match_tracks_dialog_discogs_style = item.value;
+				break;
+			case CFG_MATCH_TRACKS_FILES_STYLE:
+				match_tracks_dialog_files_style = item.value;
+				break;
+			case CFG_PREVIEW_TAGS_DIALOG_W_WIDTH:
+				preview_tags_dialog_w_width = item.value;
+				break;
+			case CFG_PREVIEW_TAGS_DIALOG_U_WIDTH:
+				preview_tags_dialog_u_width = item.value;
+				break;
+			case CFG_PREVIEW_TAGS_DIALOG_S_WIDTH:
+				preview_tags_dialog_s_width = item.value;
+				break;
+			case CFG_PREVIEW_TAGS_DIALOG_E_WIDTH:
+				preview_tags_dialog_e_width = item.value;
+				break;
+				//v202
+			case CFG_CACHE_USE_OFFLINE_CACHE:
+				cache_use_offline_cache = item.value;
+				break;
 		}
 	}
-	if (!isV200) {
+	if (vLoad < v200) {
+		//v200
 		cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_COL1_WIDTH, preview_tags_dialog_col1_width));
 		cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_COL2_WIDTH, preview_tags_dialog_col2_width));
 		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_DISCOGS_COL1_WIDTH, match_tracks_dialog_discogs_col1_width));
 		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_DISCOGS_COL2_WIDTH, match_tracks_dialog_discogs_col2_width));
 		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_COL1_WIDTH, match_tracks_dialog_files_col1_width));
 		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_COL2_WIDTH, match_tracks_dialog_files_col2_width));
+	}
+	if (vLoad < v201) {
+		//v201
+		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_DISCOGS_STYLE, match_tracks_dialog_discogs_style));
+		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_STYLE, match_tracks_dialog_files_style));
+		cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_W_WIDTH, preview_tags_dialog_w_width));
+		cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_U_WIDTH, preview_tags_dialog_u_width));
+		cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_S_WIDTH, preview_tags_dialog_s_width));
+		cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_E_WIDTH, preview_tags_dialog_e_width));
+	}
+	if (vLoad < v202) {
+		cfg_int_entries.add_item(make_conf_entry(CFG_CACHE_USE_OFFLINE_CACHE, cache_use_offline_cache));
 	}
 
 	for (unsigned int i = 0; i < cfg_string_entries.get_count(); i++) {
@@ -265,15 +326,15 @@ bool new_conf::load() {
 			case CFG_FILE_TRACK_FORMAT_STRING:
 				release_file_format_string = item.value;
 				break;
-			//v.200 (from 1.53 mod dayuyu)
+			//v200
 			case CFG_EDIT_TAGS_DIALOG_HL_KEYWORD:
 				edit_tags_dlg_hl_keyword = item.value;
 				break;
 
 		}
 	}
-	if (!isV200) {
-		//		CONF_FILTER_PREVIEW
+	if (vLoad < v200) {
+		//CONF_FILTER_PREVIEW
 		cfg_string_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_HL_KEYWORD, edit_tags_dlg_hl_keyword));
 	}
 
@@ -333,13 +394,16 @@ bool new_conf::id_to_val_bool(int id, new_conf in_conf) {
 			return in_conf.parse_hidden_as_regular;
 		case CFG_SKIP_VIDEO_TRACKS:
 			return in_conf.skip_video_tracks;
-		//v.200 (from 1.53 mod 16 dayuyu)
+		//v200
 		case CFG_EDIT_TAGS_DIALOG_SHOW_TM_STATS:
 			return in_conf.edit_tags_dlg_show_tm_stats;
 		case CFG_FIND_RELEASE_DIALOG_SHOW_ID:
 			return in_conf.find_release_dialog_show_id;
+		//v201
+		case CFG_RELEASE_ENTER_KEY_OVR:
+			return in_conf.release_enter_key_override;
 	}
-	assert(false);
+	PFC_ASSERT(false);
 	return false;
 }
 
@@ -377,17 +441,11 @@ int new_conf::id_to_val_int(int id, new_conf in_conf) {
 			return in_conf.preview_mode;
 		case CFG_CACHE_MAX_OBJECTS:
 			return in_conf.cache_max_objects;
-		//v.200 (from 1.53 mod dayuyu)
-
-		//		CONF_FILTER_CONF
-		//		CONF_FILTER_FIND
-		//		CONF_FILTER_PREVIEW
+		//v200
 		case CFG_PREVIEW_TAGS_DIALOG_COL1_WIDTH:
 			return in_conf.preview_tags_dialog_col1_width;
 		case CFG_PREVIEW_TAGS_DIALOG_COL2_WIDTH:
 			return in_conf.preview_tags_dialog_col2_width;
-		//		CONF_FILTER_TAG
-		//		CONF_FILTER_TRACK
 		case CFG_MATCH_TRACKS_DISCOGS_COL1_WIDTH:
 			return in_conf.match_tracks_dialog_discogs_col1_width;
 		case CFG_MATCH_TRACKS_DISCOGS_COL2_WIDTH:
@@ -396,13 +454,25 @@ int new_conf::id_to_val_int(int id, new_conf in_conf) {
 			return in_conf.match_tracks_dialog_files_col1_width;
 		case CFG_MATCH_TRACKS_FILES_COL2_WIDTH:
 			return in_conf.match_tracks_dialog_files_col2_width;
-
-		//		CONF_FILTER_UPDATE_ART
-		//		CONF_FILTER_UPDATE_TAG
-		
+		//v201
+		case CFG_MATCH_TRACKS_DISCOGS_STYLE:
+			return in_conf.match_tracks_dialog_discogs_style;
+		case CFG_MATCH_TRACKS_FILES_STYLE:
+			return in_conf.match_tracks_dialog_files_style;
+		case CFG_PREVIEW_TAGS_DIALOG_W_WIDTH:
+			return in_conf.preview_tags_dialog_w_width;
+		case CFG_PREVIEW_TAGS_DIALOG_U_WIDTH:
+			return in_conf.preview_tags_dialog_u_width;
+		case CFG_PREVIEW_TAGS_DIALOG_S_WIDTH:
+			return in_conf.preview_tags_dialog_s_width;
+		case CFG_PREVIEW_TAGS_DIALOG_E_WIDTH:
+			return in_conf.preview_tags_dialog_e_width;
+		//v202
+		case CFG_CACHE_USE_OFFLINE_CACHE:
+			return in_conf.cache_use_offline_cache;
 		//..
 	}
-	assert(false);
+	PFC_ASSERT(false);
 	return iret;
 }
 
@@ -486,24 +556,16 @@ void new_conf::id_to_val_str(int id, new_conf in_conf, pfc::string8& out) {
 			out.set_string(str, str.get_length());
 			return;
 		}
-		//v.200 (from 1.52.mod16 by dayuyu)
-		//		CONF_FILTER_CONF
-		//		CONF_FILTER_FIND
-		//		CONF_FILTER_PREVIEW
-		//		CONF_FILTER_TAG
+		//v200
 		case CFG_EDIT_TAGS_DIALOG_HL_KEYWORD:
 		{
 			pfc::string8 str(in_conf.edit_tags_dlg_hl_keyword);
 			out.set_string(str, str.get_length());
 			return;
 		}
-		//		CONF_FILTER_TRACK
-		//		CONF_FILTER_UPDATE_ART
-		//		CONF_FILTER_UPDATE_TAG
-
 
 	}
-	assert(false);
+	PFC_ASSERT(false);
 }
 
 void new_conf::save(ConfFilter cfgfilter, new_conf in_conf) {
@@ -561,7 +623,7 @@ void new_conf::save(ConfFilter cfgfilter, new_conf in_conf, int id) {
 			return e.first == asi(cfgfilter) && e.second == id;
 		});
 	if (filterok == std::end(idarray)) {
-		//id not part of cfgfilter
+		//wrong cfgfilter
 		return;
 	}
 
@@ -619,10 +681,12 @@ void new_conf::save() {
 	cfg_bool_entries.add_item(make_conf_entry(CFG_UPDATE_TAGS_MANUALLY_PROMPT, update_tags_manually_match));
 	cfg_bool_entries.add_item(make_conf_entry(CFG_PARSE_HIDDEN_AS_REGULAR, parse_hidden_as_regular));
 	cfg_bool_entries.add_item(make_conf_entry(CFG_SKIP_VIDEO_TRACKS, skip_video_tracks));
-	//v.200 (from 1.53 mod 16 dayuyu)
+	//v200
 	cfg_bool_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_SHOW_TM_STATS, edit_tags_dlg_show_tm_stats));
 	cfg_bool_entries.add_item(make_conf_entry(CFG_FIND_RELEASE_DIALOG_SHOW_ID, find_release_dialog_show_id));
-
+	//v201
+	cfg_bool_entries.add_item(make_conf_entry(CFG_RELEASE_ENTER_KEY_OVR, release_enter_key_override));
+	
 	cfg_int_entries.remove_all();
 	cfg_int_entries.add_item(make_conf_entry(CFG_UPDATE_ART_FLAGS, update_art_flags));
 	cfg_int_entries.add_item(make_conf_entry(CFG_FIND_RELEASE_DIALOG_WIDTH, find_release_dialog_width));
@@ -640,13 +704,23 @@ void new_conf::save() {
 	cfg_int_entries.add_item(make_conf_entry(CFG_LAST_CONF_TAB, last_conf_tab));
 	cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_MODE, preview_mode));
 	cfg_int_entries.add_item(make_conf_entry(CFG_CACHE_MAX_OBJECTS, cache_max_objects));
-	//v.200 (from 1.53 mod 16 dayuyu)
+	//v200
 	cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_COL1_WIDTH, preview_tags_dialog_col1_width));
 	cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_COL2_WIDTH, preview_tags_dialog_col2_width));
 	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_DISCOGS_COL1_WIDTH, match_tracks_dialog_discogs_col1_width));
 	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_DISCOGS_COL2_WIDTH, match_tracks_dialog_discogs_col2_width));
 	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_COL1_WIDTH, match_tracks_dialog_files_col1_width));
 	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_COL2_WIDTH, match_tracks_dialog_files_col2_width));
+	//v201
+	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_DISCOGS_STYLE, match_tracks_dialog_discogs_style));
+	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_STYLE, match_tracks_dialog_files_style));
+	cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_W_WIDTH, preview_tags_dialog_w_width));
+	cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_U_WIDTH, preview_tags_dialog_u_width));
+	cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_S_WIDTH, preview_tags_dialog_s_width));
+	cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_E_WIDTH, preview_tags_dialog_e_width));
+	//v202
+	cfg_int_entries.add_item(make_conf_entry(CFG_CACHE_USE_OFFLINE_CACHE, cache_use_offline_cache));
+
 	//..
 
 	cfg_string_entries.remove_all();
@@ -663,7 +737,7 @@ void new_conf::save() {
 	cfg_string_entries.add_item(make_conf_entry(CFG_DISCOGS_TRACK_FORMAT_STRING, pfc::string8((const char *)release_discogs_format_string)));
 	cfg_string_entries.add_item(make_conf_entry(CFG_FILE_TRACK_FORMAT_STRING, pfc::string8((const char *)release_file_format_string)));
 	cfg_string_entries.add_item(make_conf_entry(CFG_ARTIST_ART_IDS_TITLEFORMAT, pfc::string8((const char *)artist_art_id_format_string)));
-	//v.200 (from 1.53 mod dayuyu)
+	//v200
 	cfg_string_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_HL_KEYWORD, pfc::string8((const char*)edit_tags_dlg_hl_keyword)));
 	//..
 }

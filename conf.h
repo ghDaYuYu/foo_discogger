@@ -78,12 +78,17 @@
 
 #define CFG_CACHE_MAX_OBJECTS				57
 
-//v.200
-//desc. 2101 = 2->V2, 1->int, 01->id)
+//v.20X
+//2001 = 2->V2, 0->bool, 01->id
+//2101 = 2->V2, 1->int, 01->id)
+//2201 = 2->V2, 2->str, 01->id)
 
 //bool
 #define CFG_EDIT_TAGS_DIALOG_SHOW_TM_STATS	2001
 #define CFG_FIND_RELEASE_DIALOG_SHOW_ID			2002
+//v201
+#define CFG_RELEASE_ENTER_KEY_OVR						2003
+
 //int
 #define CFG_PREVIEW_TAGS_DIALOG_COL1_WIDTH	2101
 #define CFG_PREVIEW_TAGS_DIALOG_COL2_WIDTH	2102
@@ -93,12 +98,21 @@
 #define CFG_MATCH_TRACKS_FILES_COL1_WIDTH	2105
 #define CFG_MATCH_TRACKS_FILES_COL2_WIDTH	2106
 
+//v.201
+
+#define CFG_MATCH_TRACKS_DISCOGS_STYLE		2107
+#define CFG_MATCH_TRACKS_FILES_STYLE			2108
+#define CFG_PREVIEW_TAGS_DIALOG_W_WIDTH		2109
+#define CFG_PREVIEW_TAGS_DIALOG_U_WIDTH		2110
+#define CFG_PREVIEW_TAGS_DIALOG_S_WIDTH		2111
+#define CFG_PREVIEW_TAGS_DIALOG_E_WIDTH		2112
+
+//v202
+#define CFG_CACHE_USE_OFFLINE_CACHE				2113
 
 //string
 #define CFG_EDIT_TAGS_DIALOG_HL_KEYWORD			2201
 //..
-
-
 
 typedef struct
 {
@@ -171,9 +185,67 @@ FB2K_STREAM_WRITER_OVERLOAD(conf_string_entry) {
 
 struct foo_discogs_conf3;
 
+#ifndef VSPECS
+#define VSPECS
+const struct vspec;
+typedef std::vector<vspec> vec_spec_t;
+
+const struct vspec {
+	t_size boolvals; t_size intvals; t_size stringvals;
+	vec_spec_t* vspecs;
+	vspec() { vspecs = nullptr; boolvals = 0; intvals = 0; stringvals = 0; };
+	vspec(vec_spec_t* specs, t_size boolvals, t_size intvals, t_size stringvals)
+		: boolvals(boolvals), intvals(intvals), stringvals(stringvals) {
+		if (specs != nullptr) {
+			vspecs = specs;
+			vspecs->emplace_back((vspec)*this);
+		}
+		else {
+			vspecs = nullptr;
+		}
+	};
+	inline bool operator==(const vspec& rhs) {
+		return signature(rhs.boolvals, rhs.intvals, rhs.stringvals);
+	}
+	inline bool operator<(const vspec& rhs)
+	{
+		//specs vector in lhs can be null, but not in rhs
+		PFC_ASSERT(rhs.vspecs != nullptr);
+
+		vec_spec_t* vec = rhs.vspecs;
+		auto itrhs = std::find_if(vec->begin(), vec->end(),
+			[rhs](auto e) {return e == rhs; });
+		auto itthis = std::find_if(vec->begin(), vec->end(),
+			[=](auto e) {return e == *this; });
+		return ((itthis != vec->end()) && itthis < itrhs);
+	}
+	inline bool operator>(const vspec& rhs)
+	{
+		//specs vector in lhs can be null, but not in rhs
+		PFC_ASSERT(rhs.vspecs != nullptr);
+		vec_spec_t* vec = rhs.vspecs;
+		auto itrhs = std::find_if(vec->begin(), vec->end(),
+			[rhs](auto e) {return e == rhs; });
+		auto itthis = std::find_if(vec->begin(), vec->end(),
+			[=](auto e) {return e == *this; });
+
+		return (itthis == vec->end() || itthis > itrhs);
+	}
+
+	bool signature(t_size boolvals, t_size intvals, t_size stringvals) {
+		return (this->boolvals == boolvals &&
+			this->intvals == intvals &&
+			this->stringvals == stringvals);
+	}
+};
+
+#endif
 
 class new_conf
 {
+private:
+	vec_spec_t vec_specs;
+	
 public:
 	bool load();
 	int id_to_val_int(int id, new_conf in_conf);
@@ -243,16 +315,17 @@ public:
 		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_PARSE_HIDDEN_AS_REGULAR},
 		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_SKIP_VIDEO_TRACKS},
 		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_CACHE_MAX_OBJECTS},
-		//v.200
-
+		//v201
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_RELEASE_ENTER_KEY_OVR},
+		//v202
+		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_CACHE_USE_OFFLINE_CACHE},
 		//..
-
 
 		// CONF_FILTER_FIND (find_release_dialog)
 		{ asi(ConfFilter::CONF_FILTER_FIND), CFG_DISPLAY_EXACT_MATCHES },
 		{ asi(ConfFilter::CONF_FILTER_FIND), CFG_FIND_RELEASE_DIALOG_WIDTH },
 		{ asi(ConfFilter::CONF_FILTER_FIND), CFG_FIND_RELEASE_DIALOG_HEIGHT },
-		//v.200
+		//v200
 		{ asi(ConfFilter::CONF_FILTER_FIND), CFG_FIND_RELEASE_DIALOG_SHOW_ID },
 		//..
 
@@ -261,10 +334,15 @@ public:
 		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_DIALOG_WIDTH },
 		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_DIALOG_HEIGHT },
 		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_REPLACE_ANVS }, //<<
-		//v.200
+		//v200
 		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_TAGS_DIALOG_COL1_WIDTH },
 		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_TAGS_DIALOG_COL2_WIDTH },
 		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_EDIT_TAGS_DIALOG_SHOW_TM_STATS },
+		//v201	
+		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_TAGS_DIALOG_W_WIDTH },
+		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_TAGS_DIALOG_U_WIDTH },
+		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_TAGS_DIALOG_S_WIDTH },
+		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_TAGS_DIALOG_E_WIDTH },
 		//..
 
 		// CONF_FILTER_TAG (tag_mappings_dialog)
@@ -273,32 +351,33 @@ public:
 		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_EDIT_TAGS_DIALOG_COL3_WIDTH },
 		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_EDIT_TAGS_DIALOG_WIDTH },
 		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_EDIT_TAGS_DIALOG_HEIGHT },
-		//v.200
+		//v200
 		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_EDIT_TAGS_DIALOG_HL_KEYWORD },
 		//..
 
 		// CONF_FILTER_TRACK (track_matching_dialog)
 		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_RELEASE_DIALOG_WIDTH },
 		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_RELEASE_DIALOG_HEIGHT },
-		//v.200
+		//v200
 		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_MATCH_TRACKS_DISCOGS_COL1_WIDTH },
 		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_MATCH_TRACKS_DISCOGS_COL2_WIDTH },
 		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_MATCH_TRACKS_FILES_COL1_WIDTH },
 		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_MATCH_TRACKS_FILES_COL2_WIDTH },
+		//v201
+		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_MATCH_TRACKS_DISCOGS_STYLE },
+		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_MATCH_TRACKS_FILES_STYLE },
 		//..
 
 		// CONF_FILTER_UPDATE_ART (update_art_dialog)
 		{ asi(ConfFilter::CONF_FILTER_UPDATE_ART), CFG_UPDATE_ART_FLAGS },
-		//v.200
-
+		//v200
 		//..
 
 		// CONF_FILTER_UPDATE_TAG (update_tags_dialog)
 		{ asi(ConfFilter::CONF_FILTER_UPDATE_TAG), CFG_REPLACE_ANVS },	//<<
 		{ asi(ConfFilter::CONF_FILTER_UPDATE_TAG), CFG_UPDATE_TAGS_MANUALLY_PROMPT },
 		{ asi(ConfFilter::CONF_FILTER_UPDATE_TAG), CFG_UPDATE_PREVIEW_CHANGES },
-		//v.200
-
+		//v200
 		//..
 	};
 
@@ -405,35 +484,25 @@ public:
 	pfc::string8 edit_tags_dlg_hl_keyword = "";
 	bool edit_tags_dlg_show_tm_stats = false;
 	bool find_release_dialog_show_id = false;
-	//..
 
+	//v201
+	bool release_enter_key_override = false;
+	int match_tracks_dialog_discogs_style = static_cast<int>(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP);
+	int match_tracks_dialog_files_style = static_cast<int>(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP);
+	int preview_tags_dialog_w_width = 40;
+	int preview_tags_dialog_u_width = 40;
+	int preview_tags_dialog_s_width = 40;
+	int preview_tags_dialog_e_width = 40;
+	//v202
+	int cache_use_offline_cache = 0;
+	//..
 };
 
 typedef new_conf foo_discogs_conf;
 
 extern new_conf CONF;
 
-//v.200 specs
-struct v200spec {
-
-	//pre v200
-	//const int boolvals = 25;
-	//const int intvals = 16;
-	//const int stringvals = 13;
-	const int boolvals = 27;
-	const int intvals = 22;
-	const int stringvals = 14;
-
-	bool signature(int boolvals, int intvals, int stringvals) {
-		return (this->boolvals == boolvals &&
-				this->intvals == intvals &&
-				this->stringvals == stringvals);
-	}
-};
-
-
 void init_conf();
-
 
 // OLD CONF
 

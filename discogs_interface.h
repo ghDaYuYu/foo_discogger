@@ -7,10 +7,11 @@
 #include "exception.h"
 #include "json_helpers.h"
 #include "cache.h"
+#include "ol_cache.h"
 
 
 using namespace Discogs;
-
+namespace ol = Offline;
 
 class DiscogsInterface
 {
@@ -19,6 +20,8 @@ private:
 	lru_cache<pfc::string8, MasterRelease_ptr> *cache_master_releases;
 	lru_cache<pfc::string8, Artist_ptr> *cache_artists;
 	lru_cache<pfc::string8, bool> *cache_deleted_releases;
+
+	ol::ol_cache<pfc::string8, json_t *> *offline_cache_artists;
 	
 	pfc::string8 username;
 	pfc::array_t<pfc::string8> collection;
@@ -34,6 +37,16 @@ private:
 
 	inline Artist_ptr get_artist_from_cache(const pfc::string8 &artist_id) {
 		return cache_artists->exists(artist_id) ? cache_artists->get(artist_id) : nullptr;
+	}
+
+	inline Artist_ptr get_artist_from_offline_cache(const pfc::string8& artist_id) {
+		if (offline_cache_artists->exists(artist_id)) {
+			json_t* offline_cache_artist = offline_cache_artists->get(artist_id);
+			Artist_ptr artist_ptr(new Artist(artist_id));
+			parseArtist(artist_ptr.get(), offline_cache_artist);
+			return artist_ptr;
+		}
+		return nullptr;
 	}
 
 	inline void add_release_to_cache(Release_ptr &release) {
@@ -65,6 +78,7 @@ public:
 
 	pfc::array_t<JSONParser_ptr> get_all_pages(pfc::string8 &url, pfc::string8 params, abort_callback &p_abort);
 	pfc::array_t<JSONParser_ptr> get_all_pages(pfc::string8 &url, pfc::string8 params, abort_callback &p_abort, const char *msg, threaded_process_status &p_status);
+	pfc::array_t<JSONParser_ptr> get_all_pages_offline_cache(pfc::string8 &id, pfc::string8 params, abort_callback &p_abort, const char *msg, threaded_process_status &p_status);
 
 	DiscogsInterface() {
 		fetcher = new Fetcher();
@@ -72,6 +86,8 @@ public:
 		cache_master_releases = new lru_cache<pfc::string8, MasterRelease_ptr>(CONF.cache_max_objects);
 		cache_artists = new lru_cache<pfc::string8, Artist_ptr>(CONF.cache_max_objects);
 		cache_deleted_releases = new lru_cache<pfc::string8, bool>(CONF.cache_max_objects);
+
+		offline_cache_artists = new ol::ol_cache<pfc::string8, json_t*>(CONF.cache_max_objects);
 	}
 
 	~DiscogsInterface() {
@@ -111,6 +127,13 @@ public:
 		cache_deleted_releases->set_max_size(x);
 		cache_artists->set_max_size(x);
 	}
+
+	inline void add_artist_to_offline_cache(pfc::string8 id, json_t* artist) {
+		offline_cache_artists->put(id, artist);
+	}
+	inline void offline_cache_save(pfc::string8 path, json_t* root) {
+		offline_cache_artists->FDumpToFolder(path, root);
+	}
 		
 	void search_artist(const pfc::string8 &name, pfc::array_t<Artist_ptr> &exact_matches, pfc::array_t<Artist_ptr> &other_matches, threaded_process_status &p_status, abort_callback &p_abort);
 
@@ -124,6 +147,9 @@ public:
 	pfc::string8 get_username(threaded_process_status &p_status, abort_callback &p_abort);
 	pfc::string8 load_username(threaded_process_status &p_status, abort_callback &p_abort);
 	pfc::array_t<pfc::string8> get_collection(threaded_process_status &p_status, abort_callback &p_abort);
+
+	pfc::array_t<pfc::string8> load_profile(threaded_process_status& p_status, abort_callback& p_abort);
+
 };
 
 extern DiscogsInterface *discogs_interface;

@@ -5,6 +5,7 @@
 #include "utils.h"
 #include "json_helpers.h"
 
+namespace ol = Offline;
 
 Release_ptr DiscogsInterface::get_release(const pfc::string8 &release_id, bool bypass_cache) {
 	assert_release_id_not_deleted(release_id);
@@ -184,7 +185,7 @@ pfc::array_t<JSONParser_ptr> DiscogsInterface::get_all_pages(pfc::string8 &url, 
 	do {
 		pfc::string8 status(msg);
 		if (page > 1) {
-			status << " page " << page << "/" << last;
+			status << " page " << page << "/" << last << " (100 x page)";
 		}
 		p_status.set_item(status);
 		
@@ -205,6 +206,45 @@ pfc::array_t<JSONParser_ptr> DiscogsInterface::get_all_pages(pfc::string8 &url, 
 	return results;
 }
 
+pfc::array_t<JSONParser_ptr> DiscogsInterface::get_all_pages_offline_cache(pfc::string8& id, pfc::string8 params, abort_callback& p_abort, const char* msg, threaded_process_status& p_status) {
+	pfc::array_t<JSONParser_ptr> results;
+	size_t page = 1;
+
+	pfc::string8 foo_path(ol::GetReleasePath(id, true));
+	pfc::string8 pages_path_prefix(ol::GetReleasePagePath(id, pfc_infinite, true));
+	pfc::string8 rel_path;
+
+	pfc::array_t<pfc::string8> page_paths = ol::GetPagesFilePaths(id);
+	if (!page_paths.get_count()) {
+		//empty offline data, transient
+		return get_all_pages(id, params, p_abort, msg, p_status);
+	}
+	size_t last = page_paths.get_count();
+	if (last == 0) return results;
+
+	do {
+		pfc::string8 status(msg);
+		if (page > 1) {
+			status << " page " << page << "/" << last << " (100 x page)";
+		}
+		p_status.set_item(status);
+
+		pfc::string8 json_page_path;
+		json_page_path << pages_path_prefix << page - 1 << "\\root.json";
+
+		json_t* j_t = offline_cache_artists->FReadAll(json_page_path.get_ptr());
+		pfc::array_t<t_uint8> buffer;
+		size_t obj_size = json_object_size(j_t);
+		pfc::string8 json(json_dumps(j_t, 0));
+
+		JSONParser_ptr jp = pfc::rcnew_t<JSONParser>(json);
+		results.append_single(std::move(jp));
+		
+		page++;
+	} while (page <= last && !p_abort.is_aborting());
+
+	return results;
+}
 
 pfc::string8 DiscogsInterface::get_username(threaded_process_status &p_status, abort_callback &p_abort) {
 	if (!username.get_length()) {

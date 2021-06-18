@@ -81,6 +81,11 @@ public:
 		::SetFocus(wnd);
 	}
 
+	void SetEnterOverride(std::function<bool()>stdf_func) {
+		//m_stdf_EnterOverride = stdf_func;
+		this->onEnterKey = stdf_func;
+	}
+
 private:
 	bool m_isDim;
 	tstring m_dimText;

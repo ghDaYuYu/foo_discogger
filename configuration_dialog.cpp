@@ -303,6 +303,7 @@ void CConfigurationDialog::init_caching_dialog(HWND wnd) {
 void CConfigurationDialog::init_searching_dialog(HWND wnd) {
 	uButton_SetCheck(wnd, IDC_ENABLE_AUTO_SEARCH_CHECK, conf.enable_autosearch);
 	uButton_SetCheck(wnd, IDC_SKIP_FIND_RELEASE_DIALOG_CHECK, conf.skip_find_release_dialog_if_ided);
+	uButton_SetCheck(wnd, IDC_RELEASE_ENTER_KEY_OVR, conf.release_enter_key_override);
 	uSetDlgItemText(wnd, IDC_RELEASE_FORMATTING_EDIT, conf.search_release_format_string);
 	uSetDlgItemText(wnd, IDC_MASTER_FORMATTING_EDIT, conf.search_master_format_string);
 	uSetDlgItemText(wnd, IDC_MASTER_SUB_FORMATTING_EDIT, conf.search_master_sub_format_string);
@@ -433,6 +434,7 @@ void CConfigurationDialog::save_searching_dialog(HWND wnd, bool dlgbind) {
 
 	conf_ptr->enable_autosearch = uButton_GetCheck(wnd, IDC_ENABLE_AUTO_SEARCH_CHECK);
 	conf_ptr->skip_find_release_dialog_if_ided = uButton_GetCheck(wnd, IDC_SKIP_FIND_RELEASE_DIALOG_CHECK);
+	conf_ptr->release_enter_key_override = uButton_GetCheck(wnd, IDC_RELEASE_ENTER_KEY_OVR);
 	pfc::string8 text;
 	uGetDlgItemText(wnd, IDC_RELEASE_FORMATTING_EDIT, text);
 	conf_ptr->search_release_format_string = text;
@@ -448,6 +450,7 @@ bool CConfigurationDialog::cfg_searching_has_changed() {
 
 	bres = bres || conf.enable_autosearch != conf_dlg_edit.enable_autosearch;
 	bres = bres || conf.skip_find_release_dialog_if_ided != conf_dlg_edit.skip_find_release_dialog_if_ided;
+	bres = bres || conf.release_enter_key_override != conf_dlg_edit.release_enter_key_override;
 	
 	bcmp = !(stricmp_utf8(conf.search_release_format_string, conf_dlg_edit.search_release_format_string) == 0);
 	bres = bres || bcmp;

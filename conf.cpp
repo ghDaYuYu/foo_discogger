@@ -42,6 +42,7 @@ conf_string_entry make_conf_entry(int i, const pfc::string8 &v) {
 bool new_conf::load() {
 	bool changed = false;
 	// { specs vector, boolvals, intvals, stringvals;
+	vspec v000 { &vec_specs, 0, 0, 0 };
 	vspec v199 { &vec_specs, 25, 16, 13 };
 	vspec v200 { &vec_specs, 27, 22, 14 };
 	vspec v201 { &vec_specs, 28, 28, 14 };
@@ -52,19 +53,18 @@ bool new_conf::load() {
 	vspec vLoad = { nullptr, cfg_bool_entries.get_count(),
 		cfg_int_entries.get_count(), cfg_string_entries.get_count() };
 
-	if (vLoad > *vlast) {
+	if (!(vLoad == v000) && vLoad > *vlast) {
 		//version not found
 		//safety reset
+		vLoad = *vlast;
 		pfc::string8 title;
-		title << "Problem updating foo_discogs configuration";
-		pfc::string8 msg("The configuration will be reset\n");
-		msg << "Do not close this dialog and backup your setting\n";
-		msg << "before continuing.";
-		return uMessageBox(core_api::get_main_window(), msg, title,
+		title << "Configuration Reset";
+		pfc::string8 msg("This version of foo_discogs is not compatible with the current setup.\n");
+		msg << "Configuration will be reset.\n",
+		msg << "Please backup your configuration file before continuing.\n",
+
+		uMessageBox(core_api::get_main_window(), msg, title,
 			MB_APPLMODAL | MB_ICONASTERISK);
-		new_conf reset_conf;
-		reset_conf.save();
-		return true;
 	}
 
 	for (unsigned int i = 0; i < cfg_bool_entries.get_count(); i++) {

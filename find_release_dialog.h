@@ -6,6 +6,7 @@
 #include "multiformat.h"
 
 #include "ceditwithbuttonsdim.h"
+#include "find_release_tree.h"
 
 using namespace Discogs;
 
@@ -15,133 +16,16 @@ class search_artist_process_callback;
 
 enum class updRelSrc { Artist, Releases, Filter, ArtistList, Undef };
 
-#ifndef IDTRACER_H
-#define IDTRACER_H
+#define RELCOL_FINDD 0
 
-struct id_tracer {
-
-	bool enabled = false;
-	bool amr = false;
-
-	bool artist = false;
-	bool master = false;
-	bool release = false;
-
-	size_t artist_i = pfc_infinite;
-	size_t master_i = pfc_infinite;
-	size_t release_i = pfc_infinite;
-
-	size_t artist_index = -1;
-	size_t master_index = -1;
-	size_t release_index = -1;
-
-	int artist_id = pfc_infinite;
-	int master_id = pfc_infinite;
-	int release_id = pfc_infinite;
-
-	bool id_tracer::artist_tracked() {
-		return (
-			enabled &&
-			artist &&
-			artist_id != pfc_infinite &&
-			artist_index == -1);
-	}
-
-	bool id_tracer::master_tracked() {
-		return (
-			enabled &&
-			master &&
-			master_id != pfc_infinite &&
-			master_index == -1);
-	}
-
-	bool id_tracer::release_tracked() {
-		return (
-			enabled &&
-			release &&
-			release_id != pfc_infinite &&
-			release_index == -1);
-	}
-
-	void id_tracer::artist_reset() {
-		artist_index = -1;
-		artist_lv_set = false;
-	}
-
-	void id_tracer::release_reset() {
-		release_index = -1;
-		release_lv_set = false;
-	}
-
-	bool id_tracer::artist_check(const pfc::string8 currentid, int currentndx) {
-		if (artist_tracked()) {
-			if (artist_id == std::atoi(currentid)) {
-				artist_index = 0;
-				return true;
-			}
-		}
-		return false;
-	}
-
-	bool id_tracer::release_check(const pfc::string8 currentid, int currentndx, bool ismaster, int masterndx, int masteri) {
-		if (ismaster) {
-			if (master_tracked()) {
-				if (master_id == std::atoi(currentid)) {
-					master_index = 0;
-					return true;
-				}
-			}
-		}
-		else {
-			if (release_tracked()) {
-				if (release_id == std::atoi(currentid)) {
-					release_index = 0;
-					if (masteri != -1) {
-						//TODO: continue
-
-					}
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-};
-
-#endif //IDTRACER_H
-//
-#ifndef FLAGREG
-#define FLAGREG
-
-struct flagreg { int ver; int flag; };
-
-#endif //flagreg
-//
-#ifndef ROW_COLUMN_DATA_H
-#define ROW_COLUMN_DATA_H
-
-struct row_col_data {
-	int id;	//master id or release id
-	std::list<std::pair<int, pfc::string8>> col_data_list; //column #, column content
-};
-
-#endif //ROW_COLUMN_DATA_H
-
-enum class NodeFlag {
-	none = 0,
-	added = 1,
-	tree_created = 2,
-	spawn = 4,
-	expanded = 8,
-	to_do = 16,
-	filterok = 32
-};
+#ifdef RELCOL_FIND
+//lvlvlv
+LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam);
 
 class CFindReleaseDialog : public MyCDialogImpl<CFindReleaseDialog>,
 	public CDialogResize<CFindReleaseDialog>,
 	public CMessageFilter
 {
-
 private:
 
 	enum {
@@ -158,8 +42,6 @@ private:
 	pfc::string8 m_results_filter;
 
 	t_size m_artist_index;
-	t_size m_release_list_artist_id;
-
 	foo_discogs_conf conf;
 
 	playable_location_impl location;
@@ -177,16 +59,9 @@ private:
 
 	id_tracer _idtracer;
 
-	int _ver = 0;
-
-	std::unordered_map<int, std::pair<row_col_data, flagreg>> m_cache_find_releases;
-	typedef typename std::unordered_map<int, std::pair<row_col_data, flagreg>>::iterator cache_iterator_t;
-
-	std::vector<std::pair<cache_iterator_t, HTREEITEM*>> m_vec_items;
+	std::shared_ptr<filter_cache> m_cache_find_release_ptr;
+	std::shared_ptr<vec_t> m_vec_items_ptr;
 	std::vector<std::pair<int, int>> m_vec_filter; //master_id, release_id
-
-	auto find_vec_by_lparam(int lparam);
-	auto find_vec_by_id(int id);
 
 	std::vector<std::pair<int, int>> vec_icol_subitems;
 	void update_sorted_icol_map(bool reset);
@@ -207,6 +82,8 @@ private:
 	CEditWithButtonsDim cewb_artist_search;
 	CEditWithButtonsDim cewb_release_filter;
 	CEditWithButtonsDim cewb_release_url;
+
+	CFindReleaseTree m_release_ctree;
 
 	std::function<bool()>stdf_enteroverride_artist = [this]() {
 		BOOL bdummy;
@@ -253,10 +130,6 @@ private:
 	void extract_release_from_link(pfc::string8& s);
 	
 	pfc::string8 run_hook_columns(row_col_data& row_data, int item_data);
-
-	mounted_param mount_param(LPARAM lparam);
-	t_size get_mounted_lparam(mounted_param myparam);
-	void get_mounted_param(mounted_param& pm, LPARAM lparam);
 	pfc::string8 get_param_id(mounted_param myparam);
 	int get_param_id_master(mounted_param myparam);
 	void set_artist_item_param(HWND list, int list_index, int col, LPARAM in_p);
@@ -293,18 +166,14 @@ public:
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		COMMAND_ID_HANDLER(IDC_FILTER_EDIT, OnEditFilterText)
 		COMMAND_HANDLER(IDC_ARTIST_LIST, LBN_SELCHANGE, OnSelectArtist)
-		NOTIFY_HANDLER(IDC_RELEASE_TREE, NM_DBLCLK, OnDoubleClickRelease)		
-		NOTIFY_HANDLER(IDC_RELEASE_TREE, TVN_GETDISPINFO, OnReleaseTreeGetDispInfo)
-		NOTIFY_HANDLER(IDC_RELEASE_TREE, TVN_ITEMEXPANDING, OnReleaseTreeExpanding)
-		NOTIFY_HANDLER(IDC_RELEASE_TREE, TVN_SELCHANGED, OnReleaseTreeSelChanged)
-		NOTIFY_HANDLER(IDC_RELEASE_TREE, NM_RCLICK, OnRClickRelease);
 		NOTIFY_HANDLER(IDC_ARTIST_LIST, /*LVN_ODSTATECHANGED*/LVN_ITEMCHANGED, OnArtistListViewItemChanged)
-		NOTIFY_HANDLER(IDC_ARTIST_LIST, NM_RCLICK, OnRClickRelease);
 		COMMAND_ID_HANDLER(IDC_ONLY_EXACT_MATCHES_CHECK, OnCheckOnlyExactMatches)
 		COMMAND_ID_HANDLER(IDC_SEARCH_BUTTON, OnButtonSearch)
 		COMMAND_ID_HANDLER(IDC_CONFIGURE_BUTTON, OnButtonConfigure)
+		CHAIN_MSG_MAP_MEMBER(m_release_ctree)
 		CHAIN_MSG_MAP(CDialogResize<CFindReleaseDialog>)
-		END_MSG_MAP()
+		REFLECT_NOTIFICATIONS();
+	END_MSG_MAP()
 
 #pragma warning( pop )
 	BEGIN_DLGRESIZE_MAP(CFindReleaseDialog)
@@ -320,7 +189,7 @@ public:
 		DLGRESIZE_CONTROL(IDC_ARTIST_LIST, DLSZ_SIZE_X)
 		DLGRESIZE_CONTROL(IDC_RELEASE_TREE, DLSZ_SIZE_X)
 		DLGRESIZE_CONTROL(IDC_CHECK_RELEASE_SHOW_ID, DLSZ_MOVE_X)
-			DLGRESIZE_CONTROL(IDC_LABEL_RELEASES, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_LABEL_RELEASES, DLSZ_MOVE_X)
 		END_DLGRESIZE_GROUP()
 		DLGRESIZE_CONTROL(IDC_ONLY_EXACT_MATCHES_CHECK, DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_CONFIGURE_BUTTON, DLSZ_MOVE_Y)
@@ -335,10 +204,14 @@ public:
 
 	CFindReleaseDialog(HWND p_parent, metadb_handle_list items, bool conf_release_id_tracker)
 		: items(items), cewb_artist_search(L"Search artist"), cewb_release_filter(L"Filter releases"),
-		
-		cewb_release_url(L"Release url"), m_hHit(NULL) {
-		_idtracer.enabled = conf_release_id_tracker;
+		cewb_release_url(L"Release url"),	m_release_ctree(p_parent, IDD),	m_hHit(NULL) {
+
 		find_release_artist = nullptr;
+
+		_idtracer.enabled = conf_release_id_tracker;
+		m_cache_find_release_ptr = std::make_shared<filter_cache>(filter_cache());
+		m_vec_items_ptr = std::make_shared<vec_t>(vec_t());
+
 		Create(p_parent);
 	};
 
@@ -357,16 +230,10 @@ public:
 	LRESULT OnEditFilterText(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT ApplyFilter(pfc::string8 strFilter);
 	LRESULT OnSelectArtist(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT PointInReleaseListHeader(POINT pt);
 	LRESULT OnRClick(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnListRClick(LPNMHDR lParam);
 	void OnContextColumnCfgMenu(CWindow wnd, CPoint point);
 	LRESULT OnArtistListViewItemChanged(int, LPNMHDR hdr, BOOL&);
-	LRESULT OnDoubleClickRelease(int, LPNMHDR hdr, BOOL&);
-	LRESULT OnRClickRelease(int, LPNMHDR hdr, BOOL&);
-	LRESULT OnReleaseTreeGetDispInfo(int, LPNMHDR hdr, BOOL&);
-	LRESULT OnReleaseTreeExpanding(int, LPNMHDR hdr, BOOL&);
-	LRESULT OnReleaseTreeSelChanged(int, LPNMHDR hdr, BOOL&);
 	LRESULT OnCheckOnlyExactMatches(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnButtonSearch(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnButtonConfigure(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
@@ -398,14 +265,6 @@ public:
 	void setitems(metadb_handle_list track_matching_items) {
 		items = track_matching_items;
 	}
-
-	bool SetCacheFlag(t_size lparam, NodeFlag flagtype, bool val);
-	bool SetCacheFlag(t_size lparam, NodeFlag flagtype, int& val);
-	bool SetCacheFlag(cache_iterator_t& cached_item, NodeFlag flagtype, int* const& val);
-	bool GetCacheFlag(t_size lparam, NodeFlag flagtype);
-	bool GetCacheFlag(t_size lparam, NodeFlag flagtype, bool& val);
-	bool GetCacheFlag(cache_iterator_t it_cached_item, NodeFlag flagtype, bool* const& val = NULL);
-
 };
 
 

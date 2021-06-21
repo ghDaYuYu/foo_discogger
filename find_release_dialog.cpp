@@ -6,8 +6,6 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #include <CommCtrl.h>
 #include <atlctrls.h>
 
-#include "libPPUI\clipboard.h"
-
 #include "find_release_dialog.h"
 #include "configuration_dialog.h"
 #include "tasks.h"
@@ -16,6 +14,8 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
 #include "resource.h"
 #include "utils.h"
+
+#include "find_release_tree.h"
 
 struct cfgcol {
 	int ndx = 0;
@@ -125,7 +125,7 @@ inline bool CFindReleaseDialog::build_current_cfg() {
 		conf.find_release_dialog_height = dlgheight;
 		bres = bres || true;
 	}
-	
+
 	const bool benabled = uButton_GetCheck(m_hWnd, IDC_CHECK_RELEASE_SHOW_ID);
 	if (benabled != conf.find_release_dialog_show_id) {
 		conf.find_release_dialog_show_id = benabled;
@@ -177,7 +177,7 @@ bool OAuthCheck(foo_discogs_conf conf) {
 	return true;
 }
 
-LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
+LRESULT CFindReleaseDialog::OnInitDialog(UINT, WPARAM , LPARAM , BOOL& bHandled) {
 
 	conf = CONF;
 	defaultCfgCols(cfg_lv);
@@ -211,6 +211,19 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	cewb_release_filter.SubclassWindow(m_filter_edit);
 	cewb_release_url.SubclassWindow(m_release_url_edit);
 	SetEnterKeyOverride(conf.release_enter_key_override);
+
+	m_release_ctree.Inititalize(m_release_tree, m_artist_list, m_filter_edit, m_release_url_edit);
+	m_release_ctree.SetOnSelectedNotifier(
+		[this](int lparam) -> bool {
+			this->on_release_selected(lparam);
+			return true;
+		});
+	m_release_ctree.SetOnOkNotifier(
+		[this]() -> bool {
+			BOOL bdummy;
+			OnOK(0L, 0L, NULL, bdummy);
+			return true;
+		});
 
 	reset_default_columns(true);
 
@@ -252,7 +265,6 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	if (OAuthCheck(conf)) {
 		if (conf.skip_find_release_dialog_if_ided && _idtracer.release) {
 			on_write_tags(pfc::toString(_idtracer.release_id).c_str());
-
 		}
 		else {
 			if (_idtracer.release && _idtracer.release_id != pfc_infinite)
@@ -261,7 +273,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 			show();
 
 			m_DisableFilterBoxEvents = true;
-    		if (!_idtracer.amr) {
+			if (!_idtracer.amr) {
 				uSetWindowText(m_filter_edit, filter ? filter : "");
 			}
 
@@ -351,17 +363,7 @@ void CFindReleaseDialog::fill_artist_list(bool force_exact, updRelSrc updsrc) {
 	else if (updsrc == updRelSrc::ArtistList) {
 		::EnableWindow(exactcheck, true);
 	}
-}
-
-auto CFindReleaseDialog::find_vec_by_lparam(int lparam) {
-	return std::find_if(m_vec_items.begin(), m_vec_items.end(),
-		[lparam](const std::pair<cache_iterator_t, HTREEITEM*> e) {
-			return e.first->first == lparam; });
-}
-auto CFindReleaseDialog::find_vec_by_id(int id) {
-	return std::find_if(m_vec_items.begin(), m_vec_items.end(),
-		[&](const std::pair<cache_iterator_t, HTREEITEM*> e) {
-			return e.first->second.first.id == id; });
+	m_release_ctree.SetFindReleaseArtists(find_release_artists);
 }
 
 void CFindReleaseDialog::on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist) {
@@ -402,50 +404,42 @@ void CFindReleaseDialog::on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist
 
 	m_results_filter = filter;
 
+	m_release_ctree.SetFindReleases(find_release_artist, _idtracer);
+
 	update_releases(m_results_filter, updsrc, true);
 
 	m_DisableFilterBoxEvents = true;
 	uSetWindowText(m_filter_edit, filter);
 	m_DisableFilterBoxEvents = false;
-	if (m_vec_items.size()) {
+	if (m_vec_items_ptr->size()) {
 		int src_lparam = -1;
 		mounted_param myparam;
 		if (_idtracer.amr) {
 			myparam = { _idtracer.master_i, _idtracer.release_i, _idtracer.master,_idtracer.release };
-			src_lparam = get_mounted_lparam(myparam);
+			src_lparam = myparam.lparam();
 			//select if release is loaded
-			auto vec_lv_it = find_vec_by_lparam(src_lparam);
+			vec_iterator_t vec_lv_it;
+			find_vec_by_lparam(*m_vec_items_ptr, src_lparam, vec_lv_it);
 
-			if (vec_lv_it != m_vec_items.end()) {
-				src_lparam = get_mounted_lparam(myparam);
+			if (vec_lv_it != m_vec_items_ptr->end()) {
+				src_lparam = myparam.lparam();
 				on_release_selected(src_lparam);
 			}
 			else {
 				//release not loaded, try to select master and expand
 				mounted_param not_found;
 				myparam = mounted_param(_idtracer.master_i, ~0, _idtracer.master, false);
-				src_lparam = get_mounted_lparam(myparam);
-				auto vec_lv_it = find_vec_by_lparam(src_lparam);
+				src_lparam = myparam.lparam();
+				vec_iterator_t vec_lv_it;
+				find_vec_by_lparam(*m_vec_items_ptr, src_lparam, vec_lv_it);
 
-				if (vec_lv_it != m_vec_items.end()) {
-					src_lparam = get_mounted_lparam(myparam);
+				if (vec_lv_it != m_vec_items_ptr->end()) {
+					src_lparam = myparam.lparam();
 					int ival = 1;
 					if (updsrc == updRelSrc::Undef) {
-						SetCacheFlag(vec_lv_it->first, NodeFlag::expanded, &ival);
+						m_cache_find_release_ptr->SetCacheFlag(vec_lv_it->first, NodeFlag::expanded, &ival);
 
-						//prepare to m_hHit node
-						CTreeViewCtrl tree(m_release_tree);
-						HTREEITEM first = tree.GetRootItem();
-						for (HTREEITEM walk = first; walk != NULL; walk = tree.GetNextVisibleItem(walk)) {
-							TVITEM pItemMaster = { 0 };
-							pItemMaster.mask = TVIF_PARAM;
-							pItemMaster.hItem = walk;
-							TreeView_GetItem(m_release_tree, &pItemMaster);
-							if (pItemMaster.lParam == src_lparam) {
-								m_hHit = walk;
-								break;
-							}
-						}
+						m_release_ctree.SetHit(src_lparam);
 					}
 					on_release_selected(src_lparam);
 				}
@@ -453,30 +447,32 @@ void CFindReleaseDialog::on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist
 					//release not loaded, trying to select master to expand
 					mounted_param not_found;
 					myparam = mounted_param(~0, _idtracer.release_i, false, _idtracer.release);
-					src_lparam = get_mounted_lparam(myparam);
-					auto vec_lv_it = find_vec_by_lparam(src_lparam);
+					src_lparam = myparam.lparam();
+					vec_iterator_t vec_lv_it;
+					find_vec_by_lparam(*m_vec_items_ptr, src_lparam, vec_lv_it);
 
-					if (vec_lv_it != m_vec_items.end()) {
-						src_lparam = get_mounted_lparam(myparam);
+					if (vec_lv_it != m_vec_items_ptr->end()) {
+						src_lparam = myparam.lparam();
 						int ival = 1;
 						
-						//note: update_releases() updated master info
+						//note: update_releases() routine updated master info
 
-						SetCacheFlag(vec_lv_it->first, NodeFlag::expanded, &ival);
+						m_cache_find_release_ptr->SetCacheFlag(vec_lv_it->first, NodeFlag::expanded, &ival);
 						on_release_selected(src_lparam);
 					}
 				}
 
 				//spawn (reenters update_releases as updSrc::Releases)
-	            //select_release(0);
+				//select_release(0);
 			}
 
 		}
 		else {
 			if (_idtracer.release_i != pfc_infinite && _idtracer.release_index != -1) {
-				auto vec_lv_it = find_vec_by_id(_idtracer.master_id);
+				vec_iterator_t vec_lv_it;
+				find_vec_by_id(*m_vec_items_ptr, _idtracer.master_id, vec_lv_it);
 
-				if (vec_lv_it != m_vec_items.end()) {
+				if (vec_lv_it != m_vec_items_ptr->end()) {
 					src_lparam = vec_lv_it->first->first;
 					on_release_selected(src_lparam);
 				}
@@ -525,40 +521,38 @@ void CFindReleaseDialog::set_artist_item_param(HWND list, int list_index, int co
 
 pfc::string8 CFindReleaseDialog::run_hook_columns(row_col_data& row_data, int item_data) {
 
-	mounted_param myparam = mount_param((LPARAM)item_data);
+	mounted_param myparam((LPARAM)item_data);
 	pfc::string8 search_formatted;
 	pfc::string8 id;
 
 	row_data.col_data_list.clear();
 
-	for (unsigned int i = 0; i < vec_icol_subitems.size(); i++)
-	{
-		cfgcol walk_cfg = cfg_lv.colmap.at(vec_icol_subitems[i].first);
+	cfgcol walk_cfg = cfg_lv.colmap.at(vec_icol_subitems[0].first);
 
-		if (myparam.is_master()) {
-			CONF.search_master_format_string->run_hook(location, &info, hook.get(), search_formatted, nullptr);
+	if (myparam.is_master()) {
+		CONF.search_master_format_string->run_hook(location, &info, hook.get(), search_formatted, nullptr);
 
-			id << find_release_artist->master_releases[myparam.master_ndx]->id;
-		}
-		else {
-
-			if (myparam.is_release()) {
-				CONF.search_master_sub_format_string->run_hook(location, &info, hook.get(), search_formatted, nullptr);
-				//hook need also master set to properly run its string format
-				//hook->set_release(&(find_release_artist->master_releases[master_index]->sub_releases[subrelease]));
-				pfc::string8 main_release_id = find_release_artist->master_releases[myparam.master_ndx]->main_release->id;
-				pfc::string8 this_release_id = find_release_artist->master_releases[myparam.master_ndx]->sub_releases[myparam.release_ndx]->id;
-				id << this_release_id;
-			}
-			else
-			{
-				CONF.search_release_format_string->run_hook(location, &info, hook.get(), search_formatted, nullptr);
-				//hook->set_release(&(find_release_artist->releases[release_index]));
-				id << find_release_artist->releases[myparam.release_ndx]->id;
-			}
-		}
-		row_data.col_data_list.emplace_back(std::make_pair(walk_cfg.icol, search_formatted));
+		id << find_release_artist->master_releases[myparam.master_ndx]->id;
 	}
+	else {
+
+		if (myparam.is_release()) {
+			CONF.search_master_sub_format_string->run_hook(location, &info, hook.get(), search_formatted, nullptr);
+			//hook also need a master set to properly run its string format
+			//hook->set_release(&(find_release_artist->master_releases[master_index]->sub_releases[subrelease]));
+			pfc::string8 main_release_id = find_release_artist->master_releases[myparam.master_ndx]->main_release->id;
+			pfc::string8 this_release_id = find_release_artist->master_releases[myparam.master_ndx]->sub_releases[myparam.release_ndx]->id;
+			id << this_release_id;
+		}
+		else
+		{
+			CONF.search_release_format_string->run_hook(location, &info, hook.get(), search_formatted, nullptr);
+			//hook->set_release(&(find_release_artist->releases[release_index]));
+			id << find_release_artist->releases[myparam.release_ndx]->id;
+		}
+	}
+	row_data.col_data_list.emplace_back(std::make_pair(walk_cfg.icol, search_formatted));
+
 	row_data.id = atoi(id);
 
 	return search_formatted;
@@ -574,7 +568,6 @@ bool tokenize_filter(pfc::string8 filter, pfc::array_t<pfc::string>& out_filter_
 	return out_filter_words_lowercase.get_count() > 0;
 }
 
-//todo:
 bool check_match(pfc::string8 str, pfc::string8 filter, pfc::array_t<pfc::string> filter_words_lowercase) {
 	bool bres = true;
 	if (filter.get_length()) {
@@ -827,7 +820,7 @@ std::pair<t_size, t_size> CFindReleaseDialog::init_filter_i(pfc::string8 filter_
 
 bool CFindReleaseDialog::get_cached_find_release_node(int lparam, pfc::string8& item, row_col_data& row_data) {
 	bool bres = false;
-	std::unordered_map<int, std::pair<row_col_data, flagreg>>* cached = &m_cache_find_releases;
+	cache_t* cached = &m_cache_find_release_ptr->cache;
 	auto it = cached->find(lparam);
 
 	if (it != cached->end()) {
@@ -839,14 +832,13 @@ bool CFindReleaseDialog::get_cached_find_release_node(int lparam, pfc::string8& 
 
 }
 
-//todo: get rid of list_index, just need it as a flag
 void CFindReleaseDialog::update_releases(const pfc::string8& filter, updRelSrc updsrc, bool init_expand) {
-	m_updating_releases = true; 
+	m_release_ctree.EnableDispInfo(false);
 	init_tracker();
-
 	t_size the_artist = !find_release_artist ? pfc_infinite : atoi(find_release_artist->id);
+	t_size treeview_artist = m_release_ctree.GetTreeViewArtist();
 
-	bool artist_changed = m_release_list_artist_id != the_artist;
+	bool artist_changed = true || treeview_artist != the_artist;
 	bool delete_on_enter = updsrc == updRelSrc::Artist || updsrc == updRelSrc::ArtistList || artist_changed;
 	bool rebuild_tree_cache = true;
 
@@ -861,18 +853,18 @@ void CFindReleaseDialog::update_releases(const pfc::string8& filter, updRelSrc u
 	if (delete_on_enter) {
 
 		vec_lv_reserve = init_filter_i(filter, filter, false, true, false, true);
-		m_vec_items.clear();
-		m_vec_items.reserve(vec_lv_reserve.first + vec_lv_reserve.second);
+		m_vec_items_ptr->clear();
+		m_vec_items_ptr->reserve(vec_lv_reserve.first + vec_lv_reserve.second);
 
 		if (updsrc != updRelSrc::Filter) {
-			m_cache_find_releases.clear();
+			if (m_cache_find_release_ptr != nullptr)
+				m_cache_find_release_ptr->cache.clear();
 			rebuild_tree_cache = true;
 		}
 		else {
 			rebuild_tree_cache = false;
 		}
 
-		TreeView_DeleteAllItems(m_release_tree);
 	}
 
 	if (!find_release_artist) {
@@ -889,7 +881,7 @@ void CFindReleaseDialog::update_releases(const pfc::string8& filter, updRelSrc u
 	std::pair<t_size, t_size> reserve;
 	if (rebuild_tree_cache) {
 		reserve = init_filter_i("", "", false, true, true, true);
-		m_cache_find_releases.reserve(find_release_artist->search_order_master.get_count());
+		m_cache_find_release_ptr->cache.reserve(find_release_artist->search_order_master.get_count());
 	}
 	try {
 
@@ -900,7 +892,7 @@ void CFindReleaseDialog::update_releases(const pfc::string8& filter, updRelSrc u
 
 			if (is_master) {
 				mounted_param thisparam(master_index, ~0, true, false);
-				item_data = get_mounted_lparam(thisparam);
+				item_data = thisparam.lparam();
 				if (updsrc != updRelSrc::Filter)
 				{
 					hook->set_master(&(find_release_artist->master_releases[master_index]));
@@ -912,7 +904,7 @@ void CFindReleaseDialog::update_releases(const pfc::string8& filter, updRelSrc u
 			else {
 				//no master release
 				mounted_param thisparam(~0, release_index, false, true);
-				item_data = get_mounted_lparam(thisparam);
+				item_data = thisparam.lparam();
 				if (updsrc != updRelSrc::Filter)
 				{
 					hook->set_release(&(find_release_artist->releases[release_index]));
@@ -924,8 +916,9 @@ void CFindReleaseDialog::update_releases(const pfc::string8& filter, updRelSrc u
 
 			if (rebuild_tree_cache) {
 				//CACHE EMPLACE
-				last_cache_emplaced = m_cache_find_releases.emplace(
-					item_data, std::pair<row_col_data, flagreg> {row_data, { _ver, 0 }});
+				last_cache_emplaced = m_cache_find_release_ptr->cache.emplace(
+					item_data, std::pair<row_col_data, flagreg>
+						{row_data, { m_cache_find_release_ptr->_ver, 0 }});
 			}
 
 			bool inserted = false; bool expanded = false;
@@ -944,14 +937,17 @@ void CFindReleaseDialog::update_releases(const pfc::string8& filter, updRelSrc u
 				// MASTER OR NO MASTER RELEASES
 				
 				if (delete_on_enter) {
-					mounted_param myparam = mount_param((LPARAM)item_data);
+					mounted_param myparam((LPARAM)item_data);
 					if (myparam.is_master()) {
-						cache_iterator_t insit = m_cache_find_releases.find(get_mounted_lparam(myparam));
-						insit->second.second.flag = 0;  insit->second.second.ver = _ver;
+						cache_iterator_t insert_cache_it = m_cache_find_release_ptr->cache.find(myparam.lparam());
+						insert_cache_it->second.second.flag = 0;
+						insert_cache_it->second.second.ver = m_cache_find_release_ptr->_ver;
 						int ival = 1;
-						SetCacheFlag(insit, NodeFlag::none, &ival);
+						m_cache_find_release_ptr->SetCacheFlag(insert_cache_it, NodeFlag::none, &ival);						
+						std::pair<cache_iterator_t, HTREEITEM*> vec_row(insert_cache_it, nullptr);
 						//VEC PUSH
-						m_vec_items.push_back(std::pair<cache_iterator_t, HTREEITEM*>(insit, nullptr));
+						//m_vec_items_ptr->emplace_back(std::pair<cache_iterator_t, HTREEITEM*>(insert_cache_it, (HTREEITEM*)nullptr));
+						m_vec_items_ptr->push_back(std::pair<cache_iterator_t, HTREEITEM*>(insert_cache_it, (HTREEITEM*)nullptr));
 					}
 					else {
 						if (myparam.is_release()) {
@@ -959,43 +955,32 @@ void CFindReleaseDialog::update_releases(const pfc::string8& filter, updRelSrc u
 						}
 						else {
 
-							cache_iterator_t insit = m_cache_find_releases.find(get_mounted_lparam(myparam));
+							cache_iterator_t insert_cache_it = m_cache_find_release_ptr->cache.find(myparam.lparam());
 							//cache_iterator_t insit = last_cache_emplaced.first;
 
-							insit->second.second.flag = 0;
-							insit->second.second.ver = _ver;
+							insert_cache_it->second.second.flag = 0;
+							insert_cache_it->second.second.ver = m_cache_find_release_ptr->_ver;
 							int ival = 0;
-							SetCacheFlag(insit, NodeFlag::added, &ival);
+							m_cache_find_release_ptr->SetCacheFlag(insert_cache_it, NodeFlag::added, &ival);
 
-							flagreg& insfr = insit->second.second;
-							std::pair<cache_iterator_t, HTREEITEM*> inspair = { insit, nullptr };
+							flagreg& insfr = insert_cache_it->second.second;
+							std::pair<cache_iterator_t, HTREEITEM*> vecrow(insert_cache_it, (HTREEITEM*)nullptr);
 							//m_vec_lv_items.reserve(m_vec_lv_items.size() + 1);
 							//VEC PUSH
-							m_vec_items.push_back(std::pair<cache_iterator_t, HTREEITEM*>(insit, nullptr));
+							m_vec_items_ptr->push_back(std::pair<cache_iterator_t, HTREEITEM*>(vecrow));
 						}
 					}
-					int lp = m_vec_items.at(m_vec_items.size() - 1).first->first;
 				}
-
-				int lp = m_vec_items.at(m_vec_items.size() - 1).first->first;
 
 				if (init_expand && is_master) {
 					/*int prev_expanded;*/
 					int expanded = updsrc == updRelSrc::Filter ? 0 : 1;
 					bool bnew = !get_node_expanded(row_data.id, prev_expanded);
-
-					//set_node_expanded(row_data.id, /*bnew ? expanded : */prev_expanded, true);
-					//m_vec_build_lv_items.emplace_back(std::pair<int, int>(row_data.id, bnew ? 0 : bexpandstate));
-					//set_lvstate_expanded(list_index-release_index, /*bnew ? expanded :*/ prev_expanded, true);
-					//set_lvstate_expanded(list_index - release_index, /*bnew ? expanded :*/ prev_expanded == 1, true);
-
-				}
-
+                }
 				list_index++;
 				inserted = true;
 			}
-			if (m_vec_items.size() > 0)
-				int lp = m_vec_items.at(0).first->first;
+
 			if (is_master) {
 				// SUBITEMS
 				const MasterRelease_ptr* master_release = &(find_release_artist->master_releases[master_index]);
@@ -1003,7 +988,7 @@ void CFindReleaseDialog::update_releases(const pfc::string8& filter, updRelSrc u
 				for (size_t j = 0; j < master_release->get()->sub_releases.get_size(); j++) {
 
 					mounted_param thisparam = { master_index, j, true, true };
-					item_data = get_mounted_lparam(thisparam);
+					item_data = thisparam.lparam();
 					pfc::string8 sub_item;
 					if (updsrc != updRelSrc::Filter)
 					{
@@ -1014,15 +999,19 @@ void CFindReleaseDialog::update_releases(const pfc::string8& filter, updRelSrc u
 						get_cached_find_release_node(item_data, sub_item, row_data);
 
 					std::pair<cache_iterator_t, bool> last_cache_subitem_emplaced =
-					{ m_cache_find_releases.end(), false };
+					{ m_cache_find_release_ptr->cache.end(), false };
 
 					if (rebuild_tree_cache) {
 
-						//m_cache_find_releases_tree.push_back({ row_data, item_data });
+						//m_cache_find_release_ptr->cache_tree.push_back({ row_data, item_data });
 						//flagreg fr = { 0 , 0 };
 
 						//CACHE EMPLACE
-						last_cache_subitem_emplaced = m_cache_find_releases.emplace(item_data, std::pair<row_col_data, flagreg> {row_data, { _ver, 0 }});
+						last_cache_subitem_emplaced =
+							m_cache_find_release_ptr->cache.emplace(
+								item_data,
+								std::pair<row_col_data, flagreg> {row_data, { m_cache_find_release_ptr->_ver, 0 }}
+						);
 					}
 
 					bool matches = filtered && check_match(sub_item, filter, lcf_words);
@@ -1031,8 +1020,9 @@ void CFindReleaseDialog::update_releases(const pfc::string8& filter, updRelSrc u
 
 						int master_id = atoi(find_release_artist->master_releases[master_index]->id);
 
-						auto parent = find_vec_by_id(master_id);
-						inserted = parent != m_vec_items.end();
+						vec_iterator_t parent;
+						find_vec_by_id(*m_vec_items_ptr, master_id, parent);
+						inserted = parent != m_vec_items_ptr->end();
 
 						if (!inserted) {
 							PFC_ASSERT(false);
@@ -1049,12 +1039,12 @@ void CFindReleaseDialog::update_releases(const pfc::string8& filter, updRelSrc u
 							//insert
 							
 							if (delete_on_enter) {
-								mounted_param myparam = mount_param((LPARAM)item_data);
+								mounted_param myparam((LPARAM)item_data);
 								if (myparam.is_master()) {
 									cache_iterator_t insit = last_cache_emplaced.first;
 									flagreg& insfr = last_cache_emplaced.first->second.second;
 									//VEC PUSH
-									m_vec_items.push_back(std::pair<cache_iterator_t, HTREEITEM*>
+									m_vec_items_ptr->push_back(std::pair<cache_iterator_t, HTREEITEM*>
 										(last_cache_emplaced.first, nullptr));
 								}
 								else {
@@ -1087,50 +1077,11 @@ void CFindReleaseDialog::update_releases(const pfc::string8& filter, updRelSrc u
 		throw ex;
 	}
 
-	int list_count = m_vec_items.size();
+	int list_count = m_vec_items_ptr->size();
 
-	//almost there
-
-	if (!delete_on_enter) {
-		;
-	}
-	else {
-		m_vec_lv_items = m_vec_build_lv_items;
-	}
-
-	return;
-}
-
-void CFindReleaseDialog::update_releases_columns() {
-	
-	ListView_DeleteAllItems(release_list);
-	m_vec_build_lv_items.clear();
-
-	std::vector<std::pair<int, int>>::iterator it;
-	t_size list_index = -1;
-	t_size master_list_pos = pfc_infinite;
-	t_size parent_master_expanded = pfc_infinite;
-
-			tvis.item.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE | TVIF_CHILDREN | TVIF_PARAM;
-			tvis.item.pszText = LPSTR_TEXTCALLBACK;
-			tvis.item.iImage = I_IMAGECALLBACK;
-			tvis.item.iSelectedImage = I_IMAGECALLBACK;
-			tvis.item.cChildren = I_CHILDRENCALLBACK;
-			tvis.item.lParam = walk.first->first;
-			tvis.hParent = TVI_ROOT; //pNMTreeView->itemNew.hItem;
-			tvis.hInsertAfter = TVI_LAST;
-			if (walk.first->second.first.id == _idtracer.master_id) {
-				tvis.item.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE | TVIF_CHILDREN | TVIF_PARAM | TVIF_STATE;
-				tvis.item.state = TVIS_BOLD;
-				tvis.item.stateMask = TVIS_BOLD;
-			}
-			else {
-				tvis.item.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE | TVIF_CHILDREN | TVIF_PARAM;
-			}
-			TreeView_InsertItem(m_release_tree, &tvis);
-		}
-	}
-	m_updating_releases = false;
+	m_release_ctree.EnableDispInfo(true);
+	m_release_ctree.SetCache(std::shared_ptr<filter_cache>(m_cache_find_release_ptr));
+	m_release_ctree.SetVec(std::shared_ptr<vec_t>(m_vec_items_ptr), _idtracer);
 	return;
 }
 
@@ -1146,10 +1097,10 @@ void CFindReleaseDialog::expand_releases(const pfc::string8& filter, updRelSrc u
 	try {
 		int skipped = 0;
 		mounted_param parent_mp(master_index, ~0, true, false);
-		int parent_lparam = get_mounted_lparam(parent_mp);
-		std::unordered_map<int, std::pair<row_col_data, flagreg>>::const_iterator parent_cache = m_cache_find_releases.find(parent_lparam);
-		std::unordered_map<int, std::pair<row_col_data, flagreg>>::const_iterator new_release_cache;
-		if (parent_cache == m_cache_find_releases.end()) {
+		int parent_lparam = parent_mp.lparam();
+		cache_t::const_iterator parent_cache = m_cache_find_release_ptr->cache.find(parent_lparam);
+		cache_t::const_iterator new_release_cache;
+		if (parent_cache == m_cache_find_release_ptr->cache.end()) {
 			int debug = 1;
 		}
 		try {
@@ -1160,27 +1111,28 @@ void CFindReleaseDialog::expand_releases(const pfc::string8& filter, updRelSrc u
 				hook->set_release(&(find_release_artist->master_releases[master_index]->sub_releases[j]));
 				hook->set_master(&(find_release_artist->master_releases[master_index]));
 				mounted_param thisparam = { master_index, j, true, true };
-				walk_lparam = get_mounted_lparam(thisparam);
+				walk_lparam = thisparam.lparam();
 
 				pfc::string8 sub_item;
 				//todo: can we avoid this check?
-				if (!get_cached_find_release_node(get_mounted_lparam(thisparam), sub_item, row_data)) {
+				if (!get_cached_find_release_node(thisparam.lparam(), sub_item, row_data)) {
 					sub_item = run_hook_columns(row_data, walk_lparam);
 					//CACHE EMPLACE
-					m_cache_find_releases.emplace(
-						walk_lparam, std::pair<row_col_data, flagreg> {row_data, { _ver, 0 }/*walk_lparam*/});
+					m_cache_find_release_ptr->cache.emplace(
+						walk_lparam, std::pair<row_col_data, flagreg>
+							{row_data, { m_cache_find_release_ptr->_ver, 0 }/*walk_lparam*/});
 				}
 
 				bool filter_match = filtered && check_match(sub_item, filter, lcf_words);
 
 				if (filter_match) {
 					cache_iterator_t walk_children =
-						m_cache_find_releases.find(walk_lparam);
+						m_cache_find_release_ptr->cache.find(walk_lparam);
 
 					int ival = 1;
-					SetCacheFlag(walk_children, NodeFlag::spawn, &ival);
+					m_cache_find_release_ptr->SetCacheFlag(walk_children, NodeFlag::spawn, &ival);
 					//in filter
-					SetCacheFlag(walk_children, NodeFlag::filterok, &ival);
+					m_cache_find_release_ptr->SetCacheFlag(walk_children, NodeFlag::filterok, &ival);
 
 					int row_pos = list_index + j - skipped;
 					_idtracer.release_check(find_release_artist->master_releases[master_index]->sub_releases[j]->id,
@@ -1197,14 +1149,11 @@ void CFindReleaseDialog::expand_releases(const pfc::string8& filter, updRelSrc u
 			throw ex;
 		}
 		//set as tree children not done so branches are generated in geteditinfo
-		SetCacheFlag(parent_lparam, NodeFlag::tree_created, false);
+		m_cache_find_release_ptr->SetCacheFlag(parent_lparam, NodeFlag::tree_created, false);
 
 		//expand branch
-
-		if (m_hHit != NULL) {
-			TreeView_Expand(m_release_tree, m_hHit, TVM_EXPAND);
-			m_hHit = NULL;
-		}
+		m_release_ctree.ExpandHit();
+		
 	}
 	catch (foo_discogs_exception& e) {
 		foo_discogs_exception ex;
@@ -1212,51 +1161,6 @@ void CFindReleaseDialog::expand_releases(const pfc::string8& filter, updRelSrc u
 		throw ex;
 	}
 	return;
-}
-
-void CFindReleaseDialog::get_mounted_param(mounted_param& pm, LPARAM lparam) {
-	pm.bmaster = (pm.master_ndx != 9999);
-	pm.brelease = (pm.release_ndx != 9999);
-	pm.master_ndx = HIWORD(lparam);
-	pm.release_ndx = LOWORD(lparam);
-}
-
-mounted_param CFindReleaseDialog::mount_param(LPARAM lparam) {
-	mounted_param mpres;
-	if (lparam == 0) {
-		lparam = lparam;
-	}
-
-	if (lparam == -1) {
-		mpres.master_ndx = -1;
-		mpres.release_ndx = -1;
-		mpres.bmaster = false;
-		mpres.brelease = false;
-	}
-	else {
-		mpres.master_ndx = HIWORD(lparam);
-		mpres.release_ndx = LOWORD(lparam);
-		mpres.bmaster = (mpres.master_ndx != 9999);
-		mpres.brelease = (mpres.release_ndx != 9999);
-	}
-	return mpres;
-}
-
-t_size CFindReleaseDialog::get_mounted_lparam(mounted_param myparam) {
-	t_size ires = ~0;
-	if (myparam.is_release()) {
-		ires = myparam.master_ndx << 16;
-		ires |= myparam.release_ndx;
-	}
-	else
-		if (myparam.bmaster) {
-			ires = myparam.master_ndx << 16 | 9999;
-		}
-		else
-			if (myparam.brelease) {
-				ires = 9999 << 16 | myparam.release_ndx;
-			}
-	return ires;
 }
 
 pfc::string8 CFindReleaseDialog::get_param_id(mounted_param myparam) {
@@ -1286,13 +1190,14 @@ int CFindReleaseDialog::get_param_id_master(mounted_param myparam) {
 
 void CFindReleaseDialog::on_release_selected(int src_lparam) {
 
-	auto vecpos = find_vec_by_lparam(src_lparam);
+	vec_iterator_t vecpos;
+	find_vec_by_lparam(*m_vec_items_ptr, src_lparam, vecpos);
 
-	if (vecpos == m_vec_items.end())
+	if (vecpos == m_vec_items_ptr->end())
 		return;
 
-	int selection_index = std::distance(m_vec_items.begin(), vecpos);
-	mounted_param myparam = mount_param(m_vec_items.at(selection_index).first->first);
+	int selection_index = std::distance(m_vec_items_ptr->begin(), vecpos);
+	mounted_param myparam(m_vec_items_ptr->at(selection_index).first->first);
 
 	if (myparam.is_master()) {
 
@@ -1302,7 +1207,7 @@ void CFindReleaseDialog::on_release_selected(int src_lparam) {
 		else
 			release_url.set_string(get_param_id(myparam));
 
-		if (GetCacheFlag(src_lparam, NodeFlag::expanded)) {
+		if (m_cache_find_release_ptr->GetCacheFlag(src_lparam, NodeFlag::expanded)) {
 
 			MasterRelease_ptr& master_release = find_release_artist->master_releases[myparam.master_ndx];
 
@@ -1335,7 +1240,7 @@ LRESULT CFindReleaseDialog::ApplyFilter(pfc::string8 strFilter) {
 	if (!find_release_artist) {
 		return false;
 	}
-	_ver++;
+	m_cache_find_release_ptr->_ver++;
 	if (strFilter.get_length() == 0) {
 		m_vec_filter.clear();
 		_idtracer.release_reset();
@@ -1346,15 +1251,14 @@ LRESULT CFindReleaseDialog::ApplyFilter(pfc::string8 strFilter) {
 		if (!stricmp_utf8(m_results_filter, strFilter))
 			return FALSE;
 
-		m_vec_items.clear();
+		m_vec_items_ptr->clear();
 		TreeView_DeleteAllItems(m_release_tree);
-		_ver++;
+		m_cache_find_release_ptr->_ver++;
 
 		_idtracer.release_reset();
 
 		//INIT FILTER
 		init_filter_i(strFilter, strFilter, false, true, false, false);
-
 		//reset release position (but keep ids)
 		_idtracer.release_reset();
 
@@ -1371,7 +1275,7 @@ LRESULT CFindReleaseDialog::ApplyFilter(pfc::string8 strFilter) {
 			bool bmaster = it->first != pfc_infinite;
 			bool brelease = it->second != pfc_infinite;
 			mounted_param myparam = { master_ndx, release_ndx, bmaster, brelease };
-			lparam = get_mounted_lparam(myparam);
+			lparam = myparam.lparam();
 			pfc::string8 item;
 			row_col_data row_data;
 
@@ -1384,45 +1288,47 @@ LRESULT CFindReleaseDialog::ApplyFilter(pfc::string8 strFilter) {
 					std::vector<std::pair<int, int>>::iterator it_parent;
 					int master_id = atoi(find_release_artist->master_releases[myparam.master_ndx]->id);
 					mounted_param parent_mp(myparam.master_ndx, ~0, true, false);
-					int parent_lparam = get_mounted_lparam(parent_mp);
+					int parent_lparam = parent_mp.lparam();
 
-					auto& parent = find_vec_by_lparam(parent_lparam);
-					if (parent != m_vec_items.end()) {
+					vec_iterator_t parent;
+					find_vec_by_lparam(*m_vec_items_ptr, parent_lparam, parent);
+					if (parent != m_vec_items_ptr->end()) {
 
 						parent_it = parent->first;
 
 						//PARENT FOUND
 						
 						bool bexp;
-						bool bthisver = GetCacheFlag(parent->first, NodeFlag::expanded, &bexp);
+						bool bthisver = m_cache_find_release_ptr->GetCacheFlag(parent->first, NodeFlag::expanded, &bexp);
 						int ival = bexp ? 1 : 0;
-						SetCacheFlag(parent->first, NodeFlag::expanded, &ival);
+						m_cache_find_release_ptr->SetCacheFlag(parent->first, NodeFlag::expanded, &ival);
 
 					}
 					else {
 						//INSERT NOT-MATCHING PARENT							
 						mounted_param mp_master(master_ndx, ~0, true, false);
 
-						get_cached_find_release_node(get_mounted_lparam(mp_master), item, row_data);
-						parent_it = m_cache_find_releases.find(get_mounted_lparam(mp_master));
+						get_cached_find_release_node(mp_master.lparam(), item, row_data);
+						parent_it = m_cache_find_release_ptr->cache.find(mp_master.lparam());
 
 						bool bexp;
-						bool bthisver = GetCacheFlag(parent_it, NodeFlag::expanded, &bexp);
+						bool bthisver = m_cache_find_release_ptr->GetCacheFlag(parent_it, NodeFlag::expanded, &bexp);
 						int ival = bexp ? 1 : 0;
-						SetCacheFlag(parent_it, NodeFlag::expanded, &ival);
+						m_cache_find_release_ptr->SetCacheFlag(parent_it, NodeFlag::expanded, &ival);
 
 						ival = 1;
-						SetCacheFlag(parent_it, NodeFlag::added, &ival);
+						m_cache_find_release_ptr->SetCacheFlag(parent_it, NodeFlag::added, &ival);
 						//in filter
-						SetCacheFlag(parent_it, NodeFlag::filterok, &ival);
+						m_cache_find_release_ptr->SetCacheFlag(parent_it, NodeFlag::filterok, &ival);
 
 						flagreg& insfr = parent_it->second.second;
 						//VEC PUSH
-						m_vec_items.push_back(std::pair<cache_iterator_t, HTREEITEM*>(parent_it, nullptr));
+						m_vec_items_ptr->push_back(std::pair<cache_iterator_t, HTREEITEM*>(parent_it, nullptr));
 
 						int expanded = 1;
 
-						auto master_row = find_vec_by_id(master_id);
+						vec_iterator_t  master_row;
+						find_vec_by_id(*m_vec_items_ptr, master_id, master_row);
 
 					}
 
@@ -1436,20 +1342,20 @@ LRESULT CFindReleaseDialog::ApplyFilter(pfc::string8 strFilter) {
 
 			PFC_ASSERT(get_cached_find_release_node(lparam, item, row_data) == true);
 
-			cache_iterator_t filtered_it = m_cache_find_releases.find(lparam);
+			cache_iterator_t filtered_it = m_cache_find_release_ptr->cache.find(lparam);
 			int ival = 1;
-			SetCacheFlag(filtered_it, NodeFlag::filterok, &ival);
+			m_cache_find_release_ptr->SetCacheFlag(filtered_it, NodeFlag::filterok, &ival);
 			//VEC_PUSH
-			m_vec_items.push_back(std::pair<cache_iterator_t, HTREEITEM*>(filtered_it, nullptr));
+			m_vec_items_ptr->push_back(std::pair<cache_iterator_t, HTREEITEM*>(filtered_it, nullptr));
 		}
 
 		int counter = 0;
 		std::vector<HTREEITEM> v_hItem_filtered_masters;
-		for (auto walk : m_vec_items)
+		for (auto walk : *m_vec_items_ptr)
 		{
 			//todo: maybe recycle previously expanded nodes?
-			if (!mount_param(walk.first->first).is_master() &&
-				!mount_param(walk.first->first).is_nmrelease()) {
+			if (!mounted_param(walk.first->first).is_master() &&
+				!mounted_param(walk.first->first).is_nmrelease()) {
 				continue;
 			}
 
@@ -1475,9 +1381,9 @@ LRESULT CFindReleaseDialog::ApplyFilter(pfc::string8 strFilter) {
 
 			HTREEITEM newnode = TreeView_InsertItem(m_release_tree, &tvis);
 			int ival = 0;
-			SetCacheFlag(walk.first, NodeFlag::tree_created, &ival);
+			m_cache_find_release_ptr->SetCacheFlag(walk.first, NodeFlag::tree_created, &ival);
 			bool val;
-			if (GetCacheFlag(walk.first, NodeFlag::expanded, &val)) {
+			if (m_cache_find_release_ptr->GetCacheFlag(walk.first, NodeFlag::expanded, &val)) {
 				v_hItem_filtered_masters.emplace_back(newnode);
 			}
 		}
@@ -1554,470 +1460,6 @@ LRESULT CFindReleaseDialog::OnArtistListViewItemChanged(int, LPNMHDR hdr, BOOL&)
 	return 0;
 }
 
-LRESULT CFindReleaseDialog::OnDoubleClickRelease(int, LPNMHDR hdr, BOOL&) {
-
-	LPNMITEMACTIVATE nmListView = (LPNMITEMACTIVATE)hdr;
-	NMTVDISPINFO* pDispInfo = reinterpret_cast<NMTVDISPINFO*>(hdr);
-	TVITEMW* pItem = &(pDispInfo)->item;
-	HTREEITEM* hItem = &(pItem->hItem);
-	HTREEITEM hhit;
-
-	int lparam = pItem->lParam;
-	mounted_param myparam = mount_param(lparam);
-
-	//get client point to hit test
-	POINT p;
-	GetCursorPos(&p);
-	::ScreenToClient(m_release_tree, &p);
-
-	TVHITTESTINFO hitinfo = { 0 };
-	hitinfo.pt = p;
-
-	if (hhit = (HTREEITEM)SendMessage(m_release_tree,
-		TVM_HITTEST, NULL, (LPARAM)&hitinfo)) {
-		TVITEM phit = { 0 };
-		phit.mask = TVIF_PARAM;
-		phit.hItem = hhit;
-		TreeView_GetItem(m_release_tree, &phit);
-		lparam = phit.lParam;
-		myparam = mount_param(lparam);
-
-		if (hitinfo.flags & TVHT_ONITEM) {
-			//use right click also to select items
-			TreeView_SelectItem(m_release_tree, hhit);
-		}
-	}
-	else {
-		return FALSE;
-	}
-
-	t_size list_index = nmListView->iItem;
-
-	if (!myparam.is_master()) {
-		BOOL bdummy;
-		OnOK(0L, 0L, NULL, bdummy);
-	}
-
-	return FALSE;
-}
-
-LRESULT CFindReleaseDialog::OnRClickRelease(int, LPNMHDR hdr, BOOL&) {
-	//list
-	LPNMITEMACTIVATE nmView = (LPNMITEMACTIVATE)hdr;
-	//tree
-	NMTVDISPINFO* pDispInfo = reinterpret_cast<NMTVDISPINFO*>(hdr);
-	TVITEMW* pItem = &(pDispInfo)->item;
-	HTREEITEM* hItem = &(pItem->hItem);
-	HTREEITEM hhit = NULL;
-	//..
-
-	bool isArtist = hdr->hwndFrom == m_artist_list;
-	bool isReleaseList = false;/*hdr->hwndFrom == release_ownerlist;*/
-	bool isReleaseTree = hdr->hwndFrom == m_release_tree;
-
-	t_size list_index = -1;
-	int lparam = -1;
-	mounted_param myparam = mount_param(lparam);
-
-	POINT p;
-	if (isArtist || isReleaseList) {
-		list_index = nmView->iItem;
-		if (list_index == pfc_infinite)
-			return FALSE;
-		p = nmView->ptAction;
-		::ClientToScreen(hdr->hwndFrom, &p);
-
-		if (isReleaseList) {
-			myparam = mount_param(m_vec_items.at(list_index).first->first);
-		}
-	}
-	else if (isReleaseTree) {
-
-		//get client point to hit test
-		GetCursorPos(&p);
-		::ScreenToClient(m_release_tree, &p);
-
-		TVHITTESTINFO hitinfo = { 0 };
-		hitinfo.pt = p;
-
-		if (hhit = (HTREEITEM)SendMessage(m_release_tree,
-			TVM_HITTEST, NULL, (LPARAM)&hitinfo)) {
-			TVITEM phit = { 0 };
-			phit.mask = TVIF_PARAM;
-			phit.hItem = hhit;
-			TreeView_GetItem(m_release_tree, &phit);
-			lparam = phit.lParam;
-			myparam = mount_param(lparam);
-
-			if (hitinfo.flags & TVHT_ONITEM) {
-				//use right click also for selection
-				TreeView_SelectItem(m_release_tree, hhit);
-			}
-		}
-		else {
-			return FALSE;
-		}
-
-		//screen position for context panel
-		GetCursorPos(&p);
-
-	}
-
-	lparam = get_mounted_lparam(myparam);
-
-	pfc::string8 sourcepage = isArtist ? "View Artist page" : !myparam.brelease ? "View Master Release page" : "View Release page";
-	pfc::string8 copytitle = "Copy Title to Clipboard";
-	pfc::string8 copyrow = "Copy to Clipboard";
-
-	try {
-		int coords_x = p.x, coords_y = p.y;
-		enum { ID_VIEW_PAGE = 1, ID_CLP_COPY_TITLE, ID_CLP_COPY_ROW };
-		HMENU menu = CreatePopupMenu();
-		uAppendMenu(menu, MF_STRING, ID_VIEW_PAGE, sourcepage);
-		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
-		if (isArtist) {
-			uAppendMenu(menu, MF_STRING, ID_CLP_COPY_ROW, copyrow);
-		}
-		else {
-			uAppendMenu(menu, MF_STRING, ID_CLP_COPY_TITLE, copytitle);
-			uAppendMenu(menu, MF_STRING, ID_CLP_COPY_ROW, copyrow);
-		}
-		int cmd = TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, coords_x, coords_y, 0, m_hWnd, 0);
-		DestroyMenu(menu);
-		switch (cmd)
-		{
-		case ID_VIEW_PAGE:
-		{
-			pfc::string8 url;
-			if (isArtist) {
-				if (find_release_artists.get_count() > 0)
-					url << "https://www.discogs.com/artist/" << find_release_artists[list_index]->id;
-				else
-					if (find_release_artist != NULL)
-						url << "https://www.discogs.com/artist/" << find_release_artist->id;
-
-			}
-			else {
-				if (myparam.is_release()) {
-					url << "https://www.discogs.com/release/" << find_release_artist->master_releases[myparam.master_ndx]->sub_releases[myparam.release_ndx]->id;
-				}
-				else
-					if (myparam.bmaster) {
-						url << "https://www.discogs.com/master/" << find_release_artist->master_releases[myparam.master_ndx]->id;
-					}
-					else {
-						url << "https://www.discogs.com/release/" << find_release_artist->releases[myparam.release_ndx]->id;
-					}
-			}
-			if (url != NULL)
-				display_url(url);
-
-			return true;
-		}
-		case ID_CLP_COPY_TITLE:
-		{
-			pfc::string8 buffer;
-			if (isArtist) {
-				;
-			}
-			else {
-				if (myparam.is_release()) {
-
-					buffer << find_release_artist->master_releases[myparam.master_ndx]->sub_releases[myparam.release_ndx]->title;
-				}
-				else
-					if (myparam.bmaster) {
-						buffer << find_release_artist->master_releases[myparam.master_ndx]->title;
-					}
-					else {
-						buffer << find_release_artist->releases[myparam.release_ndx]->title;
-					}
-			}
-			if (buffer != NULL) {
-				ClipboardHelper::OpenScope scope; scope.Open(m_hWnd);
-				ClipboardHelper::SetString(buffer);
-			}
-
-
-			return true;
-		}
-		case ID_CLP_COPY_ROW:
-		{
-			pfc::string8 utf_buffer;
-			TCHAR outBuffer[MAX_PATH + 1] = {};
-
-			if (isArtist) {
-				if (nmView->iItem != -1) {
-					LVITEM lvi;
-					TCHAR outBuffer[MAX_PATH + 1] = {};
-					lvi.pszText = outBuffer;
-					lvi.cchTextMax = MAX_PATH;
-					lvi.mask = LVIF_TEXT;
-					lvi.stateMask = (UINT)-1;
-					lvi.iItem = nmView->iItem;
-					lvi.iSubItem = 0;
-					BOOL result = ListView_GetItem(m_artist_list, &lvi);
-					utf_buffer << pfc::stringcvt::string_utf8_from_os(outBuffer).get_ptr();
-				}
-			}
-			else {
-				if (hhit != NULL) {
-					TVITEM phit = { 0 };
-					phit.mask = TVIF_PARAM | TVIF_TEXT;
-					phit.pszText = outBuffer;
-					phit.cchTextMax = MAX_PATH;
-					phit.hItem = hhit;
-					TreeView_GetItem(m_release_tree, &phit);
-					utf_buffer << pfc::stringcvt::string_utf8_from_os(outBuffer).get_ptr();
-				}
-			}
-			if (utf_buffer != NULL) {
-				ClipboardHelper::OpenScope scope; scope.Open(m_hWnd);
-				ClipboardHelper::SetString(utf_buffer);
-			}
-			return true;
-		}
-		}
-	}
-	catch (...) {}
-
-	return 0;
-}
-
-LRESULT CFindReleaseDialog::OnReleaseTreeGetDispInfo(int, LPNMHDR hdr, BOOL&) {
-
-	if (m_vec_items.size() == 0 || m_updating_releases)
-		return FALSE;
-
-	NMTVDISPINFO* pDispInfo = reinterpret_cast<NMTVDISPINFO*>(hdr);
-	TVITEMW* pItem = &(pDispInfo)->item;
-	HTREEITEM* hItem = &(pItem->hItem);
-
-	int lparam = pItem->lParam;
-	mounted_param myparam = mount_param(lparam);
-
-
-	if (pItem->mask & TVIF_CHILDREN)
-	{
-		if (myparam.is_master()) {
-			pItem->cChildren = I_CHILDRENCALLBACK;
-		}
-		else {
-			pItem->cChildren = 0; //getchildres(x) > 0 ? 1 : 0; //I_CHILDRENCALLBACK;
-		}
-	}
-
-	if (pItem->mask & TVIF_TEXT)
-	{
-		TCHAR outBuffer[MAX_PATH + 1] = {};
-		cache_iterator_t cit = m_cache_find_releases.find(lparam);
-		auto row_data = cit->second.first.col_data_list.begin();
-		pfc::stringcvt::convert_utf8_to_wide(outBuffer, MAX_PATH,
-			row_data->second.get_ptr(), row_data->second.get_length());
-		_tcscpy_s(pItem->pszText, pItem->cchTextMax, const_cast<TCHAR*>(outBuffer));
-		return FALSE;
-	}
-
-	/* TVIS_USERMASK, etc
-	if (pItem->mask & LVIF_IMAGE)
-	{
-		// ...set an image list index
-	}
-	*/
-
-	return TRUE;
-}
-
-LRESULT CFindReleaseDialog::OnReleaseTreeExpanding(int, LPNMHDR hdr, BOOL&) {
-
-	NMTREEVIEW* pNMTreeView = (NMTREEVIEW*)hdr;
-	TVITEMW* pItemExpanding = &(pNMTreeView)->itemNew;
-	HTREEITEM* hItemExpanding = &(pNMTreeView->itemNew.hItem);
-
-	if ((pNMTreeView->action & TVE_EXPAND) != TVE_EXPAND)
-	{
-		auto node_it = find_vec_by_lparam(pItemExpanding->lParam);
-		int ival = 0;
-		SetCacheFlag(node_it->first, NodeFlag::expanded, &ival);
-
-		return FALSE;
-	}
-
-
-	if (pItemExpanding->mask & TVIF_CHILDREN)
-	{
-		mounted_param myparam = mount_param(pItemExpanding->lParam);
-
-		//can not rely on cChildren value here, need to register them ourselves
-		//(pItemExpanding->cChildren == I_CHILDRENCALLBACK, ...)
-		// int tc = TreeView_GetCount(release_tree);
-
-		auto& cache_parent = m_cache_find_releases.find(pItemExpanding->lParam);
-
-		/*
-		or
-
-		auto node_it = std::find_if(m_vec_lv_items.begin(), m_vec_lv_items.end(),
-				[pItemExpanding](const std::pair<cache_iterator_t, flagreg> e) {
-					return e.first->first == pItemExpanding->lParam; }
-			);
-		*/
-
-		bool children_done;
-		GetCacheFlag(cache_parent, NodeFlag::added, &children_done);
-
-		bool tree_children_done;
-		bool tree_children_done_ver = GetCacheFlag(cache_parent, NodeFlag::tree_created, &tree_children_done);
-
-		if (children_done) {
-			if (!tree_children_done_ver) {
-				if (myparam.is_master()) {
-					t_size try_release_ndx = 0;
-					std::vector<TVINSERTSTRUCT> vchildren = {};
-					//seq access
-					//auto walk_children = cache_parent++;
-					//random access
-					int walk_param = get_mounted_lparam({ myparam.master_ndx, try_release_ndx, true, true });
-					cache_iterator_t walk_children = m_cache_find_releases.find(walk_param);
-					int newindex = 0;
-					while (walk_children != m_cache_find_releases.end()) {
-
-						//pfc::string8 randaccess = m_cache_find_releases.find(walk_children->first)->second.first.col_data_list.begin()->second;
-
-						bool ival = false;
-						GetCacheFlag(walk_children, NodeFlag::spawn, &ival);
-
-						bool bfilter;
-						bool bfilter_ver = GetCacheFlag(walk_children, NodeFlag::filterok, &bfilter);
-
-						pfc::string8 filter;
-						uGetWindowText(m_filter_edit, filter);
-						
-						//..
-
-						if (m_vec_filter.size() == 0 || (m_vec_filter.size() && bfilter_ver)) {
-
-						//if (/*ival == 1 &&*/ !(m_results_filter.get_length() && !bfilter_ver)) {
-
-							vchildren.resize(newindex + 1);
-							int lparam = walk_children->first;
-							mounted_param mp = mount_param(lparam);
-							//todo: move treeview node creation to another class
-							TV_INSERTSTRUCT* tvis = (TV_INSERTSTRUCT*)&vchildren.at(newindex);
-							//memmove(&(tvis->item), &tvi, sizeof(TV_ITEM));
-							tvis->hParent = (HTREEITEM)pItemExpanding->hItem;
-							tvis->hInsertAfter = TVI_LAST;
-							TV_ITEM tvi;
-							memset(&tvi, 0, sizeof(tvi));
-							tvis->item.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE | TVIF_CHILDREN | TVIF_PARAM | TVIF_STATE; //TVIF_IMAGE | TVIF_TEXT | TVIF_SELECTEDIMAGE;
-							tvis->item.pszText = LPSTR_TEXTCALLBACK;
-							tvis->item.iImage = I_IMAGECALLBACK;
-							tvis->item.iSelectedImage = I_IMAGECALLBACK;
-							tvis->item.cChildren = 0;
-							tvis->item.lParam = walk_children->first;
-							int walk_id = walk_children->second.first.id;
-							//set bold font to current release_id
-							if (walk_id == _idtracer.release_id) {
-								tvis->item.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE | TVIF_CHILDREN | TVIF_PARAM | TVIF_STATE; //TVIF_IMAGE | TVIF_TEXT | TVIF_SELECTEDIMAGE;
-								tvis->item.state = TVIS_BOLD;
-								tvis->item.stateMask = TVIS_BOLD;
-							}
-							else {
-								tvis->item.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE | TVIF_CHILDREN | TVIF_PARAM; //TVIF_IMAGE | TVIF_TEXT | TVIF_SELECTEDIMAGE;
-							}
-
-							newindex++;
-
-						}
-
-						//vchildren.push_back(tvis);
-
-						walk_param = get_mounted_lparam({ myparam.master_ndx, ++try_release_ndx, true, true });
-						walk_children = m_cache_find_releases.find(walk_param);
-
-					}
-
-					for (const auto& tvchild : vchildren) {
-						//::EnableWindow(release_tree, false);
-						TreeView_InsertItem(m_release_tree, &tvchild);
-					}
-
-					int ival = 1; //finished with this node, set it as tree children done 
-					SetCacheFlag(pItemExpanding->lParam, NodeFlag::tree_created, ival);
-
-					bool bval = false;
-					GetCacheFlag(pItemExpanding->lParam, NodeFlag::expanded, bval);
-					int ivalex = 1;
-					SetCacheFlag(pItemExpanding->lParam, NodeFlag::expanded, &ivalex);
-					int kk = cache_parent->first;
-
-					//children #
-					pItemExpanding->cChildren = vchildren.size();
-
-				}
-				else {
-
-					//note:could also test with get_count()? 1 : 0
-
-					find_release_artist->releases.get_count() ? I_CHILDRENCALLBACK : 0;
-					pItemExpanding->cChildren = find_release_artist->releases.get_count() ? I_CHILDRENCALLBACK : 0;
-				}
-			}
-			else {
-				//children already produced
-
-				int ival = 1;
-				SetCacheFlag(cache_parent, NodeFlag::expanded, &ival);
-
-				return FALSE;
-			}
-		}
-		else {
-			m_hHit = pItemExpanding->hItem;
-
-			//temporal fix to make this compatible with the listview
-			auto master_it = find_vec_by_lparam(pItemExpanding->lParam);
-
-			if (master_it == m_vec_items.end())
-				return TRUE;
-			int selection_index = std::distance(m_vec_items.begin(), master_it);
-
-
-			if (master_it != m_vec_items.end()) {
-				int ival = 1;
-				SetCacheFlag(master_it->first, NodeFlag::expanded, &ival);
-
-				if (ival) {
-					int ival = 1;
-					SetCacheFlag(master_it->first, NodeFlag::added, &ival);
-				}
-			}
-			on_release_selected(pItemExpanding->lParam);
-
-		}
-	}
-	return FALSE;
-}
-
-LRESULT CFindReleaseDialog::OnReleaseTreeSelChanged(int, LPNMHDR hdr, BOOL&) {
-	LPNMTREEVIEW pnmtv = (LPNMTREEVIEW)hdr;
-	NMTREEVIEW* pNMTreeView = (NMTREEVIEW*)hdr;
-
-	TVITEM pItemMaster = { 0 };
-	pItemMaster.mask = TVIF_PARAM;
-	pItemMaster.hItem = pnmtv->itemNew.hItem;
-	TreeView_GetItem(m_release_tree, &pItemMaster);
-
-	cache_iterator_t it = m_cache_find_releases.find(pItemMaster.lParam);
-	if (it != m_cache_find_releases.end()) {
-		int id = it->second.first.id;
-		pfc::string8 release_url = pfc::toString(id).c_str();
-
-		uSetWindowText(m_release_url_edit, release_url);
-	}
-	return 0;
-}
-
 LRESULT CFindReleaseDialog::OnCheckOnlyExactMatches(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	conf.display_exact_matches = IsDlgButtonChecked(IDC_ONLY_EXACT_MATCHES_CHECK) != 0;
 	fill_artist_list(_idtracer.amr, updRelSrc::Artist);
@@ -2081,234 +1523,15 @@ void CFindReleaseDialog::extract_release_from_link(pfc::string8& s) {
 	}
 }
 
-bool CFindReleaseDialog::SetCacheFlag(t_size lparam, NodeFlag flagtype, int& val) {
-	bool bres = false;
-	auto& it = m_cache_find_releases.find(lparam);
-
-	if (it != m_cache_find_releases.end()) {
-
-		std::pair<row_col_data, flagreg >& my_rel_cache = it->second;
-		flagreg& fr = my_rel_cache.second;
-
-		switch ((int)flagtype) {
-		case 0:
-			break;
-		case 1:
-			break;
-		case 2:
-			break;
-		case (int)NodeFlag::spawn: //4 (downloaded?)
-			break;
-		case (int)NodeFlag::expanded: //8
-			break;
-		case 16:
-			break;
-		case /*32*/(int)NodeFlag::filterok:
-			fr.ver = _ver;
-			break;
-		default:
-			break;
-		}
-
-		if (val == -1) {
-			fr.flag ^= INDEXTOSTATEIMAGEMASK((int)flagtype);
-			val = (fr.flag & INDEXTOSTATEIMAGEMASK((int)flagtype)) == INDEXTOSTATEIMAGEMASK((int)flagtype);
-		}
-		else if (val) {
-			fr.flag |= INDEXTOSTATEIMAGEMASK((int)flagtype);
-		}
-		else {
-			fr.flag &= ~INDEXTOSTATEIMAGEMASK((int)flagtype);
-		}
-		/*fr.ver = ver;*/
-		bres = true;
-	}
-	else {
-		bres = false;
-	}
-	return bres;
-}
-
-bool CFindReleaseDialog::SetCacheFlag(t_size lparam, NodeFlag flagtype, bool val) {
-	bool bres = false;
-	auto& it = m_cache_find_releases.find(lparam);
-	if (it != m_cache_find_releases.end()) {
-
-		std::pair<row_col_data, flagreg >& my_rel_cache = it->second;
-		flagreg& fr = my_rel_cache.second;
-
-		switch ((int)flagtype) {
-		case 0:
-			break;
-		case 1:
-			break;
-		case 2:
-			break;
-		case (int)NodeFlag::spawn: //4 (downloaded?)
-			break;
-		case (int)NodeFlag::expanded: //8
-			break;
-		case 16:
-			break;
-		case /*32*/(int)NodeFlag::filterok:
-			fr.ver = _ver;
-			break;
-		default:
-			break;
-		}
-
-		/*if (val == -1) {
-			fr.flag ^= INDEXTOSTATEIMAGEMASK((int)flagtype);
-			val = (fr.flag & INDEXTOSTATEIMAGEMASK((int)flagtype)) == INDEXTOSTATEIMAGEMASK((int)flagtype);
-		}
-		else*/ if (val) {
-			fr.flag |= INDEXTOSTATEIMAGEMASK((int)flagtype);
-		}
-		else {
-			fr.flag &= ~INDEXTOSTATEIMAGEMASK((int)flagtype);
-		}
-		/*fr.ver = ver;*/
-		bres = true;
-	}
-	else {
-		bres = false;
-	}
-	return bres;
-}
-
-bool CFindReleaseDialog::SetCacheFlag(cache_iterator_t& it_cached_item,
-	NodeFlag flagtype, int* const& val) {
-
-	bool bres = false;
-
-	if (it_cached_item->first > -1) {
-
-		flagreg& fr = it_cached_item->second.second;
-
-		switch ((int)flagtype) {
-		case 0:
-			break;
-		case 1:
-			break;
-		case 2:
-			break;
-		case (int)NodeFlag::spawn: //4 (downloaded?)
-			break;
-		case (int)NodeFlag::expanded: //8
-			break;
-		case 16:
-			break;
-		case /*32*/(int)NodeFlag::filterok:
-			fr.ver = _ver;
-			break;
-		default:
-			break;
-		}
-		
-		if (*val == -1) {
-			fr.flag ^= INDEXTOSTATEIMAGEMASK((int)flagtype);
-			*val = (fr.flag & INDEXTOSTATEIMAGEMASK((int)flagtype)) == INDEXTOSTATEIMAGEMASK((int)flagtype);
-		}
-		else if (*val) {
-			fr.flag |= INDEXTOSTATEIMAGEMASK((int)flagtype);
-		}
-		else {
-			fr.flag &= ~INDEXTOSTATEIMAGEMASK((int)flagtype);
-		}
-		//fr.ver = ver;
-		bres = true;
-	}
-	else {
-		bres = false;
-	}
-	return bres;
-}
-
-bool CFindReleaseDialog::GetCacheFlag(t_size lparam, NodeFlag flagtype, bool& val) {
-	bool bres = false;
-	auto& it = m_cache_find_releases.find(lparam);
-	if (it != m_cache_find_releases.end()) {
-		std::pair<row_col_data, flagreg >& my_rel_cache = it->second;
-		flagreg& fr = my_rel_cache.second;
-
-		if ((fr.flag & INDEXTOSTATEIMAGEMASK((int)flagtype)) == INDEXTOSTATEIMAGEMASK((int)flagtype)) {
-			val = true;
-		}
-		else {
-			//fr.flag &= ~INDEXTOSTATEIMAGEMASK(flag);
-			val = false;
-		}
-
-		bres = val && fr.ver == _ver;
-	}
-	else {
-		bres = false;
-	}
-	return bres;
-}
-
-bool CFindReleaseDialog::GetCacheFlag(t_size lparam, NodeFlag flagtype) {
-	bool bres = false;
-	auto& it = m_cache_find_releases.find(lparam);
-	if (it != m_cache_find_releases.end()) {
-
-		std::pair<row_col_data, flagreg >& my_rel_cache = it->second;
-		flagreg& fr = my_rel_cache.second;
-
-		if ((fr.flag & INDEXTOSTATEIMAGEMASK((int)flagtype)) == INDEXTOSTATEIMAGEMASK((int)flagtype)) {
-			bres = true;
-		}
-		else {
-			//fr.flag &= ~INDEXTOSTATEIMAGEMASK(flag);
-			bres = false;
-		}
-
-		bres = bres && fr.ver == _ver;
-	}
-	else {
-		bres = false;
-	}
-	return bres;
-}
-
-bool CFindReleaseDialog::GetCacheFlag(
-	cache_iterator_t it_cached_item,
-	NodeFlag flagtype, bool* const& val) {
-
-	bool bres = false;
-	bool bval = false;
-
-	if (it_cached_item->first > -1) {
-
-		flagreg& fr = it_cached_item->second.second;
-
-		if ((fr.flag & INDEXTOSTATEIMAGEMASK((int)flagtype)) == INDEXTOSTATEIMAGEMASK((int)flagtype)) {
-			bval = true;
-		}
-		else {
-			//fr.flag &= ~INDEXTOSTATEIMAGEMASK(flag);
-			bval = false;
-		}
-
-		bres = bval && fr.ver == _ver;
-		if (val != NULL)
-			*val = bval;
-	}
-	else {
-		bres = false;
-	}
-
-	return bres;
-}
-
 bool CFindReleaseDialog::set_node_expanded(t_size master_id, int& state, bool build) {
-	auto& master_row = find_vec_by_id(master_id);
-	if (master_row != m_vec_items.end()) {
+	vec_iterator_t master_row;
+	find_vec_by_id(*m_vec_items_ptr, master_id, master_row);
+	if (master_row != m_vec_items_ptr->end()) {
 		int ival = state;
-		SetCacheFlag(master_row->first, NodeFlag::expanded, &ival);
+		m_cache_find_release_ptr->SetCacheFlag(master_row->first, NodeFlag::expanded, &ival);
 		if (ival) {
 			int ival = 1;
-			SetCacheFlag(master_row->first, NodeFlag::added, &ival);
+			m_cache_find_release_ptr->SetCacheFlag(master_row->first, NodeFlag::added, &ival);
 		}
 		return true;
 	}
@@ -2319,9 +1542,10 @@ bool CFindReleaseDialog::set_node_expanded(t_size master_id, int& state, bool bu
 }
 
 bool CFindReleaseDialog::get_node_expanded(t_size master_id, int& out_state) {
-	auto master_row = find_vec_by_id(master_id);
-	if (master_row != m_vec_items.end()) {
-		SetCacheFlag(master_row->first, NodeFlag::expanded, &out_state);
+	vec_iterator_t  master_row;
+	find_vec_by_id(*m_vec_items_ptr, master_id, master_row);
+	if (master_row != m_vec_items_ptr->end()) {
+		m_cache_find_release_ptr->SetCacheFlag(master_row->first, NodeFlag::expanded, &out_state);
 		return true;
 	}
 	else {
@@ -2353,15 +1577,14 @@ void CFindReleaseDialog::on_expand_master_release_done(const MasterRelease_ptr& 
 
 		//todo:
 		int ival = 1;
-		mounted_param mparam(0, ~0, true, false);
-		t_size lparam = get_mounted_lparam(mparam);
-		SetCacheFlag(lparam, NodeFlag::expanded, ival);
+		mounted_param mparam(master_i, ~0, true, false);
+		t_size lparam = mparam.lparam();
+		m_cache_find_release_ptr->SetCacheFlag(lparam, NodeFlag::expanded, ival);
 		//..
 
 		//set_lvstate_expanded(list_index, expanded, false);
 	}
-
-	mounted_param myparam = mount_param(m_vec_items.at(list_index).first->first);
+	mounted_param myparam(m_vec_items_ptr->at(list_index).first->first);
 	pfc::string8 release_url;
 
 	if (_idtracer.amr && (atoi(master_release->id) == _idtracer.master_id))
@@ -2370,7 +1593,6 @@ void CFindReleaseDialog::on_expand_master_release_done(const MasterRelease_ptr& 
 		release_url.set_string(get_param_id(myparam));
 
 	uSetWindowText(m_release_url_edit, release_url);
-
 }
 
 void CFindReleaseDialog::on_expand_master_release_complete() {
@@ -2412,10 +1634,9 @@ void CFindReleaseDialog::search_artist(bool skip_tracer, pfc::string8 artistname
 
 	bool cfg_skip_search_artist_if_present = true;
 	if (cfg_skip_search_artist_if_present
-		&& !skip_tracer && _idtracer.artist && _idtracer.artist_id != 1) {
+		&& !skip_tracer && _idtracer.artist && _idtracer.artist_id != pfc_infinite) {
 
-		pfc::string8 artist_id;
-		artist_id.set_string(std::to_string(_idtracer.artist_id).c_str());
+		pfc::string8 artist_id(std::to_string(_idtracer.artist_id).c_str());
 
 		if (artist_id.get_length()) {
 			service_ptr_t<get_artist_process_callback> task =

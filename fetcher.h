@@ -107,6 +107,12 @@ public:
 				pfc::string8 &html,
 				abort_callback &p_abort,
 				bool use_oauth = true);
+
+	void fetch_html_pages(const pfc::string8& url,
+		const pfc::string8& params,
+		pfc::string8& html,
+		abort_callback& p_abort,
+		bool use_oauth = true, bool nosleep = false);
 	
 	void fetch_url(const pfc::string8 &url,
 				const pfc::string8 &params,

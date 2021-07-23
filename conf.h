@@ -110,6 +110,21 @@
 //v202
 #define CFG_CACHE_USE_OFFLINE_CACHE				2113
 
+//v203
+#define CFG_DISCOGS_ARTWORK_RA_WIDTH			2114
+#define CFG_DISCOGS_ARTWORK_TYPE_WIDTH		2115
+#define CFG_DISCOGS_ARTWORK_DIM_WIDTH			2116
+#define CFG_DISCOGS_ARTWORK_SAVE_WIDTH		2117
+#define CFG_DISCOGS_ARTWORK_OVR_WIDTH			2118
+#define CFG_DISCOGS_ARTWORK_EMBED_WIDTH		2119
+#define CFG_MATCH_FILE_ARTWORK_NAME_WIDTH	2120
+#define CFG_MATCH_FILE_ARTWORK_DIM_WIDTH	2121
+#define CFG_MATCH_FILE_ARTWORK_SIZE_WIDTH	2122
+#define CFG_MATCH_DISCOGS_ARTWORK_STYLE 	2123
+#define CFG_MATCH_FILE_ARTWORKS_STYLE 		2124
+
+#define CFG_ALBUM_ART_SKIP_DEFAULT_CUST		2125
+
 //string
 #define CFG_EDIT_TAGS_DIALOG_HL_KEYWORD			2201
 //..
@@ -343,6 +358,8 @@ public:
 		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_TAGS_DIALOG_U_WIDTH },
 		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_TAGS_DIALOG_S_WIDTH },
 		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_TAGS_DIALOG_E_WIDTH },
+		//v203
+		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_ALBUM_ART_SKIP_DEFAULT_CUST },
 		//..
 
 		// CONF_FILTER_TAG (tag_mappings_dialog)
@@ -366,6 +383,21 @@ public:
 		//v201
 		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_MATCH_TRACKS_DISCOGS_STYLE },
 		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_MATCH_TRACKS_FILES_STYLE },
+		//v202
+		//v203
+		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_DISCOGS_ARTWORK_RA_WIDTH },
+		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_DISCOGS_ARTWORK_TYPE_WIDTH },
+		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_DISCOGS_ARTWORK_DIM_WIDTH },
+		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_DISCOGS_ARTWORK_SAVE_WIDTH },
+		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_DISCOGS_ARTWORK_OVR_WIDTH },
+		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_DISCOGS_ARTWORK_EMBED_WIDTH },
+		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_MATCH_FILE_ARTWORK_NAME_WIDTH },
+		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_MATCH_FILE_ARTWORK_DIM_WIDTH },
+		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_MATCH_FILE_ARTWORK_SIZE_WIDTH },
+		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_MATCH_DISCOGS_ARTWORK_STYLE },
+		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_MATCH_FILE_ARTWORKS_STYLE },
+		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_ALBUM_ART_SKIP_DEFAULT_CUST },
+
 		//..
 
 		// CONF_FILTER_UPDATE_ART (update_art_dialog)
@@ -478,8 +510,8 @@ public:
 	int preview_tags_dialog_col2_width = 0;
 	int match_tracks_dialog_discogs_col1_width = 0;
 	int match_tracks_dialog_discogs_col2_width = 0;
-	int match_tracks_dialog_files_col1_width = 0;
-	int match_tracks_dialog_files_col2_width = 0;
+	int match_file_dialog_col1_width = 0;
+	int match_file_dialog_col2_width = 0;
 
 	pfc::string8 edit_tags_dlg_hl_keyword = "";
 	bool edit_tags_dlg_show_tm_stats = false;
@@ -487,15 +519,29 @@ public:
 
 	//v201
 	bool release_enter_key_override = false;
-	int match_tracks_dialog_discogs_style = static_cast<int>(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP);
-	int match_tracks_dialog_files_style = static_cast<int>(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP);
+	int match_tracks_dialog_style = static_cast<int>(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP);
+	int match_file_dialog_style = static_cast<int>(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP);
 	int preview_tags_dialog_w_width = 40;
 	int preview_tags_dialog_u_width = 40;
 	int preview_tags_dialog_s_width = 40;
 	int preview_tags_dialog_e_width = 40;
 	//v202
 	int cache_use_offline_cache = 0;
+	//v203
+	int match_discogs_artwork_ra_width = 0;
+	int match_discogs_artwork_type_width = 0;
+	int match_discogs_artwork_dim_width = 0;
+	int match_discogs_artwork_save_width = 0;
+	int match_discogs_artwork_ovr_width = 0;
+	int match_discogs_artwork_embed_width = 0;
+	int match_file_artwork_name_width = 0;
+	int match_file_artwork_dim_width = 0;
+	int match_file_artwork_size_width = 0;
+	int match_discogs_artwork_art_style = static_cast<int>(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP);
+	int match_file_artworks_art_style = static_cast<int>(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP);
+	int album_art_skip_default_cust = 0;
 	//..
+
 };
 
 typedef new_conf foo_discogs_conf;
@@ -507,86 +553,13 @@ void init_conf();
 // OLD CONF
 
 #define MAX_CONF_STRING_LEN 256
-
-// deprecate this shit
+//
+//// deprecate this shit
 #define IS_BIT_SET(x,b)		((x)&(b)?true:false)
 #define SET_BIT(x,b)		((x)|=(b))
-
+//
 #define UNSET_BIT(x,b)		((x)&=~(b))
 #define TOGGLE_BIT(x,b)		(IS_BIT_SET(x,b)?UNSET_BIT(x,b):SET_BIT(x,b))
-
+//
 #define UPDATE_ART_ALBUM_BIT		8
 #define UPDATE_ART_ARTIST_BIT		16
-
-
-struct foo_discogs_conf3
-{
-	// version of conf struct
-	int conf_version;
-	bool conf_initialized;
-
-	// tagging
-	bool replace_ANVs; // false
-	bool move_the_at_beginning; // true
-	bool discard_numeric_suffix; // true;
-
-	bool double_digits_track_numbers; //true
-	bool number_each_disc_from_one; // true
-	bool preserve_zero_track_number; // unused
-
-	bool match_discogs_tracks; // true
-	bool show_length_column; // true
-
-	// album/artist art
-	char album_art_dir_titleformat[MAX_CONF_STRING_LEN]; // "$directory_path(%path%)"
-	char album_art_file_titleformat[MAX_CONF_STRING_LEN]; // "cover"
-	char artist_art_dir_titleformat[MAX_CONF_STRING_LEN]; // "$directory_path(%path%)"
-	char artist_art_file_titleformat[MAX_CONF_STRING_LEN]; // "artist[%DISCOGS_ARTIST_ID%]"
-
-	bool display_art; // false
-	bool save_album_art; // true
-	bool save_artist_art; // true
-	bool fetch_all_art; //false
-	bool use_api_for_images; // unused
-	bool overwrite_files; // false
-
-	// find release dialog
-	bool display_exact_matches; // true
-	bool enable_autosearch; // false
-
-	// release dialog
-	bool write_all_genres; // true
-	bool write_all_styles; // true
-	bool display_ANVs; //true
-
-	int update_art_flags;
-
-	char va[MAX_CONF_STRING_LEN]; // "Various Artists"
-
-	// OAUTH
-	char oauth_token[MAX_CONF_STRING_LEN];
-	char oauth_token_secret[MAX_CONF_STRING_LEN];
-
-	// SIZING
-	int find_release_dialog_width = 0;
-	int find_release_dialog_height = 0;
-	int release_dialog_width = 0;
-	int release_dialog_height = 0;
-	int find_release_sizer = 0; // unused
-	int release_sizer = 0; // unused
-
-	static foo_discogs_conf3 get_default(const char *oauth_token = nullptr, const char *oauth_secret = nullptr);
-	static foo_discogs_conf3 initialize();
-
-	bool is_nullptr() {
-		return conf_version == 0;
-	}
-
-	static foo_discogs_conf3 get_nullptr() {
-		foo_discogs_conf3 conf3;
-		conf3.conf_version = 0;
-		return conf3;
-	}
-};
-
-extern cfg_struct_t<foo_discogs_conf3> cfg_conf3;

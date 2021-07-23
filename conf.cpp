@@ -47,6 +47,7 @@ bool new_conf::load() {
 	vspec v200 { &vec_specs, 27, 22, 14 };
 	vspec v201 { &vec_specs, 28, 28, 14 };
 	vspec v202 { &vec_specs, 28, 29, 14 };
+	vspec v203 { &vec_specs, 28, 41, 14 };
 	
 	vspec* vlast = &vec_specs.at(vec_specs.size() - 1);
 
@@ -234,17 +235,17 @@ bool new_conf::load() {
 				match_tracks_dialog_discogs_col2_width = item.value;
 				break;
 			case CFG_MATCH_TRACKS_FILES_COL1_WIDTH:
-				match_tracks_dialog_files_col1_width = item.value;
+				match_file_dialog_col1_width = item.value;
 				break;
 			case CFG_MATCH_TRACKS_FILES_COL2_WIDTH:
-				match_tracks_dialog_files_col2_width = item.value;
+				match_file_dialog_col2_width = item.value;
 				break;
 			//v201 (mod v17)
 			case CFG_MATCH_TRACKS_DISCOGS_STYLE:
-				match_tracks_dialog_discogs_style = item.value;
+				match_tracks_dialog_style = item.value;
 				break;
 			case CFG_MATCH_TRACKS_FILES_STYLE:
-				match_tracks_dialog_files_style = item.value;
+				match_file_dialog_style = item.value;
 				break;
 			case CFG_PREVIEW_TAGS_DIALOG_W_WIDTH:
 				preview_tags_dialog_w_width = item.value;
@@ -258,10 +259,48 @@ bool new_conf::load() {
 			case CFG_PREVIEW_TAGS_DIALOG_E_WIDTH:
 				preview_tags_dialog_e_width = item.value;
 				break;
-				//v202
+			//v202
 			case CFG_CACHE_USE_OFFLINE_CACHE:
 				cache_use_offline_cache = item.value;
 				break;
+			//v203
+			case CFG_DISCOGS_ARTWORK_RA_WIDTH:
+				match_discogs_artwork_ra_width = item.value;
+				break;
+			case CFG_DISCOGS_ARTWORK_TYPE_WIDTH:
+				match_discogs_artwork_type_width = item.value;
+				break;
+			case CFG_DISCOGS_ARTWORK_DIM_WIDTH:
+				match_discogs_artwork_dim_width = item.value;
+				break;
+			case CFG_DISCOGS_ARTWORK_SAVE_WIDTH:
+				match_discogs_artwork_save_width = item.value;
+				break;
+			case CFG_DISCOGS_ARTWORK_OVR_WIDTH:
+				match_discogs_artwork_ovr_width = item.value;
+				break;
+			case CFG_DISCOGS_ARTWORK_EMBED_WIDTH:
+				match_discogs_artwork_embed_width = item.value;
+				break;
+			case CFG_MATCH_FILE_ARTWORK_NAME_WIDTH:
+				match_file_artwork_name_width = item.value;
+				break;
+			case CFG_MATCH_FILE_ARTWORK_DIM_WIDTH:
+				match_file_artwork_dim_width = item.value;
+				break;
+			case CFG_MATCH_FILE_ARTWORK_SIZE_WIDTH:
+				match_file_artwork_size_width = item.value;
+				break;
+			case CFG_MATCH_DISCOGS_ARTWORK_STYLE:
+				match_discogs_artwork_art_style = item.value;
+				break;
+			case CFG_MATCH_FILE_ARTWORKS_STYLE:
+				match_file_artworks_art_style = item.value;
+					break;
+			case CFG_ALBUM_ART_SKIP_DEFAULT_CUST:
+				album_art_skip_default_cust = item.value;
+				break;
+			//..
 		}
 	}
 	if (vLoad < v200) {
@@ -270,13 +309,13 @@ bool new_conf::load() {
 		cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_COL2_WIDTH, preview_tags_dialog_col2_width));
 		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_DISCOGS_COL1_WIDTH, match_tracks_dialog_discogs_col1_width));
 		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_DISCOGS_COL2_WIDTH, match_tracks_dialog_discogs_col2_width));
-		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_COL1_WIDTH, match_tracks_dialog_files_col1_width));
-		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_COL2_WIDTH, match_tracks_dialog_files_col2_width));
+		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_COL1_WIDTH, match_file_dialog_col1_width));
+		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_COL2_WIDTH, match_file_dialog_col2_width));
 	}
 	if (vLoad < v201) {
 		//v201
-		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_DISCOGS_STYLE, match_tracks_dialog_discogs_style));
-		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_STYLE, match_tracks_dialog_files_style));
+		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_DISCOGS_STYLE, match_tracks_dialog_style));
+		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_STYLE, match_file_dialog_style));
 		cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_W_WIDTH, preview_tags_dialog_w_width));
 		cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_U_WIDTH, preview_tags_dialog_u_width));
 		cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_S_WIDTH, preview_tags_dialog_s_width));
@@ -284,6 +323,20 @@ bool new_conf::load() {
 	}
 	if (vLoad < v202) {
 		cfg_int_entries.add_item(make_conf_entry(CFG_CACHE_USE_OFFLINE_CACHE, cache_use_offline_cache));
+	}
+	if (vLoad < v203) {
+		cfg_int_entries.add_item(make_conf_entry(CFG_DISCOGS_ARTWORK_RA_WIDTH, match_discogs_artwork_ra_width));
+		cfg_int_entries.add_item(make_conf_entry(CFG_DISCOGS_ARTWORK_TYPE_WIDTH, match_discogs_artwork_type_width));
+		cfg_int_entries.add_item(make_conf_entry(CFG_DISCOGS_ARTWORK_DIM_WIDTH, match_discogs_artwork_dim_width));
+		cfg_int_entries.add_item(make_conf_entry(CFG_DISCOGS_ARTWORK_SAVE_WIDTH, match_discogs_artwork_save_width));
+		cfg_int_entries.add_item(make_conf_entry(CFG_DISCOGS_ARTWORK_OVR_WIDTH, match_discogs_artwork_ovr_width));
+		cfg_int_entries.add_item(make_conf_entry(CFG_DISCOGS_ARTWORK_EMBED_WIDTH, match_discogs_artwork_embed_width));
+		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_FILE_ARTWORK_NAME_WIDTH, match_file_artwork_name_width));
+		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_FILE_ARTWORK_DIM_WIDTH, match_file_artwork_dim_width));
+		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_FILE_ARTWORK_SIZE_WIDTH, match_file_artwork_size_width));
+		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_DISCOGS_ARTWORK_STYLE, match_discogs_artwork_art_style));
+		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_FILE_ARTWORKS_STYLE, match_file_artworks_art_style));
+		cfg_int_entries.add_item(make_conf_entry(CFG_ALBUM_ART_SKIP_DEFAULT_CUST, album_art_skip_default_cust));
 	}
 
 	for (unsigned int i = 0; i < cfg_string_entries.get_count(); i++) {
@@ -458,14 +511,14 @@ int new_conf::id_to_val_int(int id, new_conf in_conf) {
 		case CFG_MATCH_TRACKS_DISCOGS_COL2_WIDTH:
 			return in_conf.match_tracks_dialog_discogs_col2_width;
 		case CFG_MATCH_TRACKS_FILES_COL1_WIDTH:
-			return in_conf.match_tracks_dialog_files_col1_width;
+			return in_conf.match_file_dialog_col1_width;
 		case CFG_MATCH_TRACKS_FILES_COL2_WIDTH:
-			return in_conf.match_tracks_dialog_files_col2_width;
+			return in_conf.match_file_dialog_col2_width;
 		//v201
 		case CFG_MATCH_TRACKS_DISCOGS_STYLE:
-			return in_conf.match_tracks_dialog_discogs_style;
+			return in_conf.match_tracks_dialog_style;
 		case CFG_MATCH_TRACKS_FILES_STYLE:
-			return in_conf.match_tracks_dialog_files_style;
+			return in_conf.match_file_dialog_style;
 		case CFG_PREVIEW_TAGS_DIALOG_W_WIDTH:
 			return in_conf.preview_tags_dialog_w_width;
 		case CFG_PREVIEW_TAGS_DIALOG_U_WIDTH:
@@ -477,6 +530,31 @@ int new_conf::id_to_val_int(int id, new_conf in_conf) {
 		//v202
 		case CFG_CACHE_USE_OFFLINE_CACHE:
 			return in_conf.cache_use_offline_cache;
+		//v203
+		case CFG_DISCOGS_ARTWORK_RA_WIDTH:
+			return in_conf.match_discogs_artwork_ra_width;
+		case CFG_DISCOGS_ARTWORK_TYPE_WIDTH:
+			return in_conf.match_discogs_artwork_type_width;
+		case CFG_DISCOGS_ARTWORK_DIM_WIDTH:
+			return in_conf.match_discogs_artwork_dim_width;
+		case CFG_DISCOGS_ARTWORK_SAVE_WIDTH:
+			return in_conf.match_discogs_artwork_save_width;
+		case CFG_DISCOGS_ARTWORK_OVR_WIDTH:
+			return in_conf.match_discogs_artwork_ovr_width;
+		case CFG_DISCOGS_ARTWORK_EMBED_WIDTH:
+			return in_conf.match_discogs_artwork_embed_width;
+		case CFG_MATCH_FILE_ARTWORK_NAME_WIDTH:
+			return in_conf.match_file_artwork_name_width;
+		case CFG_MATCH_FILE_ARTWORK_DIM_WIDTH:
+			return in_conf.match_file_artwork_dim_width;
+		case CFG_MATCH_FILE_ARTWORK_SIZE_WIDTH:
+			return in_conf.match_file_artwork_size_width;
+		case CFG_MATCH_DISCOGS_ARTWORK_STYLE:
+			return in_conf.match_discogs_artwork_art_style;
+		case CFG_MATCH_FILE_ARTWORKS_STYLE:
+			return in_conf.match_file_artworks_art_style;
+		case CFG_ALBUM_ART_SKIP_DEFAULT_CUST:
+			return in_conf.album_art_skip_default_cust;
 		//..
 	}
 	PFC_ASSERT(false);
@@ -716,18 +794,30 @@ void new_conf::save() {
 	cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_COL2_WIDTH, preview_tags_dialog_col2_width));
 	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_DISCOGS_COL1_WIDTH, match_tracks_dialog_discogs_col1_width));
 	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_DISCOGS_COL2_WIDTH, match_tracks_dialog_discogs_col2_width));
-	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_COL1_WIDTH, match_tracks_dialog_files_col1_width));
-	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_COL2_WIDTH, match_tracks_dialog_files_col2_width));
+	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_COL1_WIDTH, match_file_dialog_col1_width));
+	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_COL2_WIDTH, match_file_dialog_col2_width));
 	//v201
-	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_DISCOGS_STYLE, match_tracks_dialog_discogs_style));
-	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_STYLE, match_tracks_dialog_files_style));
+	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_DISCOGS_STYLE, match_tracks_dialog_style));
+	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_STYLE, match_file_dialog_style));
 	cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_W_WIDTH, preview_tags_dialog_w_width));
 	cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_U_WIDTH, preview_tags_dialog_u_width));
 	cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_S_WIDTH, preview_tags_dialog_s_width));
 	cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_E_WIDTH, preview_tags_dialog_e_width));
 	//v202
 	cfg_int_entries.add_item(make_conf_entry(CFG_CACHE_USE_OFFLINE_CACHE, cache_use_offline_cache));
-
+	//v203
+	cfg_int_entries.add_item(make_conf_entry(CFG_DISCOGS_ARTWORK_RA_WIDTH, match_discogs_artwork_ra_width));
+	cfg_int_entries.add_item(make_conf_entry(CFG_DISCOGS_ARTWORK_TYPE_WIDTH, match_discogs_artwork_type_width));
+	cfg_int_entries.add_item(make_conf_entry(CFG_DISCOGS_ARTWORK_DIM_WIDTH, match_discogs_artwork_dim_width));
+	cfg_int_entries.add_item(make_conf_entry(CFG_DISCOGS_ARTWORK_SAVE_WIDTH, match_discogs_artwork_save_width));
+	cfg_int_entries.add_item(make_conf_entry(CFG_DISCOGS_ARTWORK_OVR_WIDTH, match_discogs_artwork_ovr_width));
+	cfg_int_entries.add_item(make_conf_entry(CFG_DISCOGS_ARTWORK_EMBED_WIDTH, match_discogs_artwork_embed_width));
+	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_FILE_ARTWORK_NAME_WIDTH, match_file_artwork_name_width));
+	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_FILE_ARTWORK_DIM_WIDTH, match_file_artwork_dim_width));
+	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_FILE_ARTWORK_SIZE_WIDTH, match_file_artwork_size_width));
+	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_DISCOGS_ARTWORK_STYLE, match_discogs_artwork_art_style));
+	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_FILE_ARTWORKS_STYLE, match_file_artworks_art_style));
+	cfg_int_entries.add_item(make_conf_entry(CFG_ALBUM_ART_SKIP_DEFAULT_CUST, album_art_skip_default_cust));
 	//..
 
 	cfg_string_entries.remove_all();
@@ -749,115 +839,10 @@ void new_conf::save() {
 	//..
 }
 
-
-void new_conf::upgrade(foo_discogs_conf3 &conf2) {
-	replace_ANVs = conf2.replace_ANVs;
-	move_the_at_beginning = conf2.move_the_at_beginning;
-	discard_numeric_suffix = conf2.discard_numeric_suffix;
-
-	match_tracks_using_duration = conf2.match_discogs_tracks;
-
-	album_art_directory_string = conf2.album_art_dir_titleformat;
-	album_art_filename_string = conf2.album_art_file_titleformat;
-	artist_art_directory_string = conf2.artist_art_dir_titleformat;
-
-	save_album_art = conf2.save_album_art;
-	save_artist_art = conf2.save_artist_art;
-	album_art_fetch_all = artist_art_fetch_all = conf2.fetch_all_art;
-	album_art_overwrite = artist_art_overwrite = conf2.overwrite_files;
-
-	display_exact_matches = conf2.display_exact_matches;
-	enable_autosearch = conf2.enable_autosearch;
-
-	display_ANVs = conf2.display_ANVs;
-
-	update_art_flags = conf2.update_art_flags;
-	
-	oauth_token = conf2.oauth_token;
-	oauth_token_secret = conf2.oauth_token_secret;
-
-	find_release_dialog_width = conf2.find_release_dialog_width;
-	find_release_dialog_height = conf2.find_release_dialog_height;
-	release_dialog_width = conf2.release_dialog_width;
-	release_dialog_height = conf2.release_dialog_height;
-}
-
 void init_conf() {
+	
 	if (!CONF.load()) {
-		foo_discogs_conf3 conf3 = cfg_conf3.get_value();
-		if (!conf3.is_nullptr()) {
-			console::print("Upgrading to new conf format.");
-			CONF.upgrade(conf3);
-		}
-		CONF.save();
-		CONF.load();
-	}
-}
-
-
-// OLD CONF
-
-// {4B7524E4-6B72-4D77-BE95-C09043C30EBE}
-static const GUID guid_cfg_conf3 = {0x4b7524e4, 0x6b72, 0x4d77, {0xbe, 0x95, 0xc0, 0x90, 0x43, 0xc3, 0xe, 0xbe}};
-
-cfg_struct_t<foo_discogs_conf3> cfg_conf3(guid_cfg_conf3, foo_discogs_conf3::get_nullptr());
-
-
-foo_discogs_conf3 foo_discogs_conf3::initialize() {
-	log_msg("Initializing conf3.");
-	return foo_discogs_conf3::get_default();
-}
-
-foo_discogs_conf3 foo_discogs_conf3::get_default(const char *oauth_token, const char *oauth_secret) {
-	foo_discogs_conf3 conf;
-
-	conf.conf_version = 160;
-
-	// tagging
-	conf.replace_ANVs = false;
-	conf.move_the_at_beginning = true;
-	conf.discard_numeric_suffix = true;
-
-	conf.double_digits_track_numbers = true;
-	conf.number_each_disc_from_one = true;
-
-	conf.match_discogs_tracks = false;
-	conf.show_length_column = true;
-
-	// album/artist art
-	strcpy_s(conf.album_art_dir_titleformat, "$directory_path(%path%)");
-	strcpy_s(conf.album_art_file_titleformat, "cover");
-	strcpy_s(conf.artist_art_dir_titleformat, "$directory_path(%path%)");
-	strcpy_s(conf.artist_art_file_titleformat, "artist[%DISCOGS_ARTIST_ID%]");
-	conf.display_art = false;
-	conf.save_album_art = false;
-	conf.save_artist_art = false;
-	conf.fetch_all_art = false;
-	conf.use_api_for_images = true;
-	conf.overwrite_files = false;
-
-	// find release dialog
-	conf.display_exact_matches = true;
-	conf.enable_autosearch = false;
-
-	// release dialog
-	conf.write_all_genres = true;
-	conf.write_all_styles = true;
-	conf.display_ANVs = true;
-
-	conf.update_art_flags = UPDATE_ART_ALBUM_BIT;
-	//strcpy_s(conf.va, "");
-
-	// oauth token
-	strcpy_s(conf.oauth_token, "");
-	strcpy_s(conf.oauth_token_secret, "");
-
-	if (oauth_token) {
-		strcpy_s(conf.oauth_token, oauth_token);
-	}
-	if (oauth_secret) {
-		strcpy_s(conf.oauth_token_secret, oauth_secret);
+		PFC_ASSERT(false);
 	}
 
-	return conf;
 }

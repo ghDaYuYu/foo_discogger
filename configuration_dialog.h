@@ -135,8 +135,10 @@ public:
 		//MESSAGE_HANDLER(WM_NOTIFY, OnNotify)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 	MY_END_MSG_MAP()
-
-	CConfigurationDialog(preferences_page_callback::ptr callback) : m_callback(callback) { g_discogs->configuration_dialog = this; }
+	
+	CConfigurationDialog(preferences_page_callback::ptr callback) : m_callback(callback) {
+		g_discogs->configuration_dialog = this;
+	}
 	~CConfigurationDialog();
 	void CConfigurationDialog::OnFinalMessage(HWND /*hWnd*/) override;
 
@@ -148,9 +150,8 @@ public:
 	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCustomAnvChanged(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
-	//LRESULT OnNotify(int idCtrl, LPNMHDR pnmh);
 	LRESULT OnDestroy(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled);
-	
+
 	void OnOAuthPaint();
 
 	HWND token_edit;

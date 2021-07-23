@@ -116,7 +116,8 @@ LRESULT CConfigurationDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 	help_link.SetHyperLink((LPCTSTR)const_cast<wchar_t*>(wtext.get_ptr()));
 
 	g_hWndCurrentTab = g_hWndTabDialog[g_current_tab];
-	::ShowWindow(g_hWndCurrentTab, SW_SHOW);
+	if (g_hWndCurrentTab)
+		::ShowWindow(g_hWndCurrentTab, SW_SHOW);
 
 	return TRUE;
 }
@@ -213,6 +214,17 @@ LRESULT CConfigurationDialog::OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*
 		init_art_dialog(g_hWndTabDialog[CONF_ART_TAB]);
 		init_oauth_dialog(g_hWndTabDialog[CONF_OATH_TAB]);
 	}
+
+	conf.match_discogs_artwork_ra_width = conf.match_discogs_artwork_ra_width;
+	conf.match_discogs_artwork_type_width = conf.match_discogs_artwork_type_width;
+	conf.match_discogs_artwork_dim_width = conf.match_discogs_artwork_dim_width;
+	conf.match_discogs_artwork_save_width = conf.match_discogs_artwork_save_width;
+	conf.match_discogs_artwork_ovr_width = conf.match_discogs_artwork_ovr_width;
+	conf.match_discogs_artwork_embed_width = conf.match_discogs_artwork_embed_width;
+	conf.match_file_artwork_name_width = conf.match_file_artwork_name_width;
+	conf.match_file_artwork_dim_width = conf.match_file_artwork_dim_width;
+	conf.match_file_artwork_size_width = conf.match_file_artwork_size_width;
+
 	return FALSE;
 }
 
@@ -274,6 +286,8 @@ inline void set_window_text(HWND wnd, int IDC, const pfc::string8 &text) {
 void CConfigurationDialog::init_caching_dialog(HWND wnd) {
 	uButton_SetCheck(wnd, IDC_HIDDEN_AS_REGULAR_CHECK, conf.parse_hidden_as_regular);
 	uButton_SetCheck(wnd, IDC_SKIP_VIDEO_TRACKS, conf.skip_video_tracks);
+	uButton_SetCheck(wnd, IDC_CFG_CACHE_USE_OFFLINE_CACHE, conf.cache_use_offline_cache & ol::CacheFlags::OC_READ);
+	uButton_SetCheck(wnd, IDC_CFG_CACHE_WRITE_OFFLINE_CACHE, conf.cache_use_offline_cache & ol::CacheFlags::OC_WRITE);
 	original_parsing = conf.parse_hidden_as_regular;
 	original_skip_video = conf.skip_video_tracks;
 
@@ -352,7 +366,7 @@ void CConfigurationDialog::init_oauth_dialog(HWND wnd) {
 
 void CConfigurationDialog::show_oauth_msg(pfc::string8 msg, bool iserror) {
 	if (g_current_tab != CONF_OATH_TAB)
-		g_discogs->configuration_dialog->show_tab(CONF_OATH_TAB);
+		show_tab(CONF_OATH_TAB);
 
 	HWND wndIconOk = ::uGetDlgItem(g_hWndCurrentTab, IDC_STATIC_OAUTH_ICO_OK);
 	HWND wndIconErr = ::uGetDlgItem(g_hWndCurrentTab, IDC_STATIC_OAUTH_ICO_ERROR);
@@ -403,6 +417,17 @@ void CConfigurationDialog::save_caching_dialog(HWND wnd, bool dlgbind) {
 
 	conf_ptr->parse_hidden_as_regular = uButton_GetCheck(wnd, IDC_HIDDEN_AS_REGULAR_CHECK);
 	conf_ptr->skip_video_tracks = uButton_GetCheck(wnd, IDC_SKIP_VIDEO_TRACKS);
+	
+	if (uButton_GetCheck(wnd, IDC_CFG_CACHE_USE_OFFLINE_CACHE)) 
+		conf_ptr->cache_use_offline_cache |= ol::CacheFlags::OC_READ;
+	else
+		conf_ptr->cache_use_offline_cache &= ~ol::CacheFlags::OC_READ;
+	
+	if (uButton_GetCheck(wnd, IDC_CFG_CACHE_WRITE_OFFLINE_CACHE))
+		conf_ptr->cache_use_offline_cache |= ol::CacheFlags::OC_WRITE;
+	else
+		conf_ptr->cache_use_offline_cache &= ~ol::CacheFlags::OC_WRITE;
+	
 	if (original_parsing != conf_ptr->parse_hidden_as_regular || original_skip_video != conf_ptr->skip_video_tracks) {
 		discogs_interface->reset_release_cache();
 	}
@@ -425,6 +450,7 @@ bool CConfigurationDialog::cfg_caching_has_changed() {
 	bres = bres || conf.parse_hidden_as_regular != conf_dlg_edit.parse_hidden_as_regular;
 	bres = bres || conf.skip_video_tracks != conf_dlg_edit.skip_video_tracks;
 	bres = bres || conf.cache_max_objects != conf_dlg_edit.cache_max_objects;
+	bres = bres || conf.cache_use_offline_cache != conf_dlg_edit.cache_use_offline_cache;
 	return bres;
 }
 

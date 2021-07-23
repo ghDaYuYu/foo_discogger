@@ -106,7 +106,7 @@ inline bool CPreviewTagsDialog::build_current_cfg() {
 	bool local_replace_ANV = IsDlgButtonChecked(IDC_REPLACE_ANV_CHECK);
 	if (CONF.replace_ANVs!= conf.replace_ANVs &&
 		conf.replace_ANVs != local_replace_ANV) {
-		bres = bres || true;
+		bres |= true;
 	}
 
 	//get current ui dimensions
@@ -123,27 +123,52 @@ inline bool CPreviewTagsDialog::build_current_cfg() {
 	//preview mode
 	if (int preview_mode = get_preview_mode(); preview_mode != conf.preview_mode) {
 		conf.preview_mode = preview_mode;
-		bres = bres || true;
+		bres |= true;
 	}
 	
 	//columns
 	if (colwidth1 != conf.preview_tags_dialog_col1_width || colwidth2 != conf.preview_tags_dialog_col2_width) {
 		conf.preview_tags_dialog_col1_width = colwidth1;
 		conf.preview_tags_dialog_col2_width = colwidth2;
-		bres = bres || true;
+		bres |= true;
 	}
 	//dlg size
 	if (dlgheight != conf.preview_tags_dialog_height || dlgwidth != conf.preview_tags_dialog_width) {
 		conf.preview_tags_dialog_width = dlgwidth;
 		conf.preview_tags_dialog_height = dlgheight;
-		bres = bres || true;
+		bres |= true;
 	}
 
 	//show tm stats
 	const bool benabled = uButton_GetCheck(m_hWnd, IDC_CHECK_PREV_DLG_SHOW_STATS);
+
+	if (benabled) {
+		int colw = ListView_GetColumnWidth(GetDlgItem(IDC_PREVIEW_LIST), 2);
+		int colu = ListView_GetColumnWidth(GetDlgItem(IDC_PREVIEW_LIST), 3);
+		int cols = ListView_GetColumnWidth(GetDlgItem(IDC_PREVIEW_LIST), 4);
+		int cole = ListView_GetColumnWidth(GetDlgItem(IDC_PREVIEW_LIST), 5);
+
+		if (conf.preview_tags_dialog_w_width != colw ||
+			conf.preview_tags_dialog_u_width != colu ||
+			conf.preview_tags_dialog_s_width != cols ||
+			conf.preview_tags_dialog_e_width != cole) {
+
+			conf.preview_tags_dialog_w_width = colw;
+			conf.preview_tags_dialog_u_width = colu;
+			conf.preview_tags_dialog_s_width = cols;
+			conf.preview_tags_dialog_e_width = cole;
+
+			bres |= true;
+		}
+	}
+
 	if (benabled != conf.edit_tags_dlg_show_tm_stats) {
 		conf.edit_tags_dlg_show_tm_stats = benabled;
-		bres = bres || true;
+		bres |= true;
+	}
+
+	if (CONF.album_art_skip_default_cust != conf.album_art_skip_default_cust) {
+		bres |= true;
 	}
 
 	return bres;
@@ -158,6 +183,11 @@ LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	conf = CONF;
 	
 	defaultCfgCols(cfg_lv);
+	cfg_lv.colmap.at(2).width = static_cast<float>(conf.preview_tags_dialog_w_width);
+	cfg_lv.colmap.at(3).width = static_cast<float>(conf.preview_tags_dialog_u_width);
+	cfg_lv.colmap.at(4).width = static_cast<float>(conf.preview_tags_dialog_s_width);
+	cfg_lv.colmap.at(5).width = static_cast<float>(conf.preview_tags_dialog_e_width);
+
 
 	tag_results_list = GetDlgItem(IDC_PREVIEW_LIST);
 
@@ -181,8 +211,6 @@ LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 		::ShowWindow(uGetDlgItem(IDCANCEL), true);
 	}
 
-	::SetFocus(GetDlgItem(IDC_WRITE_TAGS_BUTTON));
-
 	initialize();
 
 	DlgResize_Init(true, true);
@@ -193,7 +221,9 @@ LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	if (conf.edit_tags_dlg_show_tm_stats) {
 		//todo: revise hacky
 		uButton_SetCheck(m_hWnd, IDC_CHECK_PREV_DLG_SHOW_STATS, true);
+		
 		BOOL bdummy = false;
+
 		OnCheckPreviewShowStats(0, 0, NULL, bdummy);
 	}
 
@@ -204,9 +234,23 @@ LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	else
 		::SetFocus(GetDlgItem(IDCANCEL));
 
-	::EnableWindow(GetDlgItem(IDC_WRITE_TAGS_BUTTON), tag_writer->will_modify);
+	::EnableWindow(GetDlgItem(IDC_WRITE_TAGS_BUTTON), write_button_enabled);
+
+	bool managed_artwork = !(CONFARTWORK == uartwork(CONF));
+	LPARAM lpskip = conf.album_art_skip_default_cust;
+	int lo = LOWORD(lpskip); int hi = HIWORD(lpskip);
+	bool skip_artwork = ((lo & 8) == 8 || (hi & 8) == 8);
+	uButton_SetCheck(m_hWnd, IDC_CHECK_PREV_DLG_SKIP_ARTWORK, managed_artwork || skip_artwork);
 
 	return TRUE;
+}
+
+bool CPreviewTagsDialog::write_tag_button_enabled() {
+	bool bres;
+	bres = tag_writer->will_modify;
+	bres |= (CONF.save_album_art || CONF.save_artist_art || CONF.embed_album_art || CONF.embed_artist_art);
+	bres |= !(CONFARTWORK == uartwork(CONF));
+	return bres;
 }
 
 bool CPreviewTagsDialog::initialize() {
@@ -220,34 +264,24 @@ bool CPreviewTagsDialog::initialize() {
 
 	// Album art
 	if (tag_writer->release->small_art.get_size() > 0 && (conf.save_album_art || conf.embed_album_art)) {
-		pfc::string8 temp_path, temp_file;
-		uGetTempPath(temp_path);
-		uGetTempFileName(temp_path, "fb2k", 0, temp_file);
 
-		FILE *fd;
-		if (fopen_s(&fd, temp_file.get_ptr(), "wb") != 0) {
-			pfc::string8 msg("can't open ");
-			msg << temp_file;
-			log_msg(msg);
-		}
-		if (fwrite(tag_writer->release->small_art.get_ptr(), tag_writer->release->small_art.get_size(), 1, fd) != 1) {
-			pfc::string8 msg("error writing ");
-			msg << temp_file;
-			log_msg(msg);
-		}
-		fclose(fd);
+		pfc::string8 cache_path_small = Offline::get_thumbnail_cache_path_filenames(
+			tag_writer->release->id, art_src::alb, LVSIL_NORMAL, 0)[0];
 
-		pfc::stringcvt::string_wide_from_ansi tempf(temp_file);
+		extract_native_path(cache_path_small, cache_path_small);
+		pfc::stringcvt::string_wide_from_ansi tempf(cache_path_small);
 		Bitmap bm(tempf);
 		HBITMAP hBm;
 		if (bm.GetHBITMAP(Color::Black, &hBm) == Ok) {
 			uSendDlgItemMessage(IDC_ALBUM_ART, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hBm);
+			BOOL res = DeleteObject(hBm);
 		}
 		else {
 			log_msg("GdiPlus error (GetHBITMAP)");
 		}
 	}
 	insert_tag_results(true);
+	enable(true, true);
 	return true;
 }
 void CPreviewTagsDialog::reset_tag_result_stats() {
@@ -531,6 +565,24 @@ LRESULT CPreviewTagsDialog::OnCheckTrackMap(WORD /*wNotifyCode*/, WORD wID, HWND
 		//TODO: tmp (1/2) fix empty v23 stats when Track map is on
 		compute_stats(tag_writer->tag_results);
 	}
+	return FALSE;
+}
+LRESULT CPreviewTagsDialog::OnCheckSkipArtwork(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+	
+	bool state = IsDlgButtonChecked(IDC_CHECK_PREV_DLG_SKIP_ARTWORK);
+	LPARAM param = conf.album_art_skip_default_cust;
+	int lo = LOWORD(param);
+	int hi = HIWORD(param);
+
+	if (state) {
+		
+		lo |= 8;
+	}
+	else {
+		lo &= ~8;
+	}
+	conf.album_art_skip_default_cust = MAKELPARAM(lo, hi);
+
 	return FALSE;
 }
 
@@ -906,7 +958,8 @@ LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam, BOOL& bHand
 	case CDDS_PREPAINT: {
 		//TODO: create EnableEx(true | false | noresult)
 		auto ctrl = uGetDlgItem(IDC_WRITE_TAGS_BUTTON);
-		ctrl.EnableWindow(tag_writer->will_modify);
+		ctrl.EnableWindow(write_tag_button_enabled());
+		//ctrl.EnableWindow(tag_writer->will_modify);
 		ctrl = uGetDlgItem(IDC_REPLACE_ANV_CHECK);
 		ctrl.EnableWindow(bresults && tag_writer->release->has_anv());
 		ctrl = uGetDlgItem(IDC_CHECK_PREV_DLG_DIFF_TRACKS);

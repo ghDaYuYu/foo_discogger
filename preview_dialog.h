@@ -122,7 +122,7 @@ public:
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
 		COMMAND_ID_HANDLER(IDC_SKIP_BUTTON, OnMultiSkip)
 		COMMAND_ID_HANDLER(IDC_REPLACE_ANV_CHECK, OnCheckReplaceANVs)
-		COMMAND_ID_HANDLER(IDC_CHECK_PREV_DLG_DIFF_TRACKS, OnCheckTrackMap)
+		COMMAND_ID_HANDLER(IDC_CHECK_PREV_DLG_SKIP_ARTWORK, OnCheckSkipArtwork)
 		COMMAND_ID_HANDLER(IDC_CHECK_PREV_DLG_SHOW_STATS, OnCheckPreviewShowStats)
 		COMMAND_ID_HANDLER(IDC_EDIT_TAG_MAPPINGS_BUTTON, OnEditTagMappings)
 		COMMAND_ID_HANDLER(IDC_VIEW_NORMAL, OnChangePreviewMode)
@@ -140,7 +140,7 @@ public:
 			DLGRESIZE_CONTROL(IDC_ALBUM_ART, DLSZ_MOVE_X)
 			DLGRESIZE_CONTROL(IDC_OPTIONS_GROUP, DLSZ_MOVE_X)
 			DLGRESIZE_CONTROL(IDC_REPLACE_ANV_CHECK, DLSZ_MOVE_X)
-			DLGRESIZE_CONTROL(IDC_CHECK_PREV_DLG_DIFF_TRACKS, DLSZ_MOVE_X)
+			DLGRESIZE_CONTROL(IDC_CHECK_PREV_DLG_SKIP_ARTWORK, DLSZ_MOVE_X)
 			DLGRESIZE_CONTROL(IDC_CHECK_PREV_DLG_SHOW_STATS, DLSZ_MOVE_X)
 			DLGRESIZE_CONTROL(IDC_VIEW_GROUP, DLSZ_MOVE_X)
 			DLGRESIZE_CONTROL(IDC_VIEW_NORMAL, DLSZ_MOVE_X)
@@ -165,11 +165,15 @@ public:
 			CDialogResize<CPreviewTagsDialog>::DlgResize_UpdateLayout(cxWidth, cyHeight);
 		}
 
-		CPreviewTagsDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags) : tag_writer(tag_writer), use_update_tags(use_update_tags) {
+		CPreviewTagsDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags)
+			: tag_writer(tag_writer), tag_results_list(NULL), use_update_tags(use_update_tags) {
+
 			g_discogs->preview_tags_dialog = this;
 			Create(p_parent);
 		}
-		CPreviewTagsDialog(HWND p_parent, pfc::array_t<TagWriter_ptr> tag_writers, bool use_update_tags) : tag_writers(tag_writers), use_update_tags(use_update_tags), multi_mode(true) {
+		CPreviewTagsDialog(HWND p_parent, pfc::array_t<TagWriter_ptr> tag_writers, bool use_update_tags)
+			: tag_writers(tag_writers), tag_results_list(NULL), use_update_tags(use_update_tags), multi_mode(true) {
+
 			g_discogs->preview_tags_dialog = this;
 			if (init_count()) {
 				Create(p_parent);
@@ -190,6 +194,7 @@ public:
 		LRESULT OnBack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 		LRESULT OnCheckReplaceANVs(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 		LRESULT OnCheckTrackMap(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+		LRESULT OnCheckSkipArtwork(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 		LRESULT OnCheckPreviewShowStats(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 		LRESULT OnEditTagMappings(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 		LRESULT OnChangePreviewMode(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
@@ -205,6 +210,7 @@ public:
 		void cb_generate_tags();
 		void enable(bool v) override { enable(v, true); };
 		void enable(bool v, bool change_focus);
+		bool write_tag_button_enabled();
 		void destroy_all();
 		void go_back();
 };

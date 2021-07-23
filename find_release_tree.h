@@ -80,7 +80,11 @@ public:
 		m_cache_ptr = cached;
 	}
 	void SetVec(std::shared_ptr<vec_t>& vec_items, const id_tracer _idtracer) {
+		
+		m_dispinfo_enabled = false;
 		TreeView_DeleteAllItems(p_treeview);
+		m_dispinfo_enabled = true;
+
 		m_vec_ptr = vec_items;
 		m_idtracer = _idtracer;
 
@@ -150,22 +154,7 @@ public:
 	END_MSG_MAP()
 private:
 
-	BOOL OnInitDialog(CWindow, LPARAM) {
-
-		TreeView_SetExtendedStyle(p_treeview,	
-			WS_VISIBLE | WS_TABSTOP | TVS_EX_DOUBLEBUFFER | WS_CHILD | TVS_DISABLEDRAGDROP |
-			TVS_HASBUTTONS | TVS_FULLROWSELECT |
-			TVS_EX_FADEINOUTEXPANDOS
-			,
-			WS_VISIBLE | WS_TABSTOP | TVS_EX_DOUBLEBUFFER | WS_CHILD | TVS_DISABLEDRAGDROP |
-			TVS_HASBUTTONS | TVS_FULLROWSELECT |
-			TVS_EX_FADEINOUTEXPANDOS
-		);
-		return TRUE;
-	}
-	
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
-		int debug = 0;
 		return FALSE;
 	}
 

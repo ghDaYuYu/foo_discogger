@@ -1,8 +1,14 @@
 ﻿#pragma once
 #include <filesystem>
+#include "jansson/jansson.h"
+
+#include "track_matching_utils.h"
 
 namespace Offline {
-	const pfc::string8 CHECK_NAME = "taskreg.txt";
+	const pfc::string8 MARK_LOADING_NAME = "loading";
+	const pfc::string8 MARK_CHECK_NAME = "taskreg.txt";
+	const pfc::string8 OC_NAME = "offline-cache";
+
 	enum CacheFlags {
 		OC_READ = 1 << 0,
 		OC_WRITE = 1 << 1,
@@ -14,21 +20,74 @@ namespace Offline {
 		OC_7 = 1 << 7
 	};
 
-	static pfc::string8 GetReleasePath(pfc::string8 id, bool native) {
-		pfc::string8 foo_path(core_api::pathInProfile("user-components\\foo_discogs"));
+	static pfc::string8 GetArtistReleasesPath(pfc::string8 id, bool native) {
+
+		const char* dll_name = core_api::get_my_file_name();
+		pfc::string8 foo_path(core_api::pathInProfile("user-components\\") << dll_name);
+		
 		if (native) {
 			pfc::string8 path_non_native(foo_path);
 			extract_native_path(path_non_native, foo_path);
 		}
-		pfc::string8 release_path(foo_path); release_path << "\\OC\\" << id << "\\releases";
+		pfc::string8 release_path(foo_path); release_path << "\\" << OC_NAME << "\\artists\\" << id << "\\releases";
 		return release_path;
 	}
 
+
+	static pfc::string8 get_thumbnail_cache_path(pfc::string8 id, art_src artSrc) {
+
+		const char* dll_name = core_api::get_my_file_name();
+		pfc::string8 foo_path(core_api::pathInProfile("user-components\\") << dll_name);
+		
+		pfc::string8 release_path(foo_path);
+		release_path << "\\" << OC_NAME << "\\thumbnails\\";
+		release_path << (artSrc == art_src::alb ? "releases" :	artSrc == art_src::art ? "artists" : "unknown") << "\\" << id;
+		
+		return release_path;
+	}
+
+	static pfc::array_t<pfc::string8> get_thumbnail_cache_path_filenames(pfc::string8 id, art_src artSrc, size_t iImageList, size_t ndx = pfc_infinite) {
+		pfc::string8 path_native;
+		pfc::stringcvt::string_wide_from_utf8 wpath;
+
+		pfc::array_t<pfc::string8> folders;
+		pfc::array_t<pfc::string8> directories;
+		pfc::array_t<pfc::string8> filenames;
+
+		pfc::string8 rel_path = get_thumbnail_cache_path(id, artSrc);
+		pfc::string8 full_path(rel_path);
+		full_path << "\\thumb_" << (iImageList == LVSIL_NORMAL ? "150x150" : "48x48") << "_";
+		
+		if (ndx == pfc_infinite) {
+			filenames.append_single(full_path);
+			return filenames;
+		}
+		full_path << ndx << ".jpg";
+		
+		abort_callback_dummy dummy_abort;
+		try {
+			listFiles(rel_path, folders, dummy_abort);
+		}
+		catch (...) {
+			return filenames;
+		}
+
+		for (t_size walk = 0; walk < folders.get_size(); ++walk) {
+			pfc::string8 tmp(folders[walk]);
+
+			if (stricmp_utf8(tmp, full_path) == 0)
+				filenames.append_single(tmp);
+		}
+		return filenames;
+	}
+
+
 	static pfc::string8 GetReleasePagePath(pfc::string8 id, size_t page, bool native) {
-		pfc::string8 release_page_path(GetReleasePath(id, native));
+		pfc::string8 release_page_path(GetArtistReleasesPath(id, native));
 		release_page_path << "\\page-";
 		if (page != pfc_infinite)
 			release_page_path << page;
+		
 		return release_page_path;
 	}
 
@@ -37,10 +96,10 @@ namespace Offline {
 		pfc::stringcvt::string_wide_from_utf8 wpath;
 		pfc::array_t<pfc::string8> folders;
 		pfc::array_t<pfc::string8> pagepaths;
-		
-		pfc::string8 rel_path = GetReleasePath(id, false);
+
+		pfc::string8 rel_path = GetArtistReleasesPath(id, false);
+					
 		abort_callback_dummy dummy_abort;
-		
 		try {
 			listDirectories(rel_path, folders, dummy_abort);
 		}
@@ -62,7 +121,7 @@ namespace Offline {
 	bool static MarkDownload(pfc::string8 fcontent, pfc::string8 path, bool done) {
 		bool bok = false;
 		if (!done) {
-			FILE* f = fopen(path << "\\Loading", "ab+");
+			FILE* f = fopen(path << "\\" << MARK_LOADING_NAME, "ab+");
 			if (f) {
 				if (fwrite(fcontent.get_ptr(), fcontent.get_length(), 1, f) != 1)
 					bok |= false;
@@ -71,8 +130,8 @@ namespace Offline {
 			bok |= f && (fclose(f) == 0);
 		}
 		else {
-			pfc::string8 oldname(path); oldname << "\\Loading";
-			pfc::string8 newname(path); newname << "\\" << CHECK_NAME;
+			pfc::string8 oldname(path); oldname << "\\" << MARK_LOADING_NAME;
+			pfc::string8 newname(path); newname << "\\" << MARK_CHECK_NAME;
 			bok |= (rename(oldname, newname) == 0);
 		}
 
@@ -80,22 +139,37 @@ namespace Offline {
 	}
 
 	bool static CheckDownload(pfc::string8 path) {
-		bool bok = false;
+		
+		path << "\\" << MARK_CHECK_NAME;
+
+		//check codepage
+		char converted[MAX_PATH - 1];
+		pfc::stringcvt::string_os_from_utf8 cvt(path);
+		wcstombs(converted, cvt.get_ptr(), MAX_PATH - 1);
+
 		struct stat stat_buf;
-		int stat_result = stat(path << "\\" << CHECK_NAME, &stat_buf);
+		int stat_result = stat(converted, &stat_buf);
 		int src_length = stat_buf.st_size;
+
 		return (stat_result == -1 || src_length == 0);
 	}
 
-	bool static CreateReleasePath(pfc::string8 id, size_t subpage) {
+	bool static CreateOfflinePath(pfc::string8 id, art_src artSrc, size_t subpage, bool thumbs = false) {
 
 		pfc::string8 rel_path;
-		if (subpage == pfc_infinite)
-			rel_path = GetReleasePath(id, true);
+		if (subpage == pfc_infinite) {		
+			if (!thumbs)
+				rel_path = GetArtistReleasesPath(id, true);
+			else {
+				pfc::string8 temp_native;
+				rel_path = get_thumbnail_cache_path(id, artSrc);
+				extract_native_path(rel_path, temp_native);
+				rel_path = temp_native;
+			}
+		}
 		else
 			rel_path = GetReleasePagePath(id, subpage, true);
-
-		
+	
 		pfc::stringcvt::string_wide_from_utf8 wpath;
 		std::filesystem::path fspath;
 		wpath = rel_path.get_ptr();
@@ -120,8 +194,6 @@ namespace Offline {
 
 		ol_cache(size_t max_size) :
 			_max_size(max_size) {
-
-			m_offlinepath = ".\\offlinecache";
 		}
 
 		void FDumpf(json_t* root) {
@@ -133,7 +205,7 @@ namespace Offline {
 			bfileempty = (stat_result == -1 || src_length == 0);
 
 			bool badded = true;
-			int flags = 0;
+			int flags = 0; 
 			FILE* fOut = fopen(strfile_out, stat_result == -1 ? "wb+" : "ab+");
 			
 			int result = json_dumpf(root, fOut, flags);

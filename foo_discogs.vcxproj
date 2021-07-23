@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -157,7 +157,9 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="conf.cpp" />
     <ClCompile Include="configuration_dialog.cpp" />
+    <ClCompile Include="discogs.cpp" />
     <ClCompile Include="discogs_interface.cpp" />
     <ClCompile Include="entities.cpp" />
     <ClCompile Include="fetcher.cpp" />
@@ -175,23 +177,30 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="track_matching_dialog.cpp" />
+    <ClCompile Include="preview_dialog.cpp" />
+    <ClCompile Include="prompt_dialog.cpp" />
     <ClCompile Include="string_encoded_array.cpp" />
     <ClCompile Include="tags.cpp" />
+    <ClCompile Include="tag_mappings_dialog.cpp" />
     <ClCompile Include="tag_writer.cpp" />
     <ClCompile Include="tasks.cpp" />
+    <ClCompile Include="track_matching_dialog.cpp" />
+    <ClCompile Include="track_matching_dialog_presenter.cpp" />
+    <ClCompile Include="track_matching_lv_helpers.cpp" />
+    <ClCompile Include="track_matching_utils.cpp" />
+    <ClCompile Include="track_match_lstdrop.cpp" />
     <ClCompile Include="update_art_dialog.cpp" />
     <ClCompile Include="update_tags_dialog.cpp" />
     <ClCompile Include="utils.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="foo_discogs.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="art_helpers.h" />
+    <ClInclude Include="art_download_attribs.h" />
     <ClInclude Include="cache.h" />
+    <ClInclude Include="ceditwithbuttonsdim.h" />
+    <ClInclude Include="CGdiPlusBitmap.h" />
+    <ClInclude Include="conf.h" />
     <ClInclude Include="configuration_dialog.h" />
-    <ClInclude Include="contextmenu_item_discogs.h" />
+    <ClInclude Include="discogs.h" />
     <ClInclude Include="discogs_interface.h" />
     <ClInclude Include="entities.h" />
     <ClInclude Include="error_manager.h" />
@@ -200,23 +209,28 @@
     <ClInclude Include="fetcher.h" />
     <ClInclude Include="file_info_manager.h" />
     <ClInclude Include="find_release_dialog.h" />
+    <ClInclude Include="find_release_tree.h" />
+    <ClInclude Include="find_release_utils.h" />
     <ClInclude Include="foo_discogs.h" />
-    <ClInclude Include="discogs.h" />
     <ClInclude Include="formatting_script.h" />
     <ClInclude Include="json_helpers.h" />
     <ClInclude Include="multiformat.h" />
-    <ClInclude Include="conf.h" />
+    <ClInclude Include="ol_cache.h" />
     <ClInclude Include="preview_dialog.h" />
     <ClInclude Include="prompt_dialog.h" />
-    <ClInclude Include="sdk_helpers.h" />
-    <ClInclude Include="tag_mappings_dialog.h" />
-    <ClInclude Include="track_matching_dialog.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="sdk_helpers.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="string_encoded_array.h" />
     <ClInclude Include="tags.h" />
+    <ClInclude Include="tag_mappings_dialog.h" />
     <ClInclude Include="tag_writer.h" />
     <ClInclude Include="tasks.h" />
+    <ClInclude Include="track_matching_dialog.h" />
+    <ClInclude Include="track_matching_dialog_presenter.h" />
+    <ClInclude Include="track_matching_lv_helpers.h" />
+    <ClInclude Include="track_matching_utils.h" />
+    <ClInclude Include="track_match_lstdrop.h" />
     <ClInclude Include="update_art_dialog.h" />
     <ClInclude Include="update_tags_dialog.h" />
     <ClInclude Include="utils.h" />

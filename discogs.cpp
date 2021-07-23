@@ -600,6 +600,8 @@ Image_ptr Discogs::parseImage(json_t *element) {
 	image->type = JSONAttributeString(element, "type");
 	image->url = JSONAttributeString(element, "resource_url");
 	image->url150 = JSONAttributeString(element, "uri150");
+	image->width = JSONAttributeString(element, "width");
+	image->height = JSONAttributeString(element, "height");
 	return std::move(image);
 }
 

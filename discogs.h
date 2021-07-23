@@ -29,6 +29,8 @@ namespace Discogs
 		pfc::string8 type; // "primary" or "secondary"
 		pfc::string8 url;
 		pfc::string8 url150;
+		pfc::string8 width;
+		pfc::string8 height;
 
 		string_encoded_array get_type() const {
 			return type;
@@ -41,12 +43,20 @@ namespace Discogs
 		string_encoded_array get_thumbnail_url() const {
 			return url150;
 		}
+		string_encoded_array get_width() const {
+			return width;
+		}
+		string_encoded_array get_height() const {
+			return height;
+		}
 
 		static ExposedMap<ExpTagsImage> create_tags_map() {
 			ExposedMap<ExpTagsImage> m;
 			m["TYPE"] = { &ExpTagsImage::get_type, &ExpTagsImage::load };
 			m["URL"] = { &ExpTagsImage::get_url, &ExpTagsImage::load };
 			m["THUMBNAIL_URL"] = { &ExpTagsImage::get_thumbnail_url, &ExpTagsImage::load };
+			m["WIDTH"] = { &ExpTagsImage::get_width, &ExpTagsImage::load };
+			m["HEIGHT"] = { &ExpTagsImage::get_height, &ExpTagsImage::load };
 			return m;
 		}
 	};

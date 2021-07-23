@@ -2,26 +2,6 @@
 
 #include "track_matching_lv_helpers.h"
 
-	pfc::string8 duration_to_str(int seconds) {
-		int hours = seconds / 3600;
-		seconds %= 3600;
-		int minutes = seconds / 60;
-		seconds = seconds % 60;
-		pfc::string8 result = "";
-		if (hours) {
-			result << hours << ":";
-		}
-		if (hours && minutes < 10) {
-			result << "0";
-		}
-		result << minutes << ":";
-		if (seconds < 10) {
-			result << "0";
-		}
-		result << seconds;
-		return result;
-	}
-
 	void list_swap_items(HWND list, unsigned int pos1, unsigned int pos2) {
 		const unsigned LOCAL_BUFFER_SIZE = 4096;
 		LVITEM lvi1, lvi2;

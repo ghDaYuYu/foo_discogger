@@ -53,18 +53,21 @@ bool new_conf::load() {
 	vspec vLoad = { nullptr, cfg_bool_entries.get_count(),
 		cfg_int_entries.get_count(), cfg_string_entries.get_count() };
 
-	if (!(vLoad == v000) && vLoad > *vlast) {
-		//version not found
-		//safety reset
-		vLoad = *vlast;
-		pfc::string8 title;
-		title << "Configuration Reset";
-		pfc::string8 msg("This version of foo_discogs is not compatible with the current setup.\n");
-		msg << "Configuration will be reset.\n",
-		msg << "Please backup your configuration file before continuing.\n",
-
-		uMessageBox(core_api::get_main_window(), msg, title,
-			MB_APPLMODAL | MB_ICONASTERISK);
+	if (vLoad == v000) {
+		save();
+		return true;
+	}
+	else {
+		if (vLoad > * vlast) {
+			//unknown config version... safety reset
+			vLoad = *vlast;
+			pfc::string8 title;
+			title << "Configuration Reset";
+			pfc::string8 msg("This version of foo_discogs_mod is not compatible with the current setup.\n");
+			msg << "Configuration will be reset.\n";
+			uMessageBox(core_api::get_main_window(), msg, title, MB_APPLMODAL | MB_ICONASTERISK);
+			forceupdate = true;
+		}
 	}
 
 	for (unsigned int i = 0; i < cfg_bool_entries.get_count(); i++) {
@@ -336,6 +339,10 @@ bool new_conf::load() {
 	if (vLoad < v200) {
 		//CONF_FILTER_PREVIEW
 		cfg_string_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_HL_KEYWORD, edit_tags_dlg_hl_keyword));
+	}
+
+	if (forceupdate) {
+		save();
 	}
 
 	return changed;

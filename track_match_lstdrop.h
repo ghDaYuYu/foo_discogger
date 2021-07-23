@@ -7,7 +7,7 @@
 #include "../SDK/foobar2000.h"
 #include "LibPPUI\PaintUtils.h"
 
-#include "foo_discogs.h"
+#include "track_matching_dialog_presenter.h"
 #include "resource.h"
 
 using namespace Discogs;
@@ -16,16 +16,15 @@ class MatchListDropHandler : public CWindowImpl<MatchListDropHandler> {
 
 private:
 
-	HWND p_parent; HWND track_list; HWND file_list;
+	HWND p_parent;
 
 public:
 
-	MatchListDropHandler() {}
-	MatchListDropHandler(HWND p_parent, HWND track_list, HWND file_list) :
-		p_parent(p_parent), track_list(track_list), file_list(file_list) {
+	MatchListDropHandler() : p_parent(NULL) {}
+	MatchListDropHandler(HWND p_parent) :
+		p_parent(p_parent) {
 
 		stdf_change_notifier = nullptr;
-
 	}
 
 	MatchListDropHandler::~MatchListDropHandler() {
@@ -37,11 +36,21 @@ public:
 
 	// Initialization on dialog parent OnInitDialog()
 
-	void Initialize(HWND wnd_parent, HWND wnd_discogs, HWND wnd_files) {
+	void Initialize(HWND wnd_parent, HWND wnd_discogs, HWND wnd_files,
+		coord_presenters* coord_pres) {
 		m_hWnd = wnd_parent;
 		m_discogs_track_list = wnd_discogs;
 		m_file_list = wnd_files;
+		m_coord = coord_pres;
 		m_rcPastLastItemSet = false;
+
+		m_color_highlight = GetSysColor(COLOR_HIGHLIGHT); //(0,120,215)
+		m_color_background = GetSysColor(COLOR_WINDOW); //255,255,255
+		m_color_text = GetSysColor(COLOR_WINDOWTEXT);
+		m_color_blend = PaintUtils::BlendColor(m_color_background, m_color_text, 33);
+		m_colors[0] = m_color_blend;
+		m_colors[1] = m_color_text;
+		m_colors[2] = m_color_highlight;
 	}
 
 	void SetNotifier(std::function<bool(HWND)>update_notifier) {
@@ -64,6 +73,7 @@ protected:
 
 	HWND m_discogs_track_list;
 	HWND m_file_list;
+	coord_presenters* m_coord;
 	bool m_bDragging;
 	HWND m_listDragging;
 	int m_itemDragging;
@@ -72,6 +82,13 @@ protected:
 	RECT m_rcPastLastItem;
 	bool m_rcPastLastItemSet;
 
+	COLORREF m_color_highlight;
+	COLORREF m_color_background;
+	COLORREF m_color_text;
+	COLORREF m_color_blend;
+	COLORREF m_color_target = 0xC8C8C8;
+	t_uint32 m_colors[3];
+	
 	HWND ListControlHitTest(const POINT scrpoint) {
 		HWND wndres = NULL;
 		CRect rc;
@@ -90,103 +107,27 @@ protected:
 		return wndres;
 	}
 
-	LRESULT OnCustomDraw(int wParam, LPNMHDR lParam, BOOL bHandled) {
-
-		LPNMLVCUSTOMDRAW lplvcd = (LPNMLVCUSTOMDRAW)lParam;
-		int pos = (int)lplvcd->nmcd.dwItemSpec;
-
-		switch (lplvcd->nmcd.dwDrawStage) {
-
-		case CDDS_PREPAINT: //{
-			//request notifications for individual listview items
-			return CDRF_NOTIFYITEMDRAW;
-
-		case CDDS_ITEMPREPAINT: {
-
-			//if (!m_rcPastLastItemSet) {
-			POINT pt;
-			GetCursorPos(&pt);
-			HWND wndlist = ListControlHitTest(pt);
-			CPoint pi(lplvcd->nmcd.rc.left, lplvcd->nmcd.rc.bottom);
-			::ClientToScreen(m_hWnd, &pi);
-
-			int count = ListView_GetItemCount(wndlist);
-			if (lplvcd->nmcd.dwItemSpec == count - 1) {
-				int h = lplvcd->nmcd.rc.bottom - lplvcd->nmcd.rc.top;
-				m_rcPastLastItem = CRect(CPoint(lplvcd->nmcd.rc.left, lplvcd->nmcd.rc.top + h), CPoint(lplvcd->nmcd.rc.right, lplvcd->nmcd.rc.bottom + h));
-				//m_rcPastLastItemSet = true;
-			}
-			//}  
-
-
-			if (lplvcd->nmcd.dwItemSpec == m_itemTarget)
-			{
-				//customize item appearance
-				PaintUtils::FillRectSimple(lplvcd->nmcd.hdc, lplvcd->nmcd.rc, RGB(100, 100, 100));
-				//lplvcd->clrText = RGB(255, 0, 0);
-				lplvcd->clrTextBk = RGB(200, 200, 200);
-				return CDRF_NEWFONT;
-			}
-			else {
-				PaintUtils::FillRectSimple(lplvcd->nmcd.hdc, lplvcd->nmcd.rc, RGB(255, 255, 255));
-				//lplvcd->clrText = RGB(0, 0, 255);
-				lplvcd->clrTextBk = RGB(255, 255, 255);
-				return CDRF_NEWFONT;
-			}
-			break;
-		}
-		//Before a subitem is drawn
-
-		case CDDS_SUBITEM | CDDS_ITEMPREPAINT:
-			if (m_itemDragging == (int)lplvcd->nmcd.dwItemSpec)
-			{
-				if (0 == lplvcd->iSubItem)
-				{
-					//customize subitem appearance for column 0
-					//lplvcd->clrText = RGB(255, 0, 0);
-					lplvcd->clrTextBk = RGB(255, 255, 255);
-
-					//To set a custom font:
-					//SelectObject(lplvcd->nmcd.hdc, 
-					//    <your custom HFONT>);
-
-					return CDRF_NEWFONT;
-				}
-				else if (1 == lplvcd->iSubItem)
-				{
-					//customize subitem appearance for columns 1..n
-					//Note: setting for column i 
-					//carries over to columnn i+1 unless
-					//      it is explicitly reset
-					//lplvcd->clrTextBk = RGB(255, 0, 0);
-					lplvcd->clrTextBk = RGB(255, 255, 255);
-
-					return CDRF_NEWFONT;
-				}
-			}
-		}
-		return CDRF_DODEFAULT;
+	bool IsTile(HWND hwnd) {
+		DWORD dwView = ListView_GetView(hwnd);
+		bool dbug = (dwView == LV_VIEW_TILE);
+		return (dwView == LV_VIEW_TILE);
 	}
 
+
+	LRESULT OnCustomDraw(int wParam, LPNMHDR lParam, BOOL bHandled);
 	LRESULT OnListLButtonUp(int wParam, LPNMHDR lParam, BOOL bHandled) {
-
+		//do not return from this function without ZapCapture()
 		bool bres = false;
-
 		if (m_bDragging) {
-
 			BOOL bres = false;
-
 			//GetClipCursor / GetClientRect / ClipCursor
 			POINT pt;
 			GetCursorPos(&pt);
 			HWND wndlist = ListControlHitTest(pt);
-
 			if (wndlist != NULL)
 			{
-
 				if (wndlist != m_listDragging) {
 					//dropping to another list not allowed
-
 					LVITEM lvi;
 					ZeroMemory(&lvi, sizeof(lvi));
 					lvi.mask = LVIF_STATE;
@@ -196,9 +137,12 @@ protected:
 					lvi.mask = LVIF_STATE;
 					lvi.stateMask = LVIS_SELECTED;
 					::SendMessage(m_file_list, LVM_SETITEMSTATE, (WPARAM)-1, (LPARAM)&lvi);
-
 					ZapCapture();
 				}
+
+				//... not our lists (HWND wnd = ((LPNMHDR)lParam)->hwndFrom;)
+				//... not our x (LOWORD(lParam))
+				//... not our y (HIWORD(lParam))
 
 				NMITEMACTIVATE* info = reinterpret_cast<NMITEMACTIVATE*>(lParam);
 
@@ -220,7 +164,6 @@ protected:
 				// Out of the ListView? // Not in an item?
 				if (!bPastLast && ((lvhti.iItem == -1) || (((lvhti.flags & LVHT_ONITEMLABEL) == 0) &&
 					((lvhti.flags & LVHT_ONITEMSTATEICON) == 0)))) {
-
 					bres = FALSE;
 				}
 				else
@@ -234,15 +177,18 @@ protected:
 					ListView_GetItem(wndlist, &lvi);
 
 					if (lvi.state & LVIS_SELECTED) {
-
 						bres = FALSE;
 					}
 					else
-					{ // OK
+					{ // OK				
+						std::vector<size_t> vorder(ListView_GetItemCount(wndlist));
+						size_t c = 0;	for (auto & walk : vorder) {	walk = c; c++;	}
 						// Rearrange the items
 						int iPos = ListView_GetNextItem(wndlist, -1, LVNI_SELECTED);
 						int cSel = ListView_GetSelectedCount(wndlist);
 						TCHAR szbuf[1024];
+						size_t lastPos = ~0; size_t moveForwards = 0; size_t deletions = 0;
+						bool fwd = iPos < m_itemTarget;
 						while (iPos != -1) {
 							// First, copy one item
 							lvi.iItem = iPos;
@@ -256,22 +202,34 @@ protected:
 							lvi.iItem = bPastLast ? lcount : lvhti.iItem;
 							// Insert the main item
 							int iRet = ListView_InsertItem(wndlist, &lvi);
+
+							vorder.insert(vorder.begin() + (iRet), vorder[iPos]); // .insert(vorder.begin() + bPastLast ? lcount : lvhti.iItem, 3);
+	
 							if (lvi.iItem < iPos)
 								lvhti.iItem++;
 							if (iRet <= iPos)
 								iPos++;
 							// Set the subitem text
 							int JOB_WIN_COLUMN_NUM = 2;
-							for (int i = 1; i < JOB_WIN_COLUMN_NUM; i++) {
-								ListView_GetItemText(wndlist, iPos,
-									i, szbuf, 1024);
-								ListView_SetItemText(wndlist, iRet, i, szbuf);
-							}
 							// Delete from original position
 							ListView_DeleteItem(wndlist, iPos);
+
+							vorder.erase(vorder.begin() + iPos);
+							deletions++;
 							iPos = ListView_GetNextItem(wndlist, -1, LVNI_SELECTED);
 						}
+						pfc::array_t<size_t> order; order.resize(vorder.size());
+						for (size_t i = 0; i < order.size(); i++) { order[i] = vorder[i]; }
 
+						m_coord->reorder_map_elements(wndlist, &order[0], order.size(), lsmode::art);
+
+						for (size_t walk = 0; walk < order.size(); walk++) {
+							ListView_SetItemState(wndlist, walk,
+								~(LVNI_SELECTED | LVNI_FOCUSED),
+								LVIS_SELECTED | LVIS_FOCUSED);
+						}
+
+						ListView_RedrawItems(wndlist, 0, ListView_GetItemCount(wndlist));
 						bres = TRUE;
 
 						//Reselect and focus
@@ -293,13 +251,11 @@ protected:
 				// no reason to be here
 				// trying to drag on other controls?
 			}
-            //,,
 		}
 		else {
 			// no reason be here if Dragging was inactive
 		}
-		
-        // RELEASE CAPTURE
+
 		ZapCapture();
 		return bres;
 	}
@@ -313,12 +269,11 @@ protected:
 		GetCursorPos(&pt);
 
 		HWND wndlist = ListControlHitTest(pt);
+		HWND wl = uGetDlgItem(IDC_DISCOGS_TRACK_LIST);
 
 		if (wndlist != NULL)
 		{
-
 			LVHITTESTINFO lvhti;
-
 			// Determine the target item
 			lvhti.pt.x = pt.x;
 			lvhti.pt.y = pt.y;
@@ -331,7 +286,6 @@ protected:
 				m_itemTarget = -1;
 				return FALSE;
 			}
-
 			// Not in an item?
 			if (((lvhti.flags & LVHT_ONITEMLABEL) == 0) &&
 				((lvhti.flags & LVHT_ONITEMSTATEICON) == 0))
@@ -339,52 +293,30 @@ protected:
 				m_itemTarget = -1;
 				return FALSE;
 			}
-
 			if (m_itemTarget != lvhti.iItem) {
 				m_itemTarget = lvhti.iItem;
-				CRect lrc;
-				CRgn updateRgn; updateRgn.CreateRectRgn(0, 0, 0, 0);
-				::GetClientRect(wndlist, &lrc);
-				::RedrawWindow(wndlist, lrc, updateRgn, RDW_UPDATENOW);
+
+				::RedrawWindow(wndlist, lrc, updateRgn, RDW_UPDATENOW);*/
+				ListView_RedrawItems(wndlist, 0, ListView_GetItemCount(wndlist));
 			}
-
-			m_itemTarget = lvhti.iItem;
 			m_bDragging = true;
-
 			ListView_SetItemState(wndlist, m_itemTarget, /*LVIS_SELECTED |*/ LVIS_FOCUSED, LVIS_FOCUSED);
-
-			/*CRect arc;
-			::GetWindowRect(wndlist, &arc);
-			::InvalidateRect(wndlist, arc, true);*/
-
-			CRect lrc;
-			::GetClientRect(wndlist, &lrc);
-			CRgn updateRgn; updateRgn.CreateRectRgn(0, 0, lrc.right, lrc.bottom);
-			::RedrawWindow(wndlist, lrc, updateRgn, RDW_UPDATENOW);
-
 		}
-
 		return TRUE;
 	}
 
 	LRESULT OnListDragBegin(int wParam, LPNMHDR lParam, BOOL bHandled) {
-
-		//HWND wnd = ((LPNMHDR)lParam)->hwndFrom;
-		//((NM_LISTVIEW*)((LPNMHDR)lParam))->ptAction;
-
 		NMITEMACTIVATE* info = reinterpret_cast<NMITEMACTIVATE*>(lParam);
-
 		POINT coords; GetCursorPos(&coords);
 
 		HWND wndlist = ListControlHitTest(coords);
 		g_dragDropInstance = this;
 		g_dragDropInstance->m_listDragging = wndlist;
 		g_hook = SetWindowsHookEx(WH_MOUSE, MouseHookProc, NULL, GetCurrentThreadId());
-
+		
 		/* INIT CAPTURE */
-
 		::SetCapture(wndlist);
-
+		
 		POINT hitpoint;
 		::GetCursorPos(&hitpoint);
 		LVHITTESTINFO lvhti;
@@ -422,7 +354,7 @@ protected:
 	// Install MouseHookProc for the duration of DoDragDrop and handle the input from there
 	// ========================================================================================
 	inline static HHOOK g_hook = NULL;
-	inline	static MatchListDropHandler* g_dragDropInstance = nullptr;
+	inline	static /*CTrackMatchingDialog*/MatchListDropHandler* g_dragDropInstance = nullptr;
 
 	static LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
 		//MOUSEHOOKSTRUCT* pmhs = (MOUSEHOOKSTRUCT*)lParam;

@@ -96,6 +96,10 @@ public:
 	}
 	
 	~Fetcher() {
+		delete consumer;
+		delete oauth;
+		delete access_token;
+		delete request_token;
 	}
 
 	void fetch_html(const pfc::string8 &url,

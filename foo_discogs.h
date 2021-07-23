@@ -2,13 +2,11 @@
 
 #pragma warning(disable:4996)
 
-#include <WinUser.h>
-
 #include "discogs_interface.h"
 #include "tags.h"
 #include "error_manager.h"
 #include "string_encoded_array.h"
-
+#include "art_download_attribs.h"
 
 using namespace Discogs;
 
@@ -56,9 +54,9 @@ public:
 		threaded_process_status &p_status,
 		abort_callback &p_abort);
 
-	void save_album_art(Release_ptr &release, metadb_handle_ptr item, pfc::array_t<pfc::string8> &done_files, threaded_process_status &p_status, abort_callback &p_abort);
-	void save_artist_art(Release_ptr &release, metadb_handle_ptr item, pfc::array_t<pfc::string8> &done_files, threaded_process_status &p_status, abort_callback &p_abort);
-	void save_artist_art(Artist_ptr &artist, Release_ptr &release, metadb_handle_ptr item, pfc::array_t<pfc::string8> &done_files, threaded_process_status &p_status, abort_callback &p_abort);
+	void save_album_art(Release_ptr &release, metadb_handle_ptr item, art_download_attribs ada, pfc::array_t<GUID> album_art_ids, bit_array_bittable &saved_mask, pfc::array_t<pfc::string8> &done_files, threaded_process_status &p_status, abort_callback &p_abort);
+	void save_artist_art(Release_ptr &release, metadb_handle_ptr item, art_download_attribs ada, pfc::array_t<GUID> album_art_ids, bit_array_bittable& saved_mask, pfc::array_t<pfc::string8> &done_files, threaded_process_status &p_status, abort_callback &p_abort);
+	void save_artist_art(Artist_ptr &artist, Release_ptr &release, metadb_handle_ptr item, art_download_attribs ada, pfc::array_t<GUID> album_art_ids, bit_array_bittable& saved_mask, pfc::array_t<pfc::string8> &done_files, threaded_process_status &p_status, abort_callback &p_abort);
 
 	void fetch_image(MemoryBlock &buffer, Image_ptr &image, abort_callback &p_abort);
 	void write_image(MemoryBlock &buffer, const pfc::string8 &full_path, abort_callback &p_abort);

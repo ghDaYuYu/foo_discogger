@@ -127,7 +127,6 @@ public:
 	CTrackMatchingDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags = false) : 
 			tag_writer(tag_writer), use_update_tags(use_update_tags), list_drop_handler() {
 		g_discogs->track_matching_dialog = this;
-		Create(p_parent);
 	}
 	CTrackMatchingDialog(HWND p_parent, pfc::array_t<TagWriter_ptr> tag_writers, bool use_update_tags = false) :
 			tag_writers(tag_writers), use_update_tags(use_update_tags), multi_mode(true), list_drop_handler() {
@@ -135,14 +134,16 @@ public:
 		tag_writer = nullptr;
 
 		if (init_count()) {
-			Create(p_parent);
 		}
 		else {
 			finished_tag_writers();
 			destroy();
 		}
 	}
-	~CTrackMatchingDialog();
+
+	~CTrackMatchingDialog() {
+		g_discogs->track_matching_dialog = nullptr;
+	}
 
 	void CTrackMatchingDialog::OnFinalMessage(HWND /*hWnd*/) override;
 

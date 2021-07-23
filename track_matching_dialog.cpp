@@ -595,11 +595,6 @@ LRESULT CTrackMatchingDialog::OnMultiPrev(WORD /*wNotifyCode*/, WORD wID, HWND /
 	return TRUE;
 }
 
-void CTrackMatchingDialog::OnFinalMessage(HWND /*hWnd*/) {
-	modeless_dialog_manager::g_remove(m_hWnd);
-	delete this;
-}
-
 void CTrackMatchingDialog::update_list_width(HWND list, bool initialize) {
 	CRect client_rectangle;
 	::GetClientRect(list, &client_rectangle);
@@ -821,13 +816,6 @@ void CTrackMatchingDialog::enable(bool is_enabled) {
 	::uEnableWindow(GetDlgItem(IDC_PREVIEW_TAGS_BUTTON), is_enabled);
 }
 
-void CTrackMatchingDialog::destroy_all() {
-	if (!multi_mode) {
-		g_discogs->find_release_dialog->destroy();
-	}
-	MyCDialogImpl<CTrackMatchingDialog>::destroy();
-}
-
 pfc::string8 file_info_get_artist_name(file_info_impl finfo, metadb_handle_ptr item) {
 	pfc::string8 artist;
 	g_discogs->file_info_get_tag(item, finfo, "Artist", artist);
@@ -877,4 +865,16 @@ void CTrackMatchingDialog::go_back() {
 	}
 
 	uSendMessage(wndFindRelease, WM_NEXTDLGCTL, (WPARAM)(HWND)::GetDlgItem(wndFindRelease, default), TRUE);
+}
+
+void CTrackMatchingDialog::destroy_all() {
+	if (!multi_mode) {
+		CFindReleaseDialog* dlg = reinterpret_cast<CFindReleaseDialog*>(g_discogs->find_release_dialog);
+		dlg->destroy();
+	}
+	destroy();
+}
+
+LRESULT CTrackMatchingDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
+	return 0;
 }

@@ -743,8 +743,8 @@ void process_release_callback::safe_run(threaded_process_status &p_status, abort
 }
 
 void process_release_callback::on_success(HWND p_wnd) {
-
-	new CTrackMatchingDialog(core_api::get_main_window(), tag_writer, false);
+	fb2k::newDialog<CTrackMatchingDialog>(core_api::get_main_window(), tag_writer, false);
+	//new CTrackMatchingDialog(core_api::get_main_window(), tag_writer, false);
 }
 
 void process_release_callback::on_abort(HWND p_wnd) {

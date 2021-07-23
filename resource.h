@@ -2,22 +2,30 @@
 // Microsoft Visual C++ generated include file.
 // Used by foo_discogs.rc
 //
-#define IDD_UPDATE_ART_DIALOG           106
-#define IDD_DIALOG_CONF                 108
-#define IDD_DIALOG_FIND_RELEASE         109
-#define IDD_DIALOG_UPDATE_TAGS          110
-#define IDD_DIALOG_CONF_TAGGING         111
-#define IDD_DIALOG_CONF_ART             113
-#define IDD_DIALOG_CONF_OAUTH           114
-#define IDD_DIALOG_TAG_MAPPINGS         116
-#define IDI_STATIC_OAUTH_ICO_ERROR      119
-#define IDI_STATIC_OAUTH_ICO_OK         120
-#define IDD_DIALOG_CONF_FIND_RELEASE_DIALOG 122
-#define IDD_DIALOG_PREVIEW_TAGS         125
-#define IDD_DIALOG_CONF_MATCHING_DIALOG 127
-#define IDD_DIALOG_MATCH_TRACKS         128
-#define IDD_DIALOG_PROMPT               130
-#define IDD_DIALOG_CONF_CACHING_DIALOG  133
+#define IDI_SCROLL                      109
+#define IDD_UPDATE_ART_DIALOG           110
+#define IDD_DIALOG_CONF                 111
+#define IDD_DIALOG_FIND_RELEASE         112
+#define IDD_DIALOG_UPDATE_TAGS          113
+#define IDD_DIALOG_CONF_TAGGING         114
+#define IDD_DIALOG_CONF_ART             115
+#define IDD_DIALOG_CONF_OAUTH           116
+#define IDD_DIALOG_CONF_FIND_RELEASE_DIALOG 118
+#define IDD_DIALOG_PREVIEW_TAGS         119
+#define IDD_DIALOG_CONF_MATCHING_DIALOG 120
+#define IDD_DIALOG_MATCH_TRACKS         121
+#define IDD_DIALOG_PROMPT               122
+#define IDD_DIALOG_CONF_CACHING_DIALOG  123
+#define IDD_DIALOG_REQ_RATES            124
+#define IDI_STATIC_OAUTH_ICO_ERROR      126
+#define IDI_STATIC_OAUTH_ICO_OK         127
+#define IDB_BITMAP1                     130
+#define IDD_DIALOG_TAG_MAPPINGS2        141
+#define IDD_DIALOG_TAG_MAPPINGS         141
+#define IDB_PNG48F                      157
+#define IDB_PNG150F                     158
+#define IDC_BOGO1                       1001
+#define IDC_BOGO2                       1002
 #define IDC_DISCOGS_LIST                1003
 #define IDC_PREVIEW_STATS               1004
 #define IDC_STATIC_FILE_LST_TITLE       1006

@@ -60,6 +60,7 @@ public:
 
 	void generate_tags_ori_unchanged(bool use_update_tags, threaded_process_status& p_status, abort_callback& p_abort);
 	void generate_tags(bool use_update_tags, threaded_process_status& p_status, abort_callback& p_abort);
+	const t_size get_art_count() { return release->images.get_count() + release->artists[0]->full_artist->images.get_count();}
 
 	void write_tags();
 	void write_tags_track_map();

@@ -4,8 +4,9 @@
 
 #include "foo_discogs.h"
 #include "tags.h"
-#include "find_release_dialog.h"
-#include "track_matching_dialog.h"
+#include "art_download_attribs.h"
+#include "ol_cache.h"
+
 #include "configuration_dialog.h"
 #include "preview_dialog.h"
 
@@ -343,18 +344,174 @@ void download_art_task::start() {
 
 void download_art_task::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
 	Release_ptr release = discogs_interface->get_release(release_id.get_ptr(), p_status, p_abort);
-	if (CONF.save_album_art || CONF.embed_album_art) {
+
+	uartwork uartconf = uartwork(CONF);
+	bool bconf_album_save_or_embed = CONF.save_album_art || CONF.embed_album_art;
+	bool bconf_artist_save_or_embed = CONF.save_artist_art || CONF.embed_artist_art;
+
+	bool bcust_album_save_or_embed = CONFARTWORK.ucfg_album_save_to_dir != uartconf.ucfg_album_save_to_dir;
+	bcust_album_save_or_embed |= CONFARTWORK.ucfg_album_embed != uartconf.ucfg_album_embed;
+
+	bool bcust_artist_save_or_embed = CONFARTWORK.ucfg_art_save_to_dir != uartconf.ucfg_art_save_to_dir;
+	bcust_artist_save_or_embed |= CONFARTWORK.ucfg_art_embed != uartconf.ucfg_art_embed;
+
+	if (bconf_album_save_or_embed || bcust_album_save_or_embed) {
 		pfc::array_t<pfc::string8> done_files;
 		for (size_t i = 0; i < items.get_count(); i++) {
-			g_discogs->save_album_art(release, items[i], done_files, p_status, p_abort);
+			bool bsave = false;
+			if (bconf_album_save_or_embed && !bcust_album_save_or_embed) {
+				art_download_attribs cfg_ada(CONF.save_album_art, CONF.embed_album_art, CONF.album_art_overwrite, CONF.album_art_fetch_all, false, {});			
+				bit_array_bittable dummy_saved_mask(release->images.get_count() + release->artists[0]->full_artist->images.get_count());
+				g_discogs->save_album_art(release, items[i], cfg_ada, pfc::array_t<GUID>(), dummy_saved_mask, done_files, p_status, p_abort);
+			}
+			else {
+				bool bitem_write = CONFARTWORK.ucfg_art_save_to_dir != 0;
+				bool bitem_embed = CONFARTWORK.ucfg_art_ovr != 0;
+				bool bitem_overwrite = CONFARTWORK.ucfg_art_ovr != 0;
+				bool bitem_fetch_all = true; //CONFARTWORK.getflag(af::art_sa, i);
+				if (bitem_write || bitem_embed) {					
+					art_download_attribs ada_mod(bitem_write, bitem_embed, bitem_overwrite, true /*enter image loop*/, false, {});
+					bit_array_bittable dummy_saved_mask(release->images.get_count() + release->artists[0]->full_artist->images.get_count());
+					g_discogs->save_album_art(release, items[i], ada_mod, pfc::array_t<GUID>(), dummy_saved_mask, done_files, p_status, p_abort);
+				}
+			}
 		}
 	}
-	if (CONF.save_artist_art || CONF.embed_artist_art) {
+	if (bconf_artist_save_or_embed || bcust_artist_save_or_embed) {
 		pfc::array_t<pfc::string8> done_files;
 		for (size_t i = 0; i < items.get_count(); i++) {
-			g_discogs->save_artist_art(release, items[i], done_files, p_status, p_abort);
+			bool bsave = false;
+			if (bconf_artist_save_or_embed && !bcust_artist_save_or_embed) {
+				art_download_attribs cfg_ada(CONF.save_artist_art, CONF.embed_artist_art, CONF.artist_art_overwrite, CONF.artist_art_fetch_all, false, {});
+				bit_array_bittable dummy_saved_mask(release->images.get_count() + release->artists[0]->full_artist->images.get_count());
+				g_discogs->save_artist_art(release, items[i], cfg_ada, pfc::array_t<GUID>(), dummy_saved_mask, done_files, p_status, p_abort);
+			}
+			else {
+				bool bitem_write = CONFARTWORK.ucfg_art_save_to_dir != 0;
+				bool bitem_embed = CONFARTWORK.ucfg_art_ovr != 0;
+				bool bitem_overwrite = CONFARTWORK.ucfg_art_ovr != 0;
+				bool bitem_fetch_all = true; //CONFARTWORK.getflag(af::art_sa, i);
+				if (bitem_write || bitem_embed) {
+					art_download_attribs ada_mod(bitem_write, bitem_embed, bitem_overwrite, true /*enter image loop*/, false, {});
+					bit_array_bittable dummy_saved_mask(release->images.get_count() + release->artists[0]->full_artist->images.get_count());
+					g_discogs->save_artist_art(release, items[i], ada_mod, pfc::array_t<GUID>(), dummy_saved_mask, done_files, p_status, p_abort);
+				}
+			}
 		}
 	}
+}
+
+download_art_paths_task::download_art_paths_task(CTrackMatchingDialog* m_dialog, pfc::string8 release_id, 
+	metadb_handle_list items, pfc::array_t<GUID> album_art_ids, bool to_path_only) :
+	m_dialog(m_dialog), m_release_id(release_id), m_items(items),
+	m_album_art_ids(album_art_ids), m_to_path_only(to_path_only) {
+
+}
+
+void download_art_paths_task::start() {
+	threaded_process::g_run_modeless(
+		this,
+		threaded_process::flag_show_abort |
+		threaded_process::flag_show_delayed |
+		threaded_process::flag_show_progress |
+		threaded_process::flag_show_item,
+		core_api::get_main_window(),
+		"Downloading album/artist art..."
+	);
+}
+
+void download_art_paths_task::safe_run(threaded_process_status& p_status, abort_callback& p_abort) {
+	Release_ptr release = discogs_interface->get_release(m_release_id.get_ptr(), p_status, p_abort);
+
+
+	bit_array_bittable saved_mask(m_album_art_ids.size());
+
+
+	uartwork uartconf = uartwork(CONF);
+	bool bconf_album_save_or_embed = CONF.save_album_art || CONF.embed_album_art;
+	bool bconf_artist_save_or_embed = CONF.save_artist_art || CONF.embed_artist_art;
+
+	bool bcust_album_save_or_embed = CONFARTWORK.ucfg_album_save_to_dir != uartconf.ucfg_album_save_to_dir;
+	bcust_album_save_or_embed |= CONFARTWORK.ucfg_album_embed != uartconf.ucfg_album_embed;
+
+	bool bcust_artist_save_or_embed = CONFARTWORK.ucfg_art_save_to_dir != uartconf.ucfg_art_save_to_dir;
+	bcust_artist_save_or_embed |= CONFARTWORK.ucfg_art_embed != uartconf.ucfg_art_embed;
+
+	if (bconf_album_save_or_embed || bcust_album_save_or_embed) {
+		pfc::array_t<pfc::string8> done_files;
+		for (size_t i = 0; i < m_items.get_count(); i++) {
+			bool bsave = false;
+			if (bconf_album_save_or_embed && !bcust_album_save_or_embed) {
+				art_download_attribs cfg_ada(CONF.save_album_art, CONF.embed_album_art, CONF.album_art_overwrite, CONF.album_art_fetch_all, true, {});
+				cfg_ada.to_path_only = m_to_path_only;
+				
+				g_discogs->save_album_art(release, m_items[i], cfg_ada, m_album_art_ids, saved_mask, done_files, p_status, p_abort);
+				
+				for (size_t walk = 0; walk < done_files.size(); walk++) {
+					m_vres.emplace_back(std::pair(done_files[walk].get_ptr(), saved_mask));
+				}
+			}
+			else {
+				bool bitem_write = CONFARTWORK.ucfg_album_save_to_dir != 0;
+				bool bitem_embed = CONFARTWORK.ucfg_album_embed != 0;
+				bool bitem_overwrite = CONFARTWORK.ucfg_album_ovr != 0;
+				bool bitem_fetch_all = true; //CONFARTWORK.getflag(af::art_sa, i);
+				if (bitem_write || bitem_embed) {
+					art_download_attribs ada_mod(bitem_write, bitem_embed, bitem_overwrite, true /*enter image loop*/, true, {});
+				
+					ada_mod.to_path_only = m_to_path_only;
+					
+					g_discogs->save_album_art(release, m_items[i],
+						ada_mod, m_album_art_ids, saved_mask,
+						done_files, p_status, p_abort);
+
+					for (size_t walk = 0; walk < done_files.size(); walk++) {
+						m_vres.emplace_back(std::pair(done_files[walk].get_ptr(), saved_mask));
+					}
+				}
+			}
+		}
+	}
+	if (bconf_artist_save_or_embed || bcust_artist_save_or_embed) {
+		pfc::array_t<pfc::string8> done_files;
+		for (size_t i = 0; i < m_items.get_count(); i++) {
+			bool bsave = false;
+			if (bconf_artist_save_or_embed && !bcust_artist_save_or_embed) {
+				art_download_attribs cfg_ada(CONF.save_artist_art, CONF.embed_artist_art, CONF.artist_art_overwrite, CONF.artist_art_fetch_all, false, {});
+				
+				g_discogs->save_artist_art(release, m_items[i],
+					cfg_ada, m_album_art_ids, saved_mask,
+					done_files, p_status, p_abort);
+
+				for (size_t walk = 0; walk < done_files.size(); walk++) {
+					m_vres.emplace_back(std::pair(done_files[walk].get_ptr(), saved_mask));
+				}
+			}
+			else {
+				bool bitem_write = CONFARTWORK.ucfg_art_save_to_dir != 0;
+				bool bitem_embed = CONFARTWORK.ucfg_art_embed != 0;
+				bool bitem_overwrite = CONFARTWORK.ucfg_art_ovr != 0;
+				bool bitem_fetch_all = true; //CONFARTWORK.getflag(af::art_sa, i);
+				if (bitem_write || bitem_embed) {
+					art_download_attribs ada_mod(bitem_write, bitem_embed, bitem_overwrite, true, false, {});
+
+					g_discogs->save_artist_art(release, m_items[i],
+						ada_mod, m_album_art_ids, saved_mask,
+						done_files, p_status, p_abort);
+
+					for (size_t walk = 0; walk < done_files.size(); walk++) {
+						m_vres.emplace_back(std::pair(done_files[walk].get_ptr(), saved_mask));
+					}
+				}
+			}
+		}
+	}
+}
+
+void download_art_paths_task::on_success(HWND p_wnd) {
+
+	std::shared_ptr<std::vector<std::pair<pfc::string8, bit_array_bittable>>> vpaths = std::make_shared<std::vector<std::pair<pfc::string8, bit_array_bittable>>>(m_vres);
+	m_dialog->process_download_art_paths_done(vpaths/*srv*/, m_album_art_ids);
 }
 
 
@@ -599,7 +756,7 @@ void update_tags_task::safe_run(threaded_process_status &p_status, abort_callbac
 }
 
 void update_tags_task::on_success(HWND p_wnd) {
-	new CTrackMatchingDialog(core_api::get_main_window(), tag_writers, use_update_tags); 
+	fb2k::newDialog<CTrackMatchingDialog>(core_api::get_main_window(), tag_writers, use_update_tags);
 	finish();
 }
 
@@ -725,13 +882,26 @@ void process_release_callback::safe_run(threaded_process_status &p_status, abort
 				throw ex;
 			}
 
-			p_status.set_item("Fetching small album art...");
+			bool has_thumb;
 			try {
-				discogs_interface->fetcher->fetch_url(release->images[0]->url150, "", release->small_art, /*dummy_abort*/p_abort, false);
+				has_thumb = discogs_interface->get_thumbnail_from_cache(release, false, 0, release->small_art,
+					p_status, p_abort);
 			}
 			catch (foo_discogs_exception& e) {
-				add_error("Fetching small album art", e, false);
+				has_thumb = false;
+				add_error("Reading artwork preview small album art cache", e, false);
 			}
+
+			if (!has_thumb) {
+				p_status.set_item("Fetching small album art...");
+				try {
+					discogs_interface->fetcher->fetch_url(release->images[0]->url150, "", release->small_art, p_abort, false);
+				}
+				catch (foo_discogs_exception& e) {
+					add_error("Fetching small album art", e, false);
+				}
+			}
+			
 		}
 	}
 
@@ -753,6 +923,184 @@ void process_release_callback::on_abort(HWND p_wnd) {
 
 void process_release_callback::on_error(HWND p_wnd) {
 	m_dialog->enable(true);
+}
+
+process_artwork_preview_callback::process_artwork_preview_callback(CTrackMatchingDialog* dialog, const Release_ptr& release, const size_t img_ndx, const bool bartist, bool onlycache) :
+	m_dialog(dialog), m_release(release), m_img_ndx(img_ndx), m_bartist(bartist), m_onlycache(onlycache) {
+}
+
+void process_artwork_preview_callback::start(HWND parent) {
+	threaded_process::g_run_modeless(this,
+		threaded_process::flag_show_item |
+		threaded_process::flag_show_abort,
+		parent,
+		"Processing track matching artwork preview..."
+	);
+}
+
+void process_artwork_preview_callback::safe_run(threaded_process_status& p_status, abort_callback& p_abort) {
+	p_status.set_item("Fetching artwork preview information...");
+	
+	if (m_release) {
+		pfc::string8 id;
+		pfc::string8 url;
+
+		bool has_thumb;
+		try {
+			has_thumb = discogs_interface->get_thumbnail_from_cache(m_release, m_bartist, m_img_ndx, m_small_art,
+				p_status, p_abort);
+		}
+		catch (foo_discogs_exception& e) {
+			has_thumb = false;
+			add_error("Reading artwork preview small album art cache", e, false);
+		}
+
+		if (!has_thumb) {
+
+			if (!m_onlycache) {
+				p_status.set_item("Fetching artwork preview small album art...");
+				try {
+					pfc::array_t<Image_ptr> images;
+					size_t ndx;
+					if (m_bartist) {
+						images = m_release->artists[0]->full_artist->images;
+
+					}
+					else {
+						images = m_release->images;
+
+					discogs_interface->fetcher->fetch_url(images[m_img_ndx]->url150, "", m_small_art, p_abort, false);
+				}
+				catch (foo_discogs_exception& e) {
+					add_error("Fetching artwork preview small album art", e, false);
+				}			
+			}
+		}
+	}
+}
+
+void process_artwork_preview_callback::on_success(HWND p_wnd) {
+
+	m_dialog->process_artwork_preview_done(m_img_ndx, m_bartist, m_small_art);
+
+}
+
+void process_artwork_preview_callback::on_abort(HWND p_wnd) {
+	//m_dialog->enable(true);
+}
+
+void process_artwork_preview_callback::on_error(HWND p_wnd) {
+	//m_dialog->enable(true);
+}
+
+
+process_file_artwork_preview_callback::process_file_artwork_preview_callback(CTrackMatchingDialog* dialog, const Release_ptr& release, metadb_handle_list items, const size_t img_ndx, const bool bartist) :
+	m_dialog(dialog), m_release(release), m_img_ndx(img_ndx), m_items(items), m_bartist(bartist) {
+	//m_dialog->enable(false);
+}
+
+void process_file_artwork_preview_callback::start(HWND parent) {
+	threaded_process::g_run_modeless(this,
+		threaded_process::flag_show_item |
+		threaded_process::flag_show_abort,
+		parent,
+		"Processing local files track matching artwork preview..."
+	);
+}
+
+void process_file_artwork_preview_callback::safe_run(threaded_process_status& p_status, abort_callback& p_abort) {
+	p_status.set_item("Fetching local files artwork preview information...");
+
+	if (m_release) {
+
+		p_status.set_item("Fetching local files artwork preview small album art...");
+		try {
+
+	    	bool bexists = true;
+			pfc::string8 directory;
+			file_info_impl info;
+			titleformat_hook_impl_multiformat hook(p_status, &m_release);
+			
+			CONF.album_art_directory_string->run_hook(m_items[0]->get_location(), &info, &hook, directory, nullptr);
+			// hardcode "nullptr" as don't write anything.  ???
+			if (STR_EQUAL(directory, "nullptr")) {
+				bexists = false;
+			}
+			
+			pfc::string8 path(directory);
+
+			pfc::string8 file_name = m_img_ndx < album_art_ids::num_types() ? album_art_ids::query_name(m_img_ndx) : "";
+			pfc::chain_list_v2_t<pfc::string8> splitfile;
+			pfc::splitStringByChar(splitfile, file_name.get_ptr(), ' ');
+			if (splitfile.get_count()) file_name = *splitfile.first();
+			file_name << ".jpg";
+
+			//pfc::string8 file_name("front.jpg");
+
+			pfc::string8 full_path(directory);
+			full_path << "\\" << file_name;
+
+			char converted[MAX_PATH - 1];	
+			pfc::stringcvt::string_os_from_utf8 cvt(full_path);
+			wcstombs(converted, cvt.get_ptr(), MAX_PATH - 1);
+
+			FILE* fd = nullptr;
+			if (fopen_s(&fd, converted, "rb") != 0) {
+				pfc::string8 msg("can't open ");
+				msg << full_path;
+				log_msg(msg);
+				return;
+			}
+			fclose(fd);
+
+			//(checksize)
+
+			struct stat stat_buf;
+			int stat_result = stat(converted, &stat_buf);
+			//return -1 or size
+			int src_length = stat_buf.st_size;
+
+			int filesize = (stat_result == -1 ? -1 : src_length);
+
+			if (filesize == -1)
+				return;
+
+			pfc::stringcvt::string_os_from_utf8 cvt_bitmap(full_path);
+
+			Gdiplus::Bitmap local_bitmap(cvt_bitmap.get_ptr(), false);
+
+			UINT w = local_bitmap.GetWidth();
+			UINT h = local_bitmap.GetHeight();
+
+			m_small_art = GenerateTmpBitmapsFromRealSize(m_release->id, m_img_ndx, full_path, m_temp_file_names);
+
+			return;
+
+			}
+			catch (foo_discogs_exception& e) {
+				add_error("Fetching local files artwork preview small album art", e, false);
+			}
+		}
+
+		//m_dialog->enable(true);
+		//m_dialog->hide();
+
+	
+}
+
+void process_file_artwork_preview_callback::on_success(HWND p_wnd) {
+
+	m_dialog->process_file_artwork_preview_done(m_img_ndx, m_bartist, m_small_art, m_temp_file_names);
+	BOOL bres = DeleteObject(m_small_art.first);
+	bres = DeleteObject(m_small_art.second);
+}
+
+void process_file_artwork_preview_callback::on_abort(HWND p_wnd) {
+	//m_dialog->enable(true);
+}
+
+void process_file_artwork_preview_callback::on_error(HWND p_wnd) {
+	//m_dialog->enable(true);
 }
 
 

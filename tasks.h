@@ -6,6 +6,9 @@
 #include "error_manager.h"
 #include "tag_writer.h"
 
+#include "track_matching_dialog.h"
+#include "preview_dialog.h"
+
 
 using namespace Discogs;
 
@@ -147,6 +150,26 @@ private:
 };
 
 
+//album_art_ids (front, back...) based art download
+class download_art_paths_task : public foo_discogs_threaded_process_callback
+{
+public:
+	download_art_paths_task(CTrackMatchingDialog* m_dialog, pfc::string8 release_id, metadb_handle_list items, pfc::array_t<GUID> album_art_ids, bool to_path_only);
+	void start();
+
+private:
+	CTrackMatchingDialog* m_dialog;
+	pfc::array_t<GUID> m_album_art_ids;
+	pfc::string8 m_release_id;
+	metadb_handle_list m_items;
+	bool m_to_path_only; //write art simulation
+
+	std::vector<std::pair<pfc::string8, bit_array_bittable>> m_vres;
+	void safe_run(threaded_process_status& p_status, abort_callback& p_abort) override;
+	void on_success(HWND p_wnd) override;
+};
+
+
 class find_deleted_releases_task : public foo_discogs_locked_threaded_process_callback
 {
 public:
@@ -242,6 +265,7 @@ private:
 	void on_success(HWND p_wnd) override;
 };
 
+
 class process_release_callback : public foo_discogs_threaded_process_callback
 {
 public:
@@ -263,6 +287,52 @@ private:
 	void on_error(HWND p_wnd) override;
 };
 
+
+class process_artwork_preview_callback : public foo_discogs_threaded_process_callback
+{
+public:
+	process_artwork_preview_callback(CTrackMatchingDialog*dialog, const Release_ptr &release, const size_t img_ndx, const bool bartist, const bool onlycache);
+	void start(HWND parent);
+
+private:
+	MemoryBlock m_small_art;
+	CTrackMatchingDialog* m_dialog;
+	pfc::string8 m_release_id;
+	Release_ptr m_release;
+	size_t m_img_ndx;
+	bool m_bartist;
+	bool m_onlycache;
+
+	void safe_run(threaded_process_status& p_status, abort_callback& p_abort) override;
+	void on_success(HWND p_wnd) override;
+	void on_abort(HWND p_wnd) override;
+	void on_error(HWND p_wnd) override;
+};
+
+
+class process_file_artwork_preview_callback : public foo_discogs_threaded_process_callback
+{
+public:
+	process_file_artwork_preview_callback(CTrackMatchingDialog* dialog, const Release_ptr& release, const metadb_handle_list items, const size_t img_ndx, const bool bartist);
+	void start(HWND parent);
+
+private:
+	std::pair<HBITMAP, HBITMAP> m_small_art;
+	std::pair<pfc::string8, pfc::string8> m_temp_file_names;
+	CTrackMatchingDialog* m_dialog;
+	pfc::string8 m_release_id;
+	Release_ptr m_release;
+	metadb_handle_list m_items;
+	size_t m_img_ndx;
+	bool m_bartist;
+
+	void safe_run(threaded_process_status& p_status, abort_callback& p_abort) override;
+	void on_success(HWND p_wnd) override;
+	void on_abort(HWND p_wnd) override;
+	void on_error(HWND p_wnd) override;
+};
+
+
 class test_oauth_process_callback : public foo_discogs_threaded_process_callback
 {
 public:
@@ -275,6 +345,7 @@ private:
 
 	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
+	void on_error(HWND p_wnd) override;
 };
 
 

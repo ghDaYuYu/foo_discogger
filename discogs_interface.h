@@ -92,6 +92,11 @@ public:
 
 	~DiscogsInterface() {
 		delete fetcher;
+
+		delete cache_releases;
+		delete cache_master_releases;
+		delete cache_artists;
+		delete cache_deleted_releases;
 	}
 
 	inline void reset_master_release_cache() {
@@ -134,6 +139,10 @@ public:
 	inline void offline_cache_save(pfc::string8 path, json_t* root) {
 		offline_cache_artists->FDumpToFolder(path, root);
 	}
+
+	bool get_thumbnail_from_cache(Release_ptr release, bool isArtist, size_t img_ndx, MemoryBlock& small_art,
+		threaded_process_status& p_status, abort_callback& p_abort);
+
 		
 	void search_artist(const pfc::string8 &name, pfc::array_t<Artist_ptr> &exact_matches, pfc::array_t<Artist_ptr> &other_matches, threaded_process_status &p_status, abort_callback &p_abort);
 

@@ -210,8 +210,9 @@ pfc::array_t<JSONParser_ptr> DiscogsInterface::get_all_pages_offline_cache(pfc::
 	pfc::array_t<JSONParser_ptr> results;
 	size_t page = 1;
 
-	pfc::string8 foo_path(ol::GetReleasePath(id, true));
+	pfc::string8 foo_path(ol::GetArtistReleasesPath(id, true));
 	pfc::string8 pages_path_prefix(ol::GetReleasePagePath(id, pfc_infinite, true));
+	
 	pfc::string8 rel_path;
 
 	pfc::array_t<pfc::string8> page_paths = ol::GetPagesFilePaths(id);
@@ -305,4 +306,81 @@ pfc::array_t<pfc::string8> DiscogsInterface::get_collection(threaded_process_sta
 		throw;
 	}
 	return collection;
+}
+
+bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release, bool isArtist, size_t img_ndx, MemoryBlock& small_art,
+	threaded_process_status& p_status, abort_callback& p_abort) {
+
+	bool bres = false;
+
+	pfc::string8 id;
+	pfc::string8 url;
+	pfc::array_t<Image_ptr>* images;
+	if (!isArtist) {
+		id = release->id; //todo: recheck not m_release_id;
+		if (!release->images.get_size() || (!release->images[img_ndx]->url150.get_length())) {
+			foo_discogs_exception ex;
+			ex << "Image URLs unavailable - Is OAuth working?";
+			throw ex;
+		}
+		else {
+			images = &release->images;
+		}
+	}
+	else {
+		id = release->artists[0]->full_artist->id;
+		if (!release->artists.get_size() || !release->artists[0]->full_artist->images.get_size() ||
+			(!release->artists[0]->full_artist->images[img_ndx]->url150.get_length())) {
+			foo_discogs_exception ex;
+			ex << "Image URLs unavailable - Is OAuth working?";
+			throw ex;
+		}
+		else {
+			images = &release->artists[0]->full_artist->images;
+		}
+	}
+	size_t artist_offset = isArtist ? release->images.get_count() : 0;
+	pfc::array_t<pfc::string8> thumb_cache;
+	thumb_cache = Offline::get_thumbnail_cache_path_filenames(id, isArtist ? art_src::art : art_src::alb,
+		LVSIL_NORMAL, img_ndx/* + artist_offset*/);
+
+	if (thumb_cache.get_count()) {
+		p_status.set_item("Fetching artwork preview small album art from cache ...");
+		try {
+			bool bexists = true;
+			pfc::string8 file_name = thumb_cache[0];
+			extract_native_path(file_name, file_name);
+			pfc::stringcvt::string_wide_from_utf8 wpath(file_name);
+			char converted[MAX_PATH - 1];
+			wcstombs(converted, wpath.get_ptr(), MAX_PATH - 1);
+
+			//get stats
+			struct stat stat_buf;
+			int stat_result = stat(converted, &stat_buf);
+			//return -1 or size
+			int src_length = stat_buf.st_size;
+			int filesize = (stat_result == -1 ? -1 : src_length);
+			if (filesize == -1)
+				return false;
+
+			FILE* fd = nullptr;
+			if (fopen_s(&fd, converted, "rb") != 0) {
+				pfc::string8 msg("can't open ");
+				msg << file_name;
+				log_msg(msg);
+				return false;
+			}
+
+			small_art.set_size(filesize);
+			size_t done = fread(small_art.get_ptr(), filesize, 1, fd);
+			bres = done;
+
+			fclose(fd);
+		}
+		catch (foo_discogs_exception& e) {
+			throw(e);
+			return false;
+		}
+	}
+	return bres;
 }

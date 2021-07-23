@@ -1,12 +1,12 @@
 #pragma once
 
 #include "exception.h"
-#include "liboauthcpp/liboauthcpp.h"
+#include "liboauthcpp\liboauthcpp.h"
 #include <ctime>
 
 
-#define CONSUMER_KEY "kQFLKuHXrEsVfZTDvOdz"
-#define CONSUMER_SECRET "PwEMwajhnHcYwPLNrlxwJbQgfcVgXwsG"
+#define CONSUMER_KEY "<<key>>"
+#define CONSUMER_SECRET "<<counsumer_secret>>"
 #define REQUEST_TOKEN_URL "https://api.discogs.com/oauth/request_token"
 #define AUTHORIZE_URL "https://www.discogs.com/oauth/authorize"
 #define ACCESS_TOKEN_URL "https://api.discogs.com/oauth/access_token"

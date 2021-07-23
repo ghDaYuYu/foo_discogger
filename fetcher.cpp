@@ -5,7 +5,7 @@
 #include "utils.h"
 
 
-char USER_AGENT[] = "User-Agent: foo_discogs/" FOO_DISCOGS_VERSION;
+char USER_AGENT[] = "User-Agent: <<user agent>>";
 
 
 void Fetcher::fetch_html(const pfc::string8 &url, const pfc::string8 &params, pfc::string8 &html, abort_callback &p_abort, bool use_oauth) {

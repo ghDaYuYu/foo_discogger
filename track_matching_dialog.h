@@ -1,14 +1,17 @@
 #pragma once
 
 #include "../SDK/foobar2000.h"
+
 #include <libPPUI/CListControlOwnerData.h>
 
 #include "foo_discogs.h"
 #include "file_info_manager.h"
 #include "multiformat.h"
 #include "tag_writer.h"
+
 #include "track_match_lstdrop.h"
 #include "track_matching_dialog_presenter.h"
+
 #include "resource.h"
 
 using namespace Discogs;
@@ -81,7 +84,9 @@ private:
 	// LIBPPUI - Remove
 
 	bool listRemoveItems(ctx_t ctx, pfc::bit_array const& mask) override {
+
 		//pfc::remove_mask_t(m_data, mask);
+
 		int listid = ctx->GetDlgCtrlID();
 		HWND hlist = uGetDlgItem(listid);
 		size_t count = listid == IDC_UI_LIST_DISCOGS ?
@@ -155,12 +160,12 @@ private:
 
 	void update_list_width(HWND list, bool initialize=false);
 	bool track_context_menu(HWND wnd, LPARAM coords);
-	bool switch_context_menu(HWND wnd, bool isfiles, int cmd, bit_array_bittable selmask, CListControlOwnerData* ilist);
+	bool switch_context_menu(HWND wnd, POINT point, bool isfiles, int cmd, bit_array_bittable selmask, CListControlOwnerData* ilist);
 	void attrib_menu_command(HWND wnd, af afalbum, af afart, UINT IDATT, lsmode mode);
 	bool append_art_context_menu(HWND wnd, HMENU* menu);
 
 protected:
-    //ui control show/resize
+
 	void LibUIAsOwnerData(bool OwnerToLibUi);
 
 public:

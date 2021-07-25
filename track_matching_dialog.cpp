@@ -18,8 +18,6 @@
 #define DISABLED_RGB	RGB(150, 150, 150)
 #define CHANGE_NOT_APPROVED_RGB	RGB(150, 100, 100)
 
-#define DEF_TIME_COL_WIDTH 60
-
 LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
 
 	DlgResize_Init(mygripp.grip, true);
@@ -628,14 +626,15 @@ inline bool CTrackMatchingDialog::build_current_cfg() {
 
 	const foo_discogs_conf cfg_coord = CONF; //*coord.cfgRef();
 	//track match columns
-	if (cfg_coord.match_tracks_dialog_discogs_col1_width != m_conf.match_tracks_dialog_discogs_col1_width ||
-		cfg_coord.match_tracks_dialog_discogs_col2_width != m_conf.match_tracks_dialog_discogs_col2_width ||
+	if (cfg_coord.match_tracks_discogs_col1_width != m_conf.match_tracks_discogs_col1_width ||
+		cfg_coord.match_tracks_discogs_col2_width != m_conf.match_tracks_discogs_col2_width ||
 		//track match columns
-		cfg_coord.match_file_dialog_col1_width != m_conf.match_file_dialog_col1_width ||
-		cfg_coord.match_file_dialog_col2_width != m_conf.match_file_dialog_col2_width ||
+		cfg_coord.match_tracks_files_col1_width != m_conf.match_tracks_files_col1_width ||
+		cfg_coord.match_tracks_files_col2_width != m_conf.match_tracks_files_col2_width ||
 		//styles
-		cfg_coord.match_tracks_dialog_style != m_conf.match_tracks_dialog_style ||
-		cfg_coord.match_file_dialog_style != m_conf.match_file_dialog_style) {
+		cfg_coord.match_tracks_discogs_style != m_conf.match_tracks_discogs_style ||
+		cfg_coord.match_tracks_files_style != m_conf.match_tracks_files_style) {
+
 		bres = bres || true;
 	}
 	//artwork image columns
@@ -664,14 +663,14 @@ inline void CTrackMatchingDialog::load_size() {
 	::CenterWindow(this->m_hWnd, rcCfg, core_api::get_main_window());	
 }
 
-void CTrackMatchingDialog::LibUIAsOwnerData(bool OuToUi) {
+void CTrackMatchingDialog::LibUIAsOwnerData(bool OwnerToLibUi) {
 
 	CRect rc_dcList;
 	CRect rc_fileList;
 	CRect rc_UI_dcList;
 	CRect rc_UI_fileList;
 
-	if (OuToUi) {
+	if (OwnerToLibUi) {
 
 		::GetWindowRect(uGetDlgItem(IDC_DISCOGS_TRACK_LIST), &rc_dcList);
 		::GetWindowRect(uGetDlgItem(IDC_FILE_LIST), &rc_fileList);
@@ -685,38 +684,38 @@ void CTrackMatchingDialog::LibUIAsOwnerData(bool OuToUi) {
 	}
 	else {
 
-		foo_discogs_conf* ccfg = m_coord.cfgRef();
+		foo_discogs_conf* cfg_coord = m_coord.cfgRef();
 
 		size_t icol = 0;
 			
-		LPARAM woa = ccfg->match_tracks_dialog_discogs_col1_width;
+		LPARAM woa = cfg_coord->match_tracks_discogs_col1_width;
 		size_t debug = HIWORD(woa);
 		LPARAM tmpwoa = MAKELPARAM(LOWORD(woa), m_idc_list.GetColumnWidthF(icol));
 
-		ccfg->match_tracks_dialog_discogs_col1_width = tmpwoa;
+		cfg_coord->match_tracks_discogs_col1_width = tmpwoa;
 
 		icol++;
 
-		woa = ccfg->match_tracks_dialog_discogs_col2_width;
+		woa = cfg_coord->match_tracks_discogs_col2_width;
 		tmpwoa = MAKELPARAM(LOWORD(woa), m_idc_list.GetColumnWidthF(icol));
 			
-		ccfg->match_tracks_dialog_discogs_col2_width = tmpwoa;
+		cfg_coord->match_tracks_discogs_col2_width = tmpwoa;
 
-		//next list
+		//second list
 		icol = 0;
 
-		woa = ccfg->match_file_dialog_col1_width;
+		woa = cfg_coord->match_tracks_files_col1_width;
 		debug = HIWORD(woa);
 		tmpwoa = MAKELPARAM(LOWORD(woa), m_ifile_list.GetColumnWidthF(icol));
 
-		ccfg->match_file_dialog_col1_width = tmpwoa;
+		cfg_coord->match_tracks_files_col1_width = tmpwoa;
 
 		icol++;
 
-		woa = ccfg->match_file_dialog_col2_width;
+		woa = cfg_coord->match_tracks_files_col2_width;
 		tmpwoa = MAKELPARAM(LOWORD(woa), m_ifile_list.GetColumnWidthF(icol));
 			
-		ccfg->match_file_dialog_col2_width = tmpwoa;
+		cfg_coord->match_tracks_files_col2_width = tmpwoa;
 
 		::GetWindowRect(uGetDlgItem(IDC_UI_LIST_DISCOGS), &rc_UI_dcList);
 		::GetWindowRect(uGetDlgItem(IDC_UI_LIST_FILES), &rc_UI_fileList);
@@ -859,11 +858,13 @@ LRESULT CTrackMatchingDialog::list_key_down(HWND wnd, LPNMHDR lParam) {
 		}
 	}
 
+	CPoint key_no_point(-1, -1);
+
 	switch (info->wVKey) {
 	case VK_DELETE:
 		bool bres;
 		try {
-			bres = switch_context_menu(wnd, is_files, ID_REMOVE, selmask, ilist);
+			bres = switch_context_menu(wnd, key_no_point, is_files, ID_REMOVE, selmask, ilist);
 		}
 		catch (...) {}
 		return bres;
@@ -894,7 +895,7 @@ LRESULT CTrackMatchingDialog::list_key_down(HWND wnd, LPNMHDR lParam) {
 		if (shift && ctrl) {
 			bool bres;
 			try {
-				bres = switch_context_menu(wnd, is_files, ID_INVERT_SELECTION, selmask, ilist);
+				bres = switch_context_menu(wnd, key_no_point, is_files, ID_INVERT_SELECTION, selmask, ilist);
 			}
 			catch (...) {}
 			return bres;
@@ -902,7 +903,7 @@ LRESULT CTrackMatchingDialog::list_key_down(HWND wnd, LPNMHDR lParam) {
 		else if (ctrl) {
 			bool bres;
 			try {
-				bres = switch_context_menu(wnd, is_files, ID_SELECT_ALL, selmask, ilist);
+				bres = switch_context_menu(wnd, key_no_point, is_files, ID_SELECT_ALL, selmask, ilist);
 			}
 			catch (...) {}
 			return bres;
@@ -918,7 +919,7 @@ LRESULT CTrackMatchingDialog::list_key_down(HWND wnd, LPNMHDR lParam) {
 		else if (ctrl) {
 			bool bres;
 			try {
-				bres = switch_context_menu(wnd, is_files, ID_CROP, selmask, ilist);
+				bres = switch_context_menu(wnd, key_no_point, is_files, ID_CROP, selmask, ilist);
 			}
 			catch (...) {}
 			return bres;
@@ -934,7 +935,7 @@ LRESULT CTrackMatchingDialog::list_key_down(HWND wnd, LPNMHDR lParam) {
 		else if (ctrl) {
 			bool bres;
 			try {
-				bres = switch_context_menu(wnd, is_files, ID_ART_PREVIEW, selmask, ilist);
+				bres = switch_context_menu(wnd, key_no_point, is_files, ID_ART_PREVIEW, selmask, ilist);
 			}
 			catch (...) {}
 			return bres;
@@ -950,7 +951,7 @@ LRESULT CTrackMatchingDialog::list_key_down(HWND wnd, LPNMHDR lParam) {
 		else if (ctrl) {
 			bool bres;
 			try {
-				bres = switch_context_menu(wnd, is_files, ID_ART_WRITE, selmask, ilist);
+				bres = switch_context_menu(wnd, key_no_point, is_files, ID_ART_WRITE, selmask, ilist);
 			}
 			catch (...) {}
 			return bres;
@@ -966,7 +967,7 @@ LRESULT CTrackMatchingDialog::list_key_down(HWND wnd, LPNMHDR lParam) {
 		else if (ctrl) {
 			bool bres;
 			try {
-				bres = switch_context_menu(wnd, is_files, ID_ART_OVR, selmask, ilist);
+				bres = switch_context_menu(wnd, key_no_point, is_files, ID_ART_OVR, selmask, ilist);
 			}
 			catch (...) {}
 			return bres;
@@ -982,7 +983,7 @@ LRESULT CTrackMatchingDialog::list_key_down(HWND wnd, LPNMHDR lParam) {
 		else if (ctrl) {
 			bool bres;
 			try {
-				bres = switch_context_menu(wnd, is_files, ID_ART_EMBED, selmask, ilist);
+				bres = switch_context_menu(wnd, key_no_point, is_files, ID_ART_EMBED, selmask, ilist);
 			}
 			catch (...) {}
 			return bres;
@@ -1013,7 +1014,7 @@ LRESULT CTrackMatchingDialog::list_key_down(HWND wnd, LPNMHDR lParam) {
 		else if (ctrl) {
 			bool bres;
 			try {
-				bres = switch_context_menu(wnd, is_files, ID_ART_TOOGLE_TRACK_ART_MODES, selmask, ilist);
+				bres = switch_context_menu(wnd, CPoint(-1, -1), is_files, ID_ART_TOOGLE_TRACK_ART_MODES, selmask, ilist);
 			}
 			catch (...) {}
 			return bres;
@@ -1464,7 +1465,6 @@ bool CTrackMatchingDialog::track_context_menu(HWND wnd, LPARAM coords) {
 	
 	try {
 		int coords_x = pf->x, coords_y = pf->y;
-		enum { ID_SELECT_ALL = 1, ID_INVERT_SELECTION, ID_REMOVE, ID_CROP, ID_SUBMENU_SELECTOR, ID_RESET_COLUMNS, ID_LAYOUT_CENTER, ID_SHOW_GRID };
 		HMENU menu = CreatePopupMenu();
 		HMENU _childmenuDisplay = CreatePopupMenu();
 		MENUITEMINFO mi1 = { 0 };
@@ -1472,7 +1472,7 @@ bool CTrackMatchingDialog::track_context_menu(HWND wnd, LPARAM coords) {
 		mi1.fMask = MIIM_SUBMENU | MIIM_STRING | MIIM_ID;
 		mi1.wID = ID_SUBMENU_SELECTOR;
 		mi1.hSubMenu = _childmenuDisplay;
-		mi1.dwTypeData = _T("Display");
+		mi1.dwTypeData = _T("Column Alignment");
 
 		CListControlOwnerData* ilist = nullptr; bool is_ilist = false;
 		if (wnd == uGetDlgItem(IDC_UI_LIST_DISCOGS) || wnd == uGetDlgItem(IDC_UI_LIST_FILES)) {
@@ -1508,6 +1508,22 @@ bool CTrackMatchingDialog::track_context_menu(HWND wnd, LPARAM coords) {
 		uAppendMenu(menu, MF_STRING | (csel? 0 : MF_DISABLED), ID_INVERT_SELECTION, "Invert selection\tCtrl+Shift+A");
 		uAppendMenu(menu, MF_STRING | (csel? 0 : MF_DISABLED), ID_REMOVE, "Remove\tDel");
 		uAppendMenu(menu, MF_STRING | (csel? 0 : MF_DISABLED), ID_CROP, "Crop\tCtrl+C");
+
+		presenter* pres;
+		std::pair<size_t, presenter*> icol_hit = m_coord.HitUiTest(*pf);
+		if (icol_hit.first != pfc_infinite) {
+
+			size_t fmt = m_coord.GetUiColumnFormat(icol_hit.first, icol_hit.second);
+
+			uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+			// display submenu
+			DWORD dwStyle = ::SendMessage(wnd, LVM_GETEXTENDEDLISTVIEWSTYLE, 0, 0);
+			uAppendMenu(_childmenuDisplay, MF_STRING | (fmt == HDF_LEFT ? MF_CHECKED | MF_DISABLED : 0), ID_LEFT_ALIGN, "Left");
+			uAppendMenu(_childmenuDisplay, MF_STRING | (fmt == HDF_CENTER ? MF_CHECKED | MF_DISABLED : 0), ID_CENTER_ALIGN, "Center");
+			uAppendMenu(_childmenuDisplay, MF_STRING | (fmt == HDF_RIGHT ? MF_CHECKED | MF_DISABLED : 0), ID_RIGHT_ALIGN, "Right");
+			InsertMenuItem(menu, ID_SUBMENU_SELECTOR, true, &mi1);	
+		}
+
 		//uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 		
 		// display submenu
@@ -1533,14 +1549,14 @@ bool CTrackMatchingDialog::track_context_menu(HWND wnd, LPARAM coords) {
 		int cmd = TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, coords_x, coords_y, 0, wnd, 0);
 		DestroyMenu(menu);
 
-		switch_context_menu(wnd, is_files, cmd, selmask, ilist);
+		switch_context_menu(wnd, *pf, is_files, cmd, selmask, ilist);
 
 	}
 	catch (...) {}
 	return false;
 }
 
-bool CTrackMatchingDialog::switch_context_menu(HWND wnd, bool is_files, int cmd, bit_array_bittable selmask, CListControlOwnerData* ilist) {
+bool CTrackMatchingDialog::switch_context_menu(HWND wnd, POINT point, bool is_files, int cmd, bit_array_bittable selmask, CListControlOwnerData* ilist) {
 
 	UINT att_id = 0;
 	af att_album;
@@ -1627,48 +1643,22 @@ bool CTrackMatchingDialog::switch_context_menu(HWND wnd, bool is_files, int cmd,
 		if (ilist) ilist->OnItemsRemoved(selmask, selmask.size());
 		return true;
 	}
-	case ID_RESET_COLUMNS: {
-		CHeaderCtrl header = ListView_GetHeader(wnd);
-		int old_count = header.GetItemCount();
-
-		size_t new_count = header.GetItemCount();
-		if (new_count) {
-			std::vector<int>order; order.resize(new_count);
-			for (size_t c = 0; c < new_count; ++c) order[c] = (int)c;
-			header.SetOrderArray(new_count, &order[0]);
-		}
-		ListView_RedrawItems(wnd, 0, ListView_GetItemCount(wnd) - 1);
+	case ID_LEFT_ALIGN: {
+		presenter* pres;
+		std::pair<size_t, presenter*> icol_hit = m_coord.HitUiTest(point);
+		m_coord.SetUiColumnFormat(icol_hit.first, icol_hit.second, HDF_LEFT);
 		return true;
 	}
-	case ID_LAYOUT_CENTER:
-	{
-		HWND ctrlst = wnd;
-		CHeaderCtrl header = ListView_GetHeader(wnd);
-		int dbug = ListView_GetColumnCount(wnd);
-		for (int i = 0; i < ListView_GetColumnCount(wnd); i++) {
-			HDITEM headerItem = {};
-			headerItem.mask = HDI_FORMAT;
-			header.GetItem(i, &headerItem);
-			headerItem.fmt = (headerItem.fmt & ~HDF_JUSTIFYMASK);
-			headerItem.fmt |= HDF_CENTER;
-			headerItem.mask = HDI_FORMAT;
-			header.SetItem(i, &headerItem);
-		}
-
-		ListView_RedrawItems(wnd, 0, ListView_GetItemCount(wnd));
-		::UpdateWindow(wnd);
-
+	case ID_CENTER_ALIGN:	{
+		presenter* pres;
+		std::pair<size_t, presenter*> icol_hit = m_coord.HitUiTest(point);
+		m_coord.SetUiColumnFormat(icol_hit.first, icol_hit.second, HDF_CENTER);
 		return true;
 	}
-	case ID_SHOW_GRID: {
-
-		DWORD dwStyle = ::SendMessage(wnd,
-			LVM_GETEXTENDEDLISTVIEWSTYLE, 0, 0);
-
-		dwStyle ^= LVS_EX_GRIDLINES;
-		::SendMessage(wnd,
-			LVM_SETEXTENDEDLISTVIEWSTYLE, 0, dwStyle);
-
+	case ID_RIGHT_ALIGN: {
+		presenter* pres;
+		std::pair<size_t, presenter*> icol_hit = m_coord.HitUiTest(point);
+		m_coord.SetUiColumnFormat(icol_hit.first, icol_hit.second, HDF_RIGHT);
 		return true;
 	}
 	case ID_ART_PREVIEW: {
@@ -1836,7 +1826,6 @@ LRESULT CTrackMatchingDialog::OnListRClick(LPNMHDR lParam) {
 }
 
 LRESULT CTrackMatchingDialog::OnRButtonUp(UINT, WPARAM p_wp, LPARAM p_lp, BOOL& bHandled) {
-	//debug...
 	bHandled = FALSE;
 	return 0;
 }
@@ -1918,11 +1907,6 @@ void CTrackMatchingDialog::go_back() {
 
 
 LRESULT CTrackMatchingDialog::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	
-	m_coord.PullConf(GetMode(), true, &m_conf);
-	m_coord.PullConf(GetMode(), false, &m_conf);
-
-	pushcfg();
 
 	if (multi_mode) {
 		destroy();
@@ -1942,6 +1926,9 @@ void CTrackMatchingDialog::destroy_all() {
 }
 
 LRESULT CTrackMatchingDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
-	//debug...
+	m_coord.PullConf(GetMode(), true, &m_conf);
+	m_coord.PullConf(GetMode(), false, &m_conf);
+	pushcfg();
+
 	return 0;
 }

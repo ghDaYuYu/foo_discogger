@@ -41,6 +41,7 @@ conf_string_entry make_conf_entry(int i, const pfc::string8 &v) {
 
 bool new_conf::load() {
 	bool changed = false;
+	bool forceupdate = false;
 	// { specs vector, boolvals, intvals, stringvals;
 	vspec v000 { &vec_specs, 0, 0, 0 };
 	vspec v199 { &vec_specs, 25, 16, 13 };
@@ -229,23 +230,23 @@ bool new_conf::load() {
 				preview_tags_dialog_col2_width = item.value;
 				break;
 			case CFG_MATCH_TRACKS_DISCOGS_COL1_WIDTH:
-				match_tracks_dialog_discogs_col1_width = item.value;
+				match_tracks_discogs_col1_width = item.value;
 				break;
 			case CFG_MATCH_TRACKS_DISCOGS_COL2_WIDTH:
-				match_tracks_dialog_discogs_col2_width = item.value;
+				match_tracks_discogs_col2_width = item.value;
 				break;
 			case CFG_MATCH_TRACKS_FILES_COL1_WIDTH:
-				match_file_dialog_col1_width = item.value;
+				match_tracks_files_col1_width = item.value;
 				break;
 			case CFG_MATCH_TRACKS_FILES_COL2_WIDTH:
-				match_file_dialog_col2_width = item.value;
+				match_tracks_files_col2_width = item.value;
 				break;
 			//v201 (mod v17)
 			case CFG_MATCH_TRACKS_DISCOGS_STYLE:
-				match_tracks_dialog_style = item.value;
+				match_tracks_discogs_style = item.value;
 				break;
 			case CFG_MATCH_TRACKS_FILES_STYLE:
-				match_file_dialog_style = item.value;
+				match_tracks_files_style = item.value;
 				break;
 			case CFG_PREVIEW_TAGS_DIALOG_W_WIDTH:
 				preview_tags_dialog_w_width = item.value;
@@ -307,15 +308,15 @@ bool new_conf::load() {
 		//v200
 		cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_COL1_WIDTH, preview_tags_dialog_col1_width));
 		cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_COL2_WIDTH, preview_tags_dialog_col2_width));
-		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_DISCOGS_COL1_WIDTH, match_tracks_dialog_discogs_col1_width));
-		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_DISCOGS_COL2_WIDTH, match_tracks_dialog_discogs_col2_width));
-		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_COL1_WIDTH, match_file_dialog_col1_width));
-		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_COL2_WIDTH, match_file_dialog_col2_width));
+		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_DISCOGS_COL1_WIDTH, match_tracks_discogs_col1_width));
+		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_DISCOGS_COL2_WIDTH, match_tracks_discogs_col2_width));
+		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_COL1_WIDTH, match_tracks_files_col1_width));
+		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_COL2_WIDTH, match_tracks_files_col2_width));
 	}
 	if (vLoad < v201) {
 		//v201
-		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_DISCOGS_STYLE, match_tracks_dialog_style));
-		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_STYLE, match_file_dialog_style));
+		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_DISCOGS_STYLE, match_tracks_discogs_style));
+		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_STYLE, match_tracks_files_style));
 		cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_W_WIDTH, preview_tags_dialog_w_width));
 		cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_U_WIDTH, preview_tags_dialog_u_width));
 		cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_S_WIDTH, preview_tags_dialog_s_width));
@@ -507,18 +508,18 @@ int new_conf::id_to_val_int(int id, new_conf in_conf) {
 		case CFG_PREVIEW_TAGS_DIALOG_COL2_WIDTH:
 			return in_conf.preview_tags_dialog_col2_width;
 		case CFG_MATCH_TRACKS_DISCOGS_COL1_WIDTH:
-			return in_conf.match_tracks_dialog_discogs_col1_width;
+			return in_conf.match_tracks_discogs_col1_width;
 		case CFG_MATCH_TRACKS_DISCOGS_COL2_WIDTH:
-			return in_conf.match_tracks_dialog_discogs_col2_width;
+			return in_conf.match_tracks_discogs_col2_width;
 		case CFG_MATCH_TRACKS_FILES_COL1_WIDTH:
-			return in_conf.match_file_dialog_col1_width;
+			return in_conf.match_tracks_files_col1_width;
 		case CFG_MATCH_TRACKS_FILES_COL2_WIDTH:
-			return in_conf.match_file_dialog_col2_width;
+			return in_conf.match_tracks_files_col2_width;
 		//v201
 		case CFG_MATCH_TRACKS_DISCOGS_STYLE:
-			return in_conf.match_tracks_dialog_style;
+			return in_conf.match_tracks_discogs_style;
 		case CFG_MATCH_TRACKS_FILES_STYLE:
-			return in_conf.match_file_dialog_style;
+			return in_conf.match_tracks_files_style;
 		case CFG_PREVIEW_TAGS_DIALOG_W_WIDTH:
 			return in_conf.preview_tags_dialog_w_width;
 		case CFG_PREVIEW_TAGS_DIALOG_U_WIDTH:
@@ -792,13 +793,13 @@ void new_conf::save() {
 	//v200
 	cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_COL1_WIDTH, preview_tags_dialog_col1_width));
 	cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_COL2_WIDTH, preview_tags_dialog_col2_width));
-	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_DISCOGS_COL1_WIDTH, match_tracks_dialog_discogs_col1_width));
-	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_DISCOGS_COL2_WIDTH, match_tracks_dialog_discogs_col2_width));
-	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_COL1_WIDTH, match_file_dialog_col1_width));
-	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_COL2_WIDTH, match_file_dialog_col2_width));
+	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_DISCOGS_COL1_WIDTH, match_tracks_discogs_col1_width));
+	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_DISCOGS_COL2_WIDTH, match_tracks_discogs_col2_width));
+	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_COL1_WIDTH, match_tracks_files_col1_width));
+	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_COL2_WIDTH, match_tracks_files_col2_width));
 	//v201
-	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_DISCOGS_STYLE, match_tracks_dialog_style));
-	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_STYLE, match_file_dialog_style));
+	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_DISCOGS_STYLE, match_tracks_discogs_style));
+	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_TRACKS_FILES_STYLE, match_tracks_files_style));
 	cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_W_WIDTH, preview_tags_dialog_w_width));
 	cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_U_WIDTH, preview_tags_dialog_u_width));
 	cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_TAGS_DIALOG_S_WIDTH, preview_tags_dialog_s_width));

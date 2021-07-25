@@ -53,15 +53,6 @@ foo_discogs_conf* coord_presenters::cfgRef() {
 	return &m_conf;
 }
 
-std::vector<int> coord_presenters::GetBinWoas(lsmode mode, bool tracks) {
-	
-	std::vector<int> conf_col_woa;
-
-	auto bin = form_mode[mode];
-	auto& pres = tracks ? bin->first : bin->second;
-	return pres.Woas();
-}
-
 std::vector<pfc::string8> coord_presenters::Get_Titles(lsmode mode, bool tracks) {
 	std::vector<pfc::string8> titles;
 	auto bin = form_mode[mode];
@@ -123,6 +114,61 @@ void coord_presenters::InitUiList(HWND hwnd, lsmode mode, bool tracks, CListCont
 		file_track_libui_presenter* uipres = dynamic_cast<file_track_libui_presenter*>(&bin->second);
 		uipres->SetUIList(uilist);
 	}
+}
+
+std::pair<size_t, presenter*> coord_presenters::HitUiTest(CPoint point) {
+	
+	auto bin = form_mode[lsmode::tracks_ui];
+
+	size_t icol = pfc_infinite;
+	
+	//testhit tracks
+
+	track_presenter* uipres = dynamic_cast<track_presenter*>(&bin->first);
+
+	try {
+		icol = uipres->HitTest(point);
+	}
+	catch (...) { return std::pair(pfc_infinite, nullptr); }
+
+	if (icol != pfc_infinite)
+		return std::pair(icol, uipres);
+
+	//testhit files
+
+	uipres = dynamic_cast<track_presenter*>(&bin->second);
+
+	try {
+		icol = uipres->HitTest(point);
+	}
+	catch (...) { return std::pair(pfc_infinite, nullptr); }
+
+	if (icol != pfc_infinite)
+		return std::pair(icol, uipres);
+	
+	return std::pair(pfc_infinite, nullptr);
+
+}
+
+void coord_presenters::SetUiColumnFormat(size_t icol, presenter* pres, size_t fmt) {
+	
+	try {
+		track_presenter* uipres = dynamic_cast<track_presenter*>(pres);
+		uipres->SetHeaderColumnFormat(icol, fmt);
+	}
+	catch (...) {}
+}
+
+size_t coord_presenters::GetUiColumnFormat(size_t icol, presenter *pres) {
+	size_t fmt = pfc_infinite;
+
+	try {	
+		track_presenter* uipres = dynamic_cast<track_presenter*>(pres);
+		fmt = uipres->GetHeaderColumnFormat(icol);
+	}
+	catch (...) {}
+
+	return fmt;
 }
 
 void coord_presenters::ListUserCmd(HWND hwnd, lsmode mode, int cmd,
@@ -293,9 +339,8 @@ void coord_presenters::reorder_map_elements(HWND hwnd, size_t const* order, size
 	debug = fm->second.GetListView();
 	if (fm->second.GetListView() == hwnd)
 		pres = &fm->second;
-	if (!pres) return;
-
-	pres->ReorderMapItem(order, count);
+	
+	if (pres) pres->ReorderMapItem(order, count);
 }
 
 void coord_presenters::PullConf(lsmode mode, bool tracks, foo_discogs_conf* out_conf) {
@@ -318,19 +363,13 @@ void coord_presenters::PullConf(lsmode mode, bool tracks, foo_discogs_conf* out_
 ///////////////////////////////////////////////
 
 void presenter::Load() {
-
-	if (m_loaded) {
-		
-	}
-	else {
+	if (!m_loaded) {
 		m_loaded = true;
 		display();
 	}
-
-};
+}
 
 void presenter::Unload() {
-
 	build_cfg_columns();
 	m_loaded = false;
 	ListView_DeleteAllItems(GetListView());
@@ -343,11 +382,11 @@ bool presenter::IsTile() {
 
 void presenter::set_lv_images_lists() {
 
+	if (!m_lstimg.m_hImageList) return;
 	ListView_SetImageList(GetListView(), m_lstimg, LVSIL_NORMAL);
 	ListView_SetImageList(GetListView(), m_lstimg_small, LVSIL_SMALL);
-	if (!m_lstimg.m_hImageList) return;
 
-};
+}
 
 void presenter::Init(HWND hDlg, TagWriter_ptr tag_writer, foo_discogs_conf& conf, UINT ID) {
 
@@ -356,7 +395,7 @@ void presenter::Init(HWND hDlg, TagWriter_ptr tag_writer, foo_discogs_conf& conf
 	m_release = tag_writer->release;
 	m_conf = conf;
 	m_listID = ID;
-	//m_wlist = uGetDlgItem(mm_hWnd, ID);
+	//presenter derived override
 	define_columns();
 }
 
@@ -367,6 +406,7 @@ void presenter::Init(HWND hDlg, TagWriter_ptr tag_writer, foo_discogs_conf& conf
 ///////////////////////////////////////////////
 
 void track_presenter::display() {
+	//for now we delegate coord presenters InitUiList()
 	//insert_columns();
 	//set_row_height(true);
 }
@@ -436,22 +476,20 @@ size_t discogs_track_libui_presenter::GetVRow(size_t list_position, var_it_t& ou
 	return list_position;
 }
 
+//override
 void discogs_track_libui_presenter::define_columns() {
 
 	m_vtitles = { "Discogs Track", "Length" };
 	m_conf_col_woa.clear();
-	m_conf_col_woa.push_back(m_conf.match_tracks_dialog_discogs_col1_width);
-	m_conf_col_woa.push_back(m_conf.match_tracks_dialog_discogs_col2_width);
+	m_conf_col_woa.push_back(m_conf.match_tracks_discogs_col1_width);
+	m_conf_col_woa.push_back(m_conf.match_tracks_discogs_col2_width);
 
-	m_dwHeaderStyle = LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP;
-
-	if (m_conf.match_tracks_dialog_style != 0)
-		m_dwHeaderStyle |= static_cast<DWORD>(m_conf.match_tracks_dialog_style);
-
-	ListView_SetExtendedListViewStyleEx(GetListView(), m_dwHeaderStyle, m_dwHeaderStyle);
-	ListView_SetView(GetListView(), LVS_REPORT);
-	
-	track_presenter::define_columns();
+	//m_dwHeaderStyle = LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP;
+	//if (m_conf.match_tracks_discogs_style != 0)
+	//	m_dwHeaderStyle |= static_cast<DWORD>(m_conf.match_tracks_discogs_style);
+	//ListView_SetExtendedListViewStyleEx(GetListView(), m_dwHeaderStyle, m_dwHeaderStyle);
+	//ListView_SetView(GetListView(), LVS_REPORT);
+	//track_presenter::define_columns();
 }
 
 void discogs_track_libui_presenter::build_cfg_columns(foo_discogs_conf* out_conf) {
@@ -462,47 +500,11 @@ void discogs_track_libui_presenter::build_cfg_columns(foo_discogs_conf* out_conf
 
 	if (m_conf_col_woa.size()) {
 
-		config->match_tracks_dialog_discogs_col1_width = m_conf_col_woa.at(0);
-		config->match_tracks_dialog_discogs_col2_width = m_conf_col_woa.at(1);
+		config->match_tracks_discogs_col1_width = m_conf_col_woa.at(0);
+		config->match_tracks_discogs_col2_width = m_conf_col_woa.at(1);
 		size_t icomp = get_extended_style(GetListView());
-		config->match_tracks_dialog_style = icomp;
+		config->match_tracks_discogs_style = icomp;
 	}
-}
-
-void discogs_track_libui_presenter::SetUIList(CListControlOwnerData* uilist) {
-
-	m_ui_list = uilist;
-
-	size_t icol = 0;
-
-	LPARAM woa;
-	size_t col_order;
-	size_t col_align;
-	size_t col_width;
-
-	auto DPI = m_ui_list->GetDPI();
-
-	std::vector<int> vorder;
-	vorder.resize(m_vtitles.size());
-
-	woa = m_conf.match_tracks_dialog_discogs_col1_width;
-
-	vorder[icol] = LOWORD(woa) % 10;
-	col_align = LOWORD(woa) / 10;
-	col_width = HIWORD(woa);
-
-	m_ui_list->AddColumn(m_vtitles.at(icol), UINT32_MAX/*MulDiv(width, DPI.cx, 96)*/);
-	
-	icol++;
-	woa = m_conf.match_tracks_dialog_discogs_col2_width;
-
-	vorder[icol] = LOWORD(woa) % 10;
-	col_align = LOWORD(woa) / 10;
-	col_width = HIWORD(woa);
-	m_ui_list->AddColumn(m_vtitles.at(icol), /*UINT32_MAX - 1*/MulDiv(col_width, DPI.cx, 96));
-
-	CHeaderCtrl header = m_ui_list->GetHeaderCtrl();
-	header.SetOrderArray((int)vorder.size(), &vorder[0]);
 }
 
 ///////////////////////////////////////////////
@@ -531,23 +533,20 @@ size_t file_track_libui_presenter::GetVRow(size_t list_position, var_it_t& out) 
 	return list_position;
 }
 
+//override
 void file_track_libui_presenter::define_columns() {
 
 	m_vtitles = { "Local Files", "Length" };
-
 	m_conf_col_woa.clear();
-	m_conf_col_woa.push_back(m_conf.match_file_dialog_col1_width);
-	m_conf_col_woa.push_back(m_conf.match_file_dialog_col2_width);
+	m_conf_col_woa.push_back(m_conf.match_tracks_files_col1_width);
+	m_conf_col_woa.push_back(m_conf.match_tracks_files_col2_width);
 
-	m_dwHeaderStyle = LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP;
-
-	if (m_conf.match_file_dialog_style != 0)
-		m_dwHeaderStyle |= static_cast<DWORD>(m_conf.match_file_dialog_style);
-
-	ListView_SetExtendedListViewStyleEx(GetListView(), m_dwHeaderStyle, m_dwHeaderStyle);
-	ListView_SetView(GetListView(), LVS_REPORT);
-
-	track_presenter::define_columns();
+	//m_dwHeaderStyle = LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP;
+	//if (m_conf.match_tracks_files_style != 0)
+	//	m_dwHeaderStyle |= static_cast<DWORD>(m_conf.match_tracks_files_style);
+	//ListView_SetExtendedListViewStyleEx(GetListView(), m_dwHeaderStyle, m_dwHeaderStyle);
+	//ListView_SetView(GetListView(), LVS_REPORT);
+	//track_presenter::define_columns();
 }
 
 void file_track_libui_presenter::build_cfg_columns(foo_discogs_conf* out_conf) {
@@ -558,48 +557,12 @@ void file_track_libui_presenter::build_cfg_columns(foo_discogs_conf* out_conf) {
 
 	if (m_conf_col_woa.size()) {
 
-		config->match_file_dialog_col1_width = m_conf_col_woa.at(0);
-		config->match_file_dialog_col2_width = m_conf_col_woa.at(1);
+		config->match_tracks_files_col1_width = m_conf_col_woa.at(0);
+		config->match_tracks_files_col2_width = m_conf_col_woa.at(1);
 
 	}
 	size_t icomp = get_extended_style(GetListView());
-	config->match_file_dialog_style = icomp;
-
-}
-
-void file_track_libui_presenter::SetUIList(CListControlOwnerData* uilist) {
-
-	m_ui_list = uilist;
-
-	std::vector < pfc::string8 > titles = m_vtitles;
-
-	foo_discogs_conf* ccfg = &m_conf;
-	size_t icol = 0;
-
-	LPARAM woa; int lo; size_t col_order; size_t col_align; size_t width;
-	std::vector<int> newOrder; newOrder.resize(titles.size());
-
-	woa = ccfg->match_file_dialog_col1_width;
-
-
-	lo = LOWORD(woa);
-	newOrder[0] = lo % 10;
-	col_align = lo / 10;
-	width = HIWORD(woa);
-	auto DPI = m_ui_list->GetDPI();
-	m_ui_list->AddColumn(titles.at(icol), UINT32_MAX/*MulDiv(width, DPI.cx, 96)*/);
-	icol++;
-
-	woa = ccfg->match_file_dialog_col2_width;
-
-	lo = LOWORD(woa);
-	newOrder[1] = lo % 10;
-	col_align = lo / 10;
-	width = HIWORD(woa);
-	m_ui_list->AddColumn(titles.at(icol), /*UINT32_MAX - 1*/MulDiv(width, DPI.cx, 96));
-
-	CHeaderCtrl header = m_ui_list->GetHeaderCtrl();
-	header.SetOrderArray((int)newOrder.size(), &newOrder[0]);
+	config->match_tracks_files_style = icomp;
 
 }
 
@@ -614,7 +577,6 @@ void artwork_presenter::display() {
 	HWND wnddlg = ::GetParent(GetListView());
 	uButton_SetCheck(wnddlg, IDC_TRACK_MATCH_ALBUM_ART, true);
 }
-
 
 void artwork_presenter::update_imagelist(size_t img_ndx, size_t max_img, std::pair<HBITMAP, HBITMAP> hRES) {
 
@@ -767,50 +729,104 @@ std::pair<pfc::string8, pfc::string8> artwork_presenter::get_tag_writer_img_finf
 //
 ///////////////////////////////////////////////
 
+void track_presenter::SetUIList(CListControlOwnerData* ui_list) {
+
+	m_ui_list = ui_list;
+
+	LPARAM woa;
+	size_t col_align, col_width;
+	
+	auto DPI = QueryScreenDPIEx(mm_hWnd);
+
+	std::vector<int> vorder;
+	vorder.resize(m_vtitles.size());
+
+	for (size_t walk = 0; walk < m_conf_col_woa.size(); walk++) {
+
+		LPARAM woa = m_conf_col_woa[walk];
+		vorder[walk] = LOWORD(woa) % 10;
+		col_align = LOWORD(woa) / 10;
+		col_width = HIWORD(woa);
+
+		//set first col to auto-width
+		if (walk == 0) {
+			col_width = UINT32_MAX;
+		}
+		else {
+			if (col_width == 0) {
+				col_width = DEF_TIME_COL_WIDTH;
+			}
+		}
+
+		//width pixels at 96dpi
+		ui_list->AddColumnEx(m_vtitles.at(walk), col_width == UINT32_MAX ? UINT32_MAX : col_width, col_align == 0 ? HDF_LEFT : col_align);
+	}
+
+	//default config value is all zeros, fill with ascending values
+	if (std::find(vorder.begin(), vorder.end(), 1) == vorder.end()) {
+		int c = 0;
+		for (int& v : vorder) v = c++;
+	}
+
+	CHeaderCtrl header = ui_list->GetHeaderCtrl();
+	header.SetOrderArray((int)vorder.size(), &vorder[0]);
+}
+
 void track_presenter::insert_columns() {
 
-	int count = ListView_GetColumnCount(GetListView());
-	for (int colIndex = 0; colIndex < count; ++colIndex) {
-		ListView_DeleteColumn(GetListView(), 0);
-	}
-
-	set_row_height(m_row_height);
-
-	std::vector<int> col_order;
-	std::vector<int> col_align;
-	std::vector<int> col_width;
-
-	size_t icol = 0;
-	for (LPARAM param : m_conf_col_woa) {
-
-		int lo = LOWORD(param);
-
-		col_order.push_back(lo % 10);
-		col_align.push_back(lo / 10);
-		col_width.push_back(HIWORD(param));
-
-		LVCOLUMN Column;
-		listview_helper::insert_column(GetListView(), icol, m_vtitles.at(icol),
-			col_width.at(icol), col_align.at(icol));
-
-		ListView_SetColumnWidth(GetListView(), icol, col_width.at(icol));
-
-		Column.mask = LVCF_FMT;
-		Column.fmt = col_align.at(icol);
-
-		ListView_SetColumn(GetListView(), icol, &Column);
-
-		icol++;
-	}
-
-	CHeaderCtrl header = ListView_GetHeader(GetListView());
-	header.SetOrderArray(col_order.size(), &col_order[0]);
-
-	ListView_SetExtendedListViewStyle(GetListView(), m_dwHeaderStyle);
-
-	if (col_width.at(0) == 0)
-		update_list_width(true);
 }
+
+void track_presenter::SetHeaderColumnFormat(size_t icol, size_t fmt) {
+
+	CHeaderCtrl header = m_ui_list->GetHeaderCtrl();
+	if (!header) return;
+
+	HDITEM item = {};
+	item.mask = HDI_FORMAT;
+	header.GetItem(icol, &item);
+
+	item.fmt = item.fmt & ~HDF_JUSTIFYMASK;
+	item.fmt = item.fmt | (int)fmt;
+
+	header.SetItem(icol, &item);
+	CRect rc;
+	m_ui_list->GetClientRect(&rc);
+	m_ui_list->RedrawWindow(rc);
+}
+
+size_t track_presenter::GetHeaderColumnFormat(size_t icol) {
+	
+	size_t fmt = pfc_infinite;
+	CHeaderCtrl header = m_ui_list->GetHeaderCtrl();
+	if (!header) return fmt;
+
+	HDITEM item = {0};
+	item.mask = HDI_FORMAT;
+	header.GetItem(icol, &item);
+
+	fmt = item.fmt & HDF_JUSTIFYMASK;
+	return fmt;
+}
+
+size_t track_presenter::HitTest(CPoint point) {
+	size_t icol = pfc_infinite;
+
+	CHeaderCtrl header = m_ui_list->GetHeaderCtrl();
+	::ScreenToClient(m_ui_list->m_hWnd, &point);
+	HDHITTESTINFO lptest = {0};
+	lptest.pt = point;
+	header.HitTest(&lptest);
+	if (lptest.flags == HHT_ONHEADER)
+		icol = lptest.iItem;
+		
+	return icol;
+}
+
+///////////////////////////////////////////////
+//
+//	ARTWORK PRESENTER
+//
+///////////////////////////////////////////////
 
 void artwork_presenter::insert_columns() {
 	CHeaderCtrl hc = ListView_GetHeader(GetListView());
@@ -1141,9 +1157,6 @@ void files_artwork_presenter::GetExistingArtwork() {
 			
 		AddRow(ndximgfileinfo);
 	}
-
-
-
 }
 
 void files_artwork_presenter::Populate(/*Release_ptr release*/) {
@@ -1284,8 +1297,6 @@ void files_artwork_presenter::update_img_defs(size_t img_ndx, size_t album_art_i
 
 	//ndx_image_file_t ndx_image_file = std::pair<size_t, GUID>(fb_art_pref.first, album_art_ids::query_type(fb_art_pref.first));
 	//ndx_image_file_info_row_t ndximgfileinfo = std::pair(ndx_image_file, image_info);
-
-
 }
 
 void files_artwork_presenter::ImageListReset(pfc::array_t<GUID> album_art_ids) {
@@ -1319,10 +1330,8 @@ void files_artwork_presenter::ImageListReset(pfc::array_t<GUID> album_art_ids) {
 			uDeleteFile(m_vtemp_files[pos_v].second);
 
 		}
-
 	}
-	
-	
+
 	BOOL bres = m_lstimg.RemoveAll();
 	bres = m_lstimg_small.RemoveAll();
 	PFC_ASSERT(m_lstimg.GetImageCount() == 0);
@@ -1365,7 +1374,6 @@ void discogs_artwork_presenter::update_list_width(/*HWND list,*/ bool initialize
 		ListView_SetColumn(GetListView(), icol, &lvcol);
 
 		icol++;
-
 	}
 }
 
@@ -1535,8 +1543,7 @@ bool discogs_artwork_presenter::AddArtwork(size_t img_ndx, art_src artSrc, Memor
 	std::pair<HBITMAP, HBITMAP> hRES = MemoryBlockToTmpBitmap(std::pair(cache_path_small,	cache_path_mini),
 		img_ndx, small_art);
 
-    //todo: unify similar function above
-	//Find lv item by inner ndx 
+	//Find lv item with real ndx ej. 4, artist -> look for art & ndx 4
 	//create list to parse ndx lists in next releases
 
 	size_t citems = m_lvimages.size(); //ListView_GetItemCount(GetListView());
@@ -1624,13 +1631,11 @@ void files_artwork_presenter::display_columns() {
 ///////////////////////////////////////////////
 
 bool coord_presenters::show_artwork_preview(size_t image_ndx, art_src art_source, MemoryBlock small_art) {
-	//discogs_artwork_presenter* mode_art_presenter =
-	//	dynamic_cast<discogs_artwork_presenter*>(&form_mode["artwork"]->first);
+
 	if (small_art.get_count())
 		return m_discogs_art_presenter.AddArtwork(image_ndx, art_source, small_art);
 	else
 		return false;
-	//return mode_art_presenter->AddArtwork(image_ndx, art_source, small_art);
 }
 bool coord_presenters::show_file_artwork_preview(size_t image_ndx, art_src art_source,
 	std::pair<HBITMAP, HBITMAP> callback_pair_hbitmaps, std::pair<pfc::string8, pfc::string8> temp_file_names) {
@@ -1638,7 +1643,6 @@ bool coord_presenters::show_file_artwork_preview(size_t image_ndx, art_src art_s
 	size_t album_art_id = m_file_art_presenter.AddFileArtwork(image_ndx, art_source, callback_pair_hbitmaps, temp_file_names);
 
 	return true;
-
 }
 
 void coord_presenters::populate_track_ui_mode() {

@@ -7,7 +7,6 @@
 #define PREVIEW_ORIGINAL	3
 #define PREVIEW_DEBUG		4
 
-
 #define CFG_REPLACE_ANVS					1
 #define CFG_MOVE_THE_AT_BEGINNING			2
 #define CFG_DISCARD_NUMERIC_SUFFIX			3
@@ -508,10 +507,10 @@ public:
 	//v.200
 	int preview_tags_dialog_col1_width = 0;
 	int preview_tags_dialog_col2_width = 0;
-	int match_tracks_dialog_discogs_col1_width = 0;
-	int match_tracks_dialog_discogs_col2_width = 0;
-	int match_file_dialog_col1_width = 0;
-	int match_file_dialog_col2_width = 0;
+	int match_tracks_discogs_col1_width = 0;
+	int match_tracks_discogs_col2_width = 0;
+	int match_tracks_files_col1_width = 0;
+	int match_tracks_files_col2_width = 0;
 
 	pfc::string8 edit_tags_dlg_hl_keyword = "";
 	bool edit_tags_dlg_show_tm_stats = false;
@@ -519,8 +518,8 @@ public:
 
 	//v201
 	bool release_enter_key_override = false;
-	int match_tracks_dialog_style = static_cast<int>(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP);
-	int match_file_dialog_style = static_cast<int>(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP);
+	int match_tracks_discogs_style = static_cast<int>(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP);
+	int match_tracks_files_style = static_cast<int>(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP);
 	int preview_tags_dialog_w_width = 40;
 	int preview_tags_dialog_u_width = 40;
 	int preview_tags_dialog_s_width = 40;

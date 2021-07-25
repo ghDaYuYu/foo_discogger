@@ -20,7 +20,7 @@
 
 
 #define ENCODE_DISCOGS(d,t)		((d==-1||t==-1) ? -1 : ((d<<16)|t))
-#define DEF_TIME_COL_WIDTH 60
+#define DEF_TIME_COL_WIDTH 45  //96dpi
 
 enum class lsmode { tracks_ui = 0, art, unknown, default = 0 };
 
@@ -200,7 +200,7 @@ class track_presenter : public presenter {
 
 public:
 
-	track_presenter(coord_presenters* coord, foo_discogs_conf conf) : presenter(coord, conf) {
+	track_presenter(coord_presenters* coord, foo_discogs_conf conf) : m_ui_list(NULL), presenter(coord, conf) {
 	}
 
 	track_presenter() {}
@@ -219,6 +219,11 @@ public:
 	virtual bool SwapMapItem(size_t key1, size_t key2) = 0;
 	virtual void ReorderMapItem(size_t const* order, size_t count) = 0;
 
+	virtual void SetUIList(CListControlOwnerData* uilist);
+	void SetHeaderColumnFormat(size_t icol, size_t fmt);
+	size_t GetHeaderColumnFormat(size_t icol);
+	size_t HitTest(CPoint point);
+
 	void Reset() override {}
 
 protected:
@@ -227,6 +232,12 @@ protected:
 	void insert_columns() override;
 	void update_list_width(bool initialize);
 	void set_row_height(bool assign) override;
+
+	CListControlOwnerData* m_ui_list;
+
+private:
+
+
 };
 
 class discogs_track_libui_presenter : public track_presenter {
@@ -240,14 +251,16 @@ public:
 		m_ui_list = NULL;
 	}
 
-	discogs_track_libui_presenter()  {
+	discogs_track_libui_presenter() {
 	
 		m_vtracks = {};
 		m_lvtracks = {};
 		m_ui_list = NULL;
 	}
 
-	void SetUIList(CListControlOwnerData* uilist);
+	~discogs_track_libui_presenter() {
+		int debug = 0;
+	}
 
 	void AddRow(std::any track) override;
 
@@ -311,9 +324,15 @@ public:
 		m_lvfiles = {};
 	}
 
-	file_track_libui_presenter() : m_ui_list(NULL), m_vfiles ({}), m_lvfiles({}) {}
+	file_track_libui_presenter() {
+		m_ui_list = NULL;
+		m_vfiles = {};
+		m_lvfiles = {};
+	}
 
-	void SetUIList(CListControlOwnerData* uilist); // { m_ui_list = uilist; }
+	~file_track_libui_presenter() {
+		//int debug = 0;
+	}
 
 	void AddRow(std::any file) override;
 
@@ -353,8 +372,6 @@ protected:
 	void build_cfg_columns(foo_discogs_conf* out_conf) override;
 
 private:
-
-	CListControlOwnerData* m_ui_list;
 
 	vfile_t m_vfiles;
 	std::vector<V> m_lvfiles;
@@ -693,14 +710,13 @@ public:
 	void Show(bool showleft = true, bool showright = true);
 
 	void InitUiList(HWND hwnd, lsmode mode, bool tracks, CListControlOwnerData* uilist);
+	std::pair<size_t, presenter*> HitUiTest(CPoint point);
+	void SetUiColumnFormat(size_t icol, presenter* pres, size_t fmt);
+	size_t GetUiColumnFormat(size_t icol, presenter* pres);
 
-
-	std::vector<int> GetBinWoas(lsmode mode, bool tracks);
 	std::vector<pfc::string8> Get_Titles(lsmode mode, bool tracks);
 	
 	void Reset(HWND hlist, lsmode mode);
-
-	//void SetTagWriter(TagWriter_ptr tagwriter) { m_tag_writer = tagwriter; }
 
 	void InitFormMode(lsmode mode, UINT lvleft, UINT lvright);
 

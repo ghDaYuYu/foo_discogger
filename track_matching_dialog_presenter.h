@@ -36,11 +36,11 @@ struct file_match_nfo {
 //match_info_t: display, formatted length
 typedef std::pair<pfc::string8, pfc::string8> match_info_t;
 
-//track_match_t: match info_t, file index
-typedef std::pair<match_info_t, size_t> track_match_t;
+//track_match_t: match info_t, (for tracks: ENCODE_DISCOGS(mapping.discogs_disc, mapping.discogs_track), for files: file index)
+typedef std::pair<match_info_t, file_match_nfo> track_match_t;
 
 //file_match_t: match_info_t, file_match_nfo
-typedef std::pair<match_info_t, file_match_nfo> file_match_t;
+typedef std::pair<match_info_t, size_t> file_match_t;
 
 //discogs tracks vector ...
 typedef std::vector<track_match_t> vtracks_t;

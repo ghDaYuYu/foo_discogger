@@ -381,35 +381,42 @@ LRESULT CTrackMatchingDialog::OnRemoveTrackButton(WORD /*wNotifyCode*/, WORD wID
 }
 
 void CTrackMatchingDialog::generate_track_mappings(track_mappings_list_type &track_mappings) {
+	
 	track_mappings.force_reset();
-	int dindex; int findex;
+
+	int file_index = -1;
+	int dc_track_index = -1;
+	int dc_disc_index = -1;
+
 	//or check tag_writer->finfo_manager->items
 	const size_t count_d = m_coord.GetDiscogsTrackUiLvSize(); // vrow_discogs.size(); // ListView_GetItemCount(discogs_track_list);
 	const size_t count_f = m_coord.GetFileTrackUiLvSize();		// ListView_GetItemCount(file_list);
 
 	for (size_t i = 0; i < count_d; i++) {
-		findex = -1;
-		dindex = -1;
+		dc_track_index = -1;
+		dc_disc_index = -1;
 		track_mapping track;
 		track_it track_match;
 		size_t res = m_coord.GetDiscogsTrackUiAtLvPos(i, track_match);
-		
+		file_match_nfo match_nfo = track_match->second;
+		dc_track_index = match_nfo.track;
+		dc_disc_index = match_nfo.disc;
+
 		file_it file_match;
 		if (i >= count_f)
 		{
-			findex = -1;
-			dindex = -1;
+			dc_track_index = -1;
+			dc_disc_index = -1;
 		}
 		else {
 			size_t res = m_coord.GetFileTrackUiAtLvPos(i, file_match);
-			findex = file_match->second.track;
-			dindex = file_match->second.disc;
+			file_index = file_match->second;
 		}
 
-		track.enabled = (findex != -1 && dindex != -1);
-		track.discogs_disc = dindex; //DECODE_DISCOGS_DISK(dindex);
-		track.discogs_track = findex;  //DECODE_DISCOGS_TRACK(dindex);
-		track.file_index = findex;
+		track.enabled = (dc_track_index != -1 && dc_disc_index != -1);
+		track.discogs_disc = dc_disc_index; //DECODE_DISCOGS_DISK(dindex);
+		track.discogs_track = dc_track_index;  //DECODE_DISCOGS_TRACK(dindex);
+		track.file_index = file_index;
 		track_mappings.append_single(track);
 	}
 }

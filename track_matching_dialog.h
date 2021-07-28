@@ -108,9 +108,9 @@ private:
 		perm_selection.resize(delmask.size());
 		bit_array_bittable are_albums(delmask.size());
 		const size_t max_items = m_tag_writer->get_art_count();
-		size_t csel = get_art_perm_selection(hlist, true, max_items, perm_selection, are_albums);
+	
+		m_coord.ListUserCmd(hlist, lsmode::tracks_ui, ID_REMOVE, delmask, pfc::bit_array_bittable(), false);
 		
-		m_coord.ListUserCmd(hlist, lsmode::tracks_ui, ID_REMOVE, delmask, are_albums, false);
 		match_message_update(match_manual);
 		return true;
 	}

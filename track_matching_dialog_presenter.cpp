@@ -65,12 +65,13 @@ size_t coord_presenters::GetDiscogsTrackUiAtLvPos(size_t list_position, track_it
 	size_t res = m_discogs_track_libui_presenter.GetVRow(list_position, var_it);
 	if (res == ~0) return ~0;
 	try {
+		res = std::get<0>(*var_it).first;
 		out = std::get<0>(*var_it).second;
 	}
 	catch (std::bad_variant_access&) {
 		return pfc_infinite;
 	}
-	return list_position;
+	return res;
 }
 
 size_t coord_presenters::GetFileTrackUiAtLvPos(size_t list_position, file_it& out) {
@@ -80,12 +81,13 @@ size_t coord_presenters::GetFileTrackUiAtLvPos(size_t list_position, file_it& ou
 
 	try {
 		auto tryvar = std::get<1>(*var_it);
+		res = tryvar.first;
 		out = tryvar.second;
 	}
 	catch (std::bad_variant_access&) {
 		return pfc_infinite;
 	}
-	return list_position;
+	return res;
 }
 
 size_t coord_presenters::GetFileArtAtLvPos(size_t list_position, getimages_file_it& out) {
@@ -94,12 +96,13 @@ size_t coord_presenters::GetFileArtAtLvPos(size_t list_position, getimages_file_
 	if (res == ~0) return ~0;
 
 	try {
+		res = std::get<3>(*var_it).first;
 		out = std::get<3>(*var_it).second;
 	}
 	catch (std::bad_variant_access&) {
 		return pfc_infinite;
 	}
-	return list_position;
+	return res;
 }
 
 void coord_presenters::InitUiList(HWND hwnd, lsmode mode, bool tracks, CListControlOwnerData* uilist) {
@@ -1653,11 +1656,11 @@ void coord_presenters::populate_track_ui_mode() {
 	presenter& pres_tracks = binomial->first;
 	presenter& pres_files = binomial->second;
 
-	HWND discogs_track_list = form_mode[my_mode]->first.GetListView();
-	HWND file_list = form_mode[my_mode]->second.GetListView();
+	HWND discogs_track_lst = form_mode[my_mode]->first.GetListView();
+	HWND file_lst = form_mode[my_mode]->second.GetListView();
 
-	ListView_DeleteAllItems(discogs_track_list);
-	ListView_DeleteAllItems(file_list);
+	ListView_DeleteAllItems(discogs_track_lst);
+	ListView_DeleteAllItems(file_lst);
 
 	m_discogs_track_libui_presenter.Reset();
 	m_file_track_libui_presenter.Reset();
@@ -1671,34 +1674,38 @@ void coord_presenters::populate_track_ui_mode() {
 	titleformat_object::ptr lenght_script;
 	static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(lenght_script, "%length%");
 
+	int debugrejected = 0;
+
 	for (size_t i = 0; i < count; i++) {
-
 		const track_mapping& mapping = m_tag_writer->track_mappings[i];
-
-		if (i < m_tag_writer->finfo_manager->items.get_count()) {
-
+		if (mapping.file_index == -1) {
+			//
+			//listview_helper::insert_item(file_list, i, "", -1);
+			//
+			debugrejected++;
+		}
+		else {
 			file_info& finfo = m_tag_writer->finfo_manager->get_item(mapping.file_index);
 			auto item = m_tag_writer->finfo_manager->items.get_item(mapping.file_index);
-
 			pfc::string8 formatted_name;
-			m_conf.release_file_format_string->run_simple(item->get_location(), &finfo, formatted_name);
-
+			CONF.release_file_format_string->run_simple(item->get_location(), &finfo, formatted_name);
 			pfc::string8 display = pfc::string_filename_ext(formatted_name);
+			const char* length_titleformat = "%length%";
 			pfc::string8 formatted_length;
+			item->format_title(nullptr, formatted_length, titleformat_object_wrapper(length_titleformat), nullptr);
 
-			item->format_title(nullptr, formatted_length, lenght_script, nullptr);
-			//listview_helper::insert_item2(file_list, i, display, formatted_length, (LPARAM)mapping.file_index);
+			//listview_helper::insert_item2(file_list, i, display, formatted_length, mapping.file_index);
 
 			match_info_t match_info(display, formatted_length);
-			//file_match_t file_match_t(match_info, mapping.file_index);
-			file_match_t file_match(match_info, file_match_nfo{ mapping.discogs_track, mapping.discogs_disc });
+			file_match_t file_match(match_info, mapping.file_index);
 			//ADD TRACK ROW
 			m_file_track_libui_presenter.AddRow(file_match);
-
 		}
-
 		if (mapping.discogs_disc == -1 && mapping.discogs_track == -1) {
-			//TODO: further testing on more files than discogs tracks
+			//
+			//listview_helper::insert_item(discogs_track_list, i, "", -1);
+			//
+			debugrejected++;
 		}
 		else {
 			const ReleaseDisc_ptr disc = m_tag_writer->release->discs[mapping.discogs_disc];
@@ -1711,12 +1718,14 @@ void coord_presenters::populate_track_ui_mode() {
 				pfc::string8 compact_release;
 				CONF.search_master_sub_format_string->run_hook(m_location, &m_info, &m_hook/*titlehook.get()*/, compact_release, nullptr);
 				//CONF.search_release_format_string->run_hook(location, &info, &hook, compact_release, nullptr);
-				int l = compact_release.get_length();
-				uSetDlgItemText(m_hWnd, IDC_STATIC_MATCH_TRACKING_REL_NAME, ltrim(compact_release));
-			}
-
+				
+				pfc::string8 rel_desc = bdiffid ? "!! " : "";
+				rel_desc << ltrim(compact_release);
+				
+				uSetDlgItemText(m_hWnd, IDC_STATIC_MATCH_TRACKING_REL_NAME, rel_desc);
+			}			
 			pfc::string8 text;
-			m_conf.release_discogs_format_string->run_hook(m_location, &m_info, &m_hook, text, nullptr);
+			CONF.release_discogs_format_string->run_hook(m_location, &m_info, &m_hook, text, nullptr);
 			pfc::string8 time;
 			if (track->discogs_hidden_duration_seconds) {
 				int duration_seconds = track->discogs_duration_seconds + track->discogs_hidden_duration_seconds;
@@ -1729,13 +1738,12 @@ void coord_presenters::populate_track_ui_mode() {
 			//listview_helper::insert_item2(discogs_track_list, i, text, time, ENCODE_DISCOGS(mapping.discogs_disc, mapping.discogs_track));
 
 			match_info_t match_info(text, time);
-			track_match_t file_match(match_info, count);
+			track_match_t file_match(match_info, file_match_nfo{ mapping.discogs_track, mapping.discogs_disc });
 
 			m_discogs_track_libui_presenter.AddRow(file_match);
 
 		}
 	}
-
 }
 void coord_presenters::populate_artwork_mode(size_t select) {
 

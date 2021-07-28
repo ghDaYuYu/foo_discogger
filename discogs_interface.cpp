@@ -7,12 +7,12 @@
 
 namespace ol = Offline;
 
-Release_ptr DiscogsInterface::get_release(const pfc::string8 &release_id, bool bypass_cache) {
+Release_ptr DiscogsInterface::get_release(const pfc::string8 &release_id, bool bypass_is_cache, bool bypass) {
 	assert_release_id_not_deleted(release_id);
-	Release_ptr release = bypass_cache ? nullptr : get_release_from_cache(release_id);
+	Release_ptr release = bypass_is_cache && bypass ? nullptr : get_release_from_cache(release_id);
 	if (!release) {
 		release = std::make_shared<Release>(release_id);
-		if (!bypass_cache) {
+		if (!(bypass_is_cache && bypass)) {
 			add_release_to_cache(release);
 		}
 	}

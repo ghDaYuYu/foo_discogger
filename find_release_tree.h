@@ -4,7 +4,11 @@
 #include "../SDK/foobar2000.h"
 #include "libPPUI\clipboard.h"
 
+#include "discogs.h"
+#include "discogs_interface.h"
 #include "find_release_utils.h"
+
+using namespace Discogs;
 
 class CFindReleaseTree : public CMessageMap {
 private:
@@ -17,6 +21,7 @@ private:
 	size_t m_tree_artist;
 	bool m_dispinfo_enabled;
 
+	DiscogsInterface* m_discogs_interface;
 	Artist_ptr m_find_release_artist_p;
 	pfc::array_t<Artist_ptr> m_find_release_artists_p;
 
@@ -36,7 +41,7 @@ public:
 
 	CFindReleaseTree(HWND p_parent, unsigned ID) : m_ID(ID), 	
 		m_cache_ptr(std::make_shared<filter_cache>()),
-		m_vec_ptr(std::make_shared<vec_t>()) {
+		m_vec_ptr(std::make_shared<vec_t>()), m_selected(NULL) {
 
 		m_dispinfo_enabled = true;
 		m_hhit = nullptr;
@@ -44,6 +49,11 @@ public:
 		p_treeview = NULL;
 		p_parent_filter_edit = NULL;
 		p_parent_url_edit = NULL;
+		p_artistlist = NULL;
+
+		m_discogs_interface = nullptr;
+		m_find_release_artist_p = nullptr;
+		m_find_release_artists_p = {};
 
 		m_tree_artist = pfc_infinite;
 	}
@@ -76,6 +86,10 @@ public:
 		m_find_release_artists_p = find_release_artists_p;
 	}
 
+	void SetDiscogsInterface(DiscogsInterface* discogs_interface) {
+		m_discogs_interface = discogs_interface;
+	}
+
 	void SetCache(std::shared_ptr<filter_cache>&cached) {
 		m_cache_ptr = cached;
 	}
@@ -89,7 +103,7 @@ public:
 		m_idtracer = _idtracer;
 
 		int counter = 0;
-		for (auto walk : *m_vec_ptr)
+		for (auto& walk : *m_vec_ptr)
 		{
 			TVINSERTSTRUCT tvis = { 0 };
 
@@ -109,7 +123,8 @@ public:
 			else {
 				tvis.item.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE | TVIF_CHILDREN | TVIF_PARAM;
 			}
-			TreeView_InsertItem(p_treeview, &tvis);
+			HTREEITEM newnode = TreeView_InsertItem(p_treeview, &tvis);
+			walk.second = newnode;
 		}
 
 	}
@@ -146,6 +161,7 @@ public:
 	BEGIN_MSG_MAP(CFindReleaseTree)
 		NOTIFY_HANDLER(IDC_RELEASE_TREE, TVN_GETDISPINFO, OnTreeGetInfo)
 		NOTIFY_HANDLER(IDC_RELEASE_TREE, TVN_ITEMEXPANDING, OnReleaseTreeExpanding)
+		NOTIFY_HANDLER(IDC_RELEASE_TREE, TVN_SELCHANGING, OnReleaseTreeSelChanging)
 		NOTIFY_HANDLER(IDC_RELEASE_TREE, TVN_SELCHANGED, OnReleaseTreeSelChanged)
 		NOTIFY_HANDLER(IDC_RELEASE_TREE, NM_DBLCLK, OnDoubleClickRelease)
 		NOTIFY_HANDLER(IDC_RELEASE_TREE, NM_RCLICK, OnRClickRelease)
@@ -153,6 +169,8 @@ public:
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
 	END_MSG_MAP()
 private:
+
+	t_size get_mem_cache_children_count(LPARAM lparam);
 
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
 		return FALSE;
@@ -397,204 +415,9 @@ private:
 		CPoint pt(GetMessagePos());
 		return FALSE;
 	}
-	LRESULT OnTreeGetInfo(WORD /*wNotifyCode*/, LPNMHDR hdr, BOOL& /*bHandled*/) {
-		if (m_vec_ptr->size() == 0 || !m_dispinfo_enabled /*m_updating_releases*/)
-			return FALSE;
+	LRESULT OnTreeGetInfo(WORD /*wNotifyCode*/, LPNMHDR hdr, BOOL& /*bHandled*/);
+	LRESULT CFindReleaseTree::OnReleaseTreeExpanding(int, LPNMHDR hdr, BOOL&);
+	LRESULT OnReleaseTreeSelChanging(int, LPNMHDR hdr, BOOL& bHandled);
+	LRESULT OnReleaseTreeSelChanged(int, LPNMHDR hdr, BOOL& bHandled);
 
-		NMTVDISPINFO* pDispInfo = reinterpret_cast<NMTVDISPINFO*>(hdr);
-		TVITEMW* pItem = &(pDispInfo)->item;
-		HTREEITEM* hItem = &(pItem->hItem);
-
-		int lparam = pItem->lParam;
-		mounted_param myparam(lparam);
-
-		if (pItem->mask & TVIF_CHILDREN)
-		{
-			if (myparam.is_master()) {
-				pItem->cChildren = I_CHILDRENCALLBACK;
-			}
-			else {
-				pItem->cChildren = 0; //getchildres(x) > 0 ? 1 : 0; //I_CHILDRENCALLBACK;
-			}
-		}
-
-		if (pItem->mask & TVIF_TEXT)
-		{
-			TCHAR outBuffer[MAX_PATH + 1] = {};
-			//cache_iterator_t cit = m_cache_ptr->cache.find(lparam);
-			auto cit = m_cache_ptr->cache.find(lparam);
-			auto row_data = cit->second.first.col_data_list.begin();
-			pfc::stringcvt::convert_utf8_to_wide(outBuffer, MAX_PATH,
-				row_data->second.get_ptr(), row_data->second.get_length());
-			_tcscpy_s(pItem->pszText, pItem->cchTextMax, const_cast<TCHAR*>(outBuffer));
-			return FALSE;
-		}
-
-		/* TVIS_USERMASK, etc
-		if (pItem->mask & LVIF_IMAGE)
-		{
-			// ...set an image list index
-		}
-		*/
-
-		return FALSE;
-	}
-
-	LRESULT OnReleaseTreeExpanding(int, LPNMHDR hdr, BOOL&) {
-
-		NMTREEVIEW* pNMTreeView = (NMTREEVIEW*)hdr;
-		TVITEMW* pItemExpanding = &(pNMTreeView)->itemNew;
-		HTREEITEM* hItemExpanding = &(pNMTreeView->itemNew.hItem);
-
-		if ((pNMTreeView->action & TVE_EXPAND) != TVE_EXPAND)
-		{
-			vec_iterator_t master_it;
-			find_vec_by_lparam(*m_vec_ptr, pItemExpanding->lParam, master_it);
-			cache_iterator_t cache_it = master_it->first;
-			int ival = 0;
-			m_cache_ptr->SetCacheFlag(cache_it, NodeFlag::expanded, &ival);
-
-			return FALSE;
-		}
-
-
-		if (pItemExpanding->mask & TVIF_CHILDREN)
-		{
-			mounted_param myparam(pItemExpanding->lParam);
-
-			auto& cache_parent = m_cache_ptr->cache.find(pItemExpanding->lParam);
-
-			bool children_done;
-			m_cache_ptr->GetCacheFlag(cache_parent, NodeFlag::added, &children_done);
-
-			bool tree_children_done;
-			bool tree_children_done_ver = m_cache_ptr->GetCacheFlag(cache_parent, NodeFlag::tree_created, &tree_children_done);
-
-			if (children_done) {
-				if (!tree_children_done_ver) {
-					if (myparam.is_master()) {
-						t_size try_release_ndx = 0;
-						std::vector<TVINSERTSTRUCT> vchildren = {};
-						//seq access
-						int walk_param = mounted_param(myparam.master_ndx, try_release_ndx, true, true).lparam();
-						auto walk_children = m_cache_ptr->cache.find(walk_param);
-						int newindex = 0;
-						while (walk_children != m_cache_ptr->cache.end()) {
-
-							bool ival = false;
-							m_cache_ptr->GetCacheFlag(walk_children, NodeFlag::spawn, &ival);
-							bool bfilter;
-							bool bfilter_ver = m_cache_ptr->GetCacheFlag(walk_children, NodeFlag::filterok, &bfilter);
-							
-							pfc::string8 filter;
-							uGetWindowText(p_parent_filter_edit, filter);
-
-							//..
-
-							if (m_vec_ptr->size() == 0 || (m_vec_ptr->size() && bfilter_ver)) {
-
-							//..
-
-								vchildren.resize(newindex + 1);
-								int lparam = walk_children->first;
-								mounted_param mp(lparam);
-
-								TV_INSERTSTRUCT* tvis = (TV_INSERTSTRUCT*)&vchildren.at(newindex);
-								tvis->hParent = (HTREEITEM)pItemExpanding->hItem;
-								tvis->hInsertAfter = TVI_LAST;
-								TV_ITEM tvi;
-								memset(&tvi, 0, sizeof(tvi));
-								tvis->item.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE | TVIF_CHILDREN | TVIF_PARAM | TVIF_STATE; //TVIF_IMAGE | TVIF_TEXT | TVIF_SELECTEDIMAGE;
-								tvis->item.pszText = LPSTR_TEXTCALLBACK;
-								tvis->item.iImage = I_IMAGECALLBACK;
-								tvis->item.iSelectedImage = I_IMAGECALLBACK;
-								tvis->item.cChildren = 0;
-								tvis->item.lParam = walk_children->first;
-								int walk_id = walk_children->second.first.id;
-
-								if (walk_id == m_idtracer.release_id) {
-									tvis->item.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE | TVIF_CHILDREN | TVIF_PARAM | TVIF_STATE; //TVIF_IMAGE | TVIF_TEXT | TVIF_SELECTEDIMAGE;
-									tvis->item.state = TVIS_BOLD;
-									tvis->item.stateMask = TVIS_BOLD;
-								}
-								else {
-									tvis->item.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE | TVIF_CHILDREN | TVIF_PARAM; //TVIF_IMAGE | TVIF_TEXT | TVIF_SELECTEDIMAGE;
-								}
-
-								newindex++;
-							}
-							walk_param = mounted_param(myparam.master_ndx, ++try_release_ndx, true, true).lparam();
-							walk_children = m_cache_ptr->cache.find(walk_param);
-						}
-
-						for (const auto& tvchild : vchildren) {
-							TreeView_InsertItem(p_treeview, &tvchild);
-						}
-
-						int ival = 1; //node added, set flag tree_created 
-						m_cache_ptr->SetCacheFlag(pItemExpanding->lParam, NodeFlag::tree_created, ival);
-
-						int ivalex = 1;
-						m_cache_ptr->SetCacheFlag(pItemExpanding->lParam, NodeFlag::expanded, &ivalex);
-						//children #
-						pItemExpanding->cChildren = vchildren.size();
-					}
-					else {
-						m_find_release_artist_p->releases.get_count() ? I_CHILDRENCALLBACK : 0;
-						pItemExpanding->cChildren = m_find_release_artist_p->releases.get_count() ? I_CHILDRENCALLBACK : 0;
-					}
-				}
-				else {
-					//children ready
-					int ival = 1;
-					m_cache_ptr->SetCacheFlag(cache_parent, NodeFlag::expanded, &ival);
-					return FALSE;
-				}
-			}
-			else {
-				//children not avail -> spawn
-				//store clicked hhit to expand after spawn
-				m_hhit = pItemExpanding->hItem;
-				//temp listview compatibility
-				vec_iterator_t master_it;
-				find_vec_by_lparam(*m_vec_ptr, pItemExpanding->lParam, master_it);
-
-				if (master_it == m_vec_ptr->end())
-					return TRUE;
-
-				vec_iterator_t start = m_vec_ptr->begin();
-				
-				int selection_index = std::distance(start, master_it);
-
-				if (master_it != m_vec_ptr->end()) {
-					int ival = 1;
-					m_cache_ptr->SetCacheFlag(master_it->first, NodeFlag::expanded, &ival);
-
-					if (ival) {
-						int ival = 1;
-						m_cache_ptr->SetCacheFlag(master_it->first, NodeFlag::added, &ival);
-					}
-				}
-				stdf_on_release_selected_notifier(pItemExpanding->lParam);
-			}
-		}
-		return FALSE;
-	}
-
-	LRESULT OnReleaseTreeSelChanged(int, LPNMHDR hdr, BOOL& bHandled) {
-		LPNMTREEVIEW pnmtv = (LPNMTREEVIEW)hdr;
-		TVITEM pItemMaster = { 0 };
-		pItemMaster.mask = TVIF_PARAM;
-		pItemMaster.hItem = pnmtv->itemNew.hItem;
-		TreeView_GetItem(p_treeview, &pItemMaster);
-
-		cache_iterator_t it = m_cache_ptr->cache.find(pItemMaster.lParam);
-		if (it != m_cache_ptr->cache.end()) {
-			int id = it->second.first.id;
-			pfc::string8 release_url = pfc::toString(id).c_str();
-			uSetWindowText(p_parent_url_edit, release_url);
-		}
-		bHandled = FALSE;
-		return 0;
-	}
 };

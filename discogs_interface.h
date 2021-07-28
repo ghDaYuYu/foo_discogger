@@ -146,7 +146,7 @@ public:
 		
 	void search_artist(const pfc::string8 &name, pfc::array_t<Artist_ptr> &exact_matches, pfc::array_t<Artist_ptr> &other_matches, threaded_process_status &p_status, abort_callback &p_abort);
 
-	Release_ptr get_release(const pfc::string8 &release_id, bool bypass_cache = false);
+	Release_ptr get_release(const pfc::string8 &release_id, bool bypass_is_cache = true, bool bypass = false);
 	Release_ptr get_release(const pfc::string8 &release_id, threaded_process_status &p_status, abort_callback &p_abort, bool bypass_cache = false, bool throw_all = false);
 	MasterRelease_ptr get_master_release(const pfc::string8 &master_id, bool bypass_cache = false);
 	MasterRelease_ptr get_master_release(const pfc::string8 &master_id, threaded_process_status &p_status, abort_callback &p_abort, bool bypass_cache = false, bool throw_all = false);

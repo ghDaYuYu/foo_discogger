@@ -109,8 +109,10 @@ private:
 		bit_array_bittable are_albums(delmask.size());
 		const size_t max_items = m_tag_writer->get_art_count();
 	
-		m_coord.ListUserCmd(hlist, lsmode::tracks_ui, ID_REMOVE, delmask, pfc::bit_array_bittable(), false);
+		//fix crash deleting discogos tracks
+		//size_t csel = get_art_perm_selection(hlist, true, max_items, perm_selection, are_albums);
 		
+		m_coord.ListUserCmd(hlist, lsmode::tracks_ui, ID_REMOVE, delmask, pfc::bit_array_bittable(), false);
 		match_message_update(match_manual);
 		return true;
 	}
@@ -160,6 +162,7 @@ private:
 
 	void update_list_width(HWND list, bool initialize=false);
 	bool track_context_menu(HWND wnd, LPARAM coords);
+	bool track_url_context_menu(HWND wnd, LPARAM coords);
 	bool switch_context_menu(HWND wnd, POINT point, bool isfiles, int cmd, bit_array_bittable selmask, CListControlOwnerData* ilist);
 	void attrib_menu_command(HWND wnd, af afalbum, af afart, UINT IDATT, lsmode mode);
 	bool append_art_context_menu(HWND wnd, HMENU* menu);
@@ -208,8 +211,9 @@ public:
 		BEGIN_DLGRESIZE_GROUP()
 		DLGRESIZE_CONTROL(IDC_STATIC_FILE_LST_TITLE, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_DISCOGS_TRACK_LIST, DLSZ_SIZE_X)
-		DLGRESIZE_CONTROL(IDC_FILE_LIST, DLSZ_SIZE_X)		
+		DLGRESIZE_CONTROL(IDC_FILE_LIST, DLSZ_SIZE_X)
 		END_DLGRESIZE_GROUP()
+		DLGRESIZE_CONTROL(IDC_STATIC_MATCH_TRACKING_REL_NAME, DLSZ_SIZE_X)
 		DLGRESIZE_CONTROL(IDC_MATCH_TRACKS_MSG, DLSZ_MOVE_X | DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_BTN_TRACK_MATCH_WRITE_ARTWORK, DLSZ_MOVE_X | DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_BACK_BUTTON, DLSZ_MOVE_X | DLSZ_MOVE_Y)

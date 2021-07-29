@@ -307,11 +307,27 @@ void CTrackMatchingDialog::insert_track_mappings() {
 			hook.set_track(&track);
 
 			if (i == 0) {
+				//warn differnt release id
+				bool b_diff_id = false;
+				file_info_impl finfo;
+				metadb_handle_ptr item = m_tag_writer->finfo_manager->items[0];
+				item->get_info(finfo);
+
+				pfc::string8 local_release_id;
+
+				const char* ch_local_rel = finfo.meta_get("DISCOGS_RELEASE_ID", 0);
+				if (ch_local_rel) {
+					local_release_id = ch_local_rel;
+				}
+				b_diff_id = (local_release_id.get_length() && !STR_EQUAL(m_tag_writer->release->id, local_release_id));
+				//..
+
 				pfc::string8 compact_release;
 				CONF.search_master_sub_format_string->run_hook(location, &info, &hook/*titlehook.get()*/, compact_release, nullptr);
 
-				int l = compact_release.get_length();
-				uSetDlgItemText(m_hWnd, IDC_STATIC_MATCH_TRACKING_REL_NAME, ltrim(compact_release));
+				pfc::string8 rel_desc = b_diff_id ? "!! " : "";
+				rel_desc  << ltrim(compact_release);
+				uSetDlgItemText(m_hWnd, IDC_STATIC_MATCH_TRACKING_REL_NAME, rel_desc);
 			}
 
 			pfc::string8 text;
@@ -1462,16 +1478,98 @@ void CTrackMatchingDialog::attrib_menu_command(HWND wnd, af att_album, af att_ar
 	CONFARTWORK = uartwork(*uart);
 }
 
-bool CTrackMatchingDialog::track_context_menu(HWND wnd, LPARAM coords) {
-	POINT* pf = (POINT*)coords;
-	if ((LPARAM)pf == (LPARAM)(-1)) {
+bool CTrackMatchingDialog::track_url_context_menu(HWND wnd, LPARAM lParamPos) {
+
+	POINT point;
+	point.x = MAKEPOINTS(lParamPos).x;
+	point.y = MAKEPOINTS(lParamPos).y;
+
+	file_info_impl finfo;
+	metadb_handle_ptr item = m_tag_writer->finfo_manager->items[0];
+	item->get_info(finfo);
+		
+	pfc::string8 local_release_id;
+	
+	const char* ch_local_rel = finfo.meta_get("DISCOGS_RELEASE_ID", 0);
+	if (ch_local_rel) {
+		local_release_id = ch_local_rel;
+	}
+
+	pfc::string8 discogs_release_id(m_tag_writer->release->id);
+	pfc::string8 master_release_id(m_tag_writer->release->master_id);
+	pfc::string8 artist_id(m_tag_writer->release->artists[0]->full_artist->id);
+
+	bool hasRelease = discogs_release_id.get_length();
+	bool hasMasterRelease = master_release_id.get_length();
+	bool hasArtist = artist_id.get_length();
+
+	bool diff_ids = local_release_id.get_length() && (!STR_EQUAL(discogs_release_id, local_release_id));
+
+	pfc::string8 discogs_release_info (diff_ids ? "DT Release Id: " : "Release Id: ");
+	pfc::string8 local_release_info;
+	discogs_release_info << discogs_release_id;
+	if (local_release_id.get_length())
+		local_release_info << "LF Release Id: " << local_release_id;
+
+	try {
+
+		enum { ID_URL_DC_INFO = 1, ID_URL_LC_INFO, ID_URL_RELEASE, ID_URL_MASTER_RELEASE, ID_URL_ARTIST };
+		HMENU menu = CreatePopupMenu();
+		uAppendMenu(menu, MF_STRING | MF_DISABLED, ID_URL_DC_INFO , discogs_release_info);
+
+		if (diff_ids)
+			uAppendMenu(menu, MF_STRING | MF_DISABLED, ID_URL_LC_INFO, local_release_info);
+
+		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+		uAppendMenu(menu, MF_STRING | (!hasRelease ? MF_DISABLED : 0), ID_URL_RELEASE , "View Release Page");
+		uAppendMenu(menu, MF_STRING | (!hasMasterRelease ? MF_DISABLED : 0), ID_URL_MASTER_RELEASE , "View Master Release Page");
+		uAppendMenu(menu, MF_STRING | (!hasArtist ? MF_DISABLED : 0), ID_URL_ARTIST , "View Artist Page");
+
+		POINT scr_point = point;
+		::ClientToScreen(m_hWnd, &scr_point);
+
+		int cmd = TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, scr_point.x, scr_point.y, 0, core_api::get_main_window(), 0);
+		DestroyMenu(menu);
+		pfc::string8 url;
+
+		switch (cmd)
+		{
+		case ID_URL_RELEASE:
+		{
+			url << "https://www.discogs.com/release/" << discogs_release_id;
+			break;
+		}
+		case ID_URL_MASTER_RELEASE: {
+			url << "https://www.discogs.com/master/" << master_release_id;
+			break;
+		}
+		case ID_URL_ARTIST: {
+			url << "https://www.discogs.com/artist/" << artist_id;
+			break;
+		}
+		}
+		if (url.get_length())
+			display_url(url);
+	}
+	catch (...) {};
+
+	return true;
+}
+
+bool CTrackMatchingDialog::track_context_menu(HWND wnd, LPARAM lParamCoords) {
+	
+	POINT point;
+
+	point.x = GET_X_LPARAM(lParamCoords);
+	point.y = GET_Y_LPARAM(lParamCoords);
+	
+	if (point.x == -1 || point.y == -1) {
 		CRect rect;
 		CWindow(wnd).GetWindowRect(&rect);
-		pf = &rect.CenterPoint();
+		point = rect.CenterPoint();
 	}
 	
 	try {
-		int coords_x = pf->x, coords_y = pf->y;
 		HMENU menu = CreatePopupMenu();
 		HMENU _childmenuDisplay = CreatePopupMenu();
 		MENUITEMINFO mi1 = { 0 };
@@ -1509,7 +1607,6 @@ bool CTrackMatchingDialog::track_context_menu(HWND wnd, LPARAM coords) {
 		uAppendMenu(menu, MF_STRING
 			| (citems? 0 : MF_DISABLED), ID_ART_TOOGLE_TRACK_ART_MODES,
 			GetMode() == lsmode::default? "View Artwork\tCtrl+T" : "View Tracks\tCtrl+T");
-		
 		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 		uAppendMenu(menu, MF_STRING | (citems? 0 : MF_DISABLED), ID_SELECT_ALL, "Select all\tCtrl+A");
 		uAppendMenu(menu, MF_STRING | (csel? 0 : MF_DISABLED), ID_INVERT_SELECTION, "Invert selection\tCtrl+Shift+A");
@@ -1517,7 +1614,7 @@ bool CTrackMatchingDialog::track_context_menu(HWND wnd, LPARAM coords) {
 		uAppendMenu(menu, MF_STRING | (csel? 0 : MF_DISABLED), ID_CROP, "Crop\tCtrl+C");
 
 		presenter* pres;
-		std::pair<size_t, presenter*> icol_hit = m_coord.HitUiTest(*pf);
+		std::pair<size_t, presenter*> icol_hit = m_coord.HitUiTest(point);
 		if (icol_hit.first != pfc_infinite) {
 
 			size_t fmt = m_coord.GetUiColumnFormat(icol_hit.first, icol_hit.second);
@@ -1528,7 +1625,7 @@ bool CTrackMatchingDialog::track_context_menu(HWND wnd, LPARAM coords) {
 			uAppendMenu(_childmenuDisplay, MF_STRING | (fmt == HDF_LEFT ? MF_CHECKED | MF_DISABLED : 0), ID_LEFT_ALIGN, "Left");
 			uAppendMenu(_childmenuDisplay, MF_STRING | (fmt == HDF_CENTER ? MF_CHECKED | MF_DISABLED : 0), ID_CENTER_ALIGN, "Center");
 			uAppendMenu(_childmenuDisplay, MF_STRING | (fmt == HDF_RIGHT ? MF_CHECKED | MF_DISABLED : 0), ID_RIGHT_ALIGN, "Right");
-			InsertMenuItem(menu, ID_SUBMENU_SELECTOR, true, &mi1);	
+			InsertMenuItem(menu, ID_SUBMENU_SELECTOR, true, &mi1);
 		}
 
 		//uAppendMenu(menu, MF_SEPARATOR, 0, 0);
@@ -1553,10 +1650,10 @@ bool CTrackMatchingDialog::track_context_menu(HWND wnd, LPARAM coords) {
 
 		//uAppendMenu(menu, MF_STRING | (citems ? 0 : MF_DISABLED), ID_ART_RESET, "Reset");
 
-		int cmd = TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, coords_x, coords_y, 0, wnd, 0);
+		int cmd = TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, 0, wnd, 0);
 		DestroyMenu(menu);
 
-		switch_context_menu(wnd, *pf, is_files, cmd, selmask, ilist);
+		switch_context_menu(wnd, point, is_files, cmd, selmask, ilist);
 
 	}
 	catch (...) {}
@@ -1817,8 +1914,8 @@ bool CTrackMatchingDialog::append_art_context_menu(HWND wndlist, HMENU* menu) {
 		uAppendMenu(*menu, MF_STRING | (bitems ? 0 : MF_DISABLED), ID_ART_RESET, "Reset\tCtrl+R");
 		uAppendMenu(*menu, MF_SEPARATOR, (bitems ? 0 : MF_DISABLED), 0);
 		//uAppendMenu(*menu, MF_STRING | (bitems ? 0 : MF_DISABLED), ID_ART_LIST, "List");
-		uAppendMenu(*menu, MF_STRING | is_tile ? MF_CHECKED : 0 | (bitems && !is_tile ? 0 : MF_DISABLED), ID_ART_TILE, "Tile");
-		uAppendMenu(*menu, MF_STRING | !is_tile ? MF_CHECKED : 0 | (bitems && is_tile ? 0 : MF_DISABLED), ID_ART_DETAIL, "Detail");
+		uAppendMenu(*menu, MF_STRING | (is_tile ? MF_CHECKED : 0) | (bitems && !is_tile ? 0 : MF_DISABLED), ID_ART_TILE, "Tile");
+		uAppendMenu(*menu, MF_STRING | (!is_tile ? MF_CHECKED : 0) | (bitems && is_tile ? 0 : MF_DISABLED), ID_ART_DETAIL, "Detail");
 	}
 	catch (...) {}
 	return false;
@@ -1828,11 +1925,42 @@ LRESULT CTrackMatchingDialog::OnListRClick(LPNMHDR lParam) {
 	HWND wnd = ((LPNMHDR)lParam)->hwndFrom;
 	NMITEMACTIVATE* info = reinterpret_cast<NMITEMACTIVATE*>(lParam);
 	POINT coords; GetCursorPos(&coords);
-	track_context_menu(wnd, (LPARAM)&coords);
+	track_context_menu(wnd, MAKELPARAM(coords.x, coords.y));
 	return FALSE;
 }
 
-LRESULT CTrackMatchingDialog::OnRButtonUp(UINT, WPARAM p_wp, LPARAM p_lp, BOOL& bHandled) {
+LRESULT CTrackMatchingDialog::OnRButtonUp(UINT ctrl_id, WPARAM p_wp, LPARAM lParam, BOOL& bHandled) {
+
+	UINT uid = 0;
+	POINT point;
+
+	point.x = MAKEPOINTS(lParam).x;
+	point.y = MAKEPOINTS(lParam).y;
+
+	
+	bool ok_hit = false;
+
+	UINT uid_release_description = IDC_STATIC_MATCH_TRACKING_REL_NAME;
+	UINT uid_hit = uid_release_description;
+	HWND wnd_ctrl = uGetDlgItem(uid_hit);
+	CRect rc;
+
+	if (!::GetWindowRect(wnd_ctrl, &rc))
+		ok_hit = false;
+	else {
+		ScreenToClient(&rc);
+		if (PtInRect(rc, point))
+			ok_hit = true;
+	}
+
+	if (ok_hit && uid_hit == uid_release_description) {
+
+		track_url_context_menu(m_hWnd, lParam);
+
+		bHandled = TRUE;
+		return 0;
+	}
+
 	bHandled = FALSE;
 	return 0;
 }

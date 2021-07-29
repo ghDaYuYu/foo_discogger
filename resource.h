@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
-// Used by foo_discogs.rc
+// Used by foo_discogger.rc
 //
 #define IDI_SCROLL                      109
 #define IDD_UPDATE_ART_DIALOG           110
@@ -41,8 +41,11 @@
 #define IDC_CHECK_PREV_DLG_SKIP_ARTWORK 1016
 #define IDC_EDIT_TAG_MATCH_HL           1017
 #define IDC_STATIC_PREV_DLG_STATS_TAG_UPD 1018
+#define IDC_LIST                        1019
 #define IDC_CHECK_PREV_DLG_SHOW_STATS   1019
+#define IDC_HEADER                      1020
 #define IDC_RELEASE_TREE                1021
+#define IDC_LIST4                       1023
 #define IDC_EDIT_TAG_MAPPINGS_BUTTON    1029
 #define IDC_ART_PREVIEW                 1029
 #define IDC_BUTTON_TEST_FILES           1030
@@ -142,13 +145,25 @@
 #define IDC_CLEAR_CACHE_COLLECTION      1186
 #define IDC_CACHED_OBJECTS_EDIT         1187
 #define IDC_PROCESS_RELEASE_BUTTON      1188
-#define IDC_ALBUM_ART_EMBED             40000
-#define IDC_EXPORT_TAGS                 40000
-#define IDC_PREVIOUS_BUTTON             40000
-#define IDC_SKIP_VIDEO_TRACKS           40000
-#define IDC_ALBUM_ART_DIR_LABEL         40001
-#define IDC_IMPORT_TAGS                 40001
-#define IDC_ARTIST_ART_EMBED            40002
+#define IDC_ALBUM_ART_EMBED             1189
+#define IDC_PREVIOUS_BUTTON             1190
+#define IDC_SKIP_VIDEO_TRACKS           1191
+#define IDC_ALBUM_ART_DIR_LABEL         1192
+#define IDC_CFG_CACHE_USE_OFFLINE_CACHE 1193
+#define IDC_TRACK_MATCH_ALBUM_ART       1194
+#define IDC_ARTIST_ART_EMBED            1195
+#define IDC_CFG_CACHE_WRITE_OFFLINE_CACHE 1196
+#define IDC_ARTIST_ART_IDS_EDIT         1197
+#define IDC_DISCOGS_TRACK_LIST          1198
+#define IDC_LABEL_RELEASE_ID            1199
+#define IDC_MATCH_USING_NUMBERS         1200
+#define IDC_DEFAULT_TAGS                1201
+#define IDC_EXPORT_TAGS                 1202
+#define IDC_IMPORT_TAGS                 1203
+#define IDC_SYNTAX_HELP                 1204
+#define IDC_OK                          1205
+#define IDC_APPLY                       1206
+#define IDC_CANCEL                      1207
 
 // Next default values for new objects
 // 

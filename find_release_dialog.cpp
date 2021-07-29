@@ -213,6 +213,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT, WPARAM , LPARAM , BOOL& bHandled)
 	SetEnterKeyOverride(conf.release_enter_key_override);
 
 	m_release_ctree.Inititalize(m_release_tree, m_artist_list, m_filter_edit, m_release_url_edit);
+	m_release_ctree.SetDiscogsInterface(discogs_interface);
 	m_release_ctree.SetOnSelectedNotifier(
 		[this](int lparam) -> bool {
 			this->on_release_selected(lparam);
@@ -368,6 +369,9 @@ void CFindReleaseDialog::fill_artist_list(bool force_exact, updRelSrc updsrc) {
 
 void CFindReleaseDialog::on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist) {
 
+	pfc::string8 lastFilter;
+	uGetWindowText(m_filter_edit, lastFilter);
+
 	find_release_artist = artist;
 	fill_artist_list(true, updsrc);
 	hook = std::make_shared<titleformat_hook_impl_multiformat>(&find_release_artist);
@@ -402,15 +406,19 @@ void CFindReleaseDialog::on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist
 		init_tracker_i(mtitle, rtitle, false, true);
 	}
 
+	if (!lastFilter.get_length()) {
+		m_DisableFilterBoxEvents = true;
+		uSetWindowText(m_filter_edit, filter);
+		m_DisableFilterBoxEvents = false;
+	}
+
+	uGetWindowText(m_filter_edit, filter);
 	m_results_filter = filter;
 
 	m_release_ctree.SetFindReleases(find_release_artist, _idtracer);
 
 	update_releases(m_results_filter, updsrc, true);
 
-	m_DisableFilterBoxEvents = true;
-	uSetWindowText(m_filter_edit, filter);
-	m_DisableFilterBoxEvents = false;
 	if (m_vec_items_ptr->size()) {
 		int src_lparam = -1;
 		mounted_param myparam;

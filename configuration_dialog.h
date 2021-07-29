@@ -1,10 +1,10 @@
 #pragma once
 
-#include <uxtheme.h>
 #include "../SDK/foobar2000.h"
+
+#include "GUIDS.h"
 #include "foo_discogs.h"
 #include "tag_mappings_dialog.h"
-
 
 #define NUM_TABS		6
 
@@ -37,10 +37,6 @@ public:
 	HWND CreateTabDialog(HWND hWndParent, LPARAM lInitParam = 0) {
 		PFC_ASSERT(m_lpDialogFunc != nullptr);
 		HWND dlg = uCreateDialog(m_nID, hWndParent, m_lpDialogFunc, lInitParam);
-		//ima
-		/*if (dlg) {
-			EnableThemeDialogTexture(dlg, ETDT_ENABLE | ETDT_USETABTEXTURE);
-		}*/
 		return dlg;
 	}
 };
@@ -132,7 +128,6 @@ public:
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
 		COMMAND_ID_HANDLER(IDC_CONF_DEFAULTS_BUTTON, OnDefaults)
 		MESSAGE_HANDLER(WM_CUSTOM_ANV_CHANGED, OnCustomAnvChanged)
-		//MESSAGE_HANDLER(WM_NOTIFY, OnNotify)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 	MY_END_MSG_MAP()
 	
@@ -164,17 +159,11 @@ public:
 
 	void enable(bool v) override {}
 };
-// PREFERENCES
-// {FF1911EC-DAA9-46D2-B639-B2105E86E74A}
-static const GUID guid_pref_page =
-{ 0xff1911ec, 0xdaa9, 0x46d2, { 0xb6, 0x39, 0xb2, 0x10, 0x5e, 0x86, 0xe7, 0x4a } };
 
 class preferences_page_myimpl : public preferences_page_impl<CConfigurationDialog> {
 
 public:
-	const char* get_name() {
-		return "Discogs Tagger";
-	}
+	const char* get_name() { return "discogger Tagger";	}
 	GUID get_guid() { return guid_pref_page; }
 	GUID get_parent_guid() { return guid_tagging; }
 };

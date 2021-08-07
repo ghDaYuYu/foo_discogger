@@ -311,16 +311,7 @@ void CPreviewTagsDialog::display_tag_result_stats() {
 void CPreviewTagsDialog::insert_tag_results(bool computestat) {
 	ListView_DeleteAllItems(tag_results_list);
 	if (computestat) {
-		if (cfg_preview_dialog_track_map) {
-			v_stats.clear();
-		}
-		else {
-			reset_tag_result_stats();
-
-			if (cfg_preview_dialog_comp_track_map_in_v23)
-				v_stats.clear();
-		}
-		
+		v_stats.clear();
 		compute_stats(tag_writer->tag_results);
 	}
 
@@ -787,16 +778,7 @@ LRESULT CPreviewTagsDialog::OnEdit(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 void CPreviewTagsDialog::compute_stats(tag_results_list_type tag_results) {
 	//TODO: tmp (2/2) fix empty v23 stats when Track map is on
 	reset_tag_result_stats();
-	compute_stats_v23(tag_results);
-
-	if (cfg_preview_dialog_track_map)
-		compute_stats_track_map(tag_results);
-	else {
-		//compute_stats_v23(tag_results);
-		if (cfg_preview_dialog_comp_track_map_in_v23)
-			compute_stats_track_map(tag_results);
-	}
-
+	compute_stats_track_map(tag_results);
 }
 void CPreviewTagsDialog::compute_stats_track_map(tag_results_list_type tag_results) {
 
@@ -904,40 +886,6 @@ void CPreviewTagsDialog::compute_stats_track_map(tag_results_list_type tag_resul
 
 
 	} // tag loop
-}
-
-void CPreviewTagsDialog::compute_stats_v23(tag_results_list_type tag_results) {
-	const size_t rescount = tag_writer->tag_results.get_count();
-	for (unsigned int i = 0; i < rescount; i++) {
-
-		const tag_result_ptr res = tag_writer->tag_results[i];
-		const tag_mapping_entry* entry = res->tag_entry;
-		bool discarded = !res->result_approved &&
-			res->changed;
-		if (!discarded) {
-
-			if (!stricmp_utf8(entry->tag_name, "DISCOGS_RATING")
-				|| !stricmp_utf8(entry->tag_name, "DISCOGS_TRACK_CREDITS")) {
-				int kk = 1;
-			}
-	
-			if (res->result_approved) {
-				int oldlen = res->old_value.get_ptr()->get_cvalue().get_length();
-				if (res->old_value.size() == 0 || oldlen == 0) {
-					if (entry->enable_write)
-						totalwrites++;
-				}
-				else {
-					if (entry->enable_update)
-						totalupdates++;
-				}
-			}
-			else {
-				//an approved non changed??
-				totalupdates = totalupdates;
-			}
-		}
-	} // tag writer tag results count loop
 }
 
 LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam, BOOL& bHandled) {

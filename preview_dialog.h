@@ -65,7 +65,6 @@ private:
 	void insert_tag_result(int pos, const tag_result_ptr &result);
 
 	void compute_stats(tag_results_list_type tag_results);
-	void compute_stats_v23(tag_results_list_type tag_results);
 	void compute_stats_track_map(tag_results_list_type tag_results);
 	void reset_stats () {
 		v_stats.clear();

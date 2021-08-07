@@ -228,6 +228,8 @@ const struct uartwork {
 extern uartwork CONFARTWORK;
 extern uartwork_guids CONFARTGUIDS;
 
+const pfc::string8 THUMB_EXTENSION = ".png";
+
 const size_t FLAG_FIRST_COL = 3; 
 
 std::pair<HBITMAP, HBITMAP> MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::string8> cache_path, size_t pos, MemoryBlock small_art);

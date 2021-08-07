@@ -62,7 +62,7 @@ namespace Offline {
 			filenames.append_single(full_path);
 			return filenames;
 		}
-		full_path << ndx << ".jpg";
+		full_path << ndx << THUMB_EXTENSION;
 		
 		abort_callback_dummy dummy_abort;
 		try {

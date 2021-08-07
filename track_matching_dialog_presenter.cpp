@@ -1539,8 +1539,8 @@ bool discogs_artwork_presenter::AddArtwork(size_t img_ndx, art_src artSrc, Memor
 	pfc::string8 cache_path_mini = Offline::get_thumbnail_cache_path_filenames(
 		id, artSrc, LVSIL_SMALL, pfc_infinite)[0];
 
-	cache_path_small << img_ndx << ".jpg";
-	cache_path_mini << img_ndx << ".jpg";
+	cache_path_small << img_ndx << THUMB_EXTENSION;
+	cache_path_mini << img_ndx << THUMB_EXTENSION;
 
 	bool bcreated = Offline::CreateOfflinePath(id, artSrc, pfc_infinite, true);
 	std::pair<HBITMAP, HBITMAP> hRES = MemoryBlockToTmpBitmap(std::pair(cache_path_small,	cache_path_mini),

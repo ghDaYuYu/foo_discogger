@@ -128,7 +128,7 @@ const struct uartwork {
 
 	void setflag_range(af fl, bool val, size_t from, size_t to) {
 		PFC_ASSERT(to <= 30);
-		if (fl == af::alb_emb)				{ setbitflag_range(ucfg_album_embed, val, from, to); }
+		if (fl == af::alb_emb)			{ setbitflag_range(ucfg_album_embed, val, from, to); }
 		else if (fl == af::alb_sd)		{ setbitflag_range(ucfg_album_save_to_dir, val, from, to); }
 		else if (fl == af::alb_sa)		{ setbitflag_range(ucfg_album_save_all, val, from, to); }
 		else if (fl == af::alb_ovr)		{ setbitflag_range(ucfg_album_ovr, val, from, to); }
@@ -168,11 +168,11 @@ const struct uartwork {
 		bool cfg_art_ovr
 	) {
 		ucfg_album_embed = (cfg_album_embed ? setbitflag_range(ucfg_album_embed, true, 0, 31) : 0); //per track
-		ucfg_album_save_to_dir = (cfg_album_save_to_dir ? setbitflag_range(ucfg_album_save_to_dir, true, 0, 31) : 0); //per all
+		ucfg_album_save_to_dir = (cfg_album_save_to_dir ? setbitflag_range(ucfg_album_save_to_dir, true, 0, cfg_album_save_all ? 31 : 1) : 0); //per all
 		ucfg_album_save_all = ((cfg_album_save_to_dir || cfg_album_embed) && cfg_album_save_all ? setbitflag_range(ucfg_album_save_all, true, 0, 31) : 0); //todo
 		ucfg_album_ovr = ((cfg_album_save_to_dir || cfg_album_embed) && cfg_album_ovr ? setbitflag_range(ucfg_album_ovr, true, 0, 31) : 0); //per track & per all
 		ucfg_art_embed = (cfg_art_embed ? setbitflag_range(ucfg_art_embed, true, 0, 31) : 0); //per track
-		ucfg_art_save_to_dir = (cfg_art_save_to_dir ? setbitflag_range(ucfg_art_save_to_dir, true, 0, 31) : 0); //per all
+		ucfg_art_save_to_dir = (cfg_art_save_to_dir ? setbitflag_range(ucfg_art_save_to_dir, true, 0, cfg_art_save_all ? 31 : 1) : 0); //per all
 		ucfg_art_save_all = ((cfg_art_save_to_dir || cfg_art_embed) && cfg_art_save_all ? setbitflag_range(ucfg_art_save_all, true, 0, 31) : 0); //todo
 		ucfg_art_ovr = ((cfg_art_save_to_dir || cfg_art_embed) &&  cfg_art_ovr ? setbitflag_range(ucfg_art_ovr, true, 0, 31) : 0); //per track & per all
 	}

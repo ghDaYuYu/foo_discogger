@@ -384,3 +384,30 @@ bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release, bool isArti
 	}
 	return bres;
 }
+
+bool DiscogsInterface::delete_artist_cache(const pfc::string8& artist_id) {
+	Artist_ptr artist = get_artist_from_cache(artist_id);
+	if (artist) {
+		cache_artists->remove(artist_id);
+		for (size_t walk = 0; walk < artist->master_releases.get_count(); walk++)
+			cache_master_releases->remove(artist->master_releases[walk]->id);
+		for (size_t walk = 0; walk < artist->releases.get_count(); walk++)
+			cache_releases->remove(artist->releases[walk]->id);
+		pfc::string8 ol_artist_path = Offline::GetArtistReleasesPath(artist_id, true);
+		ol_artist_path.truncate(ol_artist_path.length() - pfc::string8("\\releases").length());
+		
+		char converted[MAX_PATH - 1];
+		pfc::stringcvt::string_os_from_utf8 cvt(ol_artist_path);
+		wcstombs(converted, cvt.get_ptr(), MAX_PATH - 1);
+
+		std::filesystem::path fspath(converted);
+		try {
+			std::filesystem::remove_all(fspath);
+		}
+		catch (...) {
+			return false;
+		}
+		return true;
+	}
+	return false;
+}

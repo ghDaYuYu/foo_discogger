@@ -264,6 +264,13 @@ private:
 			list_index = nmView->iItem;
 			if (list_index == pfc_infinite)
 				return FALSE;
+
+			if (m_find_release_artists_p.get_count() > 0)
+				isArtistOffline = m_find_release_artists_p[list_index]->loaded_releases_offline;
+			else
+				if (m_find_release_artist_p != NULL)
+					isArtistOffline = m_find_release_artist_p->loaded_releases_offline;
+
 			p = nmView->ptAction;
 			::ClientToScreen(hdr->hwndFrom, &p);
 		}
@@ -300,12 +307,16 @@ private:
 
 		try {
 			int coords_x = p.x, coords_y = p.y;
-			enum { ID_VIEW_PAGE = 1, ID_CLP_COPY_TITLE, ID_CLP_COPY_ROW };
+			enum { ID_VIEW_PAGE = 1, ID_CLP_COPY_TITLE, ID_CLP_COPY_ROW, ID_ARTIST_DEL_CACHE };
 			HMENU menu = CreatePopupMenu();
 			uAppendMenu(menu, MF_STRING, ID_VIEW_PAGE, sourcepage);
 			uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 			if (isArtist) {
 				uAppendMenu(menu, MF_STRING, ID_CLP_COPY_ROW, copyrow);
+				if (isArtistOffline) {
+					uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+					uAppendMenu(menu, MF_STRING, ID_ARTIST_DEL_CACHE, "Clear artist cache");
+				}
 			}
 			else {
 				uAppendMenu(menu, MF_STRING, ID_CLP_COPY_TITLE, copytitle);
@@ -401,6 +412,25 @@ private:
 				if (utf_buffer != NULL) {
 					ClipboardHelper::OpenScope scope; scope.Open(core_api::get_main_window());
 					ClipboardHelper::SetString(utf_buffer);
+				}
+				return true;
+			}
+			case ID_ARTIST_DEL_CACHE:
+			{
+				if (isArtist) {
+
+					Artist_ptr artist;
+					
+					if (m_find_release_artists_p.get_count() > 0) 
+						artist = m_find_release_artists_p[list_index];
+					else
+						if (m_find_release_artist_p != NULL)
+							artist = m_find_release_artist_p;
+
+					if (artist) {
+						m_discogs_interface->delete_artist_cache(artist->id);
+						artist->loaded_releases_offline = false;
+					}
 				}
 				return true;
 			}

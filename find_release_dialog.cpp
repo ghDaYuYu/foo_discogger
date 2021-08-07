@@ -205,6 +205,28 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT, WPARAM , LPARAM , BOOL& bHandled)
 		LVS_EX_COLUMNOVERFLOW | LVS_EX_FLATSB /*| LVS_EX_HEADERDRAGDROP*/ /*| LVS_EX_GRIDLINES*/ | LVS_EX_AUTOSIZECOLUMNS | LVS_EX_COLUMNSNAPPOINTS /*| LVS_EX_BORDERSELECT| LVS_EX_DOUBLEBUFFER*/,
 		LVS_EX_COLUMNOVERFLOW | LVS_EX_FLATSB /*| LVS_EX_HEADERDRAGDROP*/ /*| LVS_EX_GRIDLINES*/ | LVS_EX_AUTOSIZECOLUMNS | LVS_EX_COLUMNSNAPPOINTS /*| LVS_EX_BORDERSELECT*/);
 
+	HIMAGELIST hImageList = NULL;
+	if (S_OK == SHGetImageList(SHIL_SMALL, IID_IImageList, reinterpret_cast<LPVOID*>(&hImageList))) {
+		
+		CImageList shimagelist(hImageList);
+		SIZE iconsize;
+		shimagelist.GetIconSize(iconsize);
+		HICON hiconBmCache;
+
+		Gdiplus::Bitmap bmBlank(iconsize.cx, iconsize.cy);
+		HBITMAP hBmBlank;
+		Gdiplus::Graphics gr(&bmBlank); 
+		gr.Clear(GetSysColor(COLOR_WINDOW));
+		if (bmBlank.GetHBITMAP(RGB(255, 255, 255), &hBmBlank) != Gdiplus::Ok) {
+			log_msg("GdiPlus error (GetHBITMAP 48x48 tmp artwork)");
+		}
+
+		shimagelist.Replace(0, hBmBlank, 0);
+
+		ListView_SetImageList(m_artist_list, shimagelist.m_hImageList, LVSIL_SMALL);
+		DeleteObject(hBmBlank);
+	}
+
 	CRect rc_artists;
 	::GetWindowRect(m_artist_list, &rc_artists);
 	int icol = listview_helper::fr_insert_column(m_artist_list, 0,
@@ -332,11 +354,12 @@ void CFindReleaseDialog::fill_artist_list(bool force_exact, updRelSrc updsrc) {
 		int artists_index = 0, list_index = 0;
 		for (size_t i = 0; i < find_release_artists.get_size(); i++) {
 			pfc::string8 artist_name = find_release_artists[i]->name;
+			bool artist_offline = find_release_artists[i]->loaded_releases_offline;
 			_idtracer.artist_check(find_release_artists[i]->id, i);
-			bool isdropindex = (list_index == _idtracer.artist_index);
+			bool isdropindex = (list_index == _idtracer.artist_index);	
 			listview_helper::insert_lvItem_tracer(
 				m_artist_list, list_index, atoi(find_release_artists[i]->id) == _idtracer.artist_id,
-				artist_name.get_ptr(), artists_index);
+				artist_name.get_ptr(), artists_index, artist_offline);
 
 			artists_index++;
 			list_index++;
@@ -350,11 +373,12 @@ void CFindReleaseDialog::fill_artist_list(bool force_exact, updRelSrc updsrc) {
 	else if (updsrc == updRelSrc::Undef) {
 		::EnableWindow(exactcheck, false);
 		pfc::string8 name = find_release_artist->name;
+		bool artist_offline = find_release_artist->loaded_releases_offline;
 		_idtracer.artist_check(find_release_artist->id, 0);
 
 		listview_helper::insert_lvItem_tracer(m_artist_list, 0,
 			_idtracer.artist_id == atoi(find_release_artist->id),
-			name.get_ptr(), (LPARAM)0);
+			name.get_ptr(), (LPARAM)0, artist_offline);
 
 		if (!_idtracer.release) {
 			find_release_artists.append_single(std::move(find_release_artist));
@@ -364,6 +388,25 @@ void CFindReleaseDialog::fill_artist_list(bool force_exact, updRelSrc updsrc) {
 		}
 	}
 	else if (updsrc == updRelSrc::ArtistList) {
+		bool artist_offline = find_release_artist->loaded_releases_offline;
+		LV_ITEM lvitem = {};
+		int iPos = ListView_GetNextItem(m_artist_list, -1, LVNI_SELECTED);
+		bool bupdate = false;
+		lvitem.iItem = iPos;
+		lvitem.mask = LVIF_IMAGE;
+		ListView_GetItem(m_artist_list, &lvitem);
+		if (artist_offline && lvitem.iImage != 8/*IMAGELIST_OFFLINE_CACHE_NDX*/) {
+			lvitem.iImage = 8;
+			bupdate = true;
+		}
+		else if (!artist_offline && lvitem.iImage != 0)
+		{
+			lvitem.iImage = 0;
+			bupdate = true;
+		}
+		if (bupdate)
+			ListView_SetItem(m_artist_list, &lvitem);
+
 		::EnableWindow(exactcheck, true);
 	}
 	m_release_ctree.SetFindReleaseArtists(find_release_artists);

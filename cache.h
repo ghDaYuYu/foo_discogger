@@ -13,12 +13,20 @@ public:
 		_max_size(max_size) {
 	}
 
-	void put(const key_t& key, const value_t& value) {
+	void remove(const key_t& key) {
+		//note c++ std::list & std::map: only those iterators, or refs pointing to
+		//the element which will be erased, are affected
+
 		auto it = _cache_items_map.find(key);
 		if (it != _cache_items_map.end()) {
 			_cache_items_list.erase(it->second);
 			_cache_items_map.erase(it);
 		}
+	}
+
+	void put(const key_t& key, const value_t& value) {
+
+		remove(key);
 
 		_cache_items_list.push_front(key_value_pair_t(key, value));
 		_cache_items_map[key] = _cache_items_list.begin();

@@ -157,7 +157,7 @@ public:
 	pfc::string8 load_username(threaded_process_status &p_status, abort_callback &p_abort);
 	pfc::array_t<pfc::string8> get_collection(threaded_process_status &p_status, abort_callback &p_abort);
 
-	pfc::array_t<pfc::string8> load_profile(threaded_process_status& p_status, abort_callback& p_abort);
+	bool delete_artist_cache(const pfc::string8& artist_id);
 
 };
 

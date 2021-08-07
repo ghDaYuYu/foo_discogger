@@ -4,10 +4,16 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
 #include "stdafx.h"
 #include <CommCtrl.h>
+#include <commoncontrols.h>
+
 #include <atlctrls.h>
 
+#include <WinUser.h>
+
 #include "find_release_dialog.h"
+#include "find_release_tree.h"
 #include "configuration_dialog.h"
+
 #include "tasks.h"
 #include "multiformat.h"
 #include "sdk_helpers.h"
@@ -157,10 +163,6 @@ LRESULT CFindReleaseDialog::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWnd
 	return TRUE;
 }
 
-CFindReleaseDialog::~CFindReleaseDialog() {
-	g_discogs->find_release_dialog = nullptr;
-}
-
 bool OAuthCheck(foo_discogs_conf conf) {
 	if (!g_discogs->gave_oauth_warning &&
 		(!conf.oauth_token.get_length() || !conf.oauth_token_secret.get_length())) {
@@ -168,10 +170,11 @@ bool OAuthCheck(foo_discogs_conf conf) {
 		if (!g_discogs->configuration_dialog) {
 			static_api_ptr_t<ui_control>()->show_preferences(guid_pref_page);
 		}
-		g_discogs->configuration_dialog->show_oauth_msg(
-			"OAuth is required to use the Discogs API.\n Please configure OAuth.",
-			true);
-		::SetFocus(g_discogs->configuration_dialog->m_hWnd);
+		CConfigurationDialog* dlg = reinterpret_cast<CConfigurationDialog*>(g_discogs->configuration_dialog);
+		if (dlg) {
+			dlg->show_oauth_msg("OAuth is required to use the Discogs API.\n Please configure OAuth.", true);
+			::SetFocus(dlg->m_hWnd);
+		}
 		return false;
 	}
 	return true;
@@ -261,8 +264,6 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT, WPARAM , LPARAM , BOOL& bHandled)
 		//OnCheckReleasesShowId(0, 0, NULL, bdummy);
 	}
 
-	modeless_dialog_manager::g_add(m_hWnd);
-
 	if (OAuthCheck(conf)) {
 		if (conf.skip_find_release_dialog_if_ided && _idtracer.release) {
 			on_write_tags(pfc::toString(_idtracer.release_id).c_str());
@@ -274,6 +275,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT, WPARAM , LPARAM , BOOL& bHandled)
 			show();
 
 			m_DisableFilterBoxEvents = true;
+
 			if (!_idtracer.amr) {
 				uSetWindowText(m_filter_edit, filter ? filter : "");
 			}
@@ -496,11 +498,6 @@ void CFindReleaseDialog::enable(bool is_enabled) {
 	::uEnableWindow(GetDlgItem(IDC_PROCESS_RELEASE_BUTTON), is_enabled);
 	::uEnableWindow(GetDlgItem(IDCANCEL), is_enabled);
 	::uEnableWindow(GetDlgItem(IDC_SEARCH_BUTTON), is_enabled);
-}
-
-void CFindReleaseDialog::OnFinalMessage(HWND /*hWnd*/) {
-	modeless_dialog_manager::g_remove(m_hWnd);
-	delete this;
 }
 
 void CFindReleaseDialog::on_search_artist_done(pfc::array_t<Artist_ptr>& p_artist_exact_matches, const pfc::array_t<Artist_ptr>& p_artist_other_matches) {

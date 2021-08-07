@@ -107,6 +107,16 @@ public:
 	};
 
 	virtual BOOL PreTranslateMessage(MSG* pMsg) override {
+
+		if (pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_RETURN)
+		{
+			HWND focused = ::GetFocus();
+			int idCtrl = ::GetDlgCtrlID(focused);
+			if (idCtrl == IDC_EDIT_TAG_MATCH_HL)
+			{
+				return TRUE;
+			}
+		}
 		return ::IsDialogMessage(m_hWnd, pMsg);
 	}
 
@@ -144,14 +154,10 @@ public:
 		DLGRESIZE_CONTROL(IDC_DEFAULT_TAGS, DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_IMPORT_TAGS, DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_EXPORT_TAGS, DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDC_SYNTAX_HELP, DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDOK, DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDCANCEL, DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDAPPLY, DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDOK, DLSZ_MOVE_X)
-		DLGRESIZE_CONTROL(IDCANCEL, DLSZ_MOVE_X)
-		DLGRESIZE_CONTROL(IDAPPLY, DLSZ_MOVE_X)
-		DLGRESIZE_CONTROL(IDC_TAG_MAPPINGS_GROUP, DLSZ_SIZE_X | DLSZ_SIZE_Y)
+		DLGRESIZE_CONTROL(IDOK, DLSZ_MOVE_X | DLSZ_MOVE_Y)
+		DLGRESIZE_CONTROL(IDCANCEL, DLSZ_MOVE_X | DLSZ_MOVE_Y)
+		DLGRESIZE_CONTROL(IDAPPLY, DLSZ_MOVE_X | DLSZ_MOVE_Y)
+		DLGRESIZE_CONTROL(IDC_SYNTAX_HELP, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_ADD_TAG, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_REMOVE_TAG, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_TAG_LIST, DLSZ_SIZE_X | DLSZ_SIZE_Y)
@@ -161,9 +167,20 @@ public:
 		CDialogResize<CNewTagMappingsDialog>::DlgResize_UpdateLayout(cxWidth, cyHeight);
 	}
 
-	CNewTagMappingsDialog(HWND p_parent);
-	~CNewTagMappingsDialog();
-	void CNewTagMappingsDialog::OnFinalMessage(HWND /*hWnd*/) override;
+	CNewTagMappingsDialog::CNewTagMappingsDialog(HWND p_parent)
+		: cewb_highlight(L" Highlight Tag"), tag_list(nullptr), remove_button(nullptr) {
+
+		tag_mappings = copy_tag_mappings();
+	}
+
+	CNewTagMappingsDialog::~CNewTagMappingsDialog() {
+
+		g_discogs->tag_mappings_dialog = nullptr;
+		if (tag_mappings != nullptr) {
+			delete tag_mappings;
+			tag_mappings = nullptr;
+		}
+	}
 
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);

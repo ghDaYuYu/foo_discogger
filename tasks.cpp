@@ -8,7 +8,6 @@
 #include "ol_cache.h"
 
 #include "configuration_dialog.h"
-#include "preview_dialog.h"
 
 
 void foo_discogs_threaded_process_callback::run(threaded_process_status &p_status, abort_callback &p_abort) {
@@ -43,7 +42,7 @@ void foo_discogs_threaded_process_callback::on_done(HWND p_wnd, bool p_was_abort
 }
 
 generate_tags_task::generate_tags_task(CPreviewTagsDialog *preview_dialog, TagWriter_ptr tag_writer, bool use_update_tags) :
-		tag_writer(tag_writer), preview_dialog(preview_dialog), use_update_tags(use_update_tags) {
+		tag_writer(tag_writer), preview_dialog(preview_dialog), show_preview_dialog(NULL), use_update_tags(use_update_tags) {
 	preview_dialog->enable(false, true);
 }
 
@@ -65,7 +64,6 @@ void generate_tags_task::start() {
 }
 
 void generate_tags_task::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
-
 	tag_writer->generate_tags(use_update_tags, p_status, p_abort);
 }
 
@@ -76,10 +74,11 @@ void generate_tags_task::on_success(HWND p_wnd) {
 	else if (show_preview_dialog) {
 		track_matching_dialog->enable(true);
 		track_matching_dialog->hide();
-		new CPreviewTagsDialog(core_api::get_main_window(), tag_writer, use_update_tags);
+		fb2k::newDialog <CPreviewTagsDialog>(core_api::get_main_window(), tag_writer, use_update_tags);
 	}
 	else {
-		g_discogs->track_matching_dialog->destroy_all();
+		CTrackMatchingDialog* dlg = reinterpret_cast<CTrackMatchingDialog*>(g_discogs->track_matching_dialog);
+		dlg->destroy_all();
 		service_ptr_t<write_tags_task> task = new service_impl_t<write_tags_task>(tag_writer);
 		task->start();
 	}
@@ -788,7 +787,8 @@ void get_artist_process_callback::safe_run(threaded_process_status &p_status, ab
 
 void get_artist_process_callback::on_success(HWND p_wnd) {
 	if (g_discogs->find_release_dialog && m_artist) {
-		g_discogs->find_release_dialog->on_get_artist_done(m_updsrc, m_artist);
+		CFindReleaseDialog* find_dlg = reinterpret_cast<CFindReleaseDialog*>(g_discogs->find_release_dialog);
+		find_dlg->on_get_artist_done(m_updsrc, m_artist);
 	}
 }
 
@@ -810,7 +810,8 @@ void search_artist_process_callback::safe_run(threaded_process_status &p_status,
 
 void search_artist_process_callback::on_success(HWND p_wnd) {
 	if (g_discogs->find_release_dialog) {
-		g_discogs->find_release_dialog->on_search_artist_done(m_artist_exact_matches, m_artist_other_matches);
+		CFindReleaseDialog* find_dlg = reinterpret_cast<CFindReleaseDialog*>(g_discogs->find_release_dialog);
+		find_dlg->on_search_artist_done(m_artist_exact_matches, m_artist_other_matches);
 	}
 }
 
@@ -830,25 +831,29 @@ void expand_master_release_process_callback::safe_run(threaded_process_status &p
 	p_status.set_item("Expanding master release...");
 	m_master_release->load_releases(p_status, p_abort);
 	if (g_discogs->find_release_dialog) {
-		g_discogs->find_release_dialog->on_expand_master_release_done(m_master_release, m_pos, p_status, p_abort);
+		CFindReleaseDialog* find_dlg = reinterpret_cast<CFindReleaseDialog*>(g_discogs->find_release_dialog);
+		find_dlg->on_expand_master_release_done(m_master_release, m_pos, p_status, p_abort);
 	}
 }
 
 void expand_master_release_process_callback::on_success(HWND p_wnd) {
 	if (g_discogs->find_release_dialog) {
-		g_discogs->find_release_dialog->on_expand_master_release_complete();
+		CFindReleaseDialog* find_dlg = reinterpret_cast<CFindReleaseDialog*>(g_discogs->find_release_dialog);
+		find_dlg->on_expand_master_release_complete();
 	}
 }
 
 void expand_master_release_process_callback::on_abort(HWND p_wnd) {
 	if (g_discogs->find_release_dialog) {
-		g_discogs->find_release_dialog->on_expand_master_release_complete();
+		CFindReleaseDialog* find_dlg = reinterpret_cast<CFindReleaseDialog*>(g_discogs->find_release_dialog);
+		find_dlg->on_expand_master_release_complete();
 	}
 }
 
 void expand_master_release_process_callback::on_error(HWND p_wnd) {
 	if (g_discogs->find_release_dialog) {
-		g_discogs->find_release_dialog->on_expand_master_release_complete();
+		CFindReleaseDialog* find_dlg = reinterpret_cast<CFindReleaseDialog*>(g_discogs->find_release_dialog);
+		find_dlg->on_expand_master_release_complete();
 	}
 }
 
@@ -914,7 +919,6 @@ void process_release_callback::safe_run(threaded_process_status &p_status, abort
 
 void process_release_callback::on_success(HWND p_wnd) {
 	fb2k::newDialog<CTrackMatchingDialog>(core_api::get_main_window(), tag_writer, false);
-	//new CTrackMatchingDialog(core_api::get_main_window(), tag_writer, false);
 }
 
 void process_release_callback::on_abort(HWND p_wnd) {
@@ -968,7 +972,7 @@ void process_artwork_preview_callback::safe_run(threaded_process_status& p_statu
 					}
 					else {
 						images = m_release->images;
-
+					}
 					discogs_interface->fetcher->fetch_url(images[m_img_ndx]->url150, "", m_small_art, p_abort, false);
 				}
 				catch (foo_discogs_exception& e) {
@@ -1127,10 +1131,12 @@ void test_oauth_process_callback::on_success(HWND p_wnd) {
 	if (!g_discogs->configuration_dialog) {
 		static_api_ptr_t<ui_control>()->show_preferences(guid_pref_page);
 	}
-	g_discogs->configuration_dialog->show_oauth_msg(
-		"OAuth is working!\nSuccess!", false);
-
-	::SetFocus(g_discogs->configuration_dialog->m_hWnd);
+	CConfigurationDialog* dlg = reinterpret_cast<CConfigurationDialog*>(g_discogs->configuration_dialog);
+	if (dlg) {
+		dlg->show_oauth_msg(
+			"OAuth is working!\nSuccess!", false);
+		::SetFocus(g_discogs->configuration_dialog->m_hWnd);
+	}
 }
 
 
@@ -1168,8 +1174,10 @@ void generate_oauth_process_callback::safe_run(threaded_process_status &p_status
 }
 
 void generate_oauth_process_callback::on_success(HWND p_wnd) {
-	uSetWindowText(g_discogs->configuration_dialog->token_edit, token->key().c_str());
-	uSetWindowText(g_discogs->configuration_dialog->secret_edit, token->secret().c_str());
+	CConfigurationDialog* dlg = reinterpret_cast<CConfigurationDialog*>(g_discogs->configuration_dialog);
+	
+	uSetWindowText(dlg->token_edit, token->key().c_str());
+	uSetWindowText(dlg->secret_edit, token->secret().c_str());
 	delete token;
 	token = nullptr;
 }

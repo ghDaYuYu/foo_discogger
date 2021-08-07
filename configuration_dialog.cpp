@@ -1,15 +1,48 @@
 #include "stdafx.h"
 
-#include "configuration_dialog.h"
 #include <libPPUI/CDialogResizeHelper.h>
-#include "utils.h"
-#include "liboauthcpp/liboauthcpp.h"
-#include "tasks.h"
 
+#include "configuration_dialog.h"
+#include "utils.h"
+#include "tasks.h"
 
 static HWND g_hWndTabDialog[NUM_TABS] = {nullptr};
 static HWND g_hWndCurrentTab = nullptr;
 static t_uint32 g_current_tab;
+
+bool my_threaded_process::run_modal(service_ptr_t<threaded_process_callback> p_callback, unsigned p_flags, HWND p_parent, const char* p_title, t_size p_title_len = ~0) {
+	bool bres = false;
+	g_run_modal(p_callback, p_flags, p_parent, p_title, p_title_len);
+	return bres;
+}
+bool my_threaded_process::run_modeless(service_ptr_t<threaded_process_callback> p_callback, unsigned p_flags, HWND p_parent, const char* p_title, t_size p_title_len = ~0) {
+	bool bres = false;
+	g_run_modeless(p_callback, p_flags, p_parent, p_title, p_title_len);
+	return bres;
+}
+
+//! Decrements reference count; deletes the object if reference count reaches zero. This is normally not called directly but managed by service_ptr_t<> template. \n
+//! Implemented by service_impl_* classes.
+//! @returns New reference count. For debug purposes only, in certain conditions return values may be unreliable.
+int my_threaded_process::service_release() throw() {
+	int ires = 0;
+	return ires;
+};
+//! Increments reference count. This is normally not called directly but managed by service_ptr_t<> template. \n
+//! Implemented by service_impl_* classes.
+//! @returns New reference count. For debug purposes only, in certain conditions return values may be unreliable.
+int my_threaded_process::service_add_ref() throw() {
+	int ires = 0;
+	return ires;
+};
+//! Queries whether the object supports specific interface and retrieves a pointer to that interface. This is normally not called directly but managed by service_query_t<> function template. \n
+//! Checks the parameter against GUIDs of interfaces supported by this object, if the GUID is one of supported interfaces, p_out is set to service_base pointer that can be static_cast<>'ed to queried interface and the method returns true; otherwise the method returns false. \n
+//! Implemented by service_impl_* classes. \n
+//! Note that service_query() implementation semantics (but not usage semantics) changed in SDK for foobar2000 1.4; they used to be auto-implemented by each service interface (via FB2K_MAKE_SERVICE_INTERFACE macro); they're now implemented in service_impl_* instead. See SDK readme for more details. \n
+bool my_threaded_process::service_query(service_ptr& p_out, const GUID& p_guid) {
+	bool bres = 0;
+	return bres;
+};
 
 void CConfigurationDialog::InitTabs() {
 	tab_table.append_single(tab_entry("Searching", searching_dialog_proc, IDD_DIALOG_CONF_FIND_RELEASE_DIALOG));
@@ -78,20 +111,6 @@ LRESULT CConfigurationDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 		rcTabDialog.right - rcTabDialog.left, rcTabDialog.bottom - rcTabDialog.top,
 		SWP_NOZORDER | SWP_NOACTIVATE);
 
-	/*
-	// now resize tab control and entire prefs window to fit all controls
-	// (it is necessary to manually move the buttons and resize the dialog
-	//  to ensure correct display on large font (120dpi) screens)
-	// now resize the entire window
-	RECT rcCtrl;
-	::SetRect(&rcCtrl, 0, 0, 6, 26);
-	::MapDialogRect(m_hWnd, &rcCtrl);
-	rcCtrl.right += rcTabDialog.right;
-	rcCtrl.bottom += rcTabDialog.bottom + GetSystemMetrics(SM_CYCAPTION);
-	::SetWindowPos(m_hWnd, nullptr,
-		rcCtrl.left, rcCtrl.top, rcCtrl.right - rcCtrl.left, rcCtrl.bottom - rcCtrl.top,
-		SWP_NOZORDER | SWP_NOMOVE);
-	*/
 	// position the subdialogs in the inner part of the tab control
 	uSendMessage(hWndTab, TCM_ADJUSTRECT, FALSE, (LPARAM)&rcTabDialog);
 	//fix left white stripe
@@ -130,17 +149,7 @@ t_uint8 AskApplyConfirmation(HWND wndParent) {
 }
 
 LRESULT CConfigurationDialog::OnChangingTab(WORD /*wNotifyCode*/, LPNMHDR /*lParam*/, BOOL& /*bHandled*/) {
-	/*if (g_hWndCurrentTab != nullptr) {
-		::ShowWindow(g_hWndCurrentTab, SW_HIDE);
-	}
-	g_hWndCurrentTab = nullptr;
 
-	g_current_tab = (t_uint32)::SendDlgItemMessage(m_hWnd, IDC_TAB, TCM_GETCURSEL, 0, 0);
-	if (g_current_tab < tabsize(g_hWndTabDialog)) {
-		g_hWndCurrentTab = g_hWndTabDialog[g_current_tab];
-		::ShowWindow(g_hWndCurrentTab, SW_SHOW);
-	}*/
-	
 	if (get_state() & preferences_state::changed) {
 		switch (AskApplyConfirmation(get_wnd())) {
 		case IDYES:
@@ -239,17 +248,10 @@ LRESULT CConfigurationDialog::OnCustomAnvChanged(UINT /*uMsg*/, WPARAM /*wParam*
 
 LRESULT CConfigurationDialog::OnDestroy(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled) {
 	if (conf.last_conf_tab != g_current_tab) {
-		conf.last_conf_tab = g_current_tab;
-		CONF.save(new_conf::ConfFilter::CONF_FILTER_CONF, conf, CFG_LAST_CONF_TAB);
-		//dont need, just saving current_tab
-	  //CONF.load();
-	}
-	
-	//(preferences_page_instance)
-	//The host ensures that our dialog is destroyed
-	//pfc::fill_array_t(g_hWndTabDialog, (HWND)nullptr);
-	//g_hWndCurrentTab = nullptr;
 
+		CONF.save_active_config_tab(g_current_tab);
+
+	}
 	return FALSE;
 }
 
@@ -400,14 +402,13 @@ void CConfigurationDialog::save_tagging_dialog(HWND wnd, bool dlgbind) {
 bool CConfigurationDialog::cfg_tagging_has_changed() {
 	bool bres = false;
 	bool bcmp = false;
-
-	bres = bres || conf.replace_ANVs != conf_dlg_edit.replace_ANVs;
-	bres = bres || conf.move_the_at_beginning != conf_dlg_edit.move_the_at_beginning;
-	bres = bres || conf.discard_numeric_suffix != conf_dlg_edit.discard_numeric_suffix;
-	bres = bres || conf.skip_preview_dialog != conf_dlg_edit.skip_preview_dialog;
-	bres = bres || conf.remove_other_tags != conf_dlg_edit.remove_other_tags;
+	bres |= conf.replace_ANVs != conf_dlg_edit.replace_ANVs;
+	bres |= conf.move_the_at_beginning != conf_dlg_edit.move_the_at_beginning;
+	bres |= conf.discard_numeric_suffix != conf_dlg_edit.discard_numeric_suffix;
+	bres |= conf.skip_preview_dialog != conf_dlg_edit.skip_preview_dialog;
+	bres |= conf.remove_other_tags != conf_dlg_edit.remove_other_tags;
 	bcmp = !(stricmp_utf8(conf.raw_remove_exclude_tags, conf_dlg_edit.raw_remove_exclude_tags) == 0);
-	bres = bres || bcmp;
+	bres |= bcmp;
 	return bres;
 }
 
@@ -446,11 +447,10 @@ void CConfigurationDialog::save_caching_dialog(HWND wnd, bool dlgbind) {
 
 bool CConfigurationDialog::cfg_caching_has_changed() {
 	bool bres = false;
-
-	bres = bres || conf.parse_hidden_as_regular != conf_dlg_edit.parse_hidden_as_regular;
-	bres = bres || conf.skip_video_tracks != conf_dlg_edit.skip_video_tracks;
-	bres = bres || conf.cache_max_objects != conf_dlg_edit.cache_max_objects;
-	bres = bres || conf.cache_use_offline_cache != conf_dlg_edit.cache_use_offline_cache;
+	bres |= conf.parse_hidden_as_regular != conf_dlg_edit.parse_hidden_as_regular;
+	bres |= conf.skip_video_tracks != conf_dlg_edit.skip_video_tracks;
+	bres |= conf.cache_max_objects != conf_dlg_edit.cache_max_objects;
+	bres |= conf.cache_use_offline_cache != conf_dlg_edit.cache_use_offline_cache;
 	return bres;
 }
 
@@ -474,16 +474,16 @@ bool CConfigurationDialog::cfg_searching_has_changed() {
 	bool bres = false;
 	bool bcmp = false;
 
-	bres = bres || conf.enable_autosearch != conf_dlg_edit.enable_autosearch;
-	bres = bres || conf.skip_find_release_dialog_if_ided != conf_dlg_edit.skip_find_release_dialog_if_ided;
-	bres = bres || conf.release_enter_key_override != conf_dlg_edit.release_enter_key_override;
+	bres |= conf.enable_autosearch != conf_dlg_edit.enable_autosearch;
+	bres |= conf.skip_find_release_dialog_if_ided != conf_dlg_edit.skip_find_release_dialog_if_ided;
+	bres |= conf.release_enter_key_override != conf_dlg_edit.release_enter_key_override;
 	
 	bcmp = !(stricmp_utf8(conf.search_release_format_string, conf_dlg_edit.search_release_format_string) == 0);
-	bres = bres || bcmp;
+	bres |= bcmp;
 	bcmp = !(stricmp_utf8(conf.search_master_format_string, conf_dlg_edit.search_master_format_string) == 0);
-	bres = bres || bcmp;
+	bres |= bcmp;
 	bcmp = !(stricmp_utf8(conf.search_master_sub_format_string, conf_dlg_edit.search_master_sub_format_string) == 0);
-	bres = bres || bcmp;
+	bres |= bcmp;
 	return bres;
 }
 
@@ -508,15 +508,15 @@ bool CConfigurationDialog::cfg_matching_has_changed() {
 	bool bres = false;
 	bool bcmp = false;
 
-	bres = bres || conf.match_tracks_using_duration != conf_dlg_edit.match_tracks_using_duration;
-	bres = bres || conf.match_tracks_using_number != conf_dlg_edit.match_tracks_using_number;
-	bres = bres || conf.assume_tracks_sorted != conf_dlg_edit.assume_tracks_sorted;
-	bres = bres || conf.skip_release_dialog_if_matched != conf_dlg_edit.skip_release_dialog_if_matched;
+	bres |= conf.match_tracks_using_duration != conf_dlg_edit.match_tracks_using_duration;
+	bres |= conf.match_tracks_using_number != conf_dlg_edit.match_tracks_using_number;
+	bres |= conf.assume_tracks_sorted != conf_dlg_edit.assume_tracks_sorted;
+	bres |= conf.skip_release_dialog_if_matched != conf_dlg_edit.skip_release_dialog_if_matched;
 
 	bcmp = !(stricmp_utf8(conf.release_discogs_format_string, conf_dlg_edit.release_discogs_format_string) == 0);
-	bres = bres || bcmp;
+	bres |= bcmp;
 	bcmp = !(stricmp_utf8(conf.release_file_format_string, conf_dlg_edit.release_file_format_string) == 0);
-	bres = bres || bcmp;
+	bres |= bcmp;
 	return bres;
 }
 
@@ -549,31 +549,31 @@ bool CConfigurationDialog::cfg_art_has_changed() {
 	bool bres = false;
 	bool bcmp = false;
 
-	bres = bres || conf.save_album_art != conf_dlg_edit.save_album_art;
-	bres = bres || conf.album_art_fetch_all != conf_dlg_edit.album_art_fetch_all;
-	bres = bres || conf.embed_album_art != conf_dlg_edit.embed_album_art;
+	bres |= conf.save_album_art != conf_dlg_edit.save_album_art;
+	bres |= conf.album_art_fetch_all != conf_dlg_edit.album_art_fetch_all;
+	bres |= conf.embed_album_art != conf_dlg_edit.embed_album_art;
 	
 	bcmp = !(stricmp_utf8(conf.album_art_directory_string, conf_dlg_edit.album_art_directory_string) == 0);
-	bres = bres || bcmp;
+	bres |= bcmp;
 	bcmp = !(stricmp_utf8(conf.album_art_filename_string, conf_dlg_edit.album_art_filename_string) == 0);
-	bres = bres || bcmp;
+	bres |= bcmp;
 
-	bres = bres || conf.album_art_overwrite != conf_dlg_edit.album_art_overwrite;
-	bres = bres || conf.save_artist_art != conf_dlg_edit.save_artist_art;
-	bres = bres || conf.artist_art_fetch_all != conf_dlg_edit.artist_art_fetch_all;
+	bres |= conf.album_art_overwrite != conf_dlg_edit.album_art_overwrite;
+	bres |= conf.save_artist_art != conf_dlg_edit.save_artist_art;
+	bres |= conf.artist_art_fetch_all != conf_dlg_edit.artist_art_fetch_all;
 
 	bcmp = !(stricmp_utf8(conf.artist_art_id_format_string, conf_dlg_edit.artist_art_id_format_string) == 0);
-	bres = bres || bcmp;
+	bres |= bcmp;
 	
-	bres = bres || conf.embed_artist_art != conf_dlg_edit.embed_artist_art;
+	bres |= conf.embed_artist_art != conf_dlg_edit.embed_artist_art;
 	
 	bcmp = !(stricmp_utf8(conf.artist_art_directory_string, conf_dlg_edit.artist_art_directory_string) == 0);
-	bres = bres || bcmp;
+	bres |= bcmp;
 
 	bcmp = !(stricmp_utf8(conf.artist_art_filename_string, conf_dlg_edit.artist_art_filename_string) == 0);
-	bres = bres || bcmp;
+	bres |= bcmp;
 
-	bres = bres || conf.artist_art_overwrite != conf_dlg_edit.artist_art_overwrite;
+	bres |= conf.artist_art_overwrite != conf_dlg_edit.artist_art_overwrite;
 	return bres;
 }
 
@@ -592,12 +592,11 @@ void CConfigurationDialog::save_oauth_dialog(HWND wnd, bool dlgbind) {
 bool CConfigurationDialog::cfg_oauth_has_changed() {
 	bool bres = false;
 	bool bcmp = false;
-	pfc::string8 temp;
 
 	bcmp = !(stricmp_utf8(conf.oauth_token, conf_dlg_edit.oauth_token) == 0);
-	bres = bres || bcmp;
+	bres |= bcmp;
 	bcmp = !(stricmp_utf8(conf.oauth_token_secret, conf_dlg_edit.oauth_token_secret) == 0);
-	bres = bres || bcmp;
+	bres |= bcmp;
 	return bres;
 }
 
@@ -633,7 +632,7 @@ BOOL CConfigurationDialog::on_tagging_dialog_message(HWND wnd, UINT msg, WPARAM 
 	case WM_COMMAND:
 		if (LOWORD(wp) == IDC_EDIT_TAG_MAPPINGS_BUTTON) {
 			if (!g_discogs->tag_mappings_dialog) {
-				g_discogs->tag_mappings_dialog = new CNewTagMappingsDialog(core_api::get_main_window());
+				g_discogs->tag_mappings_dialog = fb2k::newDialog<CNewTagMappingsDialog>(core_api::get_main_window());
 			}
 			else {
 				CDialogImpl* tmdlg = pfc::downcast_guarded<CDialogImpl*>(g_discogs->tag_mappings_dialog);
@@ -813,9 +812,6 @@ BOOL CConfigurationDialog::on_art_dialog_message(HWND wnd, UINT msg, WPARAM wp, 
 			}	
 			break;
 		}
-		/*case WM_NOTIFY: {
-			NMHDR& pnmh = *reinterpret_cast<LPNMHDR>(lp);
-		}*/
 	}
 	return FALSE;
 }
@@ -870,12 +866,6 @@ BOOL CConfigurationDialog::on_oauth_dialog_message(HWND wnd, UINT msg, WPARAM wp
 	return FALSE;
 }
 
-void CConfigurationDialog::OnFinalMessage(HWND /*hWnd*/) {
-  //(preferences_page_instance)
-	//The host ensures that our dialog is destroyed
-	//delete this;
-}
-
 void CConfigurationDialog::on_test_oauth(HWND wnd) {
 	pfc::string8 text;
 	uGetDlgItemText(wnd, IDC_OAUTH_TOKEN_EDIT, text);
@@ -885,7 +875,13 @@ void CConfigurationDialog::on_test_oauth(HWND wnd) {
 	pfc::string8 token_secret = pfc::string8(text);
 
 	service_ptr_t<test_oauth_process_callback> task = new service_impl_t<test_oauth_process_callback>(token, token_secret);
-	task->start(m_hWnd);
+
+	m_tp.get()->run_modeless(task,
+		threaded_process::flag_show_item | threaded_process::flag_show_progress_dual |
+		threaded_process::flag_show_abort,
+		m_hWnd,
+		"Testing Discogs OAuth support..."
+	);
 }
 
 void CConfigurationDialog::on_authorize_oauth(HWND wnd) {
@@ -952,7 +948,6 @@ bool CConfigurationDialog::HasChanged() {
 	else if (g_hWndCurrentTab == g_hWndTabDialog[CONF_OATH_TAB]) {
 		bchanged = cfg_oauth_has_changed();
 	}
-
 	return bchanged;
 }
 

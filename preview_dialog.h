@@ -169,14 +169,13 @@ public:
 			: tag_writer(tag_writer), tag_results_list(NULL), use_update_tags(use_update_tags) {
 
 			g_discogs->preview_tags_dialog = this;
-			Create(p_parent);
 		}
 		CPreviewTagsDialog(HWND p_parent, pfc::array_t<TagWriter_ptr> tag_writers, bool use_update_tags)
 			: tag_writers(tag_writers), tag_results_list(NULL), use_update_tags(use_update_tags), multi_mode(true) {
 
 			g_discogs->preview_tags_dialog = this;
 			if (init_count()) {
-				Create(p_parent);
+			
 			}
 			else {
 				finished_tag_writers();
@@ -184,7 +183,6 @@ public:
 			}
 		}
 		~CPreviewTagsDialog();
-		void OnFinalMessage(HWND /*hWnd*/) override;
 
 		LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 		LRESULT OnWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);

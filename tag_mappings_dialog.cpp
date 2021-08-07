@@ -93,8 +93,7 @@ bool CNewTagMappingsDialog::get_mapping_changed() {
 }
 
 void CNewTagMappingsDialog::on_mapping_changed(bool changed) {
-	CWindow btnapply = uGetDlgItem(IDAPPLY);
-	btnapply.EnableWindow(changed);
+	::EnableWindow(uGetDlgItem(IDAPPLY), TRUE);
 }
 
 LRESULT CNewTagMappingsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
@@ -134,12 +133,9 @@ LRESULT CNewTagMappingsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LP
 	DlgResize_Init(mygripp.grip, true); 
 	load_size();
 
-	modeless_dialog_manager::g_add(m_hWnd);
 	show();
 
 	on_mapping_changed(get_mapping_changed());
-
-	uSendMessage(m_hWnd, WM_NEXTDLGCTL, (WPARAM)(HWND)GetDlgItem(IDOK), TRUE);
 
 	return FALSE;
 }
@@ -199,9 +195,6 @@ void CNewTagMappingsDialog::update_list_width(bool initialize) {
 		c1 = ListView_GetColumnWidth(tag_list, 0);
 		c2 = ListView_GetColumnWidth(tag_list, 1);
 		c3 = ListView_GetColumnWidth(tag_list, 2);
-		/*float ratio = float(width - c3) / (c1 + c2);
-		c1 = (int)(ratio * c1);
-		c2 = (int)(ratio * c2);*/
 	}
 }
 
@@ -211,38 +204,32 @@ void CNewTagMappingsDialog::applymappings() {
 	on_mapping_changed(get_mapping_changed());
 
 	if (g_discogs->preview_tags_dialog) {
-		g_discogs->preview_tags_dialog->tag_mappings_updated();
+		CPreviewTagsDialog* dlg = reinterpret_cast<CPreviewTagsDialog*>(g_discogs->preview_tags_dialog);
+		dlg->tag_mappings_updated();
 	}
 }
 
 LRESULT CNewTagMappingsDialog::OnOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-
-	if (build_current_cfg()) {
-		applymappings();
-		pushcfg(true);
-	}
-
 	destroy();
 	return TRUE;
 }
 
 LRESULT CNewTagMappingsDialog::OnApply(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-
 	applymappings();
-	pushcfg(true);
 	return FALSE;
 }
 
 LRESULT CNewTagMappingsDialog::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	
 	conf = CONF;
 	destroy();
 	return TRUE;
 }
 
 LRESULT CNewTagMappingsDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
-	
-	pushcfg(false);
+	if (build_current_cfg()) {
+		applymappings();
+		pushcfg(true);
+	}
 	return 0;
 }
 

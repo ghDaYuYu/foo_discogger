@@ -63,7 +63,7 @@ LRESULT CUpdateTagsDialog::OnCheckReplaceANVs(WORD /*wNotifyCode*/, WORD wID, HW
 
 LRESULT CUpdateTagsDialog::OnEditTagMappings(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	if (!g_discogs->tag_mappings_dialog) {
-		g_discogs->tag_mappings_dialog = new CNewTagMappingsDialog(core_api::get_main_window());
+		g_discogs->tag_mappings_dialog = fb2k::newDialog<CNewTagMappingsDialog>(core_api::get_main_window());
 	}
 	return FALSE;
 }

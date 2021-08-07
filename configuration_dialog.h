@@ -1,8 +1,7 @@
 #pragma once
 
 #include "../SDK/foobar2000.h"
-
-#include "GUIDS.h"
+#include "guids_discogger.h"
 #include "foo_discogs.h"
 #include "tag_mappings_dialog.h"
 
@@ -14,7 +13,6 @@
 #define CONF_CACHING_TAB		3
 #define CONF_ART_TAB			4
 #define CONF_OATH_TAB			5
-
 
 class tab_entry
 {
@@ -41,10 +39,33 @@ public:
 	}
 };
 
+class NOVTABLE my_threaded_process : public threaded_process {
+public:
+	bool run_modal(service_ptr_t<threaded_process_callback> p_callback, unsigned p_flags, HWND p_parent, const char* p_title, t_size p_title_len) override;
+	bool run_modeless(service_ptr_t<threaded_process_callback> p_callback, unsigned p_flags, HWND p_parent, const char* p_title, t_size p_title_len) override;
+
+	//! Decrements reference count; deletes the object if reference count reaches zero. This is normally not called directly but managed by service_ptr_t<> template. \n
+	//! Implemented by service_impl_* classes.
+	//! @returns New reference count. For debug purposes only, in certain conditions return values may be unreliable.
+	int service_release() throw() override;
+	//! Increments reference count. This is normally not called directly but managed by service_ptr_t<> template. \n
+	//! Implemented by service_impl_* classes.
+	//! @returns New reference count. For debug purposes only, in certain conditions return values may be unreliable.
+	int service_add_ref() throw() override;
+	//! Queries whether the object supports specific interface and retrieves a pointer to that interface. This is normally not called directly but managed by service_query_t<> function template. \n
+	//! Checks the parameter against GUIDs of interfaces supported by this object, if the GUID is one of supported interfaces, p_out is set to service_base pointer that can be static_cast<>'ed to queried interface and the method returns true; otherwise the method returns false. \n
+	//! Implemented by service_impl_* classes. \n
+	//! Note that service_query() implementation semantics (but not usage semantics) changed in SDK for foobar2000 1.4; they used to be auto-implemented by each service interface (via FB2K_MAKE_SERVICE_INTERFACE macro); they're now implemented in service_impl_* instead. See SDK readme for more details. \n
+	bool service_query(service_ptr& p_out, const GUID& p_guid) override;
+};
+
 
 class CConfigurationDialog : public MyCDialogImpl<CConfigurationDialog>, public CMessageFilter, public preferences_page_instance
 {
 private:
+
+	my_threaded_process m_tp;
+
 	pfc::array_t<tab_entry> tab_table;
 	foo_discogs_conf conf;
 	foo_discogs_conf conf_dlg_edit;
@@ -132,10 +153,16 @@ public:
 	MY_END_MSG_MAP()
 	
 	CConfigurationDialog(preferences_page_callback::ptr callback) : m_callback(callback) {
+		album_art_dir_edit = nullptr;
+		album_art_file_edit = nullptr;
+		token_edit = nullptr;
+		secret_edit = nullptr;
+		oauth_msg = nullptr;
+
 		g_discogs->configuration_dialog = this;
 	}
+
 	~CConfigurationDialog();
-	void CConfigurationDialog::OnFinalMessage(HWND /*hWnd*/) override;
 
 	void InitTabs();
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
@@ -147,12 +174,9 @@ public:
 	LRESULT OnCustomAnvChanged(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnDestroy(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled);
 
-	void OnOAuthPaint();
-
 	HWND token_edit;
 	HWND secret_edit;
 	HWND oauth_msg;
-	HBRUSH oauth_msg_brush = nullptr;
 
 	void show_tab(unsigned int num);
 	void show_oauth_msg(pfc::string8 msg, bool iserror);
@@ -163,6 +187,7 @@ public:
 class preferences_page_myimpl : public preferences_page_impl<CConfigurationDialog> {
 
 public:
+
 	const char* get_name() { return "discogger Tagger";	}
 	GUID get_guid() { return guid_pref_page; }
 	GUID get_parent_guid() { return guid_tagging; }

@@ -71,7 +71,6 @@ private:
 
 
 class generate_tags_task_multi : public foo_discogs_locked_threaded_process_callback
-
 {
 public:
 	generate_tags_task_multi(pfc::array_t<TagWriter_ptr> tag_writers, bool show_preview_dialog, bool use_update_tags);

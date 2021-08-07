@@ -1,5 +1,5 @@
 ﻿#include "stdafx.h"
-#include "GUIDS.h"
+#include "guids_discogger.h"
 
 #include "../SDK/foobar2000.h"
 #include "tasks.h"
@@ -139,7 +139,7 @@ public:
 
 		switch (p_index) {
 		case WriteTags:
-			g_discogs->find_release_dialog = new CFindReleaseDialog(core_api::get_main_window(), p_data, cfg_find_release_dialog_idtracker);
+			g_discogs->find_release_dialog = fb2k::newDialog<CFindReleaseDialog>(core_api::get_main_window(), p_data, cfg_find_release_dialog_idtracker);
 			break;
 
 		case UpdateTags:
@@ -175,7 +175,7 @@ public:
 			break;
 
 		case EditTagMappings:
-			g_discogs->tag_mappings_dialog = new CNewTagMappingsDialog(core_api::get_main_window());
+			g_discogs->tag_mappings_dialog = fb2k::newDialog<CNewTagMappingsDialog>(core_api::get_main_window());
 			break;
 
 		case Configuration:
@@ -319,7 +319,6 @@ public:
 			p_out = "Find Releases not in Collection...";
 			break;
 		}
-
 	}
 
 	void get_item_default_path(unsigned p_index, pfc::string_base& p_out) override {

@@ -26,6 +26,7 @@ class CFindReleaseDialog : public MyCDialogImpl<CFindReleaseDialog>,
 	public CDialogResize<CFindReleaseDialog>,
 	public CMessageFilter
 {
+
 private:
 
 	enum {
@@ -70,10 +71,6 @@ private:
 	COLORREF hlfrcolor;
 	COLORREF htcolor;
 	bool m_DisableFilterBoxEvents;
-
-#ifdef RELCOL_FIND
-	std::vector<int> CFindReleaseDialog::GetColumnOrderArray() const;
-#endif
 
 	HWND m_artist_list;
 	HWND m_release_tree;
@@ -211,13 +208,11 @@ public:
 		_idtracer.enabled = conf_release_id_tracker;
 		m_cache_find_release_ptr = std::make_shared<filter_cache>(filter_cache());
 		m_vec_items_ptr = std::make_shared<vec_t>(vec_t());
-
-		Create(p_parent);
 	};
 
-	~CFindReleaseDialog();
-
-	void OnFinalMessage(HWND /*hWnd*/) override;
+	~CFindReleaseDialog() { 
+		g_discogs->find_release_dialog = nullptr;
+	};
 
 	virtual BOOL PreTranslateMessage(MSG* pMsg) override {
 		return ::IsDialogMessage(m_hWnd, pMsg);

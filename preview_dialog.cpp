@@ -588,7 +588,7 @@ LRESULT CPreviewTagsDialog::OnCheckSkipArtwork(WORD /*wNotifyCode*/, WORD wID, H
 
 LRESULT CPreviewTagsDialog::OnEditTagMappings(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	if (!g_discogs->tag_mappings_dialog) {
-		g_discogs->tag_mappings_dialog = new CNewTagMappingsDialog(core_api::get_main_window());
+		g_discogs->tag_mappings_dialog = fb2k::newDialog<CNewTagMappingsDialog>(core_api::get_main_window());
 	}
 	else
 	{
@@ -1017,10 +1017,6 @@ LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam, BOOL& bHand
 	return CDRF_DODEFAULT;
 }
 
-void CPreviewTagsDialog::OnFinalMessage(HWND /*hWnd*/) {
-	modeless_dialog_manager::g_remove(m_hWnd);
-	delete this;
-}
 
 void CPreviewTagsDialog::enable(bool is_enabled, bool change_focus) {
 	::uEnableWindow(GetDlgItem(IDC_WRITE_TAGS_BUTTON), !is_enabled ? FALSE : tag_writer->will_modify/*is_enabled*/);
@@ -1041,17 +1037,20 @@ void CPreviewTagsDialog::enable(bool is_enabled, bool change_focus) {
 
 void CPreviewTagsDialog::destroy_all() {
 	if (!multi_mode) {
-		if (g_discogs->track_matching_dialog)
-			g_discogs->track_matching_dialog->destroy_all();
+		if (g_discogs->track_matching_dialog) {
+			CTrackMatchingDialog* dlg = reinterpret_cast<CTrackMatchingDialog*>(g_discogs->track_matching_dialog);
+			dlg->destroy_all();
+		}
 	}
-	MyCDialogImpl<CPreviewTagsDialog>::destroy();
+	destroy();
 }
 
 void CPreviewTagsDialog::go_back() {
 	PFC_ASSERT(!multi_mode);
 	destroy();
 	if (g_discogs->track_matching_dialog) {
-		g_discogs->track_matching_dialog->show();
+		CTrackMatchingDialog* dlg = reinterpret_cast<CTrackMatchingDialog*>(g_discogs->track_matching_dialog);
+		dlg->show();
 	}
 }
 

@@ -539,6 +539,55 @@ std::pair<HBITMAP, HBITMAP> GenerateTmpBitmapsFromRealSize(pfc::string8 release_
 	return std::pair(hBmSmall, hBmMini);
 }
 
+MemoryBlock MemoryBlockToPngIcon(MemoryBlock buffer) {
+	IStream* pStream = SHCreateMemStream((BYTE*)&buffer[0], buffer.get_count());
+	Gdiplus::Bitmap bmFetch(pStream);
+
+	int inWidth = bmFetch.GetWidth();
+	int inHeight = bmFetch.GetHeight();
+	int newWidth = 32;
+	int newHeight = 32;
+	float ScalingFactor;
+	if (inWidth >= inHeight)
+		ScalingFactor = (float)newWidth / (float)bmFetch.GetWidth();
+	else
+		ScalingFactor = (float)newHeight / (float)bmFetch.GetHeight();
+
+	IStream* poutStream;
+	CreateStreamOnHGlobal(NULL, true, &poutStream);
+	Gdiplus::Bitmap bmIcon = Gdiplus::Bitmap((int)newWidth, (int)newHeight, PixelFormat24bppRGB);
+	Gdiplus::Graphics gmini(&bmIcon);
+	gmini.ScaleTransform(ScalingFactor, ScalingFactor);
+	Gdiplus::Status status = gmini.DrawImage(&bmFetch, 0, 0);
+
+	CLSID ClsidPNG;
+	HRESULT hres = CLSIDFromString(L"{557cf406-1a04-11d3-9a73-0000f81ef32e}", &ClsidPNG);
+
+	LARGE_INTEGER   li;
+	li.QuadPart = 0;
+
+	status = bmIcon.Save(poutStream, &ClsidPNG, NULL);
+	hres = poutStream->Seek(li, STREAM_SEEK_SET, NULL);
+	poutStream->Commit(STGC_DEFAULT);
+	STATSTG outstats;
+	poutStream->Stat(&outstats, STATFLAG_NONAME);
+
+	ULONG read;
+	UINT length = outstats.cbSize.QuadPart;
+
+	BYTE* out_stream_bytes = new BYTE[outstats.cbSize.QuadPart];
+	poutStream->Read(out_stream_bytes, outstats.cbSize.QuadPart, &read); //Read entire stream into the array
+
+	MemoryBlock newbuffer; newbuffer.set_size(newWidth * newHeight * 3);
+	newbuffer.set_data_fromptr(out_stream_bytes, length);
+
+	poutStream->Release();
+	pStream->Release();
+
+	return newbuffer;
+
+}
+
 int static ReadSizeFromFile(pfc::string8 full_path) {
 	
 	//prepare codepaged file name

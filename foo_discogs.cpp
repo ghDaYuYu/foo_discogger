@@ -363,7 +363,7 @@ void foo_discogs::save_album_art(Release_ptr &release, metadb_handle_ptr item,
 		}
 
 		MemoryBlock buffer;
-	if (write_this) {
+		if (write_this) {
 
 			if (voverwrite_it[i] || !foobar2000_io::filesystem::g_exists(path, p_abort)) {
 				g_discogs->fetch_image(buffer, release->images[i], p_abort);
@@ -379,7 +379,15 @@ void foo_discogs::save_album_art(Release_ptr &release, metadb_handle_ptr item,
 				g_discogs->fetch_image(buffer, release->images[i], p_abort);
 			}
 			if (i < my_album_art_ids.size()) {
-				g_discogs->embed_image(buffer, item, my_album_art_ids[i]/*album_art_ids::cover_front*/, p_abort);
+
+				if (my_album_art_ids[i] == album_art_ids::icon) {
+
+					MemoryBlock newbuffer = MemoryBlockToPngIcon(buffer);
+					g_discogs->embed_image(newbuffer, item, my_album_art_ids[i], p_abort);
+				}
+				else {
+					g_discogs->embed_image(buffer, item, my_album_art_ids[i]/*album_art_ids::cover_front*/, p_abort);
+				}
 			}
 		}
 	}
@@ -587,14 +595,27 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, meta
 			last_path = path;
 		}
 
-		if (vembed_it[i]) {
+		if (/*album_art_ids[i] == album_art_ids::artist*/ /*i == 0 &&*/ vembed_it[i] /*embed_it*/) {
 
+			GUID art_id;
+			if (my_album_art_ids.size() > i + album_offset) {
+				art_id = my_album_art_ids[i + album_offset];
+			}
+			
 			if (!buffer.get_count()) {
 				//todo: get it from previously fetched
 				g_discogs->fetch_image(buffer, artist->images[i], p_abort);
 			}
 
-			g_discogs->embed_image(buffer, item, album_art_ids::artist, p_abort);
+			if (art_id == album_art_ids::icon) {
+				
+				MemoryBlock newbuffer = MemoryBlockToPngIcon(buffer);
+				g_discogs->embed_image(newbuffer, item, my_album_art_ids[i + album_offset] /*album_art_ids::artist*/, p_abort);
+
+			}
+			else {
+				g_discogs->embed_image(buffer, item, my_album_art_ids[i + album_offset] /*album_art_ids::artist*/, p_abort);
+			}
 		}
 	}
 }

@@ -260,15 +260,21 @@ LRESULT CNewTagMappingsDialog::OnImport(WORD /*wNotifyCode*/, WORD wID, HWND /*h
 	if (GetOpenFileNameA(&ofn)) {
 		log_msg(filename);
 	}
-	if (!strlen(filename)) {
-		return FALSE;
+
+	{
+		pfc::string8 tmpFullPath(ofn.lpstrFile);
+		if (!tmpFullPath.length()) {
+			return FALSE;
+		}
 	}
+
+	pfc::stringcvt::string_utf8_from_codepage cvt_utf8(0, ofn.lpstrFile);
 
 	service_ptr_t<file> f;
 	abort_callback_impl p_abort;
 	tag_mapping_entry *buf = new tag_mapping_entry();
 	try {
-		filesystem::g_open(f, filename, foobar2000_io::filesystem::open_mode_read, p_abort);
+		filesystem::g_open(f, cvt_utf8, foobar2000_io::filesystem::open_mode_read, p_abort);
 		stream_reader_formatter<false> srf(*f.get_ptr(), p_abort);
 		tag_mappings->remove_all();
 		while (!f->is_eof(p_abort)) {
@@ -305,7 +311,11 @@ LRESULT CNewTagMappingsDialog::OnExport(WORD /*wNotifyCode*/, WORD wID, HWND /*h
 
 	GetSaveFileNameA(&ofn);
 
-	if (!strlen(filename)) {
+	pfc::string8 strFinalName(filename);
+	pfc::string8 tmpNoExt(pfc::string_filename(filename).get_ptr());
+	//check extension + no filename
+	tmpNoExt.truncate(tmpNoExt.get_length() - pfc::string_extension(filename).length() + (pfc::string_extension(filename).length() ? 1 /*+1 dot ext length*/ : 0) );
+	if (!strFinalName.length() || !tmpNoExt.get_length()) {
 		return FALSE;
 	}
 
@@ -314,15 +324,16 @@ LRESULT CNewTagMappingsDialog::OnExport(WORD /*wNotifyCode*/, WORD wID, HWND /*h
 	outExt << "." <<  pfc::string_extension(filename);
 	if (outExt.get_length() == 1) outExt = "";
 
-	pfc::string8 strFinalName(filename);
 	if ((ofn.nFilterIndex == 1) && (stricmp_utf8(outExt, ".tm"))) {
-			strFinalName << filterExt;
+		strFinalName << filterExt;
 	}
+
+	pfc::stringcvt::string_utf8_from_codepage cvt_utf8(0, strFinalName);
 	
 	service_ptr_t<file> f;
 	abort_callback_impl p_abort;
 	try {
-		filesystem::g_open(f, strFinalName.get_ptr(), foobar2000_io::filesystem::open_mode_write_new, p_abort);
+		filesystem::g_open(f, cvt_utf8, foobar2000_io::filesystem::open_mode_write_new, p_abort);
 		stream_writer_formatter<false> swf(*f.get_ptr(), p_abort);
 		for (size_t i = 0; i < tag_mappings->get_count(); i++) {
 			const tag_mapping_entry &e = tag_mappings->get_item(i);

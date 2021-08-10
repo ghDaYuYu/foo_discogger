@@ -150,7 +150,6 @@
     <ClCompile Include="find_release_dialog.cpp" />
     <ClCompile Include="find_release_tree.cpp" />
     <ClCompile Include="foo_discogs.cpp" />
-    <ClCompile Include="initquit.cpp" />
     <ClCompile Include="json_helpers.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="mainmenu.cpp" />
@@ -166,7 +165,6 @@
     <ClCompile Include="tag_mappings_dialog.cpp" />
     <ClCompile Include="tag_writer.cpp" />
     <ClCompile Include="tasks.cpp" />
-    <ClCompile Include="testfetcher.cpp" />
     <ClCompile Include="track_matching_dialog.cpp" />
     <ClCompile Include="track_matching_dialog_presenter.cpp" />
     <ClCompile Include="track_matching_lv_helpers.cpp" />
@@ -202,7 +200,6 @@
     <ClInclude Include="ol_cache.h" />
     <ClInclude Include="preview_dialog.h" />
     <ClInclude Include="prompt_dialog.h" />
-    <ClInclude Include="request_q.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="sdk_helpers.h" />
     <ClInclude Include="stdafx.h" />
@@ -211,7 +208,6 @@
     <ClInclude Include="tag_mappings_dialog.h" />
     <ClInclude Include="tag_writer.h" />
     <ClInclude Include="tasks.h" />
-    <ClInclude Include="testfetcher.h" />
     <ClInclude Include="track_matching_dialog.h" />
     <ClInclude Include="track_matching_dialog_presenter.h" />
     <ClInclude Include="track_matching_lv_helpers.h" />
@@ -224,10 +220,6 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="foo_discogger.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="ClassDiagram.cd" />
-    <None Include="readme.txt" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\libPPUI\libPPUI.vcxproj">

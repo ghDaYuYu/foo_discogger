@@ -266,6 +266,8 @@ public:
 	bool id_to_val_bool(int id, new_conf in_conf);
 	void id_to_val_str(int id, new_conf in_conf, pfc::string8& out);
 	void save();
+	
+	void save_active_config_tab(int newval);
 
 	enum class ConfFilter :uint8_t {
 		CONF_FILTER_CONF = 0,
@@ -517,7 +519,7 @@ public:
 	bool find_release_dialog_show_id = false;
 
 	//v201
-	bool release_enter_key_override = false;
+	bool release_enter_key_override = true;
 	int match_tracks_discogs_style = static_cast<int>(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP);
 	int match_tracks_files_style = static_cast<int>(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP);
 	int preview_tags_dialog_w_width = 40;
@@ -525,7 +527,7 @@ public:
 	int preview_tags_dialog_s_width = 40;
 	int preview_tags_dialog_e_width = 40;
 	//v202
-	int cache_use_offline_cache = 0;
+	int cache_use_offline_cache = 1 << 0 | 1 << 1;
 	//v203
 	int match_discogs_artwork_ra_width = 0;
 	int match_discogs_artwork_type_width = 0;

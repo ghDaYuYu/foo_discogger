@@ -170,8 +170,8 @@ struct id_tracer {
 //};
 
 struct row_col_data {
-	int id;	//master id or release id
-	std::list<std::pair<int, pfc::string8>> col_data_list; //column #, column content
+	int id = -1;	//master id or release id
+	std::list<std::pair<int, pfc::string8>> col_data_list = {};
 };
 
 #endif //ROW_COLUMN_DATA_H
@@ -189,18 +189,18 @@ struct flagreg { int ver; int flag; };
 typedef std::unordered_map<int, std::pair<row_col_data, flagreg>> cache_t;
 typedef cache_t::iterator cache_iterator_t;
 
-typedef std::vector<std::pair<cache_iterator_t, HTREEITEM*>> vec_t;
+typedef std::vector<std::pair<cache_iterator_t, HTREEITEM>> vec_t;
 typedef vec_t::iterator vec_iterator_t;
 
 namespace {
 	void find_vec_by_lparam(vec_t& vec_items, int lparam, vec_iterator_t& out) {
 		out = std::find_if(vec_items.begin(), vec_items.end(),
-			[&](const std::pair<cache_iterator_t, HTREEITEM*> e) {
+			[&](const std::pair<cache_iterator_t, HTREEITEM> e) {
 				return e.first->first == lparam; });
 	}
 	void find_vec_by_id(vec_t& vec_items, int id, vec_iterator_t& out) {
 		out = std::find_if(vec_items.begin(), vec_items.end(),
-			[&](const std::pair<cache_iterator_t, HTREEITEM*> e) {
+			[&](const std::pair<cache_iterator_t, HTREEITEM> e) {
 				return e.first->second.first.id == id; });
 	}
 }

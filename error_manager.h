@@ -38,7 +38,7 @@ protected:
 	// displays errors in popup
 	void display_errors() {
 		if (errors.get_count()) {
-			errors.append_single(pfc::string8("\n[ESCAPE to close]"));		
+			errors.append_single(pfc::string8("\n[ESCAPE to close]"));
 			popup_message::g_show(join(errors, "\n").get_ptr(), "Error(s)", popup_message::icon_error);
 		}
 	}

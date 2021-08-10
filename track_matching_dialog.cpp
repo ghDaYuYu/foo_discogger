@@ -97,9 +97,11 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 			return FALSE;
 		}
 
-		//todo: expand flag masks (< 30 images)
+		//todo: expand limit of 30 images
 
-		if (m_tag_writer->get_art_count() > 30) {
+		if (m_tag_writer->release->images.get_count() > 30 || 
+			m_tag_writer->release->artists[0]->full_artist->images.get_count() > 30) {
+
 			HWND hwndManageArt = uGetDlgItem(IDC_TRACK_MATCH_ALBUM_ART);
 			::EnableWindow(hwndManageArt, FALSE);
 			request_preview(0, false, false);
@@ -217,7 +219,8 @@ void CTrackMatchingDialog::process_download_art_paths_done(pfc::string8 callback
 	size_t img_type;
 	for (size_t i = 0; i < saved_mask.size(); i++) {
 
-		if (!saved_mask.get(i)) continue;
+		if (!saved_mask.get(i))
+			continue;
 
 		size_t dc_art_ids_size = m_coord.GetDiscogsArtRowLvSize();
 
@@ -773,6 +776,10 @@ LRESULT CTrackMatchingDialog::OnCommand(UINT /*uMsg*/, WPARAM wParam, LPARAM lPa
 
 			SetDlgItemText(IDC_TRACKLIST_GROUP, state ? _T("Manage Artwork") : _T("Match Tracks"));
 
+			//backup column defs (mode exit)
+			m_coord.PullConf(state ? lsmode::tracks_ui : lsmode::art, true, &m_conf);
+			m_coord.PullConf(state ? lsmode::tracks_ui : lsmode::art, false, &m_conf);
+
 			if (state) {
 
 				LibUIAsOwnerData(false);
@@ -851,9 +858,9 @@ LRESULT CTrackMatchingDialog::list_key_down(HWND wnd, LPNMHDR lParam) {
 	
 	NMLVKEYDOWN* info = reinterpret_cast<NMLVKEYDOWN*>(lParam);
 
-	bool shift = (GetKeyState(VK_SHIFT) & 0x8000) == 0x8000;
-	bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000);
-	
+	bool bshift = (GetKeyState(VK_SHIFT) & 0x8000) == 0x8000;
+	bool bctrl = (GetKeyState(VK_CONTROL) & 0x8000);
+
 	HWND wndFiles = uGetDlgItem(IDC_FILE_LIST);
 	HWND wndDiscogs = uGetDlgItem(IDC_DISCOGS_TRACK_LIST);
 	HWND focuswnd = ::GetFocus();
@@ -921,7 +928,7 @@ LRESULT CTrackMatchingDialog::list_key_down(HWND wnd, LPNMHDR lParam) {
 		}
 
 	case 0x41: //'a' select all - invert selection
-		if (shift && ctrl) {
+		if (bshift && bctrl) {
 			bool bres;
 			try {
 				bres = switch_context_menu(wnd, key_no_point, is_files, ID_INVERT_SELECTION, selmask, ilist);
@@ -929,7 +936,7 @@ LRESULT CTrackMatchingDialog::list_key_down(HWND wnd, LPNMHDR lParam) {
 			catch (...) {}
 			return bres;
 		}
-		else if (ctrl) {
+		else if (bctrl) {
 			bool bres;
 			try {
 				bres = switch_context_menu(wnd, key_no_point, is_files, ID_SELECT_ALL, selmask, ilist);
@@ -941,11 +948,11 @@ LRESULT CTrackMatchingDialog::list_key_down(HWND wnd, LPNMHDR lParam) {
 			return FALSE;
 
 	case 0x43: //'c' crop
-		if (shift && ctrl) {
+		if (bshift && bctrl) {
 			;
 			return TRUE;
 		}
-		else if (ctrl) {
+		else if (bctrl) {
 			bool bres;
 			try {
 				bres = switch_context_menu(wnd, key_no_point, is_files, ID_CROP, selmask, ilist);
@@ -957,11 +964,11 @@ LRESULT CTrackMatchingDialog::list_key_down(HWND wnd, LPNMHDR lParam) {
 			return FALSE;
 	case 0x50: //'p' preview
 		if (GetMode() != lsmode::art) return TRUE;
-		if (shift && ctrl) {
+		if (bshift && bctrl) {
 			;
 			return TRUE;
 		}
-		else if (ctrl) {
+		else if (bctrl) {
 			bool bres;
 			try {
 				bres = switch_context_menu(wnd, key_no_point, is_files, ID_ART_PREVIEW, selmask, ilist);
@@ -973,11 +980,11 @@ LRESULT CTrackMatchingDialog::list_key_down(HWND wnd, LPNMHDR lParam) {
 			return FALSE;
 	case 0x57: //'w' write
 		if (GetMode() != lsmode::art) return TRUE;
-		if (shift && ctrl) {
+		if (bshift && bctrl) {
 			;
 			return TRUE;
 		}
-		else if (ctrl) {
+		else if (bctrl) {
 			bool bres;
 			try {
 				bres = switch_context_menu(wnd, key_no_point, is_files, ID_ART_WRITE, selmask, ilist);
@@ -989,11 +996,11 @@ LRESULT CTrackMatchingDialog::list_key_down(HWND wnd, LPNMHDR lParam) {
 			return FALSE;
 	case 0x4F: //'o' overwrite
 		if (GetMode() != lsmode::art) return TRUE;
-		if (shift && ctrl) {
+		if (bshift && bctrl) {
 			;
 			return TRUE;
 		}
-		else if (ctrl) {
+		else if (bctrl) {
 			bool bres;
 			try {
 				bres = switch_context_menu(wnd, key_no_point, is_files, ID_ART_OVR, selmask, ilist);
@@ -1005,11 +1012,11 @@ LRESULT CTrackMatchingDialog::list_key_down(HWND wnd, LPNMHDR lParam) {
 			return FALSE;
 	case 0x45: //'e' embed
 		if (GetMode() != lsmode::art) return TRUE;
-		if (shift && ctrl) {
+		if (bshift && bctrl) {
 			;
 			return TRUE;
 		}
-		else if (ctrl) {
+		else if (bctrl) {
 			bool bres;
 			try {
 				bres = switch_context_menu(wnd, key_no_point, is_files, ID_ART_EMBED, selmask, ilist);
@@ -1036,11 +1043,11 @@ LRESULT CTrackMatchingDialog::list_key_down(HWND wnd, LPNMHDR lParam) {
 	//	else
 	//		return FALSE;
 	case 0x54: //'t' Artwork view <-> Track view
-		if (shift && ctrl) {
+		if (bshift && bctrl) {
 			;
 			return TRUE;
 		}
-		else if (ctrl) {
+		else if (bctrl) {
 			bool bres;
 			try {
 				bres = switch_context_menu(wnd, CPoint(-1, -1), is_files, ID_ART_TOOGLE_TRACK_ART_MODES, selmask, ilist);
@@ -1511,11 +1518,11 @@ bool CTrackMatchingDialog::track_url_context_menu(HWND wnd, LPARAM lParamPos) {
 
 	bool diff_ids = local_release_id.get_length() && (!STR_EQUAL(discogs_release_id, local_release_id));
 
-	pfc::string8 discogs_release_info (diff_ids ? "DT Release Id: " : "Release Id: ");
+	pfc::string8 discogs_release_info (diff_ids ? "Discogs Release Id: " : "Release Id: ");
 	pfc::string8 local_release_info;
 	discogs_release_info << discogs_release_id;
 	if (local_release_id.get_length())
-		local_release_info << "LF Release Id: " << local_release_id;
+		local_release_info << "Files Release Id: " << local_release_id;
 
 	try {
 
@@ -1883,6 +1890,7 @@ bool CTrackMatchingDialog::append_art_context_menu(HWND wndlist, HMENU* menu) {
 			if (perm_selection[i] != max_items) {
 				size_t dc_ndx = perm_selection[i];
 				af att = are_albums.get(i) ? af::alb_sd : af::art_sd;
+				dc_ndx = are_albums.get(i) ? dc_ndx : dc_ndx - cAlbumArt;
 				bool val = uartw->getflag(att, dc_ndx);
 				write |= val;
 				if (write != val) mixedwrite = true;			
@@ -1893,6 +1901,7 @@ bool CTrackMatchingDialog::append_art_context_menu(HWND wndlist, HMENU* menu) {
 			if (perm_selection[i] != citems) {
 				size_t dc_ndx = perm_selection[i];
 				af att = are_albums.get(i) ? af::alb_ovr : af::art_ovr;
+				dc_ndx = are_albums.get(i) ? dc_ndx : dc_ndx - cAlbumArt;
 				bool val = uartw->getflag(att, dc_ndx);
 				ovr |= val;
 				if (ovr != val) mixedovr = true;
@@ -1903,6 +1912,7 @@ bool CTrackMatchingDialog::append_art_context_menu(HWND wndlist, HMENU* menu) {
 			if (perm_selection[i] != citems) {
 				size_t dc_ndx = perm_selection[i];
 				af att = are_albums.get(i) ? af::alb_emb : af::art_emb;
+				dc_ndx = are_albums.get(i) ? dc_ndx : dc_ndx - cAlbumArt;
 				bool val = uartw->getflag(att, dc_ndx);
 				embed |= val;
 				if (write != val) mixedembed = true;

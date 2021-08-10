@@ -227,9 +227,12 @@ LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 		OnCheckPreviewShowStats(0, 0, NULL, bdummy);
 	}
 
-	// todo: integrate into enable(bool, bool)
-	// note: test generate_tags_task::on_success(HWND p_wnd)
-	if (tag_writer->will_modify)
+	// todo: unify with enable(bool, bool)
+	// note: might be called from generate_tags_task::on_success(HWND p_wnd)
+
+	bool write_button_enabled = write_tag_button_enabled();
+
+	if (write_button_enabled)
 		::SetFocus(GetDlgItem(IDC_WRITE_TAGS_BUTTON));
 	else
 		::SetFocus(GetDlgItem(IDCANCEL));
@@ -238,8 +241,8 @@ LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 
 	bool managed_artwork = !(CONFARTWORK == uartwork(CONF));
 	LPARAM lpskip = conf.album_art_skip_default_cust;
-	int lo = LOWORD(lpskip); int hi = HIWORD(lpskip);
-	bool skip_artwork = ((lo & 8) == 8 || (hi & 8) == 8);
+
+	bool skip_artwork = ((LOWORD(lpskip) & 8) == 8 || (HIWORD(lpskip) & 8) == 8);
 	uButton_SetCheck(m_hWnd, IDC_CHECK_PREV_DLG_SKIP_ARTWORK, managed_artwork || skip_artwork);
 
 	return TRUE;
@@ -911,7 +914,7 @@ LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam, BOOL& bHand
 		ctrl = uGetDlgItem(IDC_REPLACE_ANV_CHECK);
 		ctrl.EnableWindow(bresults && tag_writer->release->has_anv());
 		ctrl = uGetDlgItem(IDC_CHECK_PREV_DLG_DIFF_TRACKS);
-		ctrl.EnableWindow(cfg_preview_dialog_track_map || cfg_preview_dialog_comp_track_map_in_v23);
+		ctrl.EnableWindow(cfg_preview_dialog_track_map);
 		ctrl = uGetDlgItem(IDC_VIEW_NORMAL);
 		ctrl.EnableWindow(bresults);
 		ctrl = uGetDlgItem(IDC_VIEW_DIFFERENCE);

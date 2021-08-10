@@ -1010,10 +1010,10 @@ void CFindReleaseDialog::update_releases(const pfc::string8& filter, updRelSrc u
 							m_cache_find_release_ptr->SetCacheFlag(insert_cache_it, NodeFlag::added, &ival);
 
 							flagreg& insfr = insert_cache_it->second.second;
-							std::pair<cache_iterator_t, HTREEITEM*> vecrow(insert_cache_it, (HTREEITEM*)nullptr);
+							std::pair<cache_iterator_t, HTREEITEM> vecrow(insert_cache_it, (HTREEITEM)nullptr);
 							//m_vec_lv_items.reserve(m_vec_lv_items.size() + 1);
 							//VEC PUSH
-							m_vec_items_ptr->push_back(std::pair<cache_iterator_t, HTREEITEM*>(vecrow));
+							m_vec_items_ptr->push_back(std::pair<cache_iterator_t, HTREEITEM>(vecrow));
 						}
 					}
 				}
@@ -1090,7 +1090,7 @@ void CFindReleaseDialog::update_releases(const pfc::string8& filter, updRelSrc u
 									cache_iterator_t insit = last_cache_emplaced.first;
 									flagreg& insfr = last_cache_emplaced.first->second.second;
 									//VEC PUSH
-									m_vec_items_ptr->push_back(std::pair<cache_iterator_t, HTREEITEM*>
+									m_vec_items_ptr->push_back(std::pair<cache_iterator_t, HTREEITEM>
 										(last_cache_emplaced.first, nullptr));
 								}
 								else {
@@ -1369,7 +1369,7 @@ LRESULT CFindReleaseDialog::ApplyFilter(pfc::string8 strFilter) {
 
 						flagreg& insfr = parent_it->second.second;
 						//VEC PUSH
-						m_vec_items_ptr->push_back(std::pair<cache_iterator_t, HTREEITEM*>(parent_it, nullptr));
+						m_vec_items_ptr->push_back(std::pair<cache_iterator_t, HTREEITEM>(parent_it, nullptr));
 
 						int expanded = 1;
 
@@ -1392,7 +1392,7 @@ LRESULT CFindReleaseDialog::ApplyFilter(pfc::string8 strFilter) {
 			int ival = 1;
 			m_cache_find_release_ptr->SetCacheFlag(filtered_it, NodeFlag::filterok, &ival);
 			//VEC_PUSH
-			m_vec_items_ptr->push_back(std::pair<cache_iterator_t, HTREEITEM*>(filtered_it, nullptr));
+			m_vec_items_ptr->push_back(std::pair<cache_iterator_t, HTREEITEM>(filtered_it, nullptr));
 		}
 
 		int counter = 0;
@@ -1426,6 +1426,7 @@ LRESULT CFindReleaseDialog::ApplyFilter(pfc::string8 strFilter) {
 			}
 
 			HTREEITEM newnode = TreeView_InsertItem(m_release_tree, &tvis);
+			walk.second = newnode;
 			int ival = 0;
 			m_cache_find_release_ptr->SetCacheFlag(walk.first, NodeFlag::tree_created, &ival);
 			bool val;
@@ -1485,7 +1486,7 @@ LRESULT CFindReleaseDialog::OnArtistListViewItemChanged(int, LPNMHDR hdr, BOOL&)
 		if (lpStateChange->uNewState & LVIS_SELECTED) {
 			int pos = lpStateChange->iItem;
 			if (pos != m_artist_index) {
-				int frartist = find_release_artists.get_count();
+				int fr_artists_count = find_release_artists.get_count();
 
 				if (find_release_artist && (!find_release_artists.get_count() || find_release_artists[pos].get()->id == find_release_artist.get()->id)) {
 					//nothing to do, a list with just one artist, from a search based on artist id?
@@ -1682,7 +1683,7 @@ void CFindReleaseDialog::search_artist(bool skip_tracer, pfc::string8 artistname
 	if (cfg_skip_search_artist_if_present
 		&& !skip_tracer && _idtracer.artist && _idtracer.artist_id != pfc_infinite) {
 
-		pfc::string8 artist_id(std::to_string(_idtracer.artist_id).c_str());
+		pfc::string8 artist_id (std::to_string(_idtracer.artist_id).c_str());
 
 		if (artist_id.get_length()) {
 			service_ptr_t<get_artist_process_callback> task =

@@ -143,7 +143,7 @@ void generate_tags_task_multi::safe_run(threaded_process_status &p_status, abort
 
 void generate_tags_task_multi::on_success(HWND p_wnd) {
 	if (show_preview_dialog) {
-		new CPreviewTagsDialog(core_api::get_main_window(), tag_writers, use_update_tags);
+		fb2k::newDialog <CPreviewTagsDialog>(core_api::get_main_window(), tag_writers, use_update_tags);
 	}
 	else {
 		service_ptr_t<write_tags_task_multi> task = new service_impl_t<write_tags_task_multi>(tag_writers);
@@ -812,7 +812,7 @@ void get_artist_process_callback::safe_run(threaded_process_status &p_status, ab
 }
 
 void get_artist_process_callback::on_success(HWND p_wnd) {
-	if (g_discogs->find_release_dialog && m_artist) {
+	if (m_artist) {
 		CFindReleaseDialog* find_dlg = reinterpret_cast<CFindReleaseDialog*>(g_discogs->find_release_dialog);
 		find_dlg->on_get_artist_done(m_updsrc, m_artist);
 	}
@@ -835,11 +835,10 @@ void search_artist_process_callback::safe_run(threaded_process_status &p_status,
 }
 
 void search_artist_process_callback::on_success(HWND p_wnd) {
-	if (g_discogs->find_release_dialog) {
-		CFindReleaseDialog* find_dlg = reinterpret_cast<CFindReleaseDialog*>(g_discogs->find_release_dialog);
-		find_dlg->on_search_artist_done(m_artist_exact_matches, m_artist_other_matches);
-	}
+	CFindReleaseDialog* find_dlg = reinterpret_cast<CFindReleaseDialog*>(g_discogs->find_release_dialog);
+	find_dlg->on_search_artist_done(m_artist_exact_matches, m_artist_other_matches);
 }
+
 
 
 void expand_master_release_process_callback::start(HWND parent) {
@@ -856,31 +855,23 @@ void expand_master_release_process_callback::start(HWND parent) {
 void expand_master_release_process_callback::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
 	p_status.set_item("Expanding master release...");
 	m_master_release->load_releases(p_status, p_abort);
-	if (g_discogs->find_release_dialog) {
-		CFindReleaseDialog* find_dlg = reinterpret_cast<CFindReleaseDialog*>(g_discogs->find_release_dialog);
-		find_dlg->on_expand_master_release_done(m_master_release, m_pos, p_status, p_abort);
-	}
+	CFindReleaseDialog* find_dlg = reinterpret_cast<CFindReleaseDialog*>(g_discogs->find_release_dialog);
+	find_dlg->on_expand_master_release_done(m_master_release, m_pos, p_status, p_abort);
 }
 
 void expand_master_release_process_callback::on_success(HWND p_wnd) {
-	if (g_discogs->find_release_dialog) {
-		CFindReleaseDialog* find_dlg = reinterpret_cast<CFindReleaseDialog*>(g_discogs->find_release_dialog);
-		find_dlg->on_expand_master_release_complete();
-	}
+	CFindReleaseDialog* find_dlg = reinterpret_cast<CFindReleaseDialog*>(g_discogs->find_release_dialog);
+	find_dlg->on_expand_master_release_complete();
 }
 
 void expand_master_release_process_callback::on_abort(HWND p_wnd) {
-	if (g_discogs->find_release_dialog) {
-		CFindReleaseDialog* find_dlg = reinterpret_cast<CFindReleaseDialog*>(g_discogs->find_release_dialog);
-		find_dlg->on_expand_master_release_complete();
-	}
+	CFindReleaseDialog* find_dlg = reinterpret_cast<CFindReleaseDialog*>(g_discogs->find_release_dialog);
+	find_dlg->on_expand_master_release_complete();
 }
 
 void expand_master_release_process_callback::on_error(HWND p_wnd) {
-	if (g_discogs->find_release_dialog) {
-		CFindReleaseDialog* find_dlg = reinterpret_cast<CFindReleaseDialog*>(g_discogs->find_release_dialog);
-		find_dlg->on_expand_master_release_complete();
-	}
+	CFindReleaseDialog* find_dlg = reinterpret_cast<CFindReleaseDialog*>(g_discogs->find_release_dialog);
+	find_dlg->on_expand_master_release_complete();
 }
 
 
@@ -994,7 +985,6 @@ void process_artwork_preview_callback::safe_run(threaded_process_status& p_statu
 					size_t ndx;
 					if (m_bartist) {
 						images = m_release->artists[0]->full_artist->images;
-
 					}
 					else {
 						images = m_release->images;
@@ -1010,23 +1000,20 @@ void process_artwork_preview_callback::safe_run(threaded_process_status& p_statu
 }
 
 void process_artwork_preview_callback::on_success(HWND p_wnd) {
-
 	m_dialog->process_artwork_preview_done(m_img_ndx, m_bartist, m_small_art);
-
 }
 
 void process_artwork_preview_callback::on_abort(HWND p_wnd) {
-	//m_dialog->enable(true);
+	//
 }
 
 void process_artwork_preview_callback::on_error(HWND p_wnd) {
-	//m_dialog->enable(true);
+	//
 }
 
 
 process_file_artwork_preview_callback::process_file_artwork_preview_callback(CTrackMatchingDialog* dialog, const Release_ptr& release, metadb_handle_list items, const size_t img_ndx, const bool bartist) :
 	m_dialog(dialog), m_release(release), m_img_ndx(img_ndx), m_items(items), m_bartist(bartist) {
-	//m_dialog->enable(false);
 }
 
 void process_file_artwork_preview_callback::start(HWND parent) {
@@ -1097,7 +1084,7 @@ void process_file_artwork_preview_callback::safe_run(threaded_process_status& p_
 }
 
 void process_file_artwork_preview_callback::on_success(HWND p_wnd) {
-
+	//not checking dlg (m_hWnd is the process HWND parent)
 	m_dialog->process_file_artwork_preview_done(m_img_ndx, m_bartist, m_small_art, m_temp_file_names);
 	BOOL bres = DeleteObject(m_small_art.first);
 	bres = DeleteObject(m_small_art.second);
@@ -1132,16 +1119,18 @@ void test_oauth_process_callback::safe_run(threaded_process_status &p_status, ab
 }
 
 void test_oauth_process_callback::on_success(HWND p_wnd) {
-	if (!g_discogs->configuration_dialog) {
-		static_api_ptr_t<ui_control>()->show_preferences(guid_pref_page);
-	}
+	//not checking dlg (m_hWnd is the process HWND parent)
 	CConfigurationDialog* dlg = reinterpret_cast<CConfigurationDialog*>(g_discogs->configuration_dialog);
-	if (dlg) {
-		dlg->show_oauth_msg(
-			"OAuth is working!\nSuccess!", false);
-		::SetFocus(g_discogs->configuration_dialog->m_hWnd);
-	}
+	dlg->show_oauth_msg("OAuth is working!\nSuccess!", false);
+	::SetFocus(g_discogs->configuration_dialog->m_hWnd);
 }
+
+void test_oauth_process_callback::on_error(HWND p_wnd) {
+	CConfigurationDialog* dlg = reinterpret_cast<CConfigurationDialog*>(g_discogs->configuration_dialog);
+	dlg->show_oauth_msg("\nOAuth failed.", true);
+	::SetFocus(g_discogs->configuration_dialog->m_hWnd);
+}
+
 
 
 void authorize_oauth_process_callback::start(HWND parent) {
@@ -1178,10 +1167,11 @@ void generate_oauth_process_callback::safe_run(threaded_process_status &p_status
 }
 
 void generate_oauth_process_callback::on_success(HWND p_wnd) {
-	CConfigurationDialog* dlg = reinterpret_cast<CConfigurationDialog*>(g_discogs->configuration_dialog);
 	
+	CConfigurationDialog* dlg = reinterpret_cast<CConfigurationDialog*>(g_discogs->configuration_dialog);
 	uSetWindowText(dlg->token_edit, token->key().c_str());
 	uSetWindowText(dlg->secret_edit, token->secret().c_str());
+
 	delete token;
 	token = nullptr;
 }

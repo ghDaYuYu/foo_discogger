@@ -11,7 +11,7 @@ char USER_AGENT[] = "User-Agent: <<user agent>>";
 void Fetcher::fetch_html(const pfc::string8 &url, const pfc::string8 &params, pfc::string8 &html, abort_callback &p_abort, bool use_oauth) {
 	pfc::array_t<t_uint8> buffer;
 	fetch_url(url, params, buffer, p_abort, use_oauth, "application/xml");
-	html = pfc::string8((char *)buffer.get_ptr(), buffer.get_size());
+	html = pfc::string8((char*)buffer.get_ptr(), buffer.get_size());
 }
 
 void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc::array_t<t_uint8> & out, abort_callback &p_abort, bool use_oauth, const pfc::string8 &content_type) {
@@ -180,7 +180,7 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 				pfc::string8 error;
 				error << "Networking Error: " << pfc::string8(e.what()) << " - Retrying: " << tries;
 				log_msg(error);
-				Sleep(2000);
+				Sleep(2000 * (tries > 1 ? 2 : 1));
 			}
 			tries++;
 		}

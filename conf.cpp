@@ -18,7 +18,6 @@ cfg_objList<conf_bool_entry> cfg_bool_entries(guid_cfg_bool_values);
 cfg_objList<conf_int_entry> cfg_int_entries(guid_cfg_int_values);
 cfg_objList<conf_string_entry> cfg_string_entries(guid_cfg_string_values);
 
-
 conf_bool_entry make_conf_entry(int i, bool v) {
 	conf_bool_entry result;
 	result.id = i;
@@ -66,7 +65,7 @@ bool new_conf::load() {
 			vLoad = *vlast;
 			pfc::string8 title;
 			title << "Configuration Reset";
-			pfc::string8 msg("This version of foo_discogs_mod is not compatible with the current setup.\n");
+			pfc::string8 msg("This version of foo_discogger is not compatible with the current setup.\n");
 			msg << "Configuration will be reset.\n";
 			uMessageBox(core_api::get_main_window(), msg, title, MB_APPLMODAL | MB_ICONASTERISK);
 			forceupdate = true;
@@ -839,6 +838,26 @@ void new_conf::save() {
 	//v200
 	cfg_string_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_HL_KEYWORD, pfc::string8((const char*)edit_tags_dlg_hl_keyword)));
 	//..
+}
+
+void new_conf::save_active_config_tab(int newval) {
+	//TODO:
+	//const conf_int_entry entry = make_conf_entry(CFG_LAST_CONF_TAB, last_conf_tab);
+	//t_size pos = cfg_int_entries.find_item(entry);
+
+	t_size pos = pfc_infinite;
+	for (size_t it = 0; it < cfg_int_entries.get_count(); it++) {
+		auto walk = cfg_int_entries.get_item(it);
+		if (walk.id == CFG_LAST_CONF_TAB && walk.value == last_conf_tab) {
+			pos = it; break;
+		}
+	}
+
+	if (pos != pfc_infinite) {
+		conf_int_entry new_entry = make_conf_entry(CFG_LAST_CONF_TAB, newval);
+		cfg_int_entries.swap_item_with(pos, new_entry);
+		last_conf_tab = newval;
+	}
 }
 
 void init_conf() {

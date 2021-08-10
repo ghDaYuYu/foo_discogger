@@ -652,7 +652,7 @@ namespace Discogs
 	{
 	public:
 		int discogs_tracklist_count = 0;
-		int total_headings;
+		int total_headings = 0;
 		int discogs_total_discs = 0;
 	};
 

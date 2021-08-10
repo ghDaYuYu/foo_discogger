@@ -23,13 +23,15 @@ public:
 	END_MSG_MAP()
 
 	CEditWithButtonsDim() : CEditWithButtons(),
-			m_isDim(true), m_dimText(L" dimmed text"),
-			m_dimColor(RGB(150, 150, 150)) {
+			m_getDlgCodeHandled(false),	m_dlgWantEnter(true),
+			m_isDim(true), m_dimText(L" Dimmed text"),
+			m_dimColor(RGB(150, 150, 150))
+	{
 	}
 
-	CEditWithButtonsDim(const tstring& dimText) :
-			m_isDim(true), m_dimText(dimText),
-			m_dimColor(RGB(150, 150, 150)) {
+	CEditWithButtonsDim(const tstring& dimText) : CEditWithButtonsDim()
+	{
+		m_dimText = dimText;
 	}
 
 	virtual ~CEditWithButtonsDim() {
@@ -78,7 +80,7 @@ public:
 
 	void FocusClear() {
 		HWND wnd = this->GetNextDlgTabItem(false);
-		::SetFocus(wnd);
+		if (wnd) ::SetFocus(wnd);
 	}
 
 	void SetEnterOverride(std::function<bool()>stdf_func) {
@@ -87,6 +89,8 @@ public:
 	}
 
 private:
+	bool m_getDlgCodeHandled;
+	bool m_dlgWantEnter;
 	bool m_isDim;
 	tstring m_dimText;
 	DWORD m_dimColor;

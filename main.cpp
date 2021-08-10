@@ -17,18 +17,12 @@ FOO_DISCOGGER_VERSION,
 "Version: "FOO_DISCOGGER_VERSION"\n"
 "Compiled: "__DATE__ "\n"
 "Website: https://github.com/ghDaYuYu/foo_discogs\n"
-
-"\nfoo_discogger is a fork of foo_discogs v2.23 repository by zoomorph (https://bitbucket.org/zoomorph/foo_discogs\n"
-"\n"
-"Thanks to Michael Pujos (aka bubbleguuum) for starting the foo_discogs project (up to version 1.32).\n"
-"\n"
-"Thanks to zoomorph for continuing foo_discogs development.\n"
-"\n"
-"This plugin uses the following open source libraries (thanks to their respective authors):\n"
-"\n"
+"\nfoo_discogger is a fork of foo_discogs v2.23 repository by zoomorph (https://bitbucket.org/zoomorph/foo_discogs)\n\n"
+"Thanks to Michael Pujos (aka bubbleguuum) for starting the foo_discogs project (up to version 1.32).\n\n"
+"Thanks to zoomorph for continuing foo_discogs development.\n\n"
+"This plugin uses the following open source libraries (thanks to their respective authors):\n\n"
 "jansson - JSON Parser: http://www.digip.org/jansson/\n"
-"liboauthcpp - OAuth library: https://github.com/sirikata/liboauthcpp\n"
-"\n\n"
+"liboauthcpp - OAuth library: https://github.com/sirikata/liboauthcpp\n\n\n"
 "This application uses Discogs' API but is not affiliated with, sponsored or endorsed by Discogs.'Discogs' is a trademark of Zink Media, LLC.");
 
 // This will prevent users from renaming your component around (important for proper troubleshooter behaviors) or loading multiple instances of it.

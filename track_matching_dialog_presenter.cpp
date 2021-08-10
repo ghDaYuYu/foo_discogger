@@ -1732,9 +1732,8 @@ void coord_presenters::populate_track_ui_mode() {
 				bdiffid = (local_release_id.get_length() && !STR_EQUAL(m_tag_writer->release->id, local_release_id));
 
 				pfc::string8 compact_release;
-				CONF.search_master_sub_format_string->run_hook(m_location, &m_info, &m_hook/*titlehook.get()*/, compact_release, nullptr);
-				//CONF.search_release_format_string->run_hook(location, &info, &hook, compact_release, nullptr);
-				
+				CONF.search_master_sub_format_string->run_hook(m_location, &m_info, &m_hook, compact_release, nullptr);
+
 				pfc::string8 rel_desc = bdiffid ? "!! " : "";
 				rel_desc << ltrim(compact_release);
 				
@@ -1758,7 +1757,6 @@ void coord_presenters::populate_track_ui_mode() {
 			track_match_t file_match(match_info, file_match_nfo{ mapping.discogs_track, mapping.discogs_disc });
 
 			m_discogs_track_libui_presenter.AddRow(file_match);
-
 		}
 	}
 }

@@ -1223,7 +1223,7 @@ void Discogs::parseMasterVersions(json_t *root, MasterRelease *master_release) {
 				release->country = JSONAttributeString(rel, "country");
 
 				bool duplicate = false;
-				for (size_t r = 0; r < master_release->sub_releases.get_size(); r++) {
+				for (size_t r = 0; r < master_release->sub_releases.get_size(); r++) {				
 					if (master_release->sub_releases[r]->id == release->id) {
 						duplicate = true;
 						break;
@@ -1422,7 +1422,7 @@ void Discogs::Artist::load_releases(threaded_process_status &p_status, abort_cal
 		return;
 	}
 
-	pfc::string8 rel_path = ol::GetReleasePath(id, true);
+	pfc::string8 rel_path = ol::GetArtistReleasesPath(id, true);
 
 	bool offline_can_read = CONF.cache_use_offline_cache & ol::CacheFlags::OC_READ;
 	bool offline_can_write = CONF.cache_use_offline_cache & ol::CacheFlags::OC_WRITE;

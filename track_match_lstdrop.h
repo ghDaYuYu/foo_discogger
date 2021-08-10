@@ -20,10 +20,11 @@ private:
 
 public:
 
-	MatchListDropHandler() : p_parent(NULL) {}
+	MatchListDropHandler() : p_parent(NULL), m_itemTarget(-1) {}
 	MatchListDropHandler(HWND p_parent) :
 		p_parent(p_parent) {
 
+		m_itemTarget = -1;
 		stdf_change_notifier = nullptr;
 	}
 

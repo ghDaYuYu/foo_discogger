@@ -143,7 +143,9 @@ public:
 
 	MY_BEGIN_MSG_MAP(CConfigurationDialog)
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
+#pragma warning(suppress:26454)
 		NOTIFY_HANDLER(IDC_TAB, TCN_SELCHANGING, OnChangingTab)
+#pragma warning(suppress:26454)
 		NOTIFY_HANDLER(IDC_TAB, TCN_SELCHANGE, OnChangeTab)
 		COMMAND_ID_HANDLER(IDOK, OnOK)
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)

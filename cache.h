@@ -1,6 +1,5 @@
 #pragma once
 
-
 template<typename key_t, typename value_t>
 
 class lru_cache

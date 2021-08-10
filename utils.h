@@ -15,10 +15,10 @@ typedef int(_cdecl *dll_inflate)(z_stream*, int);
 typedef int(_cdecl *dll_inflateEnd)(z_stream*);
 
 extern bool cfg_preview_dialog_track_map;
-extern bool cfg_preview_dialog_comp_track_map_in_v23;
+
 extern bool cfg_find_release_dialog_idtracker;
 
-extern double cfg_find_release_colummn_showid_width;
+extern float cfg_find_release_colummn_showid_width;
 extern bool cfg_find_release_colummn_showid;
 
 extern dll_inflateInit2 dllinflateInit2;
@@ -61,28 +61,6 @@ static const struct rzgripp {
 	bool grip;
 } mygripp{ 22, 56, true };
 
-const struct mounted_param {
-	size_t master_ndx;
-	size_t release_ndx;
-	bool bmaster;
-	bool brelease;
-
-	mounted_param(size_t master_ndx, size_t release_ndx, bool bmaster, bool brelease)
-		: master_ndx(master_ndx), release_ndx(release_ndx), bmaster(bmaster), brelease(brelease) {};
-	mounted_param()
-		: master_ndx(~0), release_ndx(~0), bmaster(false), brelease(false) {};
-
-	bool mounted_param::is_master() {
-		return bmaster && !brelease;
-	}
-	bool mounted_param::is_release() {
-		return bmaster && brelease;
-	}
-	bool mounted_param::is_nmrelease() {
-		return !bmaster && brelease;
-	}
-};
-
 static const pfc::string8 match_failed("FAILED TO MATCH TRACK ORDER");
 static const pfc::string8 match_success("MATCHED TRACK ORDER");
 static const pfc::string8 match_assumed("ASSUMED TRACK ORDER");
@@ -102,7 +80,7 @@ extern pfc::string8 lowercase(pfc::string8 str);
 extern pfc::string8 join(const pfc::array_t<pfc::string8> &in, const pfc::string8 &join_field);
 
 // Insert into vector if missing
-extern void add_first_if_not_exists(pfc::array_t<pfc::string8> &v, pfc::string8 s);
+//extern void add_first_if_not_exists(pfc::array_t<pfc::string8> &v, pfc::string8 s);
 
 // Tokenize string
 extern int tokenize(const pfc::string8 &src, const pfc::string8 &delim, pfc::array_t<pfc::string8> &tokens, bool remove_blanks);
@@ -120,13 +98,12 @@ extern inline pfc::string8 substr(const pfc::string8 &s, size_t start, size_t co
 extern void display_url(const pfc::string8 &url);
 
 extern void list_replace_text(HWND list, int pos, const char *text);
-extern void fill_combo_box(HWND combo_box, const pfc::array_t<pfc::string8> &data);
 
 extern int myUncompress(Bytef *dest, uLongf *destLen, const Bytef *source, uLong sourceLen);
 
 template<typename T>
 void log_msg(const T &msg) {
-	console::print(pfc::string8("foo_discogs: ") << msg);
+	console::print(pfc::string8("foo_discogger: ") << msg);
 }
 
 extern void ensure_directory_exists(const char* dir);
@@ -148,7 +125,7 @@ extern bool sortByVal(const std::pair<int, int>& a, const std::pair<int, int>& b
 namespace listview_helper {
 
 	extern unsigned fr_insert_column(HWND p_listview, unsigned p_index, const char* p_name, unsigned p_width_dlu, int fmt);
-	extern unsigned fr_insert_item(HWND p_listview, unsigned p_index, bool is_release_tracker, const char* p_name, LPARAM p_param);
+	extern unsigned insert_lvItem_tracer(HWND p_listview, unsigned p_index, bool is_release_tracker, const char* p_name, LPARAM p_param, bool offline);
 	extern bool fr_insert_item_subitem(HWND p_listview, unsigned p_index, unsigned p_subitem, const char* p_name, LPARAM p_param);
 
 }

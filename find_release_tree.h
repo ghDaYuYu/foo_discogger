@@ -253,6 +253,7 @@ private:
 		//..
 
 		bool isArtist = hdr->hwndFrom == p_artistlist;
+		bool isArtistOffline = false;
 		bool isReleaseTree = hdr->hwndFrom == p_treeview;
 
 		t_size list_index = -1;

@@ -6,16 +6,18 @@
 const char *whitespace = " \t\r\n";
 
 bool cfg_preview_dialog_track_map = true;
-bool cfg_preview_dialog_comp_track_map_in_v23 = true;
+
 bool cfg_find_release_dialog_idtracker = true;
 
-double cfg_find_release_colummn_showid_width = 50.0f;
+float cfg_find_release_colummn_showid_width = 50.0f;
 bool cfg_find_release_colummn_showid = false;
 
 dll_inflateInit2 dllinflateInit2 = NULL;
 dll_inflate dllinflate = NULL;
 dll_inflateEnd dllinflateEnd = NULL;
 HINSTANCE hGetProcIDDLL = NULL;
+
+const int IMAGELIST_OFFLINE_CACHE_NDX = 8;
 
 
 inline pfc::string8 trim(const pfc::string8 &str, const char *ch) {
@@ -574,20 +576,24 @@ namespace listview_helper {
 		else return (unsigned)ret;
 	}
 
-	unsigned fr_insert_item(HWND p_listview, unsigned p_index, bool is_release_tracker, const char* p_name, LPARAM p_param)
+	unsigned insert_lvItem_tracer(HWND p_listview, unsigned p_index,
+		bool is_release_tracker, const char* p_name, LPARAM p_param, bool offline)
 	{
 		if (p_index == ~0) p_index = ListView_GetItemCount(p_listview);
 		LVITEM item = {};
 		pfc::stringcvt::string_os_from_utf8 os_string_temp(p_name);
-		item.mask = LVIF_TEXT | LVIF_PARAM;
+		item.mask = LVIF_TEXT | LVIF_PARAM | LVIF_IMAGE;
 		item.iItem = p_index;
 		item.lParam = p_param;
+		item.iImage = offline ? IMAGELIST_OFFLINE_CACHE_NDX : 0;
 		item.pszText = const_cast<TCHAR*>(os_string_temp.get_ptr());
 
 		if (is_release_tracker) {
 			item.mask |= LVIF_STATE;
-			item.stateMask = LVIS_OVERLAYMASK;
-			item.state = INDEXTOOVERLAYMASK(8);
+			//item.stateMask = LVIS_OVERLAYMASK;
+			//item.state = INDEXTOOVERLAYMASK(8);
+			//item.state =  LVIS_GLOW;
+			//item.stateMask = LVIS_GLOW;
 		}
 
 		LRESULT ret = SendMessage(p_listview, LVM_INSERTITEM, 0, (LPARAM)&item);

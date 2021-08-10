@@ -510,7 +510,9 @@ void download_art_paths_task::safe_run(threaded_process_status& p_status, abort_
 void download_art_paths_task::on_success(HWND p_wnd) {
 
 	std::shared_ptr<std::vector<std::pair<pfc::string8, bit_array_bittable>>> vpaths = std::make_shared<std::vector<std::pair<pfc::string8, bit_array_bittable>>>(m_vres);
-	m_dialog->process_download_art_paths_done(vpaths/*srv*/, m_album_art_ids);
+
+	if (IsWindow(m_dialog->m_hWnd))
+		m_dialog->process_download_art_paths_done(m_release_id, vpaths/*srv*/, m_album_art_ids);
 }
 
 

@@ -191,10 +191,16 @@ void CTrackMatchingDialog::process_file_artwork_preview_done(size_t img_ndx, boo
 	ListView_RedrawItems(lvlist, img_ndx, img_ndx);
 }
 
-void CTrackMatchingDialog::process_download_art_paths_done(
+void CTrackMatchingDialog::process_download_art_paths_done(pfc::string8 callback_release_id,
 	std::shared_ptr<std::vector<std::pair<pfc::string8, bit_array_bittable>>> vres,
 	pfc::array_t<GUID> my_album_art_ids) {
+	
+	if (m_tag_writer->release->id != callback_release_id || GetMode() != lsmode::art) {
+		return;
+	}
+
 	bit_array_bittable saved_mask(my_album_art_ids.get_count());
+	
 	for (auto done_walk : *vres) {
 		bit_array_bittable saved_mask_walk = done_walk.second;
 		size_t true_pos = saved_mask_walk.find_first(true, 0, saved_mask_walk.size());
@@ -203,7 +209,7 @@ void CTrackMatchingDialog::process_download_art_paths_done(
 			true_pos = saved_mask_walk.find_first(true, true_pos + 1, saved_mask_walk.size());
 		}
 	}
-	
+
 	bit_array_bittable refresh_mask(album_art_ids::num_types());
 	bit_array_bittable refresh_mask_types(album_art_ids::num_types());
 

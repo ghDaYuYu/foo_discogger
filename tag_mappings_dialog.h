@@ -30,6 +30,7 @@ private:
 	void insert_tag(int pos, const tag_mapping_entry *entry);
 	void update_list_width(bool initialize=false);
 	void update_tag(int pos, const tag_mapping_entry *entry);
+	void update_freezer(bool enable_write, bool enable_update);
 	void show_context_menu(CPoint &pt, int selection);
 
 	void applymappings();
@@ -126,7 +127,6 @@ public:
 	bool get_mapping_changed();
 	void on_mapping_changed(bool changed);
 
-
 	MY_BEGIN_MSG_MAP(CNewTagMappingsDialog)
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
 		COMMAND_ID_HANDLER(IDOK, OnOK)
@@ -197,13 +197,11 @@ public:
 	LRESULT OnListClick(LPNMHDR lParam);
 	LRESULT OnListDoubleClick(LPNMHDR lParam);
 	LRESULT OnListKeyDown(LPNMHDR lParam);
-	LRESULT OnColumnResized(LPNMHDR lParam);
 	LRESULT OnEdit(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	LRESULT OnAddNew(UINT, WPARAM, LPARAM);
 	LRESULT OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	LRESULT OnCustomDraw(int idCtrl, LPNMHDR pnmh, BOOL& bHandled);
-
+	
 	void refresh_item(int pos);
-
 	void enable(bool v) override {}
 };

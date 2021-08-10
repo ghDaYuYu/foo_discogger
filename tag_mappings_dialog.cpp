@@ -36,7 +36,7 @@ inline bool CNewTagMappingsDialog::build_current_cfg() {
 	bool bres = false;
 
 	//check global settings
-	bres = bres | get_mapping_changed();
+	bres |= get_mapping_changed();
 
 	CRect rcDlg;
 	GetClientRect(&rcDlg);
@@ -45,11 +45,10 @@ inline bool CNewTagMappingsDialog::build_current_cfg() {
 	int dlgheight = rcDlg.Height();
 
 	//dlg size
-
 	if (dlgwidth != conf.edit_tags_dialog_width || dlgheight != conf.edit_tags_dialog_height) {
 		conf.edit_tags_dialog_width = dlgwidth;
 		conf.edit_tags_dialog_height = dlgheight;
-		bres = bres || true;
+		bres |= true;
 	}
 
 	//columns size
@@ -65,7 +64,7 @@ inline bool CNewTagMappingsDialog::build_current_cfg() {
 		conf.edit_tags_dialog_col2_width = width2;
 		conf.edit_tags_dialog_col3_width = width3;
 
-		bres = bres || true;
+		bres |= true;
 	}
 
 	//highlight keyword
@@ -73,7 +72,7 @@ inline bool CNewTagMappingsDialog::build_current_cfg() {
 	uGetDlgItemText(m_hWnd, IDC_EDIT_TAG_MATCH_HL, hl_word);
 	if (stricmp_utf8(hl_word, conf.edit_tags_dlg_hl_keyword)) {
 		conf.edit_tags_dlg_hl_keyword = hl_word;
-		bres = bres || true;
+		bres |= true;
 	}
 		
 	return bres;
@@ -122,11 +121,11 @@ LRESULT CNewTagMappingsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LP
 
 	help_link.SubclassWindow(GetDlgItem(IDC_SYNTAX_HELP));
 	pfc::string8 url(core_api::get_profile_path());
-	url << "\\user-components\\foo_discogs\\foo_discogs_help.html";
+	url << "\\user-components\\foo_discogger\\foo_discogs_help.html";
 	pfc::stringcvt::string_wide_from_utf8 wtext(url.get_ptr());
 	help_link.SetHyperLink((LPCTSTR)const_cast<wchar_t*>(wtext.get_ptr()));
 
-	::SetFocus(GetDlgItem(IDOK));
+	//::SetFocus(GetDlgItem(IDC_OK));
 
 	insert_tag_mappings();
 
@@ -453,8 +452,46 @@ LRESULT CNewTagMappingsDialog::OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lP
 	return FALSE;
 }
 
+void CNewTagMappingsDialog::update_freezer(bool enable_write, bool enable_update) {
+
+	for (size_t walk = 0; walk < tag_mappings->get_count(); walk++) {
+		tag_mapping_entry tmp_entry;
+		tag_mappings->get_item_ex(tmp_entry, walk);
+		bool bupdate = false;
+		if (STR_EQUAL(TAG_RELEASE_ID, tmp_entry.tag_name.get_ptr())) {
+			tmp_entry.enable_write = enable_write;
+			tmp_entry.enable_update = enable_update;
+			bupdate = true;
+		}
+		else if (STR_EQUAL(TAG_MASTER_RELEASE_ID, tmp_entry.tag_name.get_ptr())) {
+			tmp_entry.enable_write = enable_write;
+			tmp_entry.enable_update = enable_update;
+			bupdate = true;
+		}
+		else if (STR_EQUAL(TAG_ARTIST_ID, tmp_entry.tag_name.get_ptr())) {
+			tmp_entry.enable_write = enable_write;
+			tmp_entry.enable_update = enable_update;
+			bupdate = true;
+		}
+		else if (STR_EQUAL(TAG_LABEL_ID, tmp_entry.tag_name.get_ptr())) {
+			tmp_entry.enable_write = enable_write;
+			tmp_entry.enable_update = enable_update;
+			bupdate = true;
+		}
+
+		LVFINDINFO plvfi = { 0 };
+		plvfi.flags = LVFI_STRING;
+		pfc::stringcvt::string_wide_from_utf8 conv(tmp_entry.tag_name.get_ptr());
+		plvfi.psz = conv.get_ptr();
+		int item_pos = ListView_FindItem(tag_list, 0, &plvfi);
+		if (bupdate && item_pos > -1) update_tag(item_pos, &tmp_entry);
+	}
+}
+
 void CNewTagMappingsDialog::show_context_menu(CPoint &pt, int selection) {
 	try {
+		bool bshift = (GetKeyState(VK_SHIFT) & 0x8000) == 0x8000;
+
 		CMenu menu;
 		WIN32_OP(menu.CreatePopupMenu());
 		enum
@@ -473,14 +510,14 @@ void CNewTagMappingsDialog::show_context_menu(CPoint &pt, int selection) {
 			pfc::string8 default_value = get_default_tag(entry.tag_name);
 
 			menu.AppendMenu(MF_STRING | (entry.enable_write && !entry.enable_update ? MF_CHECKED : 0) |
-				(entry.freeze_write ? MF_DISABLED : 0), ID_WRITE, TEXT("&Write\tW"));
+				(entry.freeze_write && !bshift ? MF_DISABLED : 0), ID_WRITE, TEXT("&Write\tW"));
 			menu.AppendMenu(MF_STRING | (!entry.enable_write && entry.enable_update ? MF_CHECKED : 0) |
-				(entry.freeze_update ? MF_DISABLED : 0), ID_UPDATE, TEXT("&Update\tU"));
+				(entry.freeze_update && !bshift ? MF_DISABLED : 0), ID_UPDATE, TEXT("&Update\tU"));
 			menu.AppendMenu(MF_STRING | (entry.enable_write && entry.enable_update ? MF_CHECKED : 0) |
-				(entry.freeze_update && entry.freeze_write ? MF_DISABLED : 0),
+				(entry.freeze_update && entry.freeze_write && !bshift ? MF_DISABLED : 0),
 				ID_UPDATE_AND_WRITE, TEXT("Write+Upd&ate\tA"));
 			menu.AppendMenu(MF_STRING | (!entry.enable_write && !entry.enable_update ? MF_CHECKED : 0) |
-				(entry.freeze_update && entry.freeze_write ? MF_DISABLED : 0),
+				(entry.freeze_update && entry.freeze_write && !bshift ? MF_DISABLED : 0),
 				ID_DISABLE, TEXT("&Disable\tD"));
 			if (default_value.get_length()) {
 				menu.AppendMenu(MF_SEPARATOR);
@@ -500,25 +537,45 @@ void CNewTagMappingsDialog::show_context_menu(CPoint &pt, int selection) {
 			cmd = menu.TrackPopupMenu(TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, pt.x, pt.y, receiver);
 
 			switch (cmd) {
-				case ID_WRITE:
-					entry.enable_write = true;
-					entry.enable_update = false;
-					update_tag(selection, &entry);
+				case ID_WRITE:			
+					if (STR_EQUAL(TAG_RELEASE_ID, entry.tag_name)) {
+						update_freezer(true, false);
+					}
+					else {
+						entry.enable_write = true;
+						entry.enable_update = false;
+						update_tag(selection, &entry);
+					}
 					break;
 				case ID_UPDATE:
-					entry.enable_write = false;
-					entry.enable_update = true;
-					update_tag(selection, &entry);
+					if (STR_EQUAL(TAG_RELEASE_ID, entry.tag_name)) {
+						update_freezer(false, true);
+					}
+					else {
+						entry.enable_write = false;
+						entry.enable_update = true;
+						update_tag(selection, &entry);
+					}
 					break;
 				case ID_UPDATE_AND_WRITE:
-					entry.enable_write = true;
-					entry.enable_update = true;
-					update_tag(selection, &entry);
+					if (STR_EQUAL(TAG_RELEASE_ID, entry.tag_name)) {
+						update_freezer(true, true);
+					}
+					else {
+						entry.enable_write = true;
+						entry.enable_update = true;
+						update_tag(selection, &entry);
+					}
 					break;
 				case ID_DISABLE:
-					entry.enable_write = false;
-					entry.enable_update = false;
-					update_tag(selection, &entry);
+					if (STR_EQUAL(TAG_RELEASE_ID, entry.tag_name)) {
+						update_freezer(false, false);
+					}
+					else {
+						entry.enable_write = false;
+						entry.enable_update = false;
+						update_tag(selection, &entry);
+					}
 					break;
 				case ID_RESTORE:
 					entry.formatting_script = default_value;
@@ -564,8 +621,8 @@ LRESULT CNewTagMappingsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam , BOOL& b
 
 			if ((sub_item == 0 || sub_item == 1) && entry.freeze_tag_name) {
 				lplvcd->clrText = DISABLED_RGB;
-
 			}
+			
 			if (do_hlight || entry.freeze_tag_name)
 				return CDRF_NEWFONT;
 
@@ -619,9 +676,4 @@ LRESULT CNewTagMappingsDialog::OnEditHLText(WORD wNotifyCode, WORD wID, HWND hWn
 		}
 	}
 	return FALSE;
-}
-
-void CNewTagMappingsDialog::OnFinalMessage(HWND /*hWnd*/) {
-	modeless_dialog_manager::g_remove(m_hWnd);
-	delete this;
 }

@@ -18,12 +18,12 @@ void coord_presenters::Initialize(HWND hparent, const foo_discogs_conf* dlgconf)
 
 	m_hWnd = hparent;
 	m_conf = *dlgconf;
-	//binomials.emplace_back(m_discogs_track_presenter, m_file_track_presenter);
+
 	binomials.emplace_back(m_discogs_track_libui_presenter, m_file_track_libui_presenter);
 	binomials.emplace_back(m_discogs_art_presenter, m_file_art_presenter);
 
 	binomials_it bin_it = binomials.begin();
-	//form_mode[lsmode::tracks] = bin_it;
+
 	form_mode[lsmode::tracks_ui] = bin_it;
 	form_mode[lsmode::art] = ++bin_it;
 
@@ -189,9 +189,10 @@ void coord_presenters::ListUserCmd(HWND hwnd, lsmode mode, int cmd,
 
 	switch (cmd) {
 		case ID_REMOVE: {
+			
 			bool bcrop = cmdmod;
 			const size_t count = pres->GetDataLvSize();
-			size_t debugsize = pres->GetDataLvSize();
+			const size_t cAlbumArt = m_tag_writer->release->images.get_count();
 
 			t_size del = 0;
 			t_size nextfocus = pfc_infinite;
@@ -217,7 +218,7 @@ void coord_presenters::ListUserCmd(HWND hwnd, lsmode mode, int cmd,
 								att_save = af::art_sd;
 								att_emb = af::art_emb;
 							}
-
+							ndx_deleted = are_albums.get(i) ? ndx_deleted : ndx_deleted - cAlbumArt;
 							uart->setflag(att_save, ndx_deleted, false);
 							uart->setflag(att_emb, ndx_deleted, false);
 						}
@@ -539,7 +540,7 @@ size_t file_track_libui_presenter::GetVRow(size_t list_position, var_it_t& out) 
 //override
 void file_track_libui_presenter::define_columns() {
 
-	m_vtitles = { "Local Files", "Length" };
+	m_vtitles = { "Local File", "Length" };
 	m_conf_col_woa.clear();
 	m_conf_col_woa.push_back(m_conf.match_tracks_files_col1_width);
 	m_conf_col_woa.push_back(m_conf.match_tracks_files_col2_width);
@@ -1072,7 +1073,7 @@ void files_artwork_presenter::build_cfg_columns(foo_discogs_conf* out_conf) {
 
 }
 
-void files_artwork_presenter::update_list_width(/*HWND list,*/ bool initialize = false) {
+void files_artwork_presenter::update_list_width(bool initialize = false) {
 
 	CRect reclist;
 	::GetWindowRect(GetListView(), reclist);
@@ -1470,9 +1471,14 @@ void discogs_artwork_presenter::PopulateConfArtWork(/*uartwork uartt*/) {
 	}
 
 	const size_t count = m_vimages.size();
+	size_t album_ndx = 0;
+	size_t ndx = 0;
 	for (size_t i = 0; i < count; i++) {
 
 		bool balbum = m_vimages.at(i).first.first == (int)art_src::alb;
+		if (balbum) album_ndx = ndx = i;
+		else ndx = i - (album_ndx + 1);
+
 		af a_sa = balbum ? af::alb_sa : af::art_sa;
 		af a_sd = balbum ? af::alb_sd : af::art_sd;
 		af a_ovr = balbum ? af::alb_ovr : af::art_ovr;
@@ -1487,10 +1493,10 @@ void discogs_artwork_presenter::PopulateConfArtWork(/*uartwork uartt*/) {
 
 		bool bprimary, bsaveall, bsave, bover, bembed;
 		bprimary = isPrimary(type);
-		bsaveall = m_uart.getflag(a_sa, i);
-		bsave = /*bfirstRun ? true :*/ m_uart.getflag(a_sd, i);
-		bover = m_uart.getflag(a_ovr, i);
-		bembed = m_uart.getflag(a_emb, i);
+		bsaveall = m_uart.getflag(a_sa, ndx);
+		bsave = m_uart.getflag(a_sd, ndx);
+		bover = m_uart.getflag(a_ovr, ndx);
+		bembed = m_uart.getflag(a_emb, ndx);
 
 		if (bfirstRun) {
 			if (bsaveall) {
@@ -1498,16 +1504,16 @@ void discogs_artwork_presenter::PopulateConfArtWork(/*uartwork uartt*/) {
 			}
 			else {
 				if (!bprimary) {
-					bsave &= m_uart.getflag(a_sa, i);
+					bsave &= m_uart.getflag(a_sa, ndx);
 					bembed = false;
 				}
 			}
 			bover &= (bsave || bembed);
 		}
 
-		m_uart.setflag(a_sd, i, bsave);
-		m_uart.setflag(a_ovr, i, bover);
-		m_uart.setflag(a_emb, i, bembed);
+		m_uart.setflag(a_sd, ndx, bsave);
+		m_uart.setflag(a_ovr, ndx, bover);
+		m_uart.setflag(a_emb, ndx, bembed);
 
 		//CHANGE TO NON CALLBACK IF NO TILE VIEW IS NEEDED ( 'x' vs 'write' etc)
 
@@ -1562,9 +1568,6 @@ bool discogs_artwork_presenter::AddArtwork(size_t img_ndx, art_src artSrc, Memor
 		list_pos = img_ndx;
 	}
 	else {
-
-		//size_t list_param_ndx = artSrc == art_src::alb ? img_ndx : img_ndx + m_tag_writer->release->images.get_count();
-
 		//check for availability of this (album or artist src type) art list item
 		auto find_it = std::find_if(m_lvimages.begin(), m_lvimages.end(), [&](V const& elem) {
 			size_t discogs_img_pos = std::get<2>(elem).first;
@@ -1590,7 +1593,6 @@ bool discogs_artwork_presenter::AddArtwork(size_t img_ndx, art_src artSrc, Memor
 			set_row_height(false);
 		}
 	}
-
 	return true;
 }
 
@@ -1602,7 +1604,6 @@ art_src discogs_artwork_presenter::get_vimages_src_type_at_pos(size_t list_posit
 		std::pair<size_t, getimages_it> rowpair = std::get<2>(vv_it);
 		getimages_it src_img = rowpair.second;
 		ndx_image_t ndx_image = src_img->first;
-
 		size_t isource = ndx_image.first;
 
 		return (isource == 0 ? art_src::unknown : (art_src)isource);
@@ -1710,11 +1711,26 @@ void coord_presenters::populate_track_ui_mode() {
 		else {
 			const ReleaseDisc_ptr disc = m_tag_writer->release->discs[mapping.discogs_disc];
 			const ReleaseTrack_ptr track = disc->tracks[mapping.discogs_track];
+			
 			m_hook.set_release(&m_tag_writer->release);
 			m_hook.set_disc(&disc);
 			m_hook.set_track(&track);
 
 			if (i == 0) {
+				//warn differnt release id
+				bool bdiffid = false;
+				file_info_impl finfo;
+				metadb_handle_ptr item = m_tag_writer->finfo_manager->items[0];
+				item->get_info(finfo);
+
+				pfc::string8 local_release_id;
+
+				const char* ch_local_rel = finfo.meta_get("DISCOGS_RELEASE_ID", 0);
+				if (ch_local_rel) {
+					local_release_id = ch_local_rel;
+				}
+				bdiffid = (local_release_id.get_length() && !STR_EQUAL(m_tag_writer->release->id, local_release_id));
+
 				pfc::string8 compact_release;
 				CONF.search_master_sub_format_string->run_hook(m_location, &m_info, &m_hook/*titlehook.get()*/, compact_release, nullptr);
 				//CONF.search_release_format_string->run_hook(location, &info, &hook, compact_release, nullptr);
@@ -1724,6 +1740,7 @@ void coord_presenters::populate_track_ui_mode() {
 				
 				uSetDlgItemText(m_hWnd, IDC_STATIC_MATCH_TRACKING_REL_NAME, rel_desc);
 			}			
+			
 			pfc::string8 text;
 			CONF.release_discogs_format_string->run_hook(m_location, &m_info, &m_hook, text, nullptr);
 			pfc::string8 time;
@@ -1745,6 +1762,7 @@ void coord_presenters::populate_track_ui_mode() {
 		}
 	}
 }
+
 void coord_presenters::populate_artwork_mode(size_t select) {
 
 	binomials_it binomial = form_mode[lsmode::art];

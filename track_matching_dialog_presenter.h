@@ -203,7 +203,7 @@ public:
 	track_presenter(coord_presenters* coord, foo_discogs_conf conf) : m_ui_list(NULL), presenter(coord, conf) {
 	}
 
-	track_presenter() {}
+	track_presenter() : m_ui_list(NULL) {}
 
 	virtual void AddRow(std::any track) {}
 
@@ -304,8 +304,6 @@ protected:
 	void build_cfg_columns(foo_discogs_conf* out_conf) override;
 
 private:
-
-	CListControlOwnerData* m_ui_list;
 
 	vtracks_t m_vtracks;
 	std::vector<V> m_lvtracks;

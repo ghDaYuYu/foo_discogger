@@ -441,7 +441,7 @@ void TagWriter::generate_tags(bool use_update_tags, threaded_process_status& p_s
 					continue;
 				}
 
-				int file_index = mapping.file_index;
+				size_t file_index = mapping.file_index;
 				int disc_index = mapping.discogs_disc;
 				int trac_index = mapping.discogs_track;
 
@@ -512,15 +512,13 @@ void TagWriter::generate_tags(bool use_update_tags, threaded_process_status& p_s
 
 						result->r_approved.append_single(approved);
 						token_added = true; // approval value (true or false) added
-
 					}
 					else {
-
 						if (old_count == 1) {
+							t_size c = info.meta_get_count_by_name(entry.tag_name);
 				
 							old_value.set_value(info.meta_get(entry.tag_name, 0));
-
-						}
+                        }
 						else {
 							for (size_t i = 0; i < old_count; i++) {
 								old_value.append_item(info.meta_get(entry.tag_name, i));

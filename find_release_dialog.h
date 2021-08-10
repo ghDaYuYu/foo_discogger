@@ -16,12 +16,6 @@ class search_artist_process_callback;
 
 enum class updRelSrc { Artist, Releases, Filter, ArtistList, Undef };
 
-#define RELCOL_FINDD 0
-
-#ifdef RELCOL_FIND
-//lvlvlv
-LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam);
-
 class CFindReleaseDialog : public MyCDialogImpl<CFindReleaseDialog>,
 	public CDialogResize<CFindReleaseDialog>,
 	public CMessageFilter
@@ -226,7 +220,6 @@ public:
 	LRESULT ApplyFilter(pfc::string8 strFilter);
 	LRESULT OnSelectArtist(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnRClick(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
-	LRESULT OnListRClick(LPNMHDR lParam);
 	void OnContextColumnCfgMenu(CWindow wnd, CPoint point);
 	LRESULT OnArtistListViewItemChanged(int, LPNMHDR hdr, BOOL&);
 	LRESULT OnCheckOnlyExactMatches(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);

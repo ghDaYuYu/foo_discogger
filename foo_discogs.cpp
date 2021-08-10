@@ -21,29 +21,6 @@ using namespace std;
 foo_discogs *g_discogs = nullptr;
 DiscogsInterface *discogs_interface = nullptr;
 
-
-DECLARE_COMPONENT_VERSION(
-// component name
-"Discogs Tagger",
-// component version
-FOO_DISCOGS_VERSION,
-"A tagger using the Discogs (https://www.discogs.com) database.\n"
-"\n"
-"Original Author:  zoomorph (2.23)\n"
-"Version: "FOO_DISCOGS_VERSION" by DaYuyu\n"
-"Compiled: "__DATE__ "\n"
-"Website: https://bitbucket.org/zoomorph/foo_discogs\n"
-"Mod Website: https://github.com/ghDaYuYu/foo_discogs\n"
-"\n"
-"Thanks to Michael Pujos (aka bubbleguuum) for starting this project (up to version 1.32).\n"
-"\n"
-"This plugin uses the following open source libraries (thanks to their respective authors):\n"
-"\n"
-"jansson - JSON Parser: http://www.digip.org/jansson/\n"
-"liboauthcpp - OAuth library: https://github.com/sirikata/liboauthcpp\n"
-"\n\n"
-"This application uses Discogs' API but is not affiliated with, sponsored or endorsed by Discogs.'Discogs' is a trademark of Zink Media, LLC.");
-
 #define MIN(a,b) ((a)<(b)?(a):(b))
 
 static const char * ERROR_IMAGE_NUMBER_REQUIRED = "Cannot save multiple images with the same name. Use %IMAGE_NUMBER% when forming image names.";
@@ -53,6 +30,7 @@ class initquit_discogs : public initquit
 {
 	virtual void on_init() override {
 		console::print("Loading");
+		init_conf();
 		discogs_interface = new DiscogsInterface(); 
 		g_discogs = new foo_discogs();
 		load_dlls();
@@ -287,6 +265,7 @@ void foo_discogs::save_album_art(Release_ptr &release, metadb_handle_ptr item,
 
 	uartwork uartconf = uartwork(CONF);
 	bool bcust_save_or_embed = CONFARTWORK.ucfg_album_save_to_dir != uartconf.ucfg_album_save_to_dir;
+	bcust_save_or_embed |= CONFARTWORK.ucfg_album_ovr != uartconf.ucfg_album_ovr;
 	bcust_save_or_embed |= CONFARTWORK.ucfg_album_embed != uartconf.ucfg_album_embed;
 
 	if (!bcust_save_or_embed) {
@@ -313,11 +292,9 @@ void foo_discogs::save_album_art(Release_ptr &release, metadb_handle_ptr item,
 
 			bool cust_file = false;
 
-			if (my_album_art_ids.size() > i) {
-				GUID debug = my_album_art_ids[i];
-				//might return nullptr...
-				const char* tryget = album_art_ids::name_of(my_album_art_ids[i]);
-				file = tryget == nullptr ? "" : pfc::string8(tryget);
+			if (my_album_art_ids.size() > i + offset) {
+				const char* art_id_name = album_art_ids::name_of(my_album_art_ids[i + offset]);
+				file = art_id_name == nullptr ? "" : pfc::string8(art_id_name);
 
 				pfc::chain_list_v2_t<pfc::string8> splitfile;
 				pfc::splitStringByChar(splitfile, file.get_ptr(), ' ');
@@ -364,7 +341,6 @@ void foo_discogs::save_album_art(Release_ptr &release, metadb_handle_ptr item,
 
 		MemoryBlock buffer;
 		if (write_this) {
-
 			if (voverwrite_it[i] || !foobar2000_io::filesystem::g_exists(path, p_abort)) {
 				g_discogs->fetch_image(buffer, release->images[i], p_abort);
 				g_discogs->write_image(buffer, path, p_abort);
@@ -411,6 +387,7 @@ void foo_discogs::save_artist_art(Release_ptr &release, metadb_handle_ptr item,
 
 		uartwork uartconf = uartwork(CONF);
 		bool bcust_artist_save_or_embed = CONFARTWORK.ucfg_art_save_to_dir != uartconf.ucfg_art_save_to_dir;
+		bcust_artist_save_or_embed |= CONFARTWORK.ucfg_art_ovr != uartconf.ucfg_art_ovr;
 		bcust_artist_save_or_embed |= CONFARTWORK.ucfg_art_embed != uartconf.ucfg_art_embed;
 		//in custom mode we might not have an artist id to hook to (nor multiple artists)
 		if (bcust_artist_save_or_embed) {
@@ -499,7 +476,6 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, meta
 	}
 
 	pfc::string8 last_path = "";
-
 	size_t count = 0;
 	size_t album_offset = release->images.get_size();
 
@@ -510,6 +486,7 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, meta
 
 	uartwork uartconf = uartwork(CONF);
 	bool bcust_artist_save_or_embed = CONFARTWORK.ucfg_art_save_to_dir != uartconf.ucfg_art_save_to_dir;
+	bcust_artist_save_or_embed |= CONFARTWORK.ucfg_art_ovr != uartconf.ucfg_art_ovr;
 	bcust_artist_save_or_embed |= CONFARTWORK.ucfg_art_embed != uartconf.ucfg_art_embed;
 
 	if (!bcust_artist_save_or_embed) {
@@ -536,10 +513,9 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, meta
 			bool cust_file = false;
 
 			if (my_album_art_ids.size() > i + album_offset) {
-				GUID debug = my_album_art_ids[i + album_offset];
 
-				const char* tryget = album_art_ids::name_of(my_album_art_ids[i + album_offset]);
-				file = tryget == nullptr ? "" : pfc::string8(tryget);
+				const char* art_id_name = album_art_ids::name_of(my_album_art_ids[i + album_offset]);
+				file = art_id_name == nullptr ? "" : pfc::string8(art_id_name);
 
 				pfc::chain_list_v2_t<pfc::string8> splitfile;
 				pfc::splitStringByChar(splitfile, file.get_ptr(), ' ');
@@ -586,7 +562,7 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, meta
 		MemoryBlock buffer;
 
 		if (write_this) {
-			if (overwrite_it[i] || !foobar2000_io::filesystem::filesystem::g_exists(path, p_abort)) {
+			if (voverwrite_it[i] || !foobar2000_io::filesystem::filesystem::g_exists(path, p_abort)) {
 				g_discogs->fetch_image(buffer, artist->images[i], p_abort);
 				g_discogs->write_image(buffer, path, p_abort);
 
@@ -595,7 +571,7 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, meta
 			last_path = path;
 		}
 
-		if (/*album_art_ids[i] == album_art_ids::artist*/ /*i == 0 &&*/ vembed_it[i] /*embed_it*/) {
+		if (vembed_it[i]) {
 
 			GUID art_id;
 			if (my_album_art_ids.size() > i + album_offset) {

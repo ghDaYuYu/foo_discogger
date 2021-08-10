@@ -1443,7 +1443,8 @@ void Discogs::Artist::load_releases(threaded_process_status &p_status, abort_cal
 			//we have just read from offline, do not write
 			offline_can_write = false;
 		}
-		
+		loaded_releases_offline = !btransient;
+
 		/*if (btransient) {*/
 			const size_t count = pages.get_count();
 			for (size_t i = 0; i < count; i++) {
@@ -1452,12 +1453,12 @@ void Discogs::Artist::load_releases(threaded_process_status &p_status, abort_cal
 					try {
 						if (i == 0) {
 							//create release folder, mark as pending
-							ol::CreateReleasePath(id, pfc_infinite);
+							ol::CreateOfflinePath(id, art_src::unknown, pfc_infinite);
 							pfc::string8 markcontent = JSONString(json_object_get(pages[i]->root, "items"));
 							ol::MarkDownload(markcontent, rel_path, false);
 						}
 						//create page-n folder
-						ol::CreateReleasePath(id, i);
+						ol::CreateOfflinePath(id, art_src::unknown, i);
 						pfc::string8 page_path = ol::GetReleasePagePath(id, i, true);
 						page_path << "\\root.json";
 						discogs_interface->offline_cache_save(page_path, pages[i]->root);

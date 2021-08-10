@@ -178,7 +178,12 @@ void write_tags_task::safe_run(threaded_process_status &p_status, abort_callback
 void write_tags_task::on_success(HWND p_wnd) {
 	// TODO: combine??
 	tag_writer->finfo_manager->write_infos();
-	if (CONF.save_album_art || CONF.save_artist_art || CONF.embed_album_art || CONF.embed_artist_art) {
+
+	bool bskip_art = ((LOWORD(CONF.album_art_skip_default_cust) & 8) == 8) || ((HIWORD(CONF.album_art_skip_default_cust) & 8) == 8);
+	bool bconf_art_save = (CONF.save_album_art || CONF.save_artist_art || CONF.embed_album_art || CONF.embed_artist_art);
+	bool bcustom_art_save = !(CONFARTWORK == uartwork(CONF));
+
+	if (!bskip_art && (bconf_art_save || bcustom_art_save)) {
 		service_ptr_t<download_art_task> task =
 			new service_impl_t<download_art_task>(tag_writer->release->id, tag_writer->finfo_manager->items);
 		task->start();
@@ -265,8 +270,18 @@ void update_art_task::safe_run(threaded_process_status &p_status, abort_callback
 
 				if (release_id.get_length()) {
 					release = discogs_interface->get_release(release_id.get_ptr(), p_status, p_abort);
+					
+					art_download_attribs ada;
+					ada.write_it = save_artist_art;
+					ada.embed_it = CONF.embed_artist_art;
+					ada.overwrite_it = CONF.artist_art_overwrite;
+					ada.fetch_all_it = CONF.artist_art_fetch_all;
+					ada.to_path_only = false;
+
 					if (save_album_art) {
-						g_discogs->save_album_art(release, item, done_release_files, p_status, p_abort);
+                            discogs->save_album_art(release, item,
+							ada, pfc::array_t<GUID>(), bit_array_bittable(album_art_ids::num_types()),
+							done_release_files, p_status, p_abort);
 					}
 				}
 				else {
@@ -298,7 +313,16 @@ void update_art_task::safe_run(threaded_process_status &p_status, abort_callback
 
 					if (artist_id.get_length()) {
 						Artist_ptr artist = discogs_interface->get_artist(artist_id.get_ptr(), false, p_status, p_abort);
-						g_discogs->save_artist_art(artist, release, item, done_artist_files, p_status, p_abort);
+
+						art_download_attribs ada;
+						ada.write_it = save_artist_art;
+						ada.embed_it = CONF.embed_artist_art;
+						ada.overwrite_it = CONF.artist_art_overwrite;
+						ada.fetch_all_it = CONF.artist_art_fetch_all;
+						ada.to_path_only = false;
+
+						bit_array_bittable dummy_saved_mask(release->images.get_count() + release->artists[0]->full_artist->images.get_count());
+						g_discogs->save_artist_art(artist, release, item, ada, pfc::array_t<GUID>(), dummy_saved_mask, done_artist_files, p_status, p_abort);
 					}
 					else {
 						pfc::string8 error(formatted_release_name);
@@ -422,18 +446,18 @@ void download_art_paths_task::start() {
 void download_art_paths_task::safe_run(threaded_process_status& p_status, abort_callback& p_abort) {
 	Release_ptr release = discogs_interface->get_release(m_release_id.get_ptr(), p_status, p_abort);
 
-
 	bit_array_bittable saved_mask(m_album_art_ids.size());
-
 
 	uartwork uartconf = uartwork(CONF);
 	bool bconf_album_save_or_embed = CONF.save_album_art || CONF.embed_album_art;
 	bool bconf_artist_save_or_embed = CONF.save_artist_art || CONF.embed_artist_art;
 
 	bool bcust_album_save_or_embed = CONFARTWORK.ucfg_album_save_to_dir != uartconf.ucfg_album_save_to_dir;
+	bcust_album_save_or_embed |= CONFARTWORK.ucfg_album_ovr != uartconf.ucfg_album_ovr;
 	bcust_album_save_or_embed |= CONFARTWORK.ucfg_album_embed != uartconf.ucfg_album_embed;
 
 	bool bcust_artist_save_or_embed = CONFARTWORK.ucfg_art_save_to_dir != uartconf.ucfg_art_save_to_dir;
+	bcust_artist_save_or_embed |= CONFARTWORK.ucfg_art_ovr != uartconf.ucfg_art_ovr;
 	bcust_artist_save_or_embed |= CONFARTWORK.ucfg_art_embed != uartconf.ucfg_art_embed;
 
 	if (bconf_album_save_or_embed || bcust_album_save_or_embed) {
@@ -601,7 +625,7 @@ void find_deleted_releases_task::on_error(HWND p_wnd) {
 void find_deleted_releases_task::finish() {
 	if (deleted_items.get_count() > 0) {
 		static_api_ptr_t<playlist_manager> pm;
-		size_t playlist_id = pm->create_playlist("foo_discogs: invalid release ids", ~0, ~0);
+		size_t playlist_id = pm->create_playlist("foo_discogger: invalid release ids", ~0, ~0);
 
 		bit_array_true dummy;
 		pm->playlist_insert_items(playlist_id, 0, deleted_items, dummy);
@@ -673,7 +697,7 @@ void find_releases_not_in_collection_task::on_error(HWND p_wnd) {
 void find_releases_not_in_collection_task::finish() {
 	if (missing_items.get_count() > 0) {
 		static_api_ptr_t<playlist_manager> pm;
-		size_t playlist_id = pm->create_playlist("foo_discogs: not in collection", ~0, ~0);
+		size_t playlist_id = pm->create_playlist("foo_discogger: not in collection", ~0, ~0);
 
 		bit_array_true dummy;
 		pm->playlist_insert_items(playlist_id, 0, missing_items, dummy);
@@ -1018,11 +1042,9 @@ void process_file_artwork_preview_callback::safe_run(threaded_process_status& p_
 	p_status.set_item("Fetching local files artwork preview information...");
 
 	if (m_release) {
-
 		p_status.set_item("Fetching local files artwork preview small album art...");
 		try {
-
-	    	bool bexists = true;
+			bool bexists = true;
 			pfc::string8 directory;
 			file_info_impl info;
 			titleformat_hook_impl_multiformat hook(p_status, &m_release);
@@ -1032,16 +1054,13 @@ void process_file_artwork_preview_callback::safe_run(threaded_process_status& p_
 			if (STR_EQUAL(directory, "nullptr")) {
 				bexists = false;
 			}
-			
-			pfc::string8 path(directory);
 
+			pfc::string8 path(directory);
 			pfc::string8 file_name = m_img_ndx < album_art_ids::num_types() ? album_art_ids::query_name(m_img_ndx) : "";
 			pfc::chain_list_v2_t<pfc::string8> splitfile;
 			pfc::splitStringByChar(splitfile, file_name.get_ptr(), ' ');
 			if (splitfile.get_count()) file_name = *splitfile.first();
 			file_name << ".jpg";
-
-			//pfc::string8 file_name("front.jpg");
 
 			pfc::string8 full_path(directory);
 			full_path << "\\" << file_name;
@@ -1059,39 +1078,22 @@ void process_file_artwork_preview_callback::safe_run(threaded_process_status& p_
 			}
 			fclose(fd);
 
-			//(checksize)
-
 			struct stat stat_buf;
 			int stat_result = stat(converted, &stat_buf);
-			//return -1 or size
-			int src_length = stat_buf.st_size;
-
-			int filesize = (stat_result == -1 ? -1 : src_length);
-
+			//returns -1 or size
+			int filesize = (stat_result == -1 ? -1 : stat_buf.st_size);
 			if (filesize == -1)
 				return;
 
 			pfc::stringcvt::string_os_from_utf8 cvt_bitmap(full_path);
-
 			Gdiplus::Bitmap local_bitmap(cvt_bitmap.get_ptr(), false);
-
-			UINT w = local_bitmap.GetWidth();
-			UINT h = local_bitmap.GetHeight();
-
 			m_small_art = GenerateTmpBitmapsFromRealSize(m_release->id, m_img_ndx, full_path, m_temp_file_names);
-
 			return;
-
-			}
-			catch (foo_discogs_exception& e) {
-				add_error("Fetching local files artwork preview small album art", e, false);
-			}
 		}
-
-		//m_dialog->enable(true);
-		//m_dialog->hide();
-
-	
+		catch (foo_discogs_exception& e) {
+			add_error("Fetching local files artwork preview small album art", e, false);
+		}
+	}
 }
 
 void process_file_artwork_preview_callback::on_success(HWND p_wnd) {
@@ -1102,11 +1104,11 @@ void process_file_artwork_preview_callback::on_success(HWND p_wnd) {
 }
 
 void process_file_artwork_preview_callback::on_abort(HWND p_wnd) {
-	//m_dialog->enable(true);
+	//
 }
 
 void process_file_artwork_preview_callback::on_error(HWND p_wnd) {
-	//m_dialog->enable(true);
+	//
 }
 
 

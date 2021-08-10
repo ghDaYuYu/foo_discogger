@@ -21,8 +21,6 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #include "resource.h"
 #include "utils.h"
 
-#include "find_release_tree.h"
-
 struct cfgcol {
 	int ndx = 0;
 	int id = 0;

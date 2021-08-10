@@ -114,6 +114,7 @@ namespace Discogs
 		pfc::array_t<Release_ptr> releases;
 
 		bool loaded_releases = false;
+		bool loaded_releases_offline = false;
 
 		string_encoded_array get_id() const {
 			return id;
@@ -435,8 +436,8 @@ namespace Discogs
 		pfc::string8 discogs_indextrack_duration_raw;
 		int discogs_duration_seconds = 0;
 		int discogs_indextrack_duration_seconds = 0;
-		int track_number;
-		int disc_track_number;
+		int track_number = 0;
+		int disc_track_number = 0;
 		pfc::string8 discogs_track_number;
 		pfc::array_t<std::shared_ptr<ReleaseTrack>> hidden_tracks;
 		int discogs_hidden_duration_seconds = 0;

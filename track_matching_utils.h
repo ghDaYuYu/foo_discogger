@@ -78,7 +78,8 @@ enum {
 	ID_ART_RESET,
 	ID_ART_DETAIL,
 	ID_ART_TILE,
-	ID_ART_PREVIEW
+	ID_ART_PREVIEW,
+	ID_ART_IMAGE_VIEWER
 };
 
 typedef std::vector<GUID> uartwork_guids;

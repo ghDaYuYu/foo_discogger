@@ -1652,13 +1652,21 @@ bool CTrackMatchingDialog::track_context_menu(HWND wnd, LPARAM lParamCoords) {
 
 		//InsertMenuItem(menu, ID_SUBMENU_SELECTOR, true, &mi1);		
 		
-		if (!is_files && GetMode() == lsmode::art) {
-			
-			//attribs...
-			append_art_context_menu(wnd, &menu);
-			uAppendMenu(menu, MF_SEPARATOR, 0, 0);
-			uAppendMenu(menu, MF_STRING | (/*count_sel == 1 &&*/ GetMode() == lsmode::art ? 0 : MF_DISABLED), ID_ART_PREVIEW, "Preview\tCtrl+P");
-
+		if (GetMode() == lsmode::art) {
+			if (!is_files) {	
+				//attribs...
+				append_art_context_menu(wnd, &menu);
+				uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+				uAppendMenu(menu, MF_STRING | (/*count_sel == 1 &&*/ GetMode() == lsmode::art ? 0 : MF_DISABLED), ID_ART_PREVIEW, "Preview\tCtrl+P");
+			}
+			else {				
+				//image viewer req >= 1.6.2
+				bool b_ver_ok = core_version_info_v2::get()->test_version(1, 6, 2, 0);
+				if (b_ver_ok) {
+					uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+					uAppendMenu(menu, MF_STRING | (GetMode() == lsmode::art ? 0 : MF_DISABLED), ID_ART_IMAGE_VIEWER, "Image Viewer\tDouble Click");
+				}
+			}
 		}
 
 		//uAppendMenu(menu, MF_STRING | (citems ? 0 : MF_DISABLED), ID_ART_RESET, "Reset");
@@ -1807,6 +1815,21 @@ bool CTrackMatchingDialog::switch_context_menu(HWND wnd, POINT point, bool is_fi
 		}
 		return true;
 	}
+	case ID_ART_IMAGE_VIEWER: {
+		//image viewer req >= 1.6.2
+		bool b_ver_ok = core_version_info_v2::get()->test_version(1, 6, 2, 0);
+		if (b_ver_ok) {
+			size_t first_sel = selmask.find_first(true, 0, selmask.size());
+			getimages_file_it out_art_file_it;
+			m_coord.GetFileArtAtLvPos(first_sel, out_art_file_it);
+			ndx_image_file_t ndx_img = out_art_file_it->first;
+			service_ptr_t<fb2k::imageViewer> img_viewer = fb2k::imageViewer::get();
+			img_viewer->load_and_show(m_hWnd,
+				m_tag_writer->finfo_manager->items,
+				ndx_img.second, 0);
+		}
+		break;
+	}
 	// artwork
 	case ID_ART_OVR:
 		att_album = af::alb_ovr;
@@ -1942,6 +1965,23 @@ LRESULT CTrackMatchingDialog::OnListRClick(LPNMHDR lParam) {
 	NMITEMACTIVATE* info = reinterpret_cast<NMITEMACTIVATE*>(lParam);
 	POINT coords; GetCursorPos(&coords);
 	track_context_menu(wnd, MAKELPARAM(coords.x, coords.y));
+	return FALSE;
+}
+
+LRESULT CTrackMatchingDialog::OnListDBLClick(LPNMHDR lParam) {
+	HWND wnd = ((LPNMHDR)lParam)->hwndFrom;
+	NMITEMACTIVATE* info = reinterpret_cast<NMITEMACTIVATE*>(lParam);
+	POINT coords; GetCursorPos(&coords);
+
+	int citems = ListView_GetItemCount(wnd);
+	bit_array_bittable selmask(citems);
+	size_t n = ListView_GetFirstSelection(wnd) == -1 ? pfc_infinite : ListView_GetFirstSelection(wnd);
+	selmask.set(info->iItem, true);
+
+	bool is_art_files = wnd == uGetDlgItem(IDC_FILE_LIST);
+	if (is_art_files) {
+		switch_context_menu(m_hWnd, coords, true, ID_ART_IMAGE_VIEWER, selmask, nullptr);
+	}
 	return FALSE;
 }
 

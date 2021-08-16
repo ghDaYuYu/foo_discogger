@@ -181,6 +181,7 @@ public:
 		MESSAGE_HANDLER(WM_RBUTTONUP, OnRButtonUp)
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
 		NOTIFY_HANDLER_EX(IDC_FILE_LIST, NM_RCLICK, OnListRClick)
+		NOTIFY_HANDLER_EX(IDC_FILE_LIST, NM_DBLCLK, OnListDBLClick)
 		NOTIFY_HANDLER_EX(IDC_DISCOGS_TRACK_LIST, NM_RCLICK, OnListRClick)
 		NOTIFY_HANDLER_EX(IDC_UI_LIST_DISCOGS, NM_RCLICK, OnListRClick)
 		NOTIFY_HANDLER_EX(IDC_UI_LIST_FILES, NM_RCLICK, OnListRClick)
@@ -305,9 +306,10 @@ public:
 	LRESULT DiscogArtGetDispInfo(LPNMHDR lParam);
 	LRESULT OnListKeyDown(LPNMHDR lParam);
 	LRESULT OnListRClick(LPNMHDR lParam);
-	LRESULT OnRButtonUp(UINT, WPARAM, LPARAM, BOOL&);
+	LRESULT OnListDBLClick(LPNMHDR lParam);
+	LRESULT OnRButtonUp(UINT ctrl_id, WPARAM, LPARAM lParam, BOOL&);
 	LRESULT list_key_down(HWND wnd, LPNMHDR lParam);
-	
+
 	bool initialize_next_tag_writer();
 	void match_message_update(pfc::string8 local_msg = "");
 	bool get_next_tag_writer();

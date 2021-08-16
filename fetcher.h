@@ -2,7 +2,7 @@
 
 #include "exception.h"
 #include "liboauthcpp\liboauthcpp.h"
-#include <ctime>
+#include <chrono>
 
 
 #define CONSUMER_KEY "<<key>>"
@@ -13,6 +13,7 @@
 
 #define ROLLING_AVG_ALPHA (0.1/5)
 
+namespace chrono = std::chrono;
 
 class network_exception : public foo_discogs_exception
 {
@@ -69,8 +70,16 @@ private:
 	pfc::string8 oauth_token;
 	pfc::string8 oauth_token_secret;
 	OAuth::Token *request_token;
-	std::clock_t last_fetch;
-	double fetch_wait_rolling_avg;
+
+	bool m_throttling;
+	chrono::steady_clock::time_point m_last_fetch;
+	double m_fetch_wait_rolling_avg;
+	size_t m_ratelimit_max;
+	size_t m_ratelimit_remaining;
+	size_t m_ratelimit_threshold;
+	bool m_ratelimit_cruise;
+	double m_throttle_delta;
+
 	http_client::ptr client;
 
 public:
@@ -79,8 +88,15 @@ public:
 		oauth = nullptr;
 		access_token = nullptr;
 		request_token = nullptr;
-		last_fetch = std::clock();
-		fetch_wait_rolling_avg = 2;
+
+		m_throttling = true;
+		m_last_fetch = chrono::steady_clock::now();
+		m_fetch_wait_rolling_avg = 1;
+		m_ratelimit_max = 60;
+		m_ratelimit_threshold = 30;
+		m_ratelimit_remaining = 60;
+		m_ratelimit_cruise = false;
+		m_throttle_delta = 0.0;
 		
 		int n = 0;
 		// No clue what this does
@@ -127,6 +143,7 @@ public:
 	void update_oauth(const pfc::string8 &token, const pfc::string8 &token_secret);
 	void test_oauth(const pfc::string8 &token, const pfc::string8 &token_secret, abort_callback &p_abort);
 	pfc::string8 oauth_sign_url(const pfc::string8 &url, const pfc::string8 &params);
+	pfc::string8 oauth_sign_url_header(const pfc::string8& url, const pfc::string8& params);
 	pfc::string8 get_oauth_authorize_url(abort_callback &p_abort);
 	OAuth::Token * generate_oauth(pfc::string8 &code, abort_callback &p_abort);
 

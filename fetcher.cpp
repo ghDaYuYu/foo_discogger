@@ -4,9 +4,57 @@
 #include "exception.h"
 #include "utils.h"
 
-
 char USER_AGENT[] = "User-Agent: <<user agent>>";
 
+const double RL_AVG_THRESHOLD = 0.5;
+const size_t RL_REMAINING_THRESHOLD = 30;
+
+#include <iomanip>
+#include <optional>
+#include <ostream>
+#include <iostream>
+
+//https://stackoverflow.com/questions/22590821/convert-stdduration-to-human-readable-time
+std::ostream& operator<<(std::ostream& os, std::chrono::nanoseconds ns)
+{
+	using namespace std::chrono;
+	using days = duration<int, std::ratio<86400>>;
+	auto d = duration_cast<days>(ns);
+	ns -= d;
+	auto h = duration_cast<hours>(ns);
+	ns -= h;
+	auto m = duration_cast<minutes>(ns);
+	ns -= m;
+	auto s = duration_cast<seconds>(ns);
+	ns -= s;
+
+	//modded type and cast
+	std::optional<t_uint32> fs_count;
+	switch (os.precision()) {
+	case 9: fs_count = (t_uint32)ns.count();
+		break;
+	case 6: fs_count = (t_uint32)duration_cast<microseconds>(ns).count();
+		break;
+	case 3: fs_count = (t_uint32)duration_cast<milliseconds>(ns).count();
+		break;
+	}
+
+	char fill = os.fill('0');
+	if (d.count())
+		os << d.count() << "d ";
+	if (d.count() || h.count())
+		os << std::setw(2) << h.count() << ":";
+	if (d.count() || h.count() || m.count())
+		os << std::setw(d.count() || h.count() ? 2 : 1) << m.count() << ":";
+	os << std::setw(d.count() || h.count() || m.count() ? 2 : 1) << s.count();
+	if (fs_count.has_value())
+		os << "." << std::setw(os.precision()) << fs_count.value();
+	if (!d.count() && !h.count() && !m.count())
+		os << "s";
+
+	os.fill(fill);
+	return os;
+}
 
 void Fetcher::fetch_html(const pfc::string8 &url, const pfc::string8 &params, pfc::string8 &html, abort_callback &p_abort, bool use_oauth) {
 	pfc::array_t<t_uint8> buffer;
@@ -15,112 +63,156 @@ void Fetcher::fetch_html(const pfc::string8 &url, const pfc::string8 &params, pf
 }
 
 void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc::array_t<t_uint8> & out, abort_callback &p_abort, bool use_oauth, const pfc::string8 &content_type) {
-	pfc::string8 req_url = "";
 
-	bool use_api = true;
-	if (use_oauth && url.find_first("api") == pfc::infinite_size) {
-		log_msg("Disabling OAuth for URL");
-		use_oauth = false;
-		use_api = false;
-	}
+	pfc::string8 msg_average;
+	pfc::string8 status;
+	pfc::string8 request_url = "";
+	pfc::string8 clean_url(url);
 
-	if (use_oauth) {
-		req_url << oauth_sign_url(url, params);
-	}
-	else if (params.get_length()) {
-		req_url << url << "?" << params;
-	}
-	else {
-		req_url << url;
-	}
+	bool isImageUrl = url.find_first("img.discogs.com") != ~0;
+	if (params.get_length()) clean_url << "?" << params;
+	bool use_api = url.find_first("api") != ~0;
+	use_oauth &= use_api;
 
-	log_msg(req_url);
+	//log: url and oauth status
+	log_msg(clean_url);
+	log_msg(use_oauth ? "Url OAuth enabled" : "Url OAuth disabled");
 
-	if (use_api) {
-		//std::clock_t fetch_wait = (std::clock_t)((double)(clock() - last_fetch + 1))/CLOCKS_PER_SEC;
-		//fetch_wait_rolling_avg = (ROLLING_AVG_ALPHA * fetch_wait) + (1.0 - ROLLING_AVG_ALPHA) * fetch_wait_rolling_avg;
-		/*//pfc::string8 msg = "AVG: " + to_pfc::string8(fetch_wait_rolling_avg) + " WAIT: " + to_pfc::string8(fetch_wait);
-		//log_msg(msg.c_str());
-		//if (fetch_wait_rolling_avg < 1) {
-		//	log_msg("Network throttling...");
-		//	Sleep(1000 - (fetch_wait_rolling_avg * 1000));
-		//}*/
+	if (use_api && m_throttling) {
+		chrono::steady_clock::time_point time_now = chrono::steady_clock::now();	
+		chrono::duration<double> time_span = time_now - m_last_fetch;
+
+		m_fetch_wait_rolling_avg = ROLLING_AVG_ALPHA * time_span.count() + (1.0 - ROLLING_AVG_ALPHA) * m_fetch_wait_rolling_avg;
+		m_fetch_wait_rolling_avg = (std::min)(m_fetch_wait_rolling_avg, 1.0);
+
+		//record time
+		m_last_fetch = time_now;
+
+		//log: average and last delta
+		msg_average << "Avg: " << pfc::toString(m_fetch_wait_rolling_avg).get_ptr();
+		if (time_span != chrono::steady_clock::duration::zero()) {
+			msg_average << ", Lapse: ";
+			pfc::string8 msg_delta;
+			if (m_throttle_delta) {
+				std::stringstream human_read_time;
+				human_read_time.precision(2);
+				human_read_time << std::fixed << /m_throttle_delta;
+				msg_delta << " (+ " << human_read_time.str().c_str();
+				msg_delta << ")";
+			}
+
+			std::stringstream human_read_time;
+			human_read_time << std::setprecision(3) << time_span.count();
+			msg_average << pfc::string8(human_read_time.str().c_str()) << msg_delta;
+		}
+
+		if (!isImageUrl && m_throttling)
+			log_msg(msg_average);
+
+		//reset when rate remaining reaches max value again
+		m_ratelimit_cruise &= (m_ratelimit_remaining < m_ratelimit_max); //60
+		
+		//apply delta/set cruise mode
+		if (m_ratelimit_cruise ||
+			(m_fetch_wait_rolling_avg < (60/m_ratelimit_max) /*RL_AVG_THRESHOLD*/ /*(0.5)*/ && m_ratelimit_remaining <= m_ratelimit_threshold /*(30)*/)) {
+
+			m_ratelimit_cruise = true;
+
+			chrono::duration<double, std::milli> time_span_milli = time_span;
+			double sleep_base = m_ratelimit_remaining < 10 ? 5000 : m_ratelimit_remaining < 20 ? 2000 : 1000;	
+			m_throttle_delta = (std::max)(sleep_base - time_span_milli.count(), 0.0);
+			
+			DWORD dw = static_cast<DWORD>((int)m_throttle_delta);
+			Sleep(dw);
+		}
+		else {
+			m_throttle_delta = 0;
+		}
 	}
 
 	try {
 		const http_request::ptr request = client->create_request("GET");
-		//request->add_header("Accept-Encoding: gzip");
-		if (dllinflateInit2 != NULL) {
-			request->add_header("Accept-Encoding: gzip, deflate");
-		}
-		else {
-			request->add_header("Accept-Encoding: identity");
-		}
-		request->add_header(USER_AGENT);
-		pfc::string8 accept_header("Accept: ");
-		accept_header << (content_type);
-		request->add_header(accept_header);
 
-		// try to load resource 3x on error
-		int tries = 1;
-		file::ptr f;
+		//OAuth header
+		if (use_oauth) {
+			request->add_header(oauth_sign_url_header(url, params));			
+		}
+		 
+		//Accept-Encoding header
+		request->add_header(dllinflateInit2 != NULL ? "Accept-Encoding: gzip, deflate" : "Accept-Encoding: identity");
+
+		//Accept user User-Agent and header
+		request->add_header(USER_AGENT);
+		pfc::string8 accept_header;
+		accept_header << "Accept: " << content_type;
+		request->add_header(accept_header);
+	
+		int tries = 1; //3x on error loading resource
+		
+
 		while (1) {
+
 			try {
-				f = request->run_ex(req_url.get_ptr(), p_abort);
-				
+				file::ptr f;
+				f = request->run_ex(clean_url.get_ptr(), p_abort);
+
 				http_reply::ptr r;
 				f->service_query_t(r);
-
 				pfc::string8 status;
 				r->get_status(status);
 
-				pfc::string8 header;
-				pfc::string8 xratelimits(" RateLimit: ");
-				if (r->get_http_header("X-Discogs-Ratelimit", header)) {
-					xratelimits << header;
-				}
-				if (r->get_http_header("X-Discogs-Ratelimit-Used", header)) {
-					xratelimits << " - Used: " << header;
-				}
-				if (r->get_http_header("X-Discogs-Ratelimit-Remaining", header)) {
-					xratelimits << " - Remaining: " << header;
-				}
-				if (xratelimits.length())
-					log_msg(xratelimits);
+				pfc::string8 rate_header_buffer;
+				pfc::string8 msg_ratelimits;
 
-				if (pfc::string8(status).find_first("200") == pfc::infinite_size) {
-					pfc::string8 msg("HTTP error status: ");
-					msg << status;
-					log_msg(msg);
+				if (r->get_http_header("X-Discogs-Ratelimit", rate_header_buffer)) {
+					m_ratelimit_max = atoi(rate_header_buffer); //currently 60, discoggs may update these rate limits at any time
+					m_ratelimit_threshold = m_ratelimit_max - RL_REMAINING_THRESHOLD; //max - 30
+					msg_ratelimits << "RateLimit: " << rate_header_buffer;
+				}
+				if (r->get_http_header("X-Discogs-Ratelimit-Used", rate_header_buffer)) {
+					msg_ratelimits << " - Used: " << rate_header_buffer;
+				}
+				if (r->get_http_header("X-Discogs-Ratelimit-Remaining", rate_header_buffer)) {
+					m_ratelimit_remaining = atoi(rate_header_buffer);
+					msg_ratelimits << " - Remaining: " << rate_header_buffer;
+				}
 
-					// TODO: handle rate limiting
-					pfc::string8 header;
-					/*if (r->get_http_header("X-RateLimit-Type", header)) {
-					log_msg(pfc::string8("  X-RateLimit-Type: ") << header);
+				//log: throttle and rate limits
+				if (m_throttling) {
+					if (m_throttle_delta) {
+						std::stringstream human_read_time;
+						human_read_time << std::setprecision(3) << m_throttle_delta;
+						msg_ratelimits << " - Throttle engaged (" << pfc::string8(human_read_time.str().c_str()) << u8" \u03BCs)";
 					}
-					if (r->get_http_header("X-RateLimit-Limit", header)) {
-					log_msg(pfc::string8("  X-RateLimit-Limit: ") << header);
+					else {
+						msg_ratelimits << (isImageUrl ? "Not throttling images (img.discogs.com)" : " (Throttle diseng.)");
 					}
-					if (r->get_http_header("X-RateLimit-Remaining", header)) {
-					log_msg(pfc::string8("  X-RateLimit-Remaining: ") << header);
-					}
-					if (r->get_http_header("X-RateLimit-Reset", header)) {
-					log_msg(pfc::string8("  X-RateLimit-Reset: ") << header);
-					}*/
+				}
 
-					int code = std::stoi(substr(status, 9, 3).get_ptr());
-					switch (code) {
+				if (msg_ratelimits.length())
+					log_msg(msg_ratelimits);
+				else {
+					m_ratelimit_remaining = m_ratelimit_threshold; //if rate info is empty reset to threshold
+				}
+
+				// check status
+				if (pfc::string8(status).find_first("200") == ~0) {
+					pfc::string8 msg_status;
+					msg_status << "HTTP error status: " << status;
+					//log: status					
+					log_msg(msg_status);
+
+					int error_code = std::stoi(substr(status, 9, 3).get_ptr());
+					
+					switch (error_code) {
 					case 404:
 						throw http_404_exception();
-
-					case 401:
-						throw http_401_exception();
-
-					case 429:
+					case 401: //unauthorized				
+						throw http_401_exception();				
+					case 429: //too many requests (need to wait for remaining 60 or slow to 1 req/sec)						
 						throw http_429_exception();
-
 					default:
-						throw http_exception(code);
+						throw http_exception(error_code);
 					}
 				}
 
@@ -131,7 +223,7 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 					throw network_exception("Error reading network response.");
 				}
 
-				/* Weird stuff here.... Read 1024 bytes at a time.... */
+				// read stream...
 				out.set_size(1024);
 				size_t bufferUsed = 0;
 				for (;;) {
@@ -145,10 +237,6 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 					out.set_size(out.get_size() << 1);
 				}
 				out.set_size(bufferUsed);
-
-				if (use_api) {
-					//last_fetch = std::clock();
-				}
 
 				// see if we must unzip buffer
 				if (out.get_size() >= 6 && out[0] == 0x1f && out[1] == 0x8b) {
@@ -165,21 +253,24 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 				break;
 			}
 			catch (http_429_exception) {
-				if (tries > 20) {
-					throw;
-				}
-				pfc::string8 msg;
-				msg << "Rate-limited. Retrying: " << tries;
-				log_msg(msg);
+
+				if (tries > 20) throw;
+
+				pfc::string8 error_msg;
+				error_msg << "Rate-limited. Retrying: " << tries;
+				log_msg(error_msg);
 				Sleep(2000 * tries);
 			}
 			catch (foobar2000_io::exception_io &e) {
-				if (tries > 5) {
-					throw;
-				}
-				pfc::string8 error;
-				error << "Networking Error: " << pfc::string8(e.what()) << " - Retrying: " << tries;
-				log_msg(error);
+				
+				if (tries > 5) throw;
+
+				pfc::string8 error_msg;
+				error_msg << "Network error";
+				if (!error_msg.has_prefix(pfc::string8(e.what())))
+					error_msg << ": " << e.what();
+				error_msg << ". Retrying: " << tries;
+				log_msg(error_msg);
 				Sleep(2000 * (tries > 1 ? 2 : 1));
 			}
 			tries++;
@@ -189,27 +280,31 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 		throw;
 	}
 	catch (foo_discogs_exception &e) {
-		e << "(url: " << url << ")";
-		pfc::string8 msg("Exception handling: ");
-		msg << req_url;
-		log_msg(msg);
+		e << "(url: " << clean_url << ")";
+		pfc::string8 error_msg;
+		error_msg << "Exception handling: " << clean_url;
+		log_msg(error_msg);
 		throw;
 	}
-	catch (foobar2000_io::exception_io &e) {
-		network_exception ex("Network exception");
-		ex << e.what() << " (url: " << url << ")";
-		pfc::string8 msg("Network exception handling: ");
-		msg << req_url;
-		log_msg(msg);
+	catch (const foobar2000_io::exception_io &e) {
+		//retries > max retries
+		network_exception ex("Network exception: ");
+		ex << e.what() << " (url: " << clean_url << ")";
+		pfc::string8 error_msg;
+		error_msg << "Network exception fetching url: " << clean_url;
+		log_msg(error_msg);
 		throw ex;
+	}
+	catch (const std::exception& e) {
+		log_msg(e.what());
 	}
 	catch (...) {
 		out.set_size(0);
-		network_exception ex("Unknown network exception.");
-		ex << "(url: " << url << ")";
-		pfc::string8 msg("Unknown network exception handling: ");
-		msg << req_url;
-		log_msg(msg);
+		network_exception ex("Unknown network exception: ");
+		ex << "(url: " << clean_url << ")";
+		pfc::string8 error_msg;
+		error_msg << "Unknown network exception handling: " << clean_url;
+		log_msg(error_msg);
 		throw ex;
 	}
 }
@@ -284,6 +379,20 @@ pfc::string8 Fetcher::oauth_sign_url(const pfc::string8 &url, const pfc::string8
 	pfc::string8 ret(url);
 	ret << "?" << oauth_params;
 	return ret;
+}
+
+pfc::string8 Fetcher::oauth_sign_url_header(const pfc::string8& url, const pfc::string8& params) {
+	pfc::string8 oauth_header;
+	if (params.get_length()) {
+		pfc::string8 tmp = url;
+		tmp << "?" << params;	
+		oauth_header = oauth->getFormattedHttpHeader(OAuth::Http::Get, tmp.get_ptr()).c_str();
+	}
+	else {
+		oauth_header = oauth->getFormattedHttpHeader(OAuth::Http::Get, url.get_ptr()).c_str();
+	}
+
+	return oauth_header;
 }
 
 pfc::string8 Fetcher::get_oauth_authorize_url(abort_callback &p_abort) {

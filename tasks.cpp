@@ -73,6 +73,7 @@ void generate_tags_task::on_success(HWND p_wnd) {
 	}
 	else if (show_preview_dialog) {
 		track_matching_dialog->enable(true);
+		fb2k::newDialog <CPreviewTagsDialog>(core_api::get_main_window(), tag_writer, use_update_tags);
 		track_matching_dialog->hide();
 		fb2k::newDialog <CPreviewTagsDialog>(core_api::get_main_window(), tag_writer, use_update_tags);
 	}

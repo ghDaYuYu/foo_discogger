@@ -104,6 +104,12 @@ LRESULT CNewTagMappingsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LP
 	icex.dwICC = ICC_LISTVIEW_CLASSES;
 	InitCommonControlsEx(&icex);
 
+	HWND tag_split_default = GetDlgItem(IDC_TAG_FILE_DEF);
+	BUTTON_SPLITINFO MyInfo;
+	MyInfo.mask = BCSIF_STYLE;
+	MyInfo.uSplitStyle = BCSS_STRETCH;
+	Button_SetSplitInfo(tag_split_default, &MyInfo);
+
 	tag_list = GetDlgItem(IDC_TAG_LIST);
 	remove_button = GetDlgItem(IDC_REMOVE_TAG); 
 
@@ -135,6 +141,8 @@ LRESULT CNewTagMappingsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LP
 	show();
 
 	on_mapping_changed(get_mapping_changed());
+
+	uSendMessage(m_hWnd, WM_NEXTDLGCTL, (WPARAM)(HWND)GetDlgItem(IDOK), TRUE);
 
 	return FALSE;
 }
@@ -233,13 +241,17 @@ LRESULT CNewTagMappingsDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 }
 
 LRESULT CNewTagMappingsDialog::OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	if (tag_mappings != nullptr) {
-		delete tag_mappings;
-		tag_mappings = nullptr;
+	pfc::string8 msg;
+	msg << "Confirm apply defaults?";
+	if (uMessageBox(m_hWnd, msg, "Default Tag Mappings", MB_OKCANCEL | MB_ICONINFORMATION) == IDOK) {
+		if (tag_mappings != nullptr) {
+			delete tag_mappings;
+			tag_mappings = nullptr;
+		}
+		tag_mappings = copy_default_tag_mappings();
+		insert_tag_mappings();
+		on_mapping_changed(get_mapping_changed());
 	}
-	tag_mappings = copy_default_tag_mappings();
-	insert_tag_mappings();
-	on_mapping_changed(get_mapping_changed());
 	return FALSE;
 }
 
@@ -420,6 +432,36 @@ LRESULT CNewTagMappingsDialog::OnListKeyDown(LPNMHDR lParam) {
 		default:
 			return FALSE;
 	}
+}
+
+LRESULT CNewTagMappingsDialog::OnSplitDropDown(LPNMHDR lParam) {
+	NMBCDROPDOWN* pDropDown = (NMBCDROPDOWN*)lParam;
+	if (pDropDown->hdr.hwndFrom == GetDlgItem(IDC_TAG_FILE_DEF))
+	{
+		POINT pt;
+		pt.x = pDropDown->rcButton.left;
+		pt.y = pDropDown->rcButton.bottom;
+		::ClientToScreen(pDropDown->hdr.hwndFrom, &pt);
+		enum { MENU_EXPORT = 1, MENU_IMPORT};
+
+		HMENU hSplitMenu = CreatePopupMenu();
+		AppendMenu(hSplitMenu, MF_STRING, MENU_EXPORT, L"Export...");
+		AppendMenu(hSplitMenu, MF_STRING, MENU_IMPORT, L"Import...");
+
+		int cmd = TrackPopupMenu(hSplitMenu, TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RETURNCMD, pt.x, pt.y, 0, m_hWnd, NULL);
+		DestroyMenu(hSplitMenu);
+		switch (cmd)
+		{
+		BOOL bDummy;
+		case MENU_IMPORT:
+			OnImport(0, 0, NULL, bDummy);
+			break;
+		case MENU_EXPORT:
+			OnExport(0, 0, NULL, bDummy);
+			break;
+		}
+	}
+	return TRUE;
 }
 
 LRESULT CNewTagMappingsDialog::OnEdit(UINT uMsg, WPARAM wParam, LPARAM lParam) {

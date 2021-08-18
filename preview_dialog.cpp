@@ -76,11 +76,11 @@ static void defaultCfgCols(preview_lv_def& cfg_out) {
 }
 
 inline void CPreviewTagsDialog::load_size() {
-
-	int width = conf.preview_tags_dialog_width;
-	int height = conf.preview_tags_dialog_height;
+	int width = LOWORD(conf.preview_tags_dialog_size);
+	int height = HIWORD(conf.preview_tags_dialog_size);
 	CRect rcCfg(0, 0, width, height);
-	::CenterWindow(this->m_hWnd, rcCfg, core_api::get_main_window());
+	LPARAM lparamLeftTop = conf.preview_tags_dialog_position;
+	::CenterWindow(this->m_hWnd, rcCfg, core_api::get_main_window(), lparamLeftTop);
 
 	if (conf.preview_tags_dialog_col1_width != 0) {
 		ListView_SetColumnWidth(GetDlgItem(IDC_PREVIEW_LIST), 0, conf.preview_tags_dialog_col1_width);
@@ -104,18 +104,18 @@ inline bool CPreviewTagsDialog::build_current_cfg() {
 	//check global settings
 	
 	bool local_replace_ANV = IsDlgButtonChecked(IDC_REPLACE_ANV_CHECK);
-	if (CONF.replace_ANVs!= conf.replace_ANVs &&
+	if (CONF.replace_ANVs != conf.replace_ANVs &&
 		conf.replace_ANVs != local_replace_ANV) {
 		bres |= true;
 	}
 
-	//get current ui dimensions
-	RECT rectDlg = {};
-	GetClientRect(&rectDlg);
-	int dlgcx = rectDlg.right;
-	int dlgcy = rectDlg.bottom;
-	int dlgwidth = rectDlg.right - rectDlg.left;
-	int dlgheight = rectDlg.bottom - rectDlg.top;
+	//get current dimensions
+	RECT rcDlg = {};
+	GetWindowRect(&rcDlg);
+	int dlgcx = rcDlg.right;
+	int dlgcy = rcDlg.bottom;
+	int dlgwidth = rcDlg.right - rcDlg.left;
+	int dlgheight = rcDlg.bottom - rcDlg.top;
 
 	int colwidth1 = ListView_GetColumnWidth(GetDlgItem(IDC_PREVIEW_LIST), 0);
 	int colwidth2 = ListView_GetColumnWidth(GetDlgItem(IDC_PREVIEW_LIST), 1);
@@ -132,14 +132,17 @@ inline bool CPreviewTagsDialog::build_current_cfg() {
 		conf.preview_tags_dialog_col2_width = colwidth2;
 		bres |= true;
 	}
-	//dlg size
-	if (dlgheight != conf.preview_tags_dialog_height || dlgwidth != conf.preview_tags_dialog_width) {
-		conf.preview_tags_dialog_width = dlgwidth;
-		conf.preview_tags_dialog_height = dlgheight;
-		bres |= true;
+	//dlg position
+	if (rcDlg.left != LOWORD(conf.preview_tags_dialog_position) || rcDlg.top != HIWORD(conf.preview_tags_dialog_position)) {
+		conf.preview_tags_dialog_position = MAKELPARAM(rcDlg.left, rcDlg.top);
+		bres = bres || true;
 	}
-
-	//show tm stats
+	//dlg size
+	if (dlgwidth != LOWORD(conf.preview_tags_dialog_size) || dlgheight != HIWORD(conf.preview_tags_dialog_size)) {
+		conf.preview_tags_dialog_size = MAKELPARAM(dlgwidth, dlgheight);
+		bres = bres || true;
+	}
+	//show stats
 	const bool benabled = uButton_GetCheck(m_hWnd, IDC_CHECK_PREV_DLG_SHOW_STATS);
 
 	if (benabled) {
@@ -166,7 +169,7 @@ inline bool CPreviewTagsDialog::build_current_cfg() {
 		conf.edit_tags_dlg_show_tm_stats = benabled;
 		bres |= true;
 	}
-
+	//skip artwork
 	if (CONF.album_art_skip_default_cust != conf.album_art_skip_default_cust) {
 		bres |= true;
 	}
@@ -779,10 +782,10 @@ LRESULT CPreviewTagsDialog::OnEdit(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 #define CHANGE_NOT_APPROVED_RGB	RGB(150, 100, 100)
 
 void CPreviewTagsDialog::compute_stats(tag_results_list_type tag_results) {
-	//TODO: tmp (2/2) fix empty v23 stats when Track map is on
 	reset_tag_result_stats();
 	compute_stats_track_map(tag_results);
 }
+
 void CPreviewTagsDialog::compute_stats_track_map(tag_results_list_type tag_results) {
 
 	int createdtags = 0;

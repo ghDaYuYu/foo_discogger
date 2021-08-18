@@ -44,13 +44,14 @@ bool my_threaded_process::service_query(service_ptr& p_out, const GUID& p_guid) 
 	return bres;
 };
 
+
 void CConfigurationDialog::InitTabs() {
 	tab_table.append_single(tab_entry("Searching", searching_dialog_proc, IDD_DIALOG_CONF_FIND_RELEASE_DIALOG));
 	tab_table.append_single(tab_entry("Matching", matching_dialog_proc, IDD_DIALOG_CONF_MATCHING_DIALOG));
 	tab_table.append_single(tab_entry("Tagging", tagging_dialog_proc, IDD_DIALOG_CONF_TAGGING));
 	tab_table.append_single(tab_entry("Caching", caching_dialog_proc, IDD_DIALOG_CONF_CACHING_DIALOG));
 	tab_table.append_single(tab_entry("Artwork", art_dialog_proc, IDD_DIALOG_CONF_ART));
-	tab_table.append_single(tab_entry("OAuth", oauth_dialog_proc, IDD_DIALOG_CONF_OAUTH));
+	tab_table.append_single(tab_entry("OAuth && Network ", oauth_dialog_proc, IDD_DIALOG_CONF_OAUTH));
 	//Create(p_parent);
 }
 
@@ -130,7 +131,7 @@ LRESULT CConfigurationDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 
 	help_link.SubclassWindow(GetDlgItem(IDC_SYNTAX_HELP));
 	pfc::string8 url(core_api::get_profile_path());
-	url << "\\user-components\\foo_discogs\\foo_discogs_help.html";
+	url << "\\user-components\\foo_discogger\\foo_discogs_help.html";
 	pfc::stringcvt::string_wide_from_utf8 wtext(url.get_ptr());
 	help_link.SetHyperLink((LPCTSTR)const_cast<wchar_t*>(wtext.get_ptr()));
 
@@ -209,7 +210,7 @@ LRESULT CConfigurationDialog::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hW
 }
 
 LRESULT CConfigurationDialog::OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	if (uMessageBox(m_hWnd, "Reset all foo_discogs settings to default?", "Reset",
+	if (uMessageBox(m_hWnd, "Reset component settings to default?", "Reset",
 		MB_OKCANCEL | MB_ICONQUESTION | MB_DEFBUTTON2) == IDOK) {
 		foo_discogs_conf temp;
 		temp.oauth_token = conf.oauth_token;
@@ -223,6 +224,16 @@ LRESULT CConfigurationDialog::OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*
 		init_art_dialog(g_hWndTabDialog[CONF_ART_TAB]);
 		init_oauth_dialog(g_hWndTabDialog[CONF_OATH_TAB]);
 	}
+
+	conf.find_release_dialog_size = 0;
+	conf.release_dialog_size = 0;
+	conf.edit_tags_dialog_size = 0;
+	conf.preview_tags_dialog_size = 0;
+
+	conf.find_release_dialog_position = 0;
+	conf.release_dialog_position = 0;
+	conf.edit_tags_dialog_position = 0;
+	conf.preview_tags_dialog_position = 0;
 
 	conf.match_discogs_artwork_ra_width = conf.match_discogs_artwork_ra_width;
 	conf.match_discogs_artwork_type_width = conf.match_discogs_artwork_type_width;
@@ -363,7 +374,7 @@ void CConfigurationDialog::init_oauth_dialog(HWND wnd) {
 	HWND wndIconErr = ::uGetDlgItem(g_hWndCurrentTab, IDC_STATIC_OAUTH_ICO_ERROR);
 	::ShowWindow(wndIconOk, SW_HIDE);
 	::ShowWindow(wndIconErr, SW_HIDE);
-	uSetWindowText(oauth_msg, "");
+	uSetWindowText(oauth_msg, "Click to test if OAuth is working.");
 }
 
 void CConfigurationDialog::show_oauth_msg(pfc::string8 msg, bool iserror) {

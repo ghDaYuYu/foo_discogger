@@ -16,10 +16,11 @@ void CNewTagMappingsDialog::pushcfg(bool force) {
 }
 
 inline void CNewTagMappingsDialog::load_size() {
-	int width = conf.edit_tags_dialog_width;
-	int height = conf.edit_tags_dialog_height;
+	int width = LOWORD(conf.edit_tags_dialog_size);
+	int height = HIWORD(conf.edit_tags_dialog_size);
 	CRect rcCfg(0, 0, width, height);
-	::CenterWindow(this->m_hWnd, rcCfg, core_api::get_main_window());
+	LPARAM lparamLeftTop = conf.edit_tags_dialog_position;
+	::CenterWindow(this->m_hWnd, rcCfg, core_api::get_main_window(), lparamLeftTop);
 
 	if (conf.edit_tags_dialog_col1_width != 0) {
 		ListView_SetColumnWidth(GetDlgItem(IDC_TAG_LIST), 0, conf.edit_tags_dialog_col1_width);
@@ -39,18 +40,21 @@ inline bool CNewTagMappingsDialog::build_current_cfg() {
 	bres |= get_mapping_changed();
 
 	CRect rcDlg;
-	GetClientRect(&rcDlg);
+	GetWindowRect(&rcDlg);
 
 	int dlgwidth = rcDlg.Width();
 	int dlgheight = rcDlg.Height();
 
-	//dlg size
-	if (dlgwidth != conf.edit_tags_dialog_width || dlgheight != conf.edit_tags_dialog_height) {
-		conf.edit_tags_dialog_width = dlgwidth;
-		conf.edit_tags_dialog_height = dlgheight;
-		bres |= true;
+	//dlg position
+	if (rcDlg.left != LOWORD(conf.edit_tags_dialog_position) || rcDlg.top != HIWORD(conf.edit_tags_dialog_position)) {
+		conf.edit_tags_dialog_position = MAKELPARAM(rcDlg.left, rcDlg.top);
+		bres = bres || true;
 	}
-
+	//dlg size
+	if (dlgwidth != LOWORD(conf.edit_tags_dialog_size) || dlgheight != HIWORD(conf.edit_tags_dialog_size)) {
+		conf.edit_tags_dialog_size = MAKELPARAM(dlgwidth, dlgheight);
+		bres = bres || true;
+	}
 	//columns size
 	int width1 = ListView_GetColumnWidth(GetDlgItem(IDC_TAG_LIST), 0);
 	int width2 = ListView_GetColumnWidth(GetDlgItem(IDC_TAG_LIST), 1);

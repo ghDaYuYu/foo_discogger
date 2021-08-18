@@ -92,10 +92,11 @@ void CFindReleaseDialog::reset_default_columns(bool breset) {
 }
 
 inline void CFindReleaseDialog::load_size() {
-	int width = conf.find_release_dialog_width;
-	int height = conf.find_release_dialog_height;
+	int width = LOWORD(conf.find_release_dialog_size);
+	int height = HIWORD(conf.find_release_dialog_size);
 	CRect rcCfg(0, 0, width, height);
-	::CenterWindow(this->m_hWnd, rcCfg, core_api::get_main_window());
+	LPARAM lparamLeftTop = conf.find_release_dialog_position;
+	::CenterWindow(this->m_hWnd, rcCfg, core_api::get_main_window(), lparamLeftTop);
 }
 
 void CFindReleaseDialog::pushcfg() {
@@ -120,13 +121,17 @@ inline bool CFindReleaseDialog::build_current_cfg() {
 	}
 
 	CRect rcDlg;
-	GetClientRect(&rcDlg);
+	GetWindowRect(&rcDlg);
 	int dlgwidth = rcDlg.Width();
 	int dlgheight = rcDlg.Height();
+	//dlg position
+	if (rcDlg.left != LOWORD(conf.find_release_dialog_position) || rcDlg.top != HIWORD(conf.find_release_dialog_position)) {
+		conf.find_release_dialog_position = MAKELPARAM(rcDlg.left, rcDlg.top);
+		bres = bres || true;
+	}
 	//dlg size
-	if (dlgheight != conf.find_release_dialog_height || dlgwidth != conf.find_release_dialog_width) {
-		conf.find_release_dialog_width = dlgwidth;
-		conf.find_release_dialog_height = dlgheight;
+	if (dlgwidth != LOWORD(conf.find_release_dialog_size) || dlgheight != HIWORD(conf.find_release_dialog_size)) {
+		conf.find_release_dialog_size = MAKELPARAM(dlgwidth, dlgheight);
 		bres = bres || true;
 	}
 
@@ -170,7 +175,7 @@ bool OAuthCheck(foo_discogs_conf conf) {
 		}
 		CConfigurationDialog* dlg = reinterpret_cast<CConfigurationDialog*>(g_discogs->configuration_dialog);
 		if (dlg) {
-			dlg->show_oauth_msg("OAuth is required to use the Discogs API.\n Please configure OAuth.", true);
+			dlg->show_oauth_msg("Please configure OAuth.", true);
 			::SetFocus(dlg->m_hWnd);
 		}
 		return false;

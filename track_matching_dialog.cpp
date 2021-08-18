@@ -2,6 +2,8 @@
 #include "resource.h"
 #include <gdiplus.h>
 
+#include "SDK\imageViewer.h"
+
 #include "track_matching_dialog.h"
 #include "preview_dialog.h"
 #include "tasks.h"
@@ -647,12 +649,18 @@ inline bool CTrackMatchingDialog::build_current_cfg() {
 	bool bres = false;
 	//dlg dimensions
 	CRect rcDlg;
-	GetClientRect(&rcDlg);
+	GetWindowRect(&rcDlg);
+
 	int dlgwidth = rcDlg.Width();
 	int dlgheight = rcDlg.Height();
-	if (dlgwidth != m_conf.release_dialog_width || dlgheight != m_conf.release_dialog_height) {
-		m_conf.release_dialog_width = dlgwidth;
-		m_conf.release_dialog_height = dlgheight;
+	//dlg position
+	if (rcDlg.left != LOWORD(m_conf.release_dialog_position) || rcDlg.top != HIWORD(m_conf.release_dialog_position)) {
+		m_conf.release_dialog_position = MAKELPARAM(rcDlg.left, rcDlg.top);
+		bres = bres || true;
+	}
+	//dlg size
+	if (dlgwidth != LOWORD(m_conf.release_dialog_size) || dlgheight != HIWORD(m_conf.release_dialog_size)) {
+		m_conf.release_dialog_size = MAKELPARAM(dlgwidth, dlgheight);
 		bres = bres || true;
 	}
 
@@ -689,10 +697,11 @@ inline bool CTrackMatchingDialog::build_current_cfg() {
 }
 
 inline void CTrackMatchingDialog::load_size() {
-	int width = m_conf.release_dialog_width;
-	int height = m_conf.release_dialog_height;
+	int width = LOWORD(m_conf.release_dialog_size);
+	int height = HIWORD(m_conf.release_dialog_size);
 	CRect rcCfg(0, 0, width, height);
-	::CenterWindow(this->m_hWnd, rcCfg, core_api::get_main_window());	
+	LPARAM lparamLeftTop = m_conf.release_dialog_position;
+	::CenterWindow(this->m_hWnd, rcCfg, core_api::get_main_window(), lparamLeftTop);
 }
 
 void CTrackMatchingDialog::LibUIAsOwnerData(bool OwnerToLibUi) {

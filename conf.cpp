@@ -49,6 +49,7 @@ bool new_conf::load() {
 	vspec v201 { &vec_specs, 28, 28, 14 };
 	vspec v202 { &vec_specs, 28, 29, 14 };
 	vspec v203 { &vec_specs, 28, 41, 14 };
+	vspec v204 { &vec_specs, 28, 42, 14 }; // 1.0.4
 	
 	vspec* vlast = &vec_specs.at(vec_specs.size() - 1);
 
@@ -180,23 +181,23 @@ bool new_conf::load() {
 			case CFG_UPDATE_ART_FLAGS:
 				update_art_flags = item.value;
 				break;
-			case CFG_FIND_RELEASE_DIALOG_WIDTH:
-				find_release_dialog_width = item.value;
+			case CFG_FIND_RELEASE_DIALOG_SIZE:
+				find_release_dialog_size = item.value;
 				break;
-			case CFG_FIND_RELEASE_DIALOG_HEIGHT:
-				find_release_dialog_height = item.value;
+			case CFG_FIND_RELEASE_DIALOG_POSITION:
+				find_release_dialog_position = item.value;
 				break;
-			case CFG_RELEASE_DIALOG_WIDTH:
-				release_dialog_width = item.value;
+			case CFG_RELEASE_DIALOG_SIZE:
+				release_dialog_size = item.value;
 				break;
-			case CFG_RELEASE_DIALOG_HEIGHT:
-				release_dialog_height = item.value;
+			case CFG_RELEASE_DIALOG_POSITION:
+				release_dialog_position = item.value;
 				break;
-			case CFG_EDIT_TAGS_DIALOG_WIDTH:
-				edit_tags_dialog_width = item.value;
+			case CFG_EDIT_TAGS_DIALOG_SIZE:
+				edit_tags_dialog_size = item.value;
 				break;
-			case CFG_EDIT_TAGS_DIALOG_HEIGHT:
-				edit_tags_dialog_height = item.value;
+			case CFG_EDIT_TAGS_DIALOG_POSITION:
+				edit_tags_dialog_position = item.value;
 				break;
 			case CFG_EDIT_TAGS_DIALOG_COL1_WIDTH:
 				edit_tags_dialog_col1_width = item.value;
@@ -207,11 +208,11 @@ bool new_conf::load() {
 			case CFG_EDIT_TAGS_DIALOG_COL3_WIDTH:
 				edit_tags_dialog_col3_width = item.value;
 				break;
-			case CFG_PREVIEW_DIALOG_WIDTH:
-				preview_tags_dialog_width = item.value;
+			case CFG_PREVIEW_DIALOG_SIZE:
+				preview_tags_dialog_size = item.value;
 				break;
-			case CFG_PREVIEW_DIALOG_HEIGHT:
-				preview_tags_dialog_height = item.value;
+			case CFG_PREVIEW_DIALOG_POSITION:
+				preview_tags_dialog_position = item.value;
 				break;
 			case CFG_LAST_CONF_TAB:
 				last_conf_tab = item.value;
@@ -301,6 +302,10 @@ bool new_conf::load() {
 			case CFG_ALBUM_ART_SKIP_DEFAULT_CUST:
 				album_art_skip_default_cust = item.value;
 				break;
+			
+			//v204 (1.0.4)
+			case CFG_EDIT_TAGS_DIALOG_FLAGS:
+				edit_tags_dialog_flags = item.value;
 			//..
 		}
 	}
@@ -338,6 +343,50 @@ bool new_conf::load() {
 		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_DISCOGS_ARTWORK_STYLE, match_discogs_artwork_art_style));
 		cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_FILE_ARTWORKS_STYLE, match_file_artworks_art_style));
 		cfg_int_entries.add_item(make_conf_entry(CFG_ALBUM_ART_SKIP_DEFAULT_CUST, album_art_skip_default_cust));
+	}
+
+	if (vLoad < v204) {
+		//recycle width to size, height to position
+		t_size pos = pfc_infinite;
+		conf_int_entry entry;
+
+		entry = make_conf_entry(CFG_FIND_RELEASE_DIALOG_SIZE, find_release_dialog_size);
+		pos = cfg_int_entries.find_item(entry);
+		find_release_dialog_size = MAKELPARAM(find_release_dialog_size, find_release_dialog_position);
+		cfg_int_entries.swap_item_with(pos, make_conf_entry(CFG_FIND_RELEASE_DIALOG_SIZE, find_release_dialog_size));
+		entry = make_conf_entry(CFG_FIND_RELEASE_DIALOG_POSITION, find_release_dialog_position);
+		pos = cfg_int_entries.find_item(entry);
+		cfg_int_entries.swap_item_with(pos, make_conf_entry(CFG_FIND_RELEASE_DIALOG_POSITION, 0));
+		find_release_dialog_position = 0;
+
+		entry = make_conf_entry(CFG_RELEASE_DIALOG_SIZE, release_dialog_size);
+		pos = cfg_int_entries.find_item(entry);
+		release_dialog_size = MAKELPARAM(release_dialog_size, release_dialog_position);
+		cfg_int_entries.swap_item_with(pos, make_conf_entry(CFG_RELEASE_DIALOG_SIZE, release_dialog_size));
+		entry = make_conf_entry(CFG_RELEASE_DIALOG_POSITION, release_dialog_position);
+		pos = cfg_int_entries.find_item(entry);
+		cfg_int_entries.swap_item_with(pos, make_conf_entry(CFG_RELEASE_DIALOG_POSITION, 0));
+		release_dialog_position = 0;
+
+		entry = make_conf_entry(CFG_EDIT_TAGS_DIALOG_SIZE, edit_tags_dialog_size);
+		pos = cfg_int_entries.find_item(entry);
+		edit_tags_dialog_size = MAKELPARAM(edit_tags_dialog_size, edit_tags_dialog_position);
+		cfg_int_entries.swap_item_with(pos, make_conf_entry(CFG_EDIT_TAGS_DIALOG_SIZE, edit_tags_dialog_size));
+		entry = make_conf_entry(CFG_EDIT_TAGS_DIALOG_POSITION, edit_tags_dialog_position);
+		pos = cfg_int_entries.find_item(entry);
+		cfg_int_entries.swap_item_with(pos, make_conf_entry(CFG_EDIT_TAGS_DIALOG_POSITION, 0));
+		edit_tags_dialog_position = 0;
+
+		entry = make_conf_entry(CFG_PREVIEW_DIALOG_SIZE, preview_tags_dialog_size);
+		pos = cfg_int_entries.find_item(entry);
+		preview_tags_dialog_size = MAKELPARAM(preview_tags_dialog_size, preview_tags_dialog_position);
+		cfg_int_entries.swap_item_with(pos, make_conf_entry(CFG_PREVIEW_DIALOG_SIZE, preview_tags_dialog_size));
+		entry = make_conf_entry(CFG_PREVIEW_DIALOG_POSITION, preview_tags_dialog_position);
+		pos = cfg_int_entries.find_item(entry);
+		cfg_int_entries.swap_item_with(pos, make_conf_entry(CFG_PREVIEW_DIALOG_POSITION, 0));
+		preview_tags_dialog_position = 0;
+
+		cfg_int_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_FLAGS, edit_tags_dialog_flags));
 	}
 
 	for (unsigned int i = 0; i < cfg_string_entries.get_count(); i++) {
@@ -474,28 +523,28 @@ int new_conf::id_to_val_int(int id, new_conf in_conf) {
 	switch (id) {
 		case CFG_UPDATE_ART_FLAGS:
 			return in_conf.update_art_flags;
-		case CFG_FIND_RELEASE_DIALOG_WIDTH:
-			return in_conf.find_release_dialog_width;
-		case CFG_FIND_RELEASE_DIALOG_HEIGHT:
-			return in_conf.find_release_dialog_height;
-		case CFG_RELEASE_DIALOG_WIDTH:
-			return in_conf.release_dialog_width;
-		case CFG_RELEASE_DIALOG_HEIGHT:
-			return in_conf.release_dialog_height;
-		case CFG_EDIT_TAGS_DIALOG_WIDTH:
-			return in_conf.edit_tags_dialog_width;
-		case CFG_EDIT_TAGS_DIALOG_HEIGHT:
-			return in_conf.edit_tags_dialog_height;
+		case CFG_FIND_RELEASE_DIALOG_SIZE:
+			return in_conf.find_release_dialog_size;
+		case CFG_FIND_RELEASE_DIALOG_POSITION:
+			return in_conf.find_release_dialog_position;
+		case CFG_RELEASE_DIALOG_SIZE:
+			return in_conf.release_dialog_size;
+		case CFG_RELEASE_DIALOG_POSITION:
+			return in_conf.release_dialog_position;
+		case CFG_EDIT_TAGS_DIALOG_SIZE:
+			return in_conf.edit_tags_dialog_size;
+		case CFG_EDIT_TAGS_DIALOG_POSITION:
+			return in_conf.edit_tags_dialog_position;
 		case CFG_EDIT_TAGS_DIALOG_COL1_WIDTH:
 			return in_conf.edit_tags_dialog_col1_width;
 		case CFG_EDIT_TAGS_DIALOG_COL2_WIDTH:
 			return in_conf.edit_tags_dialog_col2_width;
 		case CFG_EDIT_TAGS_DIALOG_COL3_WIDTH:
 			return in_conf.edit_tags_dialog_col3_width;
-		case CFG_PREVIEW_DIALOG_WIDTH:
-			return in_conf.preview_tags_dialog_width;
-		case CFG_PREVIEW_DIALOG_HEIGHT:
-			return in_conf.preview_tags_dialog_height;
+		case CFG_PREVIEW_DIALOG_SIZE:
+			return in_conf.preview_tags_dialog_size;
+		case CFG_PREVIEW_DIALOG_POSITION:
+			return in_conf.preview_tags_dialog_position;
 		case CFG_LAST_CONF_TAB:
 			return in_conf.last_conf_tab;
 		case CFG_PREVIEW_MODE:
@@ -556,6 +605,9 @@ int new_conf::id_to_val_int(int id, new_conf in_conf) {
 			return in_conf.match_file_artworks_art_style;
 		case CFG_ALBUM_ART_SKIP_DEFAULT_CUST:
 			return in_conf.album_art_skip_default_cust;
+		//v204
+		case CFG_EDIT_TAGS_DIALOG_FLAGS:
+			return in_conf.edit_tags_dialog_flags;
 		//..
 	}
 	PFC_ASSERT(false);
@@ -775,18 +827,18 @@ void new_conf::save() {
 	
 	cfg_int_entries.remove_all();
 	cfg_int_entries.add_item(make_conf_entry(CFG_UPDATE_ART_FLAGS, update_art_flags));
-	cfg_int_entries.add_item(make_conf_entry(CFG_FIND_RELEASE_DIALOG_WIDTH, find_release_dialog_width));
-	cfg_int_entries.add_item(make_conf_entry(CFG_FIND_RELEASE_DIALOG_HEIGHT, find_release_dialog_height));
-	cfg_int_entries.add_item(make_conf_entry(CFG_RELEASE_DIALOG_WIDTH, release_dialog_width));
-	cfg_int_entries.add_item(make_conf_entry(CFG_RELEASE_DIALOG_HEIGHT, release_dialog_height));
-	cfg_int_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_WIDTH, edit_tags_dialog_width));
-	cfg_int_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_HEIGHT, edit_tags_dialog_height));
+	cfg_int_entries.add_item(make_conf_entry(CFG_FIND_RELEASE_DIALOG_SIZE, find_release_dialog_size));
+	cfg_int_entries.add_item(make_conf_entry(CFG_FIND_RELEASE_DIALOG_POSITION, find_release_dialog_position));
+	cfg_int_entries.add_item(make_conf_entry(CFG_RELEASE_DIALOG_SIZE, release_dialog_size));
+	cfg_int_entries.add_item(make_conf_entry(CFG_RELEASE_DIALOG_POSITION, release_dialog_position));
+	cfg_int_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_SIZE, edit_tags_dialog_size));
+	cfg_int_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_POSITION, edit_tags_dialog_position));
 	cfg_int_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_COL1_WIDTH, edit_tags_dialog_col1_width));
 	cfg_int_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_COL2_WIDTH, edit_tags_dialog_col2_width));
 	cfg_int_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_COL3_WIDTH, edit_tags_dialog_col3_width));
-	cfg_int_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_HEIGHT, edit_tags_dialog_height));
-	cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_DIALOG_WIDTH, preview_tags_dialog_width));
-	cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_DIALOG_HEIGHT, preview_tags_dialog_height));
+	cfg_int_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_POSITION, edit_tags_dialog_position));
+	cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_DIALOG_SIZE, preview_tags_dialog_size));
+	cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_DIALOG_POSITION, preview_tags_dialog_position));
 	cfg_int_entries.add_item(make_conf_entry(CFG_LAST_CONF_TAB, last_conf_tab));
 	cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_MODE, preview_mode));
 	cfg_int_entries.add_item(make_conf_entry(CFG_CACHE_MAX_OBJECTS, cache_max_objects));
@@ -819,6 +871,8 @@ void new_conf::save() {
 	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_DISCOGS_ARTWORK_STYLE, match_discogs_artwork_art_style));
 	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_FILE_ARTWORKS_STYLE, match_file_artworks_art_style));
 	cfg_int_entries.add_item(make_conf_entry(CFG_ALBUM_ART_SKIP_DEFAULT_CUST, album_art_skip_default_cust));
+	//v204 (from 1.0.4)
+	cfg_int_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_FLAGS, edit_tags_dialog_flags));
 	//..
 
 	cfg_string_entries.remove_all();
@@ -841,17 +895,8 @@ void new_conf::save() {
 }
 
 void new_conf::save_active_config_tab(int newval) {
-	//TODO:
-	//const conf_int_entry entry = make_conf_entry(CFG_LAST_CONF_TAB, last_conf_tab);
-	//t_size pos = cfg_int_entries.find_item(entry);
-
-	t_size pos = pfc_infinite;
-	for (size_t it = 0; it < cfg_int_entries.get_count(); it++) {
-		auto walk = cfg_int_entries.get_item(it);
-		if (walk.id == CFG_LAST_CONF_TAB && walk.value == last_conf_tab) {
-			pos = it; break;
-		}
-	}
+	const conf_int_entry &entry = make_conf_entry(CFG_LAST_CONF_TAB, last_conf_tab); 
+	auto pos = cfg_int_entries.find_item(entry);
 
 	if (pos != pfc_infinite) {
 		conf_int_entry new_entry = make_conf_entry(CFG_LAST_CONF_TAB, newval);

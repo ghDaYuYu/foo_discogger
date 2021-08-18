@@ -16,12 +16,12 @@
 #define CFG_DISPLAY_ANVS					17
 
 #define CFG_UPDATE_ART_FLAGS				18
-#define CFG_FIND_RELEASE_DIALOG_WIDTH		19
-#define CFG_FIND_RELEASE_DIALOG_HEIGHT		20
-#define CFG_RELEASE_DIALOG_WIDTH			21
-#define CFG_RELEASE_DIALOG_HEIGHT			22
-#define CFG_EDIT_TAGS_DIALOG_WIDTH			23
-#define CFG_EDIT_TAGS_DIALOG_HEIGHT			24
+#define CFG_FIND_RELEASE_DIALOG_SIZE		19
+#define CFG_FIND_RELEASE_DIALOG_POSITION	20
+#define CFG_RELEASE_DIALOG_SIZE				21
+#define CFG_RELEASE_DIALOG_POSITION			22
+#define CFG_EDIT_TAGS_DIALOG_SIZE			23
+#define CFG_EDIT_TAGS_DIALOG_POSITION		24
 #define CFG_EDIT_TAGS_DIALOG_COL1_WIDTH		25
 #define CFG_EDIT_TAGS_DIALOG_COL2_WIDTH		26
 #define CFG_EDIT_TAGS_DIALOG_COL3_WIDTH		27
@@ -68,8 +68,8 @@
 
 #define CFG_PREVIEW_MODE					51
 #define CFG_UPDATE_PREVIEW_CHANGES			52
-#define CFG_PREVIEW_DIALOG_WIDTH			53
-#define CFG_PREVIEW_DIALOG_HEIGHT			54
+#define CFG_PREVIEW_DIALOG_SIZE				53
+#define CFG_PREVIEW_DIALOG_POSITION			54
 
 #define CFG_UPDATE_TAGS_MANUALLY_PROMPT		55
 #define CFG_PARSE_HIDDEN_AS_REGULAR			56
@@ -78,9 +78,9 @@
 #define CFG_CACHE_MAX_OBJECTS				57
 
 //v.20X
-//2001 = 2->V2, 0->bool, 01->id
-//2101 = 2->V2, 1->int, 01->id)
-//2201 = 2->V2, 2->str, 01->id)
+//2001 = 2->V2, 0->bool,01->id
+//2101 = 2->V2, 1->int, 01->id
+//2201 = 2->V2, 2->str, 01->id
 
 //bool
 #define CFG_EDIT_TAGS_DIALOG_SHOW_TM_STATS	2001
@@ -124,6 +124,9 @@
 
 #define CFG_ALBUM_ART_SKIP_DEFAULT_CUST		2125
 
+//v204 (1.0.4)
+#define CFG_EDIT_TAGS_DIALOG_FLAGS			2126
+
 //string
 #define CFG_EDIT_TAGS_DIALOG_HL_KEYWORD			2201
 //..
@@ -141,6 +144,10 @@ typedef struct
 	int value;
 } conf_int_entry;
 
+inline bool operator==(const conf_int_entry& lhs, const conf_int_entry& rhs) {
+	return (lhs.id == rhs.id &&
+		lhs.value == rhs.value);
+}
 
 typedef struct
 {
@@ -339,16 +346,16 @@ public:
 
 		// CONF_FILTER_FIND (find_release_dialog)
 		{ asi(ConfFilter::CONF_FILTER_FIND), CFG_DISPLAY_EXACT_MATCHES },
-		{ asi(ConfFilter::CONF_FILTER_FIND), CFG_FIND_RELEASE_DIALOG_WIDTH },
-		{ asi(ConfFilter::CONF_FILTER_FIND), CFG_FIND_RELEASE_DIALOG_HEIGHT },
+		{ asi(ConfFilter::CONF_FILTER_FIND), CFG_FIND_RELEASE_DIALOG_SIZE },
+		{ asi(ConfFilter::CONF_FILTER_FIND), CFG_FIND_RELEASE_DIALOG_POSITION },
 		//v200
 		{ asi(ConfFilter::CONF_FILTER_FIND), CFG_FIND_RELEASE_DIALOG_SHOW_ID },
 		//..
 
 		// CONF_FILTER_PREVIEW (preview_dialog)
 		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_MODE },
-		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_DIALOG_WIDTH },
-		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_DIALOG_HEIGHT },
+		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_DIALOG_SIZE },
+		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_DIALOG_POSITION },
 		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_REPLACE_ANVS }, //<<
 		//v200
 		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_TAGS_DIALOG_COL1_WIDTH },
@@ -361,21 +368,23 @@ public:
 		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_TAGS_DIALOG_E_WIDTH },
 		//v203
 		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_ALBUM_ART_SKIP_DEFAULT_CUST },
+		//v204 (1.0.4)
+		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_EDIT_TAGS_DIALOG_FLAGS},
 		//..
 
 		// CONF_FILTER_TAG (tag_mappings_dialog)
 		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_EDIT_TAGS_DIALOG_COL1_WIDTH },
 		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_EDIT_TAGS_DIALOG_COL2_WIDTH },
 		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_EDIT_TAGS_DIALOG_COL3_WIDTH },
-		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_EDIT_TAGS_DIALOG_WIDTH },
-		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_EDIT_TAGS_DIALOG_HEIGHT },
+		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_EDIT_TAGS_DIALOG_SIZE },
+		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_EDIT_TAGS_DIALOG_POSITION },
 		//v200
 		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_EDIT_TAGS_DIALOG_HL_KEYWORD },
 		//..
 
 		// CONF_FILTER_TRACK (track_matching_dialog)
-		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_RELEASE_DIALOG_WIDTH },
-		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_RELEASE_DIALOG_HEIGHT },
+		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_RELEASE_DIALOG_SIZE },
+		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_RELEASE_DIALOG_POSITION },
 		//v200
 		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_MATCH_TRACKS_DISCOGS_COL1_WIDTH },
 		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_MATCH_TRACKS_DISCOGS_COL2_WIDTH },
@@ -416,8 +425,7 @@ public:
 
 	void save(ConfFilter cfgfilter, new_conf in_conf);
 	void save(ConfFilter cfgfilter, new_conf in_conf, int id);
-	void upgrade(foo_discogs_conf3 &old_conf);
-	
+
 	bool replace_ANVs = false;
 	bool move_the_at_beginning = true;
 	bool discard_numeric_suffix = true;
@@ -470,21 +478,18 @@ public:
 	pfc::string8 oauth_token = "";
 	pfc::string8 oauth_token_secret = "";
 
-	int find_release_dialog_width = 0;
-	int find_release_dialog_height = 0;
-	int release_dialog_width = 0;
-	int release_dialog_height = 0;
-	int edit_tags_dialog_width = 0;
-	int edit_tags_dialog_height = 0;
+	int find_release_dialog_size = 0;
+	int find_release_dialog_position = 0;
+	int release_dialog_size = 0;
+	int release_dialog_position = 0;
+	int preview_tags_dialog_size = 0;
+	int preview_tags_dialog_position = 0;
+	int edit_tags_dialog_size = 0;
+	int edit_tags_dialog_position = 0;
+
 	int edit_tags_dialog_col1_width = 0;
 	int edit_tags_dialog_col2_width = 0;
 	int edit_tags_dialog_col3_width = 0;
-
-	int preview_tags_dialog_width = 0;
-	//int preview_tags_dialog_col1_width = 0;
-	//int preview_tags_dialog_col2_width = 0;
-
-	int preview_tags_dialog_height = 0;
 
 	int last_conf_tab = 0;
 
@@ -541,8 +546,9 @@ public:
 	int match_discogs_artwork_art_style = static_cast<int>(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP);
 	int match_file_artworks_art_style = static_cast<int>(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP);
 	int album_art_skip_default_cust = 0;
+	//v204 from 1.0.4
+	int edit_tags_dialog_flags = 0;
 	//..
-
 };
 
 typedef new_conf foo_discogs_conf;

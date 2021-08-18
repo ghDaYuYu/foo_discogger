@@ -200,11 +200,9 @@ LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	cfg_lv.colmap.at(4).width = static_cast<float>(conf.preview_tags_dialog_s_width);
 	cfg_lv.colmap.at(5).width = static_cast<float>(conf.preview_tags_dialog_e_width);
 
-
 	tag_results_list = GetDlgItem(IDC_PREVIEW_LIST);
 
-	ListView_SetExtendedListViewStyleEx(tag_results_list, LVS_EX_GRIDLINES, LVS_EX_GRIDLINES);
-	ListView_SetExtendedListViewStyleEx(tag_results_list, LVS_EX_FULLROWSELECT, LVS_EX_FULLROWSELECT);
+	ListView_SetExtendedListViewStyleEx(tag_results_list, LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES | LVS_EX_INFOTIP | LVS_EX_LABELTIP, LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES | LVS_EX_INFOTIP | LVS_EX_LABELTIP);
 
 	reset_default_columns(tag_results_list, true);
 
@@ -1038,7 +1036,9 @@ void CPreviewTagsDialog::reset_default_columns(HWND wndlist, bool breset) {
 
 	cfg_prev_ColMap::iterator it;
 
+	float removed_stats_width = 0.0;
 	for (int i = 0; i < COL_STAT_COLS; i++) {
+		removed_stats_width += ListView_GetColumnWidth(wndlist, COL_STAT_POS);
 		ListView_DeleteColumn(wndlist, COL_STAT_POS);
 	}
 
@@ -1049,12 +1049,17 @@ void CPreviewTagsDialog::reset_default_columns(HWND wndlist, bool breset) {
 		cfg_prev_col walk_cfg = cfg_lv.colmap.at(vec_icol_subitems[i].first);
 		if (breset) {
 			if (ListView_GetColumnCount(wndlist) < COL_STAT_POS) {
-				if (walk_cfg.icol < COL_STAT_POS && walk_cfg.enabled) {
-					//insert column
+				if (walk_cfg.icol < COL_STAT_POS && walk_cfg.enabled) {				
 					int icol = listview_helper::fr_insert_column(wndlist, walk_cfg.icol,
 						walk_cfg.name, (unsigned int)walk_cfg.width, LVCFMT_LEFT);
 					cfg_lv.colmap.at(vec_icol_subitems[i].first).enabled = true;
 				}
+			}
+			//add removed stat cols width to the last column
+			if (walk_cfg.icol == COL_STAT_POS - 1) {
+				float width = ListView_GetColumnWidth(wndlist, walk_cfg.icol);
+				width += removed_stats_width;
+				ListView_SetColumnWidth(wndlist, COL_STAT_POS - 1, (unsigned int)width);
 			}
 		}
 		else {

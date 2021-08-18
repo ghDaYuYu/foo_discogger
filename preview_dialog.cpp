@@ -173,6 +173,14 @@ inline bool CPreviewTagsDialog::build_current_cfg() {
 	if (CONF.album_art_skip_default_cust != conf.album_art_skip_default_cust) {
 		bres |= true;
 	}
+	//attach edit mappings panel
+	size_t attach_flagged = IsDlgButtonChecked(IDC_EDIT_TAGS_DIALOG_ATTACH_FLAG) ? (1 << 0) : 0;
+	size_t open_flagged = g_discogs->tag_mappings_dialog ? 1 << 1 : 0;
+	if ((CONF.edit_tags_dialog_flags & (1 << 0  | 1 << 1)) != (attach_flagged | open_flagged)) {
+		conf.edit_tags_dialog_flags &= ~(1 << 0 | 1 << 1);
+		conf.edit_tags_dialog_flags |= (attach_flagged | open_flagged);
+		bres |= true;
+	}
 
 	return bres;
 }
@@ -584,13 +592,26 @@ LRESULT CPreviewTagsDialog::OnCheckSkipArtwork(WORD /*wNotifyCode*/, WORD wID, H
 	return FALSE;
 }
 
+LRESULT CPreviewTagsDialog::OnCheckAttachMappingPanel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+
+	bool state = IsDlgButtonChecked(IDC_EDIT_TAGS_DIALOG_ATTACH_FLAG);
+	conf.edit_tags_dialog_flags = state ?
+		conf.edit_tags_dialog_flags | (1 << 0)
+		: conf.edit_tags_dialog_flags & ~(1 << 0);
+
+	return FALSE;
+}
+
 LRESULT CPreviewTagsDialog::OnEditTagMappings(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	if (!g_discogs->tag_mappings_dialog) {
-		g_discogs->tag_mappings_dialog = fb2k::newDialog<CNewTagMappingsDialog>(core_api::get_main_window());
+		g_discogs->tag_mappings_dialog = fb2k::newDialog<CNewTagMappingsDialog>(core_api::get_main_window(), IDAPPLY);
 	}
 	else
 	{
-		::SetFocus(g_discogs->tag_mappings_dialog->m_hWnd);
+		if (wID == IDC_EDIT_TAG_MAPPINGS_BUTTON) {
+			::SetFocus(g_discogs->tag_mappings_dialog->m_hWnd);
+			::uPostMessage(g_discogs->tag_mappings_dialog->m_hWnd, WM_NEXTDLGCTL, (WPARAM)(HWND)GetDlgItem(IDAPPLY), TRUE);		
+		}
 	}
 	return FALSE;
 }
@@ -601,6 +622,7 @@ void CPreviewTagsDialog::set_preview_mode(int mode) {
 		mode == PREVIEW_ORIGINAL ? IDC_VIEW_ORIGINAL :
 		IDC_VIEW_DEBUG);
 }
+
 int CPreviewTagsDialog::get_preview_mode() {
 	return IsDlgButtonChecked(IDC_VIEW_NORMAL) ? PREVIEW_NORMAL :
 		IsDlgButtonChecked(IDC_VIEW_DIFFERENCE) ? PREVIEW_DIFFERENCE :
@@ -647,7 +669,6 @@ LRESULT CPreviewTagsDialog::OnBack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCt
 	return TRUE;
 }
 
-
 bool CPreviewTagsDialog::init_count() {
 	if (!conf.update_tags_preview_changes) {
 		return false;
@@ -693,6 +714,10 @@ void CPreviewTagsDialog::pushcfg() {
 
 LRESULT CPreviewTagsDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
 	pushcfg();
+	if (g_discogs->tag_mappings_dialog &&
+		(conf.edit_tags_dialog_flags & (1 << 0 | 1 << 1)) == (1 << 0 | 1 << 1)) {
+		g_discogs->tag_mappings_dialog->destroy();
+	}
 	return 0;
 }
 

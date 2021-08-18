@@ -146,8 +146,8 @@ LRESULT CNewTagMappingsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LP
 
 	on_mapping_changed(get_mapping_changed());
 
-	uSendMessage(m_hWnd, WM_NEXTDLGCTL, (WPARAM)(HWND)GetDlgItem(IDOK), TRUE);
-
+	::uPostMessage(m_hWnd, WM_NEXTDLGCTL, (WPARAM)(HWND)GetDlgItem(IDAPPLY), TRUE);
+	//FALSE: prevent the system from setting the default focus
 	return FALSE;
 }
 

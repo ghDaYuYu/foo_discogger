@@ -69,7 +69,9 @@ void generate_tags_task::safe_run(threaded_process_status &p_status, abort_callb
 
 void generate_tags_task::on_success(HWND p_wnd) {
 	if (preview_dialog) {
-		preview_dialog->cb_generate_tags();
+		if (IsWindow(preview_dialog->m_hWnd)) {
+			preview_dialog->cb_generate_tags();
+		}
 	}
 	else if (show_preview_dialog) {
 		track_matching_dialog->enable(true);

@@ -19,19 +19,20 @@ private:
 	foo_discogs_conf conf;
 
 	metadb_handle_list items;
-	tag_mappings_list_type *tag_mappings = nullptr;
+	tag_mappings_list_type* tag_mappings = nullptr;
 
 	CHyperLink help_link;
 
 	pfc::string8 highlight_label;
+	UINT default_button;
 	CEditWithButtonsDim cewb_highlight;
 
 	void insert_tag_mappings();
-	void insert_tag(int pos, const tag_mapping_entry *entry);
-	void update_list_width(bool initialize=false);
-	void update_tag(int pos, const tag_mapping_entry *entry);
+	void insert_tag(int pos, const tag_mapping_entry* entry);
+	void update_list_width(bool initialize = false);
+	void update_tag(int pos, const tag_mapping_entry* entry);
 	void update_freezer(bool enable_write, bool enable_update);
-	void show_context_menu(CPoint &pt, int selection);
+	void show_context_menu(CPoint& pt, int selection);
 
 	void applymappings();
 
@@ -47,7 +48,7 @@ private:
 		return tag_list;
 	}
 
-	void TableEdit_SetField(size_t item, size_t subItem, const char * value) override {
+	void TableEdit_SetField(size_t item, size_t subItem, const char* value) override {
 		CTableEditHelperV2_ListView::TableEdit_SetField(item, subItem, value);
 		if (item < tag_mappings->get_count()) {
 			if (subItem == 0) {
@@ -76,13 +77,13 @@ private:
 		if (index < 0) {
 			return false;
 		}
-		const tag_mapping_entry &entry = tag_mappings->get_item_ref(index);
+		const tag_mapping_entry& entry = tag_mappings->get_item_ref(index);
 		if (entry.freeze_tag_name) {
 			return false;
 		}
 		delete_entry(index);
 		tag_mappings->remove_by_idx(index);
-		
+
 		on_mapping_changed(get_mapping_changed());
 		return true;
 	}
@@ -166,8 +167,8 @@ public:
 		CDialogResize<CNewTagMappingsDialog>::DlgResize_UpdateLayout(cxWidth, cyHeight);
 	}
 
-	CNewTagMappingsDialog::CNewTagMappingsDialog(HWND p_parent)
-		: cewb_highlight(L" Highlight Tag"), tag_list(nullptr), remove_button(nullptr) {
+	CNewTagMappingsDialog::CNewTagMappingsDialog(HWND p_parent, UINT default_button = IDOK)
+		: default_button(default_button), cewb_highlight(L" Highlight Tag"), tag_list(nullptr), remove_button(nullptr) {
 
 		tag_mappings = copy_tag_mappings();
 	}

@@ -178,6 +178,7 @@ inline bool CPreviewTagsDialog::build_current_cfg() {
 }
 
 CPreviewTagsDialog::~CPreviewTagsDialog() {
+	DeleteObject(m_rec_icon);
 	g_discogs->preview_tags_dialog = nullptr;
 }
 

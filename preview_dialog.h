@@ -1,6 +1,10 @@
 #pragma once
 
 #include "../SDK/foobar2000.h"
+
+#include <gdiplus.h>
+#include "CGdiPlusBitmap.h"
+
 #include "foo_discogs.h"
 #include "resource.h"
 #include "tag_writer.h"
@@ -27,14 +31,14 @@ class CPreviewTagsDialog : public MyCDialogImpl<CPreviewTagsDialog>,
 private:
 	metadb_handle_list items;
 	HWND tag_results_list;
+	HBITMAP m_rec_icon;
 
 	foo_discogs_conf conf;
 
 	bool use_update_tags = false;
 	bool multi_mode = false;
 	size_t multi_count = 0;
-	
-	//preview_stats
+
 	std::vector<preview_stats> v_stats;
 	void reset_default_columns(HWND wndlist, bool breset);
 	std::vector<std::pair<int, int>> vec_icol_subitems;
@@ -66,11 +70,9 @@ private:
 
 	void compute_stats(tag_results_list_type tag_results);
 	void compute_stats_track_map(tag_results_list_type tag_results);
-	void reset_stats () {
-		v_stats.clear();
-	}
+
+	void reset_stats () { v_stats.clear(); }
 	void reset_tag_result_stats();
-	void display_tag_result_stats();
 
 	void set_preview_mode(int mode);
 	int get_preview_mode();
@@ -168,13 +170,26 @@ public:
 			: tag_writer(tag_writer), tag_results_list(NULL), use_update_tags(use_update_tags) {
 
 			g_discogs->preview_tags_dialog = this;
+
+			CGdiPlusBitmapResource rec_image;
+			auto hInst = core_api::get_my_instance();
+			rec_image.Load(MAKEINTRESOURCE(IDB_PNG_REC16), L"PNG", hInst);
+			Gdiplus::Status res_get = rec_image.m_pBitmap->GetHBITMAP(Gdiplus::Color(255, 255, 255)/*Color::Black*/, &m_rec_icon);
+			DeleteObject(rec_image);
+
+			//Create(p_parent);
 		}
 		CPreviewTagsDialog(HWND p_parent, pfc::array_t<TagWriter_ptr> tag_writers, bool use_update_tags)
 			: tag_writers(tag_writers), tag_results_list(NULL), use_update_tags(use_update_tags), multi_mode(true) {
 
 			g_discogs->preview_tags_dialog = this;
 			if (init_count()) {
-			
+				CGdiPlusBitmapResource rec_image;
+				auto hInst = core_api::get_my_instance();
+				rec_image.Load(MAKEINTRESOURCE(IDB_PNG_REC16), L"PNG", hInst);
+				Gdiplus::Status res_get = rec_image.m_pBitmap->GetHBITMAP(Gdiplus::Color(255, 255, 255)/*Color::Black*/, &m_rec_icon);
+				DeleteObject(rec_image);
+				//Create(p_parent);
 			}
 			else {
 				finished_tag_writers();

@@ -4,6 +4,9 @@
 
 #include <libPPUI/CListControlOwnerData.h>
 
+#include <gdiplus.h>
+#include "CGdiPlusBitmap.h"
+
 #include "foo_discogs.h"
 #include "file_info_manager.h"
 #include "multiformat.h"
@@ -22,6 +25,8 @@ class CTrackMatchingDialog : public MyCDialogImpl<CTrackMatchingDialog>,
 	private IListControlOwnerDataSource 
 {
 private:
+
+	HBITMAP m_rec_icon;
 
 	HWND get_ctx_lvlist(int ID) {
 		HWND dc_list = uGetDlgItem(IDC_UI_LIST_DISCOGS);
@@ -248,7 +253,16 @@ public:
 		m_idc_list(this), m_ifile_list(this) {
 
 		g_discogs->track_matching_dialog = this;
-    }
+
+		CGdiPlusBitmapResource rec_image;
+		auto hInst = core_api::get_my_instance();
+		rec_image.Load(MAKEINTRESOURCE(IDB_PNG_REC16), L"PNG", hInst);
+		Gdiplus::Status res_get = rec_image.m_pBitmap->GetHBITMAP(Gdiplus::Color(255, 255, 255)/*Color::Black*/, &m_rec_icon);
+		DeleteObject(rec_image);
+
+		//commented for fb2k::newDialog<...> auto life-time
+		//Create(p_parent);
+	}
 	
 	CTrackMatchingDialog(HWND p_parent, pfc::array_t<TagWriter_ptr> tag_writers, bool use_update_tags = false) :
 		tag_writers(tag_writers), use_update_tags(use_update_tags), multi_mode(true), list_drop_handler(),
@@ -260,6 +274,14 @@ public:
 		m_tag_writer = nullptr;
 
 		if (init_count()) {
+			CGdiPlusBitmapResource rec_image;
+			auto hInst = core_api::get_my_instance();
+			rec_image.Load(MAKEINTRESOURCE(IDB_PNG_REC16), L"PNG", hInst);
+			Gdiplus::Status res_get = rec_image.m_pBitmap->GetHBITMAP(Gdiplus::Color(255, 255, 255)/*Color::Black*/, &m_rec_icon);
+			DeleteObject(rec_image);
+			//todo: untested
+			//commented for fb2k::newDialog<...> auto life-time
+			//Create(p_parent);
 		}
 		else {
 			finished_tag_writers();
@@ -268,6 +290,7 @@ public:
 	}
 
 	~CTrackMatchingDialog() {
+		DeleteObject(m_rec_icon);
 		g_discogs->track_matching_dialog = nullptr;
 	}
 

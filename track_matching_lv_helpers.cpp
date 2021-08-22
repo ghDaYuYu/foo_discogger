@@ -126,7 +126,6 @@
 	}
 
 	void select_all_items(HWND list) {
-		ListView_SetItemState(list, -1, LVIS_SELECTED, 0x000F);
 		ListView_SetItemState(list, 0, LVIS_FOCUSED, 0x000F);
 		ListView_SetItemState(list, -1, LVIS_SELECTED, 0x000F);
 	}
@@ -143,6 +142,7 @@
 			if (lvi.state == 0x000f && newfsel == pfc_infinite) newfsel = i;
 			::SendMessage(list, LVM_SETITEMSTATE, (WPARAM)i, (LPARAM)&lvi);
 		}
-
-		ListView_SetItemState(list, newfsel, LVIS_FOCUSED | LVIS_SELECTED, 0x000F);
+		if (newfsel != pfc_infinite)
+			ListView_SetItemState(list, newfsel, LVIS_FOCUSED | LVIS_SELECTED, 0x000F);
+		
 	}

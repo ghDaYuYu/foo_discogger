@@ -1478,17 +1478,21 @@ void CTrackMatchingDialog::attrib_menu_command(HWND wnd, af att_album, af att_ar
 	bit_array_bittable are_albums(citems);
 
 	const size_t max_items = m_tag_writer->get_art_count();
+	const size_t cAlbumArt = m_tag_writer->release->images.get_count();
 
 	size_t csel = get_art_perm_selection(wndlist, true, max_items, perm_selection, are_albums);
 
 	bool mixedvals = false, valchange = false;
+	size_t firstval = ~0;
 	for (size_t i = 0; i < citems; i++) {
 		bool bselected = perm_selection[i] != max_items; //selected flagged with citems value
 		if (bselected) {
 			t_uint8 dc_ndx = perm_selection[i];
 			af att = are_albums.get(i) ? att_album : att_art;
+			dc_ndx = are_albums.get(i) ? dc_ndx : dc_ndx - cAlbumArt;
 			bool val = uart->getflag(att, dc_ndx);
-			uart->setflag(att, dc_ndx, !val);
+			if (firstval == ~0) firstval = !val;
+			uart->setflag(att, dc_ndx, firstval);
 			
 			ListView_RedrawItems(wnd, i, i);
 

@@ -1985,15 +1985,53 @@ LRESULT CTrackMatchingDialog::OnListDBLClick(LPNMHDR lParam) {
 	HWND wnd = ((LPNMHDR)lParam)->hwndFrom;
 	NMITEMACTIVATE* info = reinterpret_cast<NMITEMACTIVATE*>(lParam);
 	POINT coords; GetCursorPos(&coords);
-
+	POINT incoords = info->ptAction;
+	ClientToScreen(&incoords);
+	
 	int citems = ListView_GetItemCount(wnd);
 	bit_array_bittable selmask(citems);
 	size_t n = ListView_GetFirstSelection(wnd) == -1 ? pfc_infinite : ListView_GetFirstSelection(wnd);
 	selmask.set(info->iItem, true);
 
 	bool is_art_files = wnd == uGetDlgItem(IDC_FILE_LIST);
+	bool is_art_discogs = wnd == uGetDlgItem(IDC_DISCOGS_TRACK_LIST);
+
 	if (is_art_files) {
-		switch_context_menu(m_hWnd, coords, true, ID_ART_IMAGE_VIEWER, selmask, nullptr);
+		switch_context_menu(m_hWnd, coords, is_art_files, ID_ART_IMAGE_VIEWER, selmask, nullptr);
+	}
+	else {
+
+		LVHITTESTINFO ht;
+		ht.pt = info->ptAction;
+		int rval = ListView_SubItemHitTest(wnd, &ht);
+		int iRow = ht.iItem;
+		int iCol = ht.iSubItem;
+		bool isTile = (DWORD)ListView_GetView(wnd) == LV_VIEW_TILE;
+
+		enum { WRITE_COL = 3, OVR_COL, EMB_COL };
+
+		if (ht.iItem == -1 || ht.iSubItem == -1) {
+			return FALSE;
+		}
+		//dblclick in thumbnail: tile view < - > detail views
+		else if (ht.iSubItem == 0) {
+			
+			bool bitems = ListView_GetItemCount(wnd) > 0;
+			size_t cmd = isTile ? ID_ART_DETAIL : ID_ART_TILE;
+			switch_context_menu(wnd, coords, is_art_files, cmd, selmask, nullptr);
+		}
+		//attribs
+		else if (!isTile && (ht.iSubItem >= WRITE_COL && ht.iSubItem <= EMB_COL)) {
+			size_t cmd = ht.iSubItem == WRITE_COL ? ID_ART_WRITE :
+				ht.iSubItem == OVR_COL ? ID_ART_OVR : ht.iSubItem == EMB_COL ? ID_ART_EMBED : ID_ART_WRITE;
+			size_t citems = ListView_GetItemCount(wnd);
+			selmask.resize(citems);
+			size_t n = ListView_GetFirstSelection(wnd) == -1 ? pfc_infinite : ListView_GetFirstSelection(wnd);
+			for (size_t i = n; i < citems; i++) {
+				selmask.set(i, ListView_IsItemSelected(wnd, i));
+			}
+			switch_context_menu(wnd, incoords, false, cmd, selmask, nullptr);
+		}
 	}
 	return FALSE;
 }

@@ -301,7 +301,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT, WPARAM , LPARAM , BOOL& bHandled)
 
 			m_DisableFilterBoxEvents = true;
 
-			if (!_idtracer.amr) {
+			if (!_idtracer.amr || !conf.enable_autosearch) {
 				uSetWindowText(m_filter_edit, filter ? filter : "");
 			}
 

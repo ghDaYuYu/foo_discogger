@@ -1391,8 +1391,13 @@ LRESULT CFindReleaseDialog::ApplyFilter(pfc::string8 strFilter) {
 					hook->set_release(&(find_release_artist->releases[myparam.release_ndx]));
 			}
 
-			PFC_ASSERT(get_cached_find_release_node(lparam, item, row_data) == true);
-
+			//todo: cache mutex might have changed if user expanded node before ApplyFilter returns
+			//PFC_ASSERT(get_cached_find_release_node(lparam, item, row_data) == true);
+			if (get_cached_find_release_node(lparam, item, row_data) != true) {
+				return FALSE;
+			}
+			//
+			
 			cache_iterator_t filtered_it = m_cache_find_release_ptr->cache.find(lparam);
 			int ival = 1;
 			m_cache_find_release_ptr->SetCacheFlag(filtered_it, NodeFlag::filterok, &ival);
@@ -1609,6 +1614,7 @@ bool CFindReleaseDialog::get_node_expanded(t_size master_id, int& out_state) {
 void CFindReleaseDialog::on_expand_master_release_done(const MasterRelease_ptr& master_release, int list_index, threaded_process_status& p_status, abort_callback& p_abort) {
 
 	int master_i = -1;
+	//todo: mutex find_release_artist (artist list -> on item selected)
 	for (size_t i = 0; i < find_release_artist->master_releases.get_size(); i++) {
 		if (find_release_artist->master_releases[i]->id == master_release->id) {
 			master_i = i;
@@ -1616,7 +1622,11 @@ void CFindReleaseDialog::on_expand_master_release_done(const MasterRelease_ptr& 
 		}
 	}
 
-	PFC_ASSERT(master_i != -1);
+	//todo: see note above (mutex)
+	//to diagnose a) click expand node step b) click on other artist before expansion
+	//PFC_ASSERT(master_i != -1);
+	if (master_i == -1)
+		return; //do not expand artist selection changed
 
 	pfc::string8 filter;
 	uGetWindowText(m_filter_edit, filter);

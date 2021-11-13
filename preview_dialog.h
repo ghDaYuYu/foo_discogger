@@ -2,9 +2,7 @@
 
 #include "../SDK/foobar2000.h"
 
-#include <gdiplus.h>
-#include "CGdiPlusBitmap.h"
-
+#include "icon_map.h"
 #include "foo_discogs.h"
 #include "resource.h"
 #include "tag_writer.h"
@@ -107,6 +105,11 @@ public:
 		MSG_EDIT = WM_APP
 	};
 
+	enum {
+		flag_tagmap_dlg_attached = 1 << 0,
+		flag_tagmap_dlg_is_open = 1 << 1,
+	};
+
 	virtual BOOL PreTranslateMessage(MSG* pMsg) override {
 		return ::IsDialogMessage(m_hWnd, pMsg);
 	}
@@ -123,6 +126,7 @@ public:
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
 		COMMAND_ID_HANDLER(IDC_SKIP_BUTTON, OnMultiSkip)
 		COMMAND_ID_HANDLER(IDC_REPLACE_ANV_CHECK, OnCheckReplaceANVs)
+		COMMAND_ID_HANDLER(IDC_CHECK_PREV_DLG_SHOW_STATS, OnCheckPreviewShowStats)
 		COMMAND_ID_HANDLER(IDC_CHECK_PREV_DLG_SKIP_ARTWORK, OnCheckSkipArtwork)
 		COMMAND_ID_HANDLER(IDC_EDIT_TAGS_DIALOG_ATTACH_FLAG, OnCheckAttachMappingPanel)
 		COMMAND_ID_HANDLER(IDC_EDIT_TAG_MAPPINGS_BUTTON, OnEditTagMappings)
@@ -132,6 +136,7 @@ public:
 		COMMAND_ID_HANDLER(IDC_VIEW_DEBUG, OnChangePreviewMode)
 		NOTIFY_HANDLER_EX(IDC_PREVIEW_LIST, NM_CLICK, OnListClick)
 		NOTIFY_HANDLER_EX(IDC_PREVIEW_LIST, LVN_KEYDOWN, OnListKeyDown)
+		NOTIFY_HANDLER_EX(IDC_PREVIEW_LIST, LVN_GETINFOTIP, OnListViewTFInfo)
 		MESSAGE_HANDLER_EX(MSG_EDIT, OnEdit)
 		NOTIFY_HANDLER(IDC_PREVIEW_LIST, NM_CUSTOMDRAW, OnCustomDraw)
 		CHAIN_MSG_MAP(CDialogResize<CPreviewTagsDialog>)
@@ -159,8 +164,6 @@ public:
 			DLGRESIZE_CONTROL(IDCANCEL, DLSZ_MOVE_X)
 			DLGRESIZE_CONTROL(IDC_SKIP_BUTTON, DLSZ_MOVE_X)
 			DLGRESIZE_CONTROL(IDC_PREVIEW_LIST, DLSZ_SIZE_X | DLSZ_SIZE_Y)
-			DLGRESIZE_CONTROL(IDC_PREVIEW_STATS, DLSZ_MOVE_X)
-			DLGRESIZE_CONTROL(IDC_STATIC_PREV_DLG_STATS_TAG_UPD, DLSZ_MOVE_X)
 		END_DLGRESIZE_MAP()
 
 		void DlgResize_UpdateLayout(int cxWidth, int cyHeight) {
@@ -168,17 +171,11 @@ public:
 		}
 
 		CPreviewTagsDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags)
-			: tag_writer(tag_writer), tag_results_list(NULL), use_update_tags(use_update_tags) {
+			: m_tag_writer(tag_writer), tag_results_list(NULL), use_update_tags(use_update_tags) {
 
 			g_discogs->preview_tags_dialog = this;
 
-			CGdiPlusBitmapResource rec_image;
-			auto hInst = core_api::get_my_instance();
-			rec_image.Load(MAKEINTRESOURCE(IDB_PNG_REC16), L"PNG", hInst);
-			Gdiplus::Status res_get = rec_image.m_pBitmap->GetHBITMAP(Gdiplus::Color(255, 255, 255)/*Color::Black*/, &m_rec_icon);
-			DeleteObject(rec_image);
-
-			//Create(p_parent);
+			m_rec_icon = LoadDpiBitmapResource(Icon::Record);
 		}
 		CPreviewTagsDialog(HWND p_parent, pfc::array_t<TagWriter_ptr> tag_writers, bool use_update_tags)
 			: tag_writers(tag_writers), tag_results_list(NULL), use_update_tags(use_update_tags), multi_mode(true) {
@@ -206,7 +203,7 @@ public:
 		LRESULT OnMultiSkip(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 		LRESULT OnBack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 		LRESULT OnCheckReplaceANVs(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-		LRESULT OnCheckTrackMap(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+		LRESULT OnCheckPreviewShowStats(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 		LRESULT OnCheckSkipArtwork(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 		LRESULT OnCheckAttachMappingPanel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 		LRESULT OnEditTagMappings(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
@@ -215,15 +212,15 @@ public:
 		LRESULT OnListKeyDown(LPNMHDR lParam);
 		LRESULT OnEdit(UINT uMsg, WPARAM wParam, LPARAM lParam);
 		LRESULT OnCustomDraw(int idCtrl, LPNMHDR pnmh, BOOL& bHandled);
-
+		LRESULT OnListViewTFInfo(LPNMHDR lParam);
+		
 		void refresh_item(int pos);
-
 		void insert_tag_results(bool computestat);
 		void tag_mappings_updated();
 		void cb_generate_tags();
 		void enable(bool v) override { enable(v, true); };
 		void enable(bool v, bool change_focus);
-		bool write_tag_button_enabled();
+		bool check_write_tags_status();
 		void destroy_all();
 		void go_back();
 };

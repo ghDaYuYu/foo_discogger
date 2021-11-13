@@ -1,9 +1,10 @@
 #include "stdafx.h"
 
+#ifdef DC_DB
+
 #include "db_utils.h"
 #include "db_fetcher.h"
 
-//todo: LIKE revision
 pfc::string sqliteEscapeLIKE(pfc::string8 keyWord) {
 	pfc::string8 out_keyWord(keyWord);
 	out_keyWord.replace_string("/", "//");
@@ -34,7 +35,7 @@ sqlite3* db_fetcher::init() {
 			break;
 		}
 
-		if (SQLITE_OK != (m_ret = sqlite3_open_v2(foo_dbpath, &m_pDb, SQLITE_OPEN_READWRITE, NULL)))
+		if (SQLITE_OK != (m_ret = sqlite3_open_v2(foo_dbpath, &m_pDb, SQLITE_OPEN_READONLY /*SQLITE_OPEN_READWRITE*/, NULL)))
 		{
 			m_error_msg << "Failed to open DB connection: " << m_ret << ". ";
 			m_error_msg << sqlite3_errmsg(m_pDb);
@@ -51,11 +52,15 @@ sqlite3* db_fetcher::init() {
 }
 
 void db_fetcher::close() {
-	if (nullptr != m_pDb) sqlite3_close(m_pDb);
+	if (nullptr != m_pDb) {
+		sqlite3_close(m_pDb);
+		m_pDb = nullptr;
+	}
+	//todo: define global sql shutdown procedure
 	//if (m_lib_initialized) sqlite3_shutdown();
 }
 
-void db_fetcher::fetch_search_artist(pfc::string8 artist_hint, bool exact_match, pfc::string8 &json, threaded_process_status& p_status, abort_callback& p_abort) {
+void db_fetcher::fetch_search_artist(pfc::string8 artist_hint, const int db_dc_flags, pfc::string8 &json, threaded_process_status& p_status, abort_callback& p_abort) {
 
 	//https://api.discogs.com/database/search
 	
@@ -75,6 +80,7 @@ void db_fetcher::fetch_search_artist(pfc::string8 artist_hint, bool exact_match,
 		do {
 
 			pfc::string8 query_artist;
+			pfc::string8 query_artist_anv;
 
 			query_artist = "SELECT json(\'{\"pagination\": {\"page\": 1, \"pages\": 1, \"per_page\": 100, \"items\":\' || count(*) || \', \"urls\": {}}, \"results\": [\' || "
 				"group_concat(json_object(\'id\', b.id, \'title\', b.name)) || \']}\') AS json "
@@ -88,21 +94,40 @@ void db_fetcher::fetch_search_artist(pfc::string8 artist_hint, bool exact_match,
 				") "
 				"b; ";
 
-			bool breplace;
+			query_artist_anv = "SELECT json(\'{\"pagination\": {\"page\": 1, \"pages\": 1, \"per_page\": 100, \"items\":\' || count(*) || \', \"urls\": {}}, \"results\": [\' || "
+				"group_concat(json_object(\'id\', b.id, \'title\', b.name)) || \']}\') AS json "
+				"FROM("
+				"	SELECT * "
+				"	FROM artist a "
+				"	where a.name LIKE \"%Front 242%\" "
 
-			if (exact_match) {
-				//breplace = query_artist.replace_string("instr(a.name, \"Front 242\") > 0", "a.name = \"Front 242\"");
-				breplace = query_artist.replace_string("LIKE \"%Front 242%\"", "= \"Front 242\"");
-				breplace = query_artist.replace_string("Front 242", artist_hint);
+
+				"or a.id IN (SELECT artist_id "
+				"	FROM artist_namevariation ann WHERE ann.name LIKE \"%Front 242%\")"
+
+				//"	where instr(a.name,\"Front 242\") > 0"
+				"	ORDER BY a.id "
+				"	LIMIT 111 "
+				") "
+				"b; ";
+
+			//include anv?
+			if (DBFlags(db_dc_flags).SearchAnv())
+				query_artist = query_artist_anv;
+
+			bool b_debug_replaced;
+
+			if (!DBFlags(db_dc_flags).SearchLike()) {
+				b_debug_replaced = query_artist.replace_string("LIKE \"%Front 242%\"", "= \"Front 242\"");
+				b_debug_replaced = query_artist.replace_string("Front 242", artist_hint);
 			}
 			else {
-				//todo: sqliteEscapeLIKE(artist_hint).get_ptr());		
-				breplace = query_artist.replace_string("Front 242", artist_hint); 
+				pfc::string8 artist_hint_like = sqliteEscapeLIKE(artist_hint).get_ptr();		
+				b_debug_replaced = query_artist.replace_string("Front 242", artist_hint_like);
 			}
 
 			//query row limit
-			breplace = query_artist.replace_string("111", pfc::toString(CLIMIT).get_ptr());
-
+			b_debug_replaced = query_artist.replace_string("111", pfc::toString(CLIMIT).get_ptr());
 
 #ifdef _DEBUG
 			log_msg(query_artist);
@@ -129,7 +154,7 @@ void db_fetcher::fetch_search_artist(pfc::string8 artist_hint, bool exact_match,
 						json << colstr.get_ptr();
 					}
 					else {
-						int debug = 1;
+						//int debug = ret;
 					}
 					break;
 				}
@@ -139,8 +164,6 @@ void db_fetcher::fetch_search_artist(pfc::string8 artist_hint, bool exact_match,
 	}
 
 	if (NULL != stmt_query) sqlite3_finalize(stmt_query);
-	if (NULL != m_pDb) sqlite3_close(m_pDb);
-	if (m_lib_initialized) sqlite3_shutdown();
 
 	if (error_msg.get_length()) {
 		foo_discogs_exception ex;
@@ -363,10 +386,6 @@ void db_fetcher::get_artist(pfc::string8& id, pfc::string8& html, abort_callback
 		} while (false);
 	}
 
-	/*if (NULL != stmt_query) sqlite3_finalize(stmt_query);
-	if (NULL != m_pDb) sqlite3_close(m_pDb);
-	if (m_lib_initialized) sqlite3_shutdown();*/
-
 	if (m_error_msg.get_length()) {
 		foo_discogs_exception ex;
 		ex << m_error_msg;
@@ -383,230 +402,226 @@ pfc::array_t<JSONParser_ptr> db_fetcher::releases_get_all_pages(pfc::string8& id
 
 	pfc::array_t<JSONParser_ptr> uns_results;
 
-	if (mtx.try_lock()) {
 
-		pfc::array_t<JSONParser_ptr> results;
+    pfc::array_t<JSONParser_ptr> results;
 
-		//https://api.discogs.com/artists/1234/releases
+    //https://api.discogs.com/artists/1234/releases
 
-		bool ok_db = true;
-		int ret = 0;
+    bool ok_db = true;
+    int ret = 0;
 
-		const size_t CLIMIT = 10;
-		pfc::string8 json;
+    const size_t CLIMIT = 10;
+    pfc::string8 json;
 
-		sqlite3_stmt* stmt_query = nullptr;
-		try {
+    sqlite3_stmt* stmt_query = nullptr;
+    try {
 
-			ok_db = (m_pDb != NULL && ret == SQLITE_OK);
-			ret = 0;
+        ok_db = (m_pDb != NULL && ret == SQLITE_OK);
+        ret = 0;
 
-			if (ok_db) {
-				do {
+        if (ok_db) {
 
-					pfc::string8 query_artist;
+            do {
+                pfc::string8 query_artist;
 
-					query_artist = "SELECT json(\'{\"pagination\": {\"page\": \' || CAST (CAST (mycount AS INT) + 1 AS TEXT) || \', \"pages\": \"#pages\"\' ||/* yepe || */ \', \"per_page\": 4321, \"items\": \"#items\"\' ||/* count(*) || */ \', \"urls\": {}}, \"releases\": [\' || myarray || \']}\') AS json_result"
-						"	FROM("
-						//			query_artist =
-						"SELECT /*art rels all app*/group_concat(json_object(\'id\', jsonid, \'title\', title, \'type\', type, \'year\', jsonyear, \'role\', jsonrole, \'main_release\', jsonmainrelease, \'format\', jsonformat, \'label\', jsonlabel, \'catno\', jsoncatno, \'country\', jsoncountry) ) myarray,"
-						"                  mycount,"
-						"                  type jsontype,"
-						"                  GROUP_CONCAT(jsonid),"
-						"                  title,"
-						"                  jsonmainrelease,"
-						"                  jsonrole,"
-						"                  jsonyear,"
-						"                  jsoncountry,"
-						"                  jsonformat,"
-						"                  jsonlabel,"
-						"                  jsoncatno"
-						"             FROM ("
-						"                      SELECT/* ARTIST RELEASES */ row_number() OVER/* jsonid */ /* (order by (case when r.master_id isnull then r.id else r.master_id end)) */(ORDER BY CASE WHEN r.master_id ISNULL THEN 'release' ELSE 'master' END,"
-						"                             CASE WHEN m.year ISNULL THEN CAST (substr(released, 1, 4) AS INT) ELSE m.year END) / 4321 mycount,"
-						"                             (CASE WHEN r.master_id ISNULL THEN ("
-						"                                     SELECT GROUP_CONCAT(bk.subname) "
-						"                                       FROM ("
-						"                                                SELECT rf.name subname"
-						"                                                  FROM release_format rf"
-						"                                                 WHERE rf.release_id = r.id"
-						"                                                 GROUP BY rf.name"
-						"                                            )"
-						"                                            bk"
-						"                                 )"
-						"                             ELSE NULL END) jsonformat,"
-						"                             (CASE WHEN r.master_id ISNULL THEN ("
-						"                                     SELECT l.name"
-						"                                       FROM release_label rl"
-						"                                            LEFT OUTER JOIN"
-						"                                            label l ON l.id = rl.label_id"
-						"                                      WHERE rl.release_id = r.id"
-						"                                 )"
-						"                             ELSE NULL END) jsonlabel,"
-						"                             (CASE WHEN r.master_id ISNULL THEN ("
-						"                                     SELECT rl.catno"
-						"                                       FROM release_label rl"
-						"                                      WHERE rl.release_id = r.id"
-						"                                 )"
-						"                             ELSE NULL END) jsoncatno,"
-						"                             r.released,"
-						"                             m.year,"
-						"                             (CASE WHEN r.master_id ISNULL THEN r.id ELSE r.master_id END) jsonid,"
-						"                             (CASE WHEN m.year ISNULL THEN NULLIF(CAST (substr(released, 1, 4) AS INT), 0) ELSE NULLIF(m.year, 0) END) jsonyear,"
-						"                             /*'Main'*/ r.src AS jsonrole,"
-						"                             (CASE WHEN r.master_id ISNULL THEN 'release' ELSE 'master' END) type,"
-						"                             (CASE WHEN r.master_id ISNULL THEN NULL ELSE m.main_release_id END) jsonmainrelease,"
-						"                             (CASE WHEN r.master_id ISNULL THEN r.country ELSE NULL END) jsoncountry,"
-						"                             r.id,"
-						"                             r.master_id,"
-						"                             r.title "
-						""
-						"/* release source */"
-						""
-						""
-						"/*                       FROM [release] AS r */"
-						" FROM ("
-						"select /*artist app*/GROUP_CONCAT(src),"
-						"allrelroles.src, allrelroles.title, artist_id, allrelroles.release_id id, allrelroles.release_id, allrelroles.master_id,"
-						"allrelroles.country, allrelroles.released "
-						//"--(select lkr.master_id FROM release lkr WHERE lkr.id = allrelroles.release_id) master_id,"
-						//"--(select lkr.country FROM release lkr WHERE lkr.id = allrelroles.release_id) country,"
-						//"--(select lkr.released FROM release lkr WHERE lkr.id = allrelroles.release_id) released"
-						""
-						" from"
-						"((SELECT /*release artist main*/\"daMain\" src, 1 z, r.id release_id, r.master_id, r.title, r.country, r.released, subq.tlrid tracklist_release_id, subq.tlid tracklist_id/*, subq.tlrtitle*/, subq.artist_id from release r"
-						" inner join ("
-						"SELECT tl.id tlrid, tl.id tlid/*, tlt.title tlrtitle*/, tlta.id artist_id from release tl"
-						"      inner join release_artist ra on ra.release_id = tl.id "
-						"                 inner join artist tlta on tlta.id = ra.artist_id"
-						"                             where tlta.id = 1343431) subq on subq.tlrid = r.id"
-						"                             group by src, release_id "
-						" UNION "
-						""
-						"SELECT /*release artist app */\"dbApp\" src, 2 z, r.id release_id, r.master_id, r.title, r.country, r.released, subq.tlrid tracklist_release_id, subq.tlid tracklist_id/*, subq.tlrtitle*/, subq.artist_id from release r "
-						" inner join ("
-						"SELECT tl.id tlrid, tl.id tlid/*, tlt.title tlrtitle*/, tlta.id artist_id from release tl"
-						"      inner join release_extraartist ra on ra.release_id = tl.id "
-						"                 inner join artist tlta on tlta.id = ra.artist_id"
-						"                             where tlta.id = 1343431) subq on subq.tlrid = r.id"
-						"                             group by src, release_id "
-						" UNION "
-						""
-						"SELECT /*tl track artist appearance*/\"dcTA\" src, 3 z, r.id release_id, r.master_id, r.title, r.country, r.released, subq.tlrid tracklist_release_id, subq.tlid tracklist_id/*, subq.tlrtitle*/, subq.artist_id from release r "
-						" inner join ("
-						"SELECT tl.release_id tlrid, tl.id tlid/*, tlt.title tlrtitle*/, tlta.artist_id artist_id from tracklist tl"
-						//"      --inner join tracklist_track tlt on tlt.tracklist_id = tl.id "
-						"                 inner join tracklist_track_artist tlta on tlta.tracklist_id = tl.id"
-						"                             where tlta.artist_id = 1343431) subq on subq.tlrid = r.id"
-						"                             group by src, release_id "
-						" UNION "
-						""
-						"SELECT /*tl track extra artist appearance*/\"ddTEA\" src, 4 z, r.id release_id, r.master_id, r.title, r.country, r.released, subq.tlrid tracklist_release_id, subq.tlid tracklist_id/*, subq.tlrtitle*/, subq.artist_id from release r "
-						" inner join ("
-						"SELECT tl.release_id tlrid, tl.id tlid/*, tlt.title tlrtitle*/, tlta.artist_id artist_id from tracklist tl"
-						//"      --inner join tracklist_track tlt on tlt.tracklist_id = tl.id "
-						"                 inner join tracklist_track_extraartist tlta on tlta.tracklist_id = tl.id"
-						"                             where tlta.artist_id = 1343431) subq on subq.tlrid = r.id"
-						"                             group by src, release_id) allrelroles) "
-						" group by release_id ORDER BY src"
-						""
-						""
-						""
-						") AS r"
-						"                        "
-						""
-						""
-						"    /* end release source */"
-						"                             /* JOIN "
-						"                             release_artist ra ON ra.release_id = r.id*/"
-						"                             LEFT JOIN "
-						"                             master m ON m.id = r.master_id"
-						""
-						"    /* end join to master */                             "
-						""
-						" /* end release source */"
-						""
-						"                       WHERE r.artist_id = 1343431"
-						"                       GROUP BY IFNULL(r.master_id, -r.id) "
-						"                       ORDER BY type,"
-						"                                jsonyear"
-						"                  )"
-						"                  insider "
-						"            /*GROUP BY mycount*/"
-						//"";
-						"	)"
-						"	GROUP BY mycount ORDER BY jsonrole; ";
+                query_artist = 
+                    "SELECT json(\'{\"pagination\": {\"page\": \' || CAST (CAST (mycount AS INT) + 1 AS TEXT) || \', \"pages\": \"#pages\"\' ||/* yepe || */ \', \"per_page\": 4321, \"items\": \"#items\"\' ||/* count(*) || */ \', \"urls\": {}}, \"releases\": [\' || myarray || \']}\') AS json_result"
+                    "	FROM("
+                    "SELECT /*art rels all app*/group_concat(json_object(\'id\', jsonid, \'title\', title, \'type\', type, \'year\', jsonyear, \'role\', jsonrole, \'main_release\', jsonmainrelease, \'format\', jsonformat, \'label\', jsonlabel, \'catno\', jsoncatno, \'country\', jsoncountry) ) myarray,"
+                    "                  mycount,"
+                    "                  type jsontype,"
+                    "                  GROUP_CONCAT(jsonid),"
+                    "                  title,"
+                    "                  jsonmainrelease,"
+                    "                  jsonrole,"
+                    "                  jsonyear,"
+                    "                  jsoncountry,"
+                    "                  jsonformat,"
+                    "                  jsonlabel,"
+                    "                  jsoncatno"
+                    "             FROM ("
+                    "                      SELECT/* ARTIST RELEASES */ row_number() OVER/* jsonid */ /* (order by (case when r.master_id isnull then r.id else r.master_id end)) */(ORDER BY CASE WHEN r.master_id ISNULL THEN 'release' ELSE 'master' END,"
+                    "                             CASE WHEN m.year ISNULL THEN CAST (substr(released, 1, 4) AS INT) ELSE m.year END) / 4321 mycount,"
+                    "                             (CASE WHEN r.master_id ISNULL THEN ("
+                    "                                     SELECT GROUP_CONCAT(bk.subname) "
+                    "                                       FROM ("
+                    "                                                SELECT rf.name subname"
+                    "                                                  FROM release_format rf"
+                    "                                                 WHERE rf.release_id = r.id"
+                    "                                                 GROUP BY rf.name"
+                    "                                            )"
+                    "                                            bk"
+                    "                                 )"
+                    "                             ELSE NULL END) jsonformat,"
+                    "                             (CASE WHEN r.master_id ISNULL THEN ("
+                    "                                     SELECT l.name"
+                    "                                       FROM release_label rl"
+                    "                                            LEFT OUTER JOIN"
+                    "                                            label l ON l.id = rl.label_id"
+                    "                                      WHERE rl.release_id = r.id"
+                    "                                 )"
+                    "                             ELSE NULL END) jsonlabel,"
+                    "                             (CASE WHEN r.master_id ISNULL THEN ("
+                    "                                     SELECT rl.catno"
+                    "                                       FROM release_label rl"
+                    "                                      WHERE rl.release_id = r.id"
+                    "                                 )"
+                    "                             ELSE NULL END) jsoncatno,"
+                    "                             r.released,"
+                    "                             m.year,"
+                    "                             (CASE WHEN r.master_id ISNULL THEN r.id ELSE r.master_id END) jsonid,"
+                    "                             (CASE WHEN m.year ISNULL THEN NULLIF(CAST (substr(released, 1, 4) AS INT), 0) ELSE NULLIF(m.year, 0) END) jsonyear,"
+                    "                             /*'Main'*/ r.src AS jsonrole,"
+                    "                             (CASE WHEN r.master_id ISNULL THEN 'release' ELSE 'master' END) type,"
+                    "                             (CASE WHEN r.master_id ISNULL THEN NULL ELSE m.main_release_id END) jsonmainrelease,"
+                    "                             (CASE WHEN r.master_id ISNULL THEN r.country ELSE NULL END) jsoncountry,"
+                    "                             r.id,"
+                    "                             r.master_id,"
+                    "                             r.title "
+                    ""
+                    "/* release source */"
+                    ""
+                    ""
+                    "/*                       FROM [release] AS r */"
+                    " FROM ("
+                    "select /*artist app*/GROUP_CONCAT(src),"
+                    "allrelroles.src, allrelroles.title, artist_id, allrelroles.release_id id, allrelroles.release_id, allrelroles.master_id,"
+                    "allrelroles.country, allrelroles.released "
+                    //"--(select lkr.master_id FROM release lkr WHERE lkr.id = allrelroles.release_id) master_id,"
+                    //"--(select lkr.country FROM release lkr WHERE lkr.id = allrelroles.release_id) country,"
+                    //"--(select lkr.released FROM release lkr WHERE lkr.id = allrelroles.release_id) released"
+                    ""
+                    " from"
+                    "((SELECT /*release artist main*/\"daMain\" src, 1 z, r.id release_id, r.master_id, r.title, r.country, r.released, subq.tlrid tracklist_release_id, subq.tlid tracklist_id/*, subq.tlrtitle*/, subq.artist_id from release r"
+                    " inner join ("
+                    "SELECT tl.id tlrid, tl.id tlid/*, tlt.title tlrtitle*/, tlta.id artist_id from release tl"
+                    "      inner join release_artist ra on ra.release_id = tl.id "
+                    "                 inner join artist tlta on tlta.id = ra.artist_id"
+                    "                             where tlta.id = 164447) subq on subq.tlrid = r.id"
+                    "                             group by src, release_id "
+                    " UNION "
+                    ""
+                    "SELECT /*release artist app */\"dbApp\" src, 2 z, r.id release_id, r.master_id, r.title, r.country, r.released, subq.tlrid tracklist_release_id, subq.tlid tracklist_id/*, subq.tlrtitle*/, subq.artist_id from release r "
+                    " inner join ("
+                    "SELECT tl.id tlrid, tl.id tlid/*, tlt.title tlrtitle*/, tlta.id artist_id from release tl"
+                    "      inner join release_extraartist ra on ra.release_id = tl.id "
+                    "                 inner join artist tlta on tlta.id = ra.artist_id"
+                    "                             where tlta.id = 164447) subq on subq.tlrid = r.id"
+                    "                             group by src, release_id "
+                    " UNION "
+                    ""
+                    "SELECT /*tl track artist appearance*/\"dcTA\" src, 3 z, r.id release_id, r.master_id, r.title, r.country, r.released, subq.tlrid tracklist_release_id, subq.tlid tracklist_id/*, subq.tlrtitle*/, subq.artist_id from release r "
+                    " inner join ("
+                    "SELECT tl.release_id tlrid, tl.id tlid/*, tlt.title tlrtitle*/, tlta.artist_id artist_id from tracklist tl"
+                    //"      --inner join tracklist_track tlt on tlt.tracklist_id = tl.id "
+                    "                 inner join tracklist_track_artist tlta on tlta.tracklist_id = tl.id"
+                    "                             where tlta.artist_id = 164447) subq on subq.tlrid = r.id"
+                    "                             group by src, release_id "
+                    " UNION "
+                    ""
+                    "SELECT /*tl track extra artist appearance*/\"ddTEA\" src, 4 z, r.id release_id, r.master_id, r.title, r.country, r.released, subq.tlrid tracklist_release_id, subq.tlid tracklist_id/*, subq.tlrtitle*/, subq.artist_id from release r "
+                    " inner join ("
+                    "SELECT tl.release_id tlrid, tl.id tlid/*, tlt.title tlrtitle*/, tlta.artist_id artist_id from tracklist tl"
+                    //"      --inner join tracklist_track tlt on tlt.tracklist_id = tl.id "
+                    "                 inner join tracklist_track_extraartist tlta on tlta.tracklist_id = tl.id"
+                    "                             where tlta.artist_id = 164447) subq on subq.tlrid = r.id"
+                    "                             group by src, release_id) allrelroles) "
+                    " group by release_id ORDER BY src"
+                    ""
+                    ""
+                    ""
+                    ") AS r"
+                    "                        "
+                    ""
+                    ""
+                    "    /* end release source */"
+                    "                             /* JOIN "
+                    "                             release_artist ra ON ra.release_id = r.id*/"
+                    "                             LEFT JOIN "
+                    "                             master m ON m.id = r.master_id"
+                    ""
+                    "    /* end join to master */                             "
+                    ""
+                    " /* end release source */"
+                    ""
+                    "                         /*beatnicks only as track appearance 164447 - Amaral 587064*/ "
+                    "                       WHERE r.artist_id = 164447"
+                    "                       GROUP BY IFNULL(r.master_id, -r.id) "
+                    "                       ORDER BY type,"
+                    "                                jsonyear"
+                    "                  )"
+                    "                  insider "
+                    "            /*GROUP BY mycount*/"
+                    //"";
+                    "	)"
+                    "	GROUP BY mycount ORDER BY jsonrole; ";
 
-					bool breplace;
-					//artist hint
-					breplace = query_artist.replace_string("1343431", id);
-					//query row limit
-					breplace = query_artist.replace_string("4321", pfc::toString(CLIMIT).get_ptr());
+                //bool breplace;
 
+                //artist hint
+                bool breplace = query_artist.replace_string("164447", id);
+                //query row limit
+                breplace = query_artist.replace_string("4321", pfc::toString(CLIMIT).get_ptr());
+
+                
 
 #ifdef _DEBUG
-					log_msg(query_artist);
+                log_msg(query_artist);
 #endif
 
-					p_status.set_item("Fetching pages from local database...");
+                p_status.set_item("Fetching pages from local database...");
 
-					// prepare
-					if (SQLITE_OK != (ret = sqlite3_prepare_v2(m_pDb, query_artist, -1, &stmt_query, NULL)))
-					{
-						ok_db = false;
-						m_error_msg << "Failed to prepare select: " << ret << ". ";
-						m_error_msg << sqlite3_errmsg(m_pDb);
-						break;
-					}
-					
-					// see documentation, this can return more values as success
-					if (SQLITE_DONE != (ret = sqlite3_step(stmt_query))) 
-					{
-						while (SQLITE_ROW == ret && !p_abort.is_aborting()) {
+                // prepare
+                if (SQLITE_OK != (ret = sqlite3_prepare_v2(m_pDb, query_artist, -1, &stmt_query, NULL)))
+                {
+                    ok_db = false;
+                    m_error_msg << "Failed to prepare select: " << ret << ". ";
+                    m_error_msg << sqlite3_errmsg(m_pDb);
+                    break;
+                }
+                
+                // see documentation, this can return more values as success
+                if (SQLITE_DONE != (ret = sqlite3_step(stmt_query))) 
+                {
+                    while (SQLITE_ROW == ret && !p_abort.is_aborting()) {
 
-							size_t page = 0;
+                        size_t page = 0;
 
-							const char* tmp_val = reinterpret_cast<const char*>(sqlite3_column_text(stmt_query, 0));
+                        const char* tmp_val = reinterpret_cast<const char*>(sqlite3_column_text(stmt_query, 0));
 
-							if (tmp_val) {
+                        if (tmp_val) {
 #ifdef _DEBUG
-								log_msg(tmp_val);
+                            log_msg(tmp_val);
 #endif
-								JSONParser_ptr jp = pfc::rcnew_t<JSONParser>(tmp_val);
-								results.append_single(std::move(jp));
-							}
-							else {
-								int debug = 1;
-								break;
-							}
+                            JSONParser_ptr jp = pfc::rcnew_t<JSONParser>(tmp_val);
+                            results.append_single(std::move(jp));
+                        }
+                        else {
+                            break;
+                        }
 
-							++page;
-							ret = sqlite3_step(stmt_query);
-						}
-					}
+                        ++page;
+                        ret = sqlite3_step(stmt_query);
+                    }
+                }
 
-				} while (false);
-			}
-		}
-		catch (...) {
-			pfc::string8 msg;
-			int debug = 1;
-		}
+            } while (false);
+        }
+    }
+    catch (...) {
+        m_error_msg << "Exception fetching release pages";
+    }
 
-		/*if (NULL != m_query) sqlite3_finalize(m_query);
-		if (NULL != m_pDb) sqlite3_close(m_pDb);
-		if (lib_initialized) sqlite3_shutdown();*/
+    if (NULL != stmt_query) sqlite3_finalize(stmt_query);
 
-		if (m_error_msg.get_length()) {
-			foo_discogs_exception ex;
-			ex << m_error_msg;
-			throw ex;
-		}
+    if (m_error_msg.get_length()) {
+        foo_discogs_exception ex;
+        ex << m_error_msg;
+        throw ex;
+    }
 
-		uns_results = results;
-		mtx.unlock();
-	}
-	
+    uns_results = results;
+
 	return uns_results;
 }
 
@@ -803,3 +818,5 @@ void db_fetcher::get_release(pfc::string8& id, pfc::string8& html, pfc::string8 
 		throw ex;
 	}
 }
+
+#endif

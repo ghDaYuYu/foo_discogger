@@ -10,12 +10,17 @@ extern "C" {
 #define STR_EQUAL(a,b)		::strcmp(a,b)==0
 #define STR_EQUALN(a,b,n)	::strncmp(a,b,n)==0
 
+#define USE_GRIPPERS true;
+
 typedef int(_cdecl *dll_inflateInit2)(z_stream*, int, const char*, int);
 typedef int(_cdecl *dll_inflate)(z_stream*, int);
 typedef int(_cdecl *dll_inflateEnd)(z_stream*);
 
-extern bool cfg_preview_dialog_track_map;
+typedef int(_cdecl* dll_deflateInit_)(z_stream*, int, const char*, int);
+typedef int(_cdecl* dll_deflate)(z_stream*, int);
+typedef int(_cdecl* dll_deflateEnd)(z_stream*);
 
+extern bool cfg_preview_dialog_track_map;
 extern bool cfg_find_release_dialog_idtracker;
 
 extern float cfg_find_release_colummn_showid_width;
@@ -24,6 +29,11 @@ extern bool cfg_find_release_colummn_showid;
 extern dll_inflateInit2 dllinflateInit2;
 extern dll_inflate dllinflate;
 extern dll_inflateEnd dllinflateEnd;
+
+extern dll_deflateInit_ dlldeflateInit;
+extern dll_deflate dlldeflate;
+extern dll_deflateEnd dlldeflateEnd;
+
 extern HINSTANCE hGetProcIDDLL;
 
 void load_dlls();
@@ -55,11 +65,13 @@ static const std::map<const char*, const char*, cmp_str> MONTH_NAMES = {
 
 //compensate gripp offset
 //TODO: dpi check
-static const struct rzgripp {
-	int x;
-	int y;
-	bool grip;
-} mygripp{ 22, 56, true };
+static struct rzgripp {
+	int width = 22;
+	int height = 56;
+	bool enabled = USE_GRIPPERS;
+} mygripp;
+
+extern inline bool os_apt_grippers();
 
 static const pfc::string8 match_failed("FAILED TO MATCH TRACK ORDER");
 static const pfc::string8 match_success("MATCHED TRACK ORDER");
@@ -79,26 +91,18 @@ extern pfc::string8 lowercase(pfc::string8 str);
 // Join array/vector
 extern pfc::string8 join(const pfc::array_t<pfc::string8> &in, const pfc::string8 &join_field);
 
-// Insert into vector if missing
-//extern void add_first_if_not_exists(pfc::array_t<pfc::string8> &v, pfc::string8 s);
-
 // Tokenize string
 extern int tokenize(const pfc::string8 &src, const pfc::string8 &delim, pfc::array_t<pfc::string8> &tokens, bool remove_blanks);
-//extern int tokenize(const pfc::string8 &src, const pfc::string8 &delim, pfc::array_t_ex<pfc::string8> &tokens, bool remove_blanks);
 extern int tokenize_multi(const pfc::string8 &src, const pfc::array_t<pfc::string8> &delims, pfc::array_t<pfc::string8> &tokens, bool remove_blanks);
 
 // TODO: use the titleformat filter instead?
 extern void makeFsCompliant(pfc::string8 &str);
-
 extern pfc::string8 urlEscape(const pfc::string8 &src);
-
 extern inline pfc::string8 substr(const pfc::string8 &s, size_t start, size_t count = pfc::infinite_size);
 
 // Open URL in default browser
 extern void display_url(const pfc::string8 &url);
-
 extern void list_replace_text(HWND list, int pos, const char *text);
-
 extern int myUncompress(Bytef *dest, uLongf *destLen, const Bytef *source, uLong sourceLen);
 
 template<typename T>
@@ -118,14 +122,17 @@ void erase(pfc::array_t<T> &ar, unsigned int index) {
 	ar.set_size_discard(count - 1);
 }
 
-extern void CenterWindow(HWND hwnd, CRect rcCfg, HWND hwndCenter);
+extern void CenterWindow(HWND hwnd, CRect rcCfg, HWND hwndCenter, LPARAM lefttop = 0);
 
 extern bool sortByVal(const std::pair<int, int>& a, const std::pair<int, int>& b);
 
 namespace listview_helper {
 
 	extern unsigned fr_insert_column(HWND p_listview, unsigned p_index, const char* p_name, unsigned p_width_dlu, int fmt);
-	extern unsigned insert_lvItem_tracer(HWND p_listview, unsigned p_index, bool is_release_tracker, const char* p_name, LPARAM p_param, bool offline);
+	extern unsigned insert_lvItem_tracer(HWND p_listview, unsigned p_index, bool is_release_tracker, const char* p_name, LPARAM p_param, int icon_offline = 0);
 	extern bool fr_insert_item_subitem(HWND p_listview, unsigned p_index, unsigned p_subitem, const char* p_name, LPARAM p_param);
 
 }
+
+extern const int IMAGELIST_OFFLINE_CACHE_NDX;
+extern const int IMAGELIST_OFFLINE_DB_NDX;

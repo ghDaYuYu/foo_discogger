@@ -6,7 +6,6 @@
 const char *whitespace = " \t\r\n";
 
 bool cfg_preview_dialog_track_map = true;
-
 bool cfg_find_release_dialog_idtracker = true;
 
 float cfg_find_release_colummn_showid_width = 50.0f;
@@ -15,16 +14,19 @@ bool cfg_find_release_colummn_showid = false;
 dll_inflateInit2 dllinflateInit2 = NULL;
 dll_inflate dllinflate = NULL;
 dll_inflateEnd dllinflateEnd = NULL;
+
+dll_deflateInit_ dlldeflateInit = NULL;
+dll_deflate dlldeflate = NULL;
+dll_deflateEnd dlldeflateEnd = NULL;
+
 HINSTANCE hGetProcIDDLL = NULL;
 
 const int IMAGELIST_OFFLINE_CACHE_NDX = 8;
-
+const int IMAGELIST_OFFLINE_DB_NDX = 9;
 
 inline pfc::string8 trim(const pfc::string8 &str, const char *ch) {
 	return ltrim(rtrim(str, ch), ch);
 }
-
-// TODO: get rid of reliance upon std::string
 
 inline pfc::string8 ltrim(const pfc::string8 &str, const char *ch) {
 	std::string dest((const char*)str);
@@ -106,27 +108,6 @@ int tokenize_multi(const pfc::string8 &src, const pfc::array_t<pfc::string8> &de
 	tokens.append_single(tmp);
 	return (int)tokens.get_size();
 }
-
-/*int tokenize(const pfc::string8 &src, const pfc::string8 &delim, pfc::array_t_ex<pfc::string8> &tokens, bool remove_blanks) {
-	size_t pos;
-	tokens.force_reset();
-	pfc::string8 tmp = src;
-	size_t dlength = delim.get_length();
-	while ((pos = tmp.find_first(delim)) != pfc::infinite_size) {
-		pfc::string8 token = substr(tmp, 0, pos);
-		if (remove_blanks) {
-			token = trim(token);
-		}
-		tokens.append_single(token);
-		tmp = substr(tmp, pos + dlength, tmp.length() - 1);
-	}
-	if (remove_blanks) {
-		tmp = trim(tmp);
-	}
-	tokens.append_single(tmp);
-	return (int)tokens.get_size();
-}*/
-
 
 void makeFsCompliant(pfc::string8 &str) {
 	for (t_size n = 0; n < str.get_length(); n++)
@@ -224,27 +205,6 @@ pfc::string8 substr(const pfc::string8 &s, size_t start, size_t count) {
 	return pfc::string8(s.get_ptr() + start, count);
 }
 
-void add_first_if_not_exists(pfc::array_t<pfc::string8> &v, pfc::string8 s) {
-	bool found = false;
-	for (size_t i = 0; i < v.get_size() && !found; i++) {
-		if (v[i] == s) {
-			found = true;
-		}
-	}
-	if (!found) {
-		if (v.get_size()) {
-			v.increase_size(1);
-			for (size_t i = v.get_size() - 1; i >= 0; i++) {
-				v[i + 1] = std::move(v[i]);
-			}
-			v[0] = s;
-		}
-		else {
-			v.append_single(s);
-		}
-	}
-}
-
 void list_replace_text(HWND list, int pos, const char *text) {
 	pfc::stringcvt::string_os_from_utf8 textOS(text);
 	LV_ITEM lvi;
@@ -252,8 +212,6 @@ void list_replace_text(HWND list, int pos, const char *text) {
 	lvi.pszText = const_cast<TCHAR*>(textOS.get_ptr());
 	lvi.mask = LVIF_TEXT;
 	ListView_SetItem(list, &lvi);
-}
-
 
 void load_dlls()
 {
@@ -265,6 +223,7 @@ void load_dlls()
 	dllinflateInit2 = (dll_inflateInit2)GetProcAddress(hGetProcIDDLL, "inflateInit2_");
 	dllinflate = (dll_inflate)GetProcAddress(hGetProcIDDLL, "inflate");
 	dllinflateEnd = (dll_inflateEnd)GetProcAddress(hGetProcIDDLL, "inflateEnd");
+
 }
 
 
@@ -369,117 +328,17 @@ void ensure_directory_exists(const char* dir) {
 	}
 }
 
-bool sortByVal(const std::pair<int, int>& a, const std::pair<int, int>& b)
-{
-	if (a.second == b.second)
-		return a.first > b.first;
-	return a.second < b.second;
+//grippers on W11...
+bool os_apt_grippers() {
+	OSVERSIONINFO ver = { sizeof(ver) };
+	WIN32_OP_D(GetVersionEx(&ver));
+	if (ver.dwMajorVersion == 10 && ver.dwBuildNumber >= 22000)
+		return false;
+	else
+		return true;
 }
 
-namespace listview_helper {
-
-	unsigned fr_insert_column(HWND p_listview, unsigned p_index, const char* p_name, unsigned p_width_dlu, int fmt)
-	{
-
-		int colcount = ListView_GetColumnCount(p_listview);
-		pfc::stringcvt::string_os_from_utf8 os_string_temp(p_name);
-		RECT rect = { 0, 0, static_cast<LONG>(p_width_dlu), 0 };
-		MapDialogRect(GetParent(p_listview), &rect);
-		LVCOLUMNW data = {};
-		data.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_FMT | LVCF_SUBITEM;
-		data.fmt = fmt;
-		data.cx = rect.right;
-		data.pszText = const_cast<TCHAR*>(os_string_temp.get_ptr());
-		data.iSubItem = colcount/*p_index*/;
-		LRESULT ret = uSendMessage(p_listview, LVM_INSERTCOLUMNW, colcount/*p_index*/, (LPARAM)&data);
-		if (ret < 0) return ~0;
-		else return (unsigned)ret;
-	}
-
-	unsigned fr_insert_item(HWND p_listview, unsigned p_index, bool is_release_tracker, const char* p_name, LPARAM p_param)
-	{
-		if (p_index == ~0) p_index = ListView_GetItemCount(p_listview);
-		LVITEM item = {};
-		pfc::stringcvt::string_os_from_utf8 os_string_temp(p_name);
-		item.mask = LVIF_TEXT | LVIF_PARAM;
-		item.iItem = p_index;
-		item.lParam = p_param;
-		item.pszText = const_cast<TCHAR*>(os_string_temp.get_ptr());
-
-		if (is_release_tracker) {
-			item.mask |= LVIF_STATE;
-			item.stateMask = LVIS_OVERLAYMASK;
-			item.state = INDEXTOOVERLAYMASK(8);
-		}
-
-		LRESULT ret = SendMessage(p_listview, LVM_INSERTITEM, 0, (LPARAM)&item);
-
-		if (ret < 0) return ~0;
-		else return (unsigned)ret;
-	}
-
-	bool fr_insert_item_subitem(HWND p_listview, unsigned p_index, unsigned p_subitem, const char* p_name, LPARAM p_param)
-	{
-		return set_item_text(p_listview, p_index, p_subitem, p_name);
-	}
-}
-
-bool sortByVal(const std::pair<int, int>& a, const std::pair<int, int>& b)
-{
-	if (a.second == b.second)
-		return a.first > b.first;
-	return a.second < b.second;
-}
-
-namespace listview_helper {
-
-	unsigned fr_insert_column(HWND p_listview, unsigned p_index, const char* p_name, unsigned p_width_dlu, int fmt)
-	{
-
-		int colcount = ListView_GetColumnCount(p_listview);
-		pfc::stringcvt::string_os_from_utf8 os_string_temp(p_name);
-		RECT rect = { 0, 0, static_cast<LONG>(p_width_dlu), 0 };
-		MapDialogRect(GetParent(p_listview), &rect);
-		LVCOLUMNW data = {};
-		data.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_FMT | LVCF_SUBITEM;
-		data.fmt = fmt;
-		data.cx = rect.right;
-		data.pszText = const_cast<TCHAR*>(os_string_temp.get_ptr());
-		data.iSubItem = colcount/*p_index*/;
-		LRESULT ret = uSendMessage(p_listview, LVM_INSERTCOLUMNW, colcount/*p_index*/, (LPARAM)&data);
-		if (ret < 0) return ~0;
-		else return (unsigned)ret;
-	}
-
-	unsigned fr_insert_item(HWND p_listview, unsigned p_index, bool is_release_tracker, const char* p_name, LPARAM p_param)
-	{
-		if (p_index == ~0) p_index = ListView_GetItemCount(p_listview);
-		LVITEM item = {};
-		pfc::stringcvt::string_os_from_utf8 os_string_temp(p_name);
-		item.mask = LVIF_TEXT | LVIF_PARAM;
-		item.iItem = p_index;
-		item.lParam = p_param;
-		item.pszText = const_cast<TCHAR*>(os_string_temp.get_ptr());
-
-		if (is_release_tracker) {
-			item.mask |= LVIF_STATE;
-			item.stateMask = LVIS_OVERLAYMASK;
-			item.state = INDEXTOOVERLAYMASK(8);
-		}
-
-		LRESULT ret = SendMessage(p_listview, LVM_INSERTITEM, 0, (LPARAM)&item);
-
-		if (ret < 0) return ~0;
-		else return (unsigned)ret;
-	}
-
-	bool fr_insert_item_subitem(HWND p_listview, unsigned p_index, unsigned p_subitem, const char* p_name, LPARAM p_param)
-	{
-		return set_item_text(p_listview, p_index, p_subitem, p_name);
-	}
-}
-
-void CenterWindow(HWND hwnd, CRect rcCfg, HWND hwndCenter)
+void CenterWindow(HWND hwnd, CRect rcCfg, HWND hwndCenter, LPARAM lparamLeftTop)
 {
 	// Determine owner window to center against.
 	DWORD dwStyle = GetWindowLong(hwnd, GWL_STYLE);
@@ -531,22 +390,38 @@ void CenterWindow(HWND hwnd, CRect rcCfg, HWND hwndCenter)
 	int nDlgWidth = rcDlg.right - rcDlg.left;
 	int nDlgHeight = rcDlg.bottom - rcDlg.top;
 
+	POINT point;
+	point.x = GET_X_LPARAM(lparamLeftTop);
+	point.y = GET_Y_LPARAM(lparamLeftTop);
+
 	// Find dialog's upper left based on rcCenter.
-	int xLeft = (rcCenter.left + rcCenter.right) / 2 - nDlgWidth / 2;
-	int yTop = (rcCenter.top + rcCenter.bottom) / 2 - nDlgHeight / 2;
+	int xLeft = point.x;
+	int yTop = point.y;
 
-	// If the dialog is outside the screen, move it inside.
-	if (xLeft < rcArea.left)
-		xLeft = rcArea.left;
-	else if (xLeft + nDlgWidth > rcArea.right)
-		xLeft = rcArea.right - nDlgWidth;
+	if (xLeft == 0 && yTop == 0) {
+		xLeft = (rcCenter.left + rcCenter.right) / 2 - nDlgWidth / 2;
+		yTop = (rcCenter.top + rcCenter.bottom) / 2 - nDlgHeight / 2;
 
-	if (yTop < rcArea.top)
-		yTop = rcArea.top;
-	else if (yTop + nDlgHeight > rcArea.bottom)
-		yTop = rcArea.bottom - nDlgHeight;
+		if (xLeft < rcArea.left)
+			xLeft = rcArea.left;
+		else if (xLeft + nDlgWidth > rcArea.right)
+			xLeft = rcArea.right - nDlgWidth;
+
+		if (yTop < rcArea.top)
+			yTop = rcArea.top;
+		else if (yTop + nDlgHeight > rcArea.bottom)
+			yTop = rcArea.bottom - nDlgHeight;
+
+		int grippX = mygripp.enabled ? mygripp.width : 0;
+		int grippY = mygripp.enabled ? mygripp.height : 0;
+		SetWindowPos(hwnd, core_api::get_main_window(), xLeft - grippX / 2, yTop - grippY / 2, nDlgWidth + grippX, nDlgHeight + grippY, /*SWP_NOSIZE |*/ SWP_NOZORDER | SWP_NOACTIVATE);
+	}
+	else {
+		SetWindowPos(hwnd, core_api::get_main_window(), xLeft, yTop, nDlgWidth, nDlgHeight, /*SWP_NOSIZE |*/ SWP_NOZORDER | SWP_NOACTIVATE);
+	}
+	
 	// Map screen coordinates to child coordinates.
-	SetWindowPos(hwnd, core_api::get_main_window(), xLeft - mygripp.x/2, yTop - mygripp.y/2, nDlgWidth + mygripp.x, nDlgHeight + mygripp.y, /*SWP_NOSIZE |*/ SWP_NOZORDER | SWP_NOACTIVATE);
+	
 }
 
 bool sortByVal(const std::pair<int, int>& a, const std::pair<int, int>& b)
@@ -577,7 +452,7 @@ namespace listview_helper {
 	}
 
 	unsigned insert_lvItem_tracer(HWND p_listview, unsigned p_index,
-		bool is_release_tracker, const char* p_name, LPARAM p_param, bool offline)
+		bool is_release_tracker, const char* p_name, LPARAM p_param, int icon_offline)
 	{
 		if (p_index == ~0) p_index = ListView_GetItemCount(p_listview);
 		LVITEM item = {};
@@ -585,15 +460,13 @@ namespace listview_helper {
 		item.mask = LVIF_TEXT | LVIF_PARAM | LVIF_IMAGE;
 		item.iItem = p_index;
 		item.lParam = p_param;
-		item.iImage = offline ? IMAGELIST_OFFLINE_CACHE_NDX : 0;
+		item.iImage = icon_offline;
 		item.pszText = const_cast<TCHAR*>(os_string_temp.get_ptr());
 
 		if (is_release_tracker) {
 			item.mask |= LVIF_STATE;
-			//item.stateMask = LVIS_OVERLAYMASK;
-			//item.state = INDEXTOOVERLAYMASK(8);
-			//item.state =  LVIS_GLOW;
-			//item.stateMask = LVIS_GLOW;
+			item.state =  LVIS_GLOW;
+			item.stateMask = LVIS_GLOW;
 		}
 
 		LRESULT ret = SendMessage(p_listview, LVM_INSERTITEM, 0, (LPARAM)&item);

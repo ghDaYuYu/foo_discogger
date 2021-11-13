@@ -3,9 +3,24 @@
 #include "../SDK/foobar2000.h"
 #include "guids_discogger.h"
 #include "foo_discogs.h"
-#include "tag_mappings_dialog.h"
 
-#define NUM_TABS		6
+#include "version.h"
+
+#ifdef DC_DB
+
+#define NUM_TABS 7
+
+#define CONF_FIND_RELEASE_TAB	0
+#define CONF_MATCHING_TAB		1
+#define CONF_TAGGING_TAB		2
+#define CONF_CACHING_TAB		3
+#define CONF_DB_TAB				4
+#define CONF_ART_TAB			5
+#define CONF_OATH_TAB			6
+
+#else
+
+#define NUM_TABS 6
 
 #define CONF_FIND_RELEASE_TAB	0
 #define CONF_MATCHING_TAB		1
@@ -13,6 +28,8 @@
 #define CONF_CACHING_TAB		3
 #define CONF_ART_TAB			4
 #define CONF_OATH_TAB			5
+
+#endif
 
 class tab_entry
 {
@@ -59,7 +76,6 @@ public:
 	bool service_query(service_ptr& p_out, const GUID& p_guid) override;
 };
 
-
 class CConfigurationDialog : public MyCDialogImpl<CConfigurationDialog>, public CMessageFilter, public preferences_page_instance
 {
 private:
@@ -69,9 +85,6 @@ private:
 	pfc::array_t<tab_entry> tab_table;
 	foo_discogs_conf conf;
 	foo_discogs_conf conf_dlg_edit;
-
-	HWND album_art_dir_edit;
-	HWND album_art_file_edit;
 
 	bool original_parsing = false;
 	bool original_skip_video = false;
@@ -85,6 +98,14 @@ private:
 
 	static INT_PTR WINAPI caching_dialog_proc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 	INT_PTR WINAPI on_caching_dialog_message(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+#ifdef DC_DB
+
+	static INT_PTR WINAPI db_dialog_proc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+	INT_PTR WINAPI on_db_dialog_message(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+#endif // DC_DB
+
 
 	static INT_PTR WINAPI matching_dialog_proc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 	INT_PTR WINAPI on_matching_dialog_message(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -101,6 +122,7 @@ private:
 	void init_searching_dialog(HWND wnd);
 	void init_matching_dialog(HWND wnd);
 	void init_caching_dialog(HWND wnd);
+	void init_db_dialog(HWND wnd);
 	void init_tagging_dialog(HWND wnd);
 	void init_art_dialog(HWND wnd);
 	void init_oauth_dialog(HWND wnd);
@@ -108,6 +130,7 @@ private:
 
 	void save_searching_dialog(HWND wnd, bool dlgbind);
 	void save_caching_dialog(HWND wnd, bool dlgbind);
+	void save_db_dialog(HWND wnd, bool dlgbind);
 	void save_matching_dialog(HWND wnd, bool dlgbind);
 	void save_tagging_dialog(HWND wnd, bool dlgbind);
 	void save_art_dialog(HWND wnd, bool dlgbind);
@@ -115,6 +138,7 @@ private:
 
 	bool cfg_searching_has_changed();
 	bool cfg_caching_has_changed();
+	bool cfg_db_has_changed();
 	bool cfg_matching_has_changed();
 	bool cfg_tagging_has_changed();
 	bool cfg_art_has_changed();
@@ -123,6 +147,10 @@ private:
 	void on_test_oauth(HWND wnd);
 	void on_authorize_oauth(HWND wnd);
 	void on_generate_oauth(HWND wnd);
+
+#ifdef DC_DB
+	void on_test_db(HWND wnd, pfc::string8 dbpath);
+#endif // DC_DB
 
 	bool HasChanged();
 	void OnChanged();
@@ -192,5 +220,5 @@ public:
 
 	const char* get_name() { return "discogger Tagger";	}
 	GUID get_guid() { return guid_pref_page; }
-	GUID get_parent_guid() { return guid_tagging; }
+	GUID get_parent_guid() { return guid_tagging /*sdk guid*/; }
 };

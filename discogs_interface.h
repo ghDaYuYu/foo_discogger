@@ -13,6 +13,43 @@
 using namespace Discogs;
 namespace ol = Offline;
 
+class SkipMng {
+public:
+	enum {
+		SKIP_RELEASE_DLG_MATCHED		= 1 << 0,
+		SKIP_FIND_RELEASE_DLG_IDED		= 1 << 1,
+		SK�P_PREVIEW_DLG				= 1 << 2,
+		SKIP_LOAD_RELEASES_TASK_IDED	= 1 << 3,
+		SKIP_4							= 1 << 4,
+		SKIP_5							= 1 << 5,
+		SKIP_6							= 1 << 6,
+		SKIP_7							= 1 << 7
+	};
+	SkipMng() = default;
+	constexpr SkipMng(int flags) : value(flags) {}
+
+	constexpr bool canSkipReleaseDlgMatched() const {
+		bool precond = false;
+
+		return precond && (value & SKIP_RELEASE_DLG_MATCHED);
+	}
+	constexpr bool canSkipFindReleaseDlgIded() const {
+		bool precond = false;
+		return precond && (value & SKIP_FIND_RELEASE_DLG_IDED);
+	}
+	constexpr bool canSkipPreviewDlg() const {
+		bool precond = false;
+		return precond && (value & SK�P_PREVIEW_DLG);
+	}
+	constexpr bool canSkipLoadReleasesIded() const {
+		bool precond = false;
+		return precond && (value & SKIP_LOAD_RELEASES_TASK_IDED);
+	}
+
+private:
+	int value;
+};
+
 class DiscogsInterface
 {
 private:
@@ -39,16 +76,6 @@ private:
 		return cache_artists->exists(artist_id) ? cache_artists->get(artist_id) : nullptr;
 	}
 
-	inline Artist_ptr get_artist_from_offline_cache(const pfc::string8& artist_id) {
-		if (offline_cache_artists->exists(artist_id)) {
-			json_t* offline_cache_artist = offline_cache_artists->get(artist_id);
-			Artist_ptr artist_ptr(new Artist(artist_id));
-			parseArtist(artist_ptr.get(), offline_cache_artist);
-			return artist_ptr;
-		}
-		return nullptr;
-	}
-
 	inline void add_release_to_cache(Release_ptr &release) {
 		cache_releases->put(release->id, release);
 	}
@@ -60,7 +87,7 @@ private:
 	inline void add_artist_to_cache(Artist_ptr &artist) {
 		cache_artists->put(artist->id, artist);
 	}
-
+	
 	inline void assert_release_id_not_deleted(const pfc::string8 &release_id) {
 		if (cache_deleted_releases->exists(release_id)) {
 			http_404_exception ex;
@@ -78,7 +105,10 @@ public:
 
 	pfc::array_t<JSONParser_ptr> get_all_pages(pfc::string8 &url, pfc::string8 params, abort_callback &p_abort);
 	pfc::array_t<JSONParser_ptr> get_all_pages(pfc::string8 &url, pfc::string8 params, abort_callback &p_abort, const char *msg, threaded_process_status &p_status);
-	pfc::array_t<JSONParser_ptr> get_all_pages_offline_cache(pfc::string8 &id, pfc::string8 params, abort_callback &p_abort, const char *msg, threaded_process_status &p_status);
+
+	pfc::array_t<JSONParser_ptr> get_all_pages_offline_cache(ol::GetFrom gpfFrom, pfc::string8 &id, pfc::string8 &secid, pfc::string8 params, abort_callback &p_abort, const char *msg, threaded_process_status &p_status);
+	void get_artist_offline_cache(pfc::string8& id, pfc::string8& html, abort_callback& p_abort, const char* msg, threaded_process_status& p_status);
+	void get_release_offline_cache(pfc::string8& id, pfc::string8& secid, pfc::string8& html, abort_callback& p_abort, const char* msg, threaded_process_status& p_status);
 
 	DiscogsInterface() {
 		fetcher = new Fetcher();
@@ -133,9 +163,6 @@ public:
 		cache_artists->set_max_size(x);
 	}
 
-	inline void add_artist_to_offline_cache(pfc::string8 id, json_t* artist) {
-		offline_cache_artists->put(id, artist);
-	}
 	inline void offline_cache_save(pfc::string8 path, json_t* root) {
 		offline_cache_artists->FDumpToFolder(path, root);
 	}
@@ -145,9 +172,11 @@ public:
 
 		
 	void search_artist(const pfc::string8 &name, pfc::array_t<Artist_ptr> &exact_matches, pfc::array_t<Artist_ptr> &other_matches, threaded_process_status &p_status, abort_callback &p_abort);
-
+	
 	Release_ptr get_release(const pfc::string8 &release_id, bool bypass_is_cache = true, bool bypass = false);
-	Release_ptr get_release(const pfc::string8 &release_id, threaded_process_status &p_status, abort_callback &p_abort, bool bypass_cache = false, bool throw_all = false);
+	Release_ptr get_release(const pfc::string8& release_id, threaded_process_status& p_status, abort_callback& p_abort, bool bypass_cache = false, bool throw_all = false);
+	Release_ptr get_release(const pfc::string8 &release_id, const pfc::string8& offline_artist_id, threaded_process_status &p_status, abort_callback &p_abort, bool bypass_cache = false, bool throw_all = false);
+	Release_ptr get_release_DB(const pfc::string8 &release_id, const pfc::string8& offline_artist_id, threaded_process_status &p_status, abort_callback &p_abort, bool bypass_cache = false, bool throw_all = false, db_fetcher* dbfetcher = nullptr);
 	MasterRelease_ptr get_master_release(const pfc::string8 &master_id, bool bypass_cache = false);
 	MasterRelease_ptr get_master_release(const pfc::string8 &master_id, threaded_process_status &p_status, abort_callback &p_abort, bool bypass_cache = false, bool throw_all = false);
 	Artist_ptr get_artist(const pfc::string8 &artist_id, bool bypass_cache = false);

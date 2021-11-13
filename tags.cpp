@@ -7,7 +7,7 @@
 // {F932A0A3-554C-4F4C-B908-7A3758ED2620}
 static const GUID guid_cfg_tag_mappings = {0xf932a0a3, 0x554c, 0x4f4c, {0xb9, 0x8, 0x7a, 0x37, 0x58, 0xed, 0x26, 0x20}};
 
-cfg_tag_mappings_list_type cfg_tag_mappings(guid_cfg_tag_mappings);
+cfg_tag_mapping_list_type cfg_tag_mappings(guid_cfg_tag_mappings);
 
 static tag_mapping_entry default_tag_mappings[] = {
 	// tagname | write | update | freezewrite | freezeupdate | freeztagname | formattingstring
@@ -123,7 +123,7 @@ pfc::list_t<tag_mapping_entry> * copy_default_tag_mappings() {
 	return mappings;
 }
 
-void set_tag_mappings(pfc::list_t<tag_mapping_entry> *mappings) {
+void set_cfg_tag_mappings(pfc::list_t<tag_mapping_entry> *mappings) {
 	cfg_tag_mappings.remove_all();
 	for (size_t i = 0; i < mappings->get_count(); i++) {
 		cfg_tag_mappings.add_item(mappings->get_item(i));

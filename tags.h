@@ -40,17 +40,13 @@ public:
 	}
 
 	bool equals(const tag_mapping_entry& a) {
-		bool rbres = true;
-		if (stricmp_utf8(tag_name, a.tag_name) ||
-			enable_write != a.enable_write ||
-			enable_update != a.enable_update ||
-			freeze_write != a.freeze_write ||
-			freeze_update != a.freeze_update ||
-			freeze_tag_name != a.freeze_tag_name ||
-			stricmp_utf8(pfc::string8(formatting_script), pfc::string8(a.formatting_script)))
-			return false;
-		else
-			return true;
+		return (STR_EQUAL(tag_name, a.tag_name) &&
+			enable_write == a.enable_write &&
+			enable_update == a.enable_update &&
+			freeze_write == a.freeze_write &&
+			freeze_update == a.freeze_update &&
+			freeze_tag_name == a.freeze_tag_name &&
+			STR_EQUAL(formatting_script, a.formatting_script));
 	}
 };
 
@@ -86,19 +82,18 @@ FB2K_STREAM_WRITER_OVERLOAD(tag_mapping_entry) {
 	return stream;
 }
 
-
-typedef pfc::list_t<tag_mapping_entry> tag_mappings_list_type;
-typedef cfg_objList<tag_mapping_entry> cfg_tag_mappings_list_type;
+typedef pfc::list_t<tag_mapping_entry> tag_mapping_list_type;
+typedef cfg_objList<tag_mapping_entry> cfg_tag_mapping_list_type;
 
 extern void init_tag_mappings();
 extern void init_default_tag_mappings();
 extern pfc::list_t<tag_mapping_entry> * copy_tag_mappings();
 extern pfc::list_t<tag_mapping_entry> * copy_default_tag_mappings();
-extern void set_tag_mappings(pfc::list_t<tag_mapping_entry> *tag_mappings);
-extern int find_tag(tag_mappings_list_type * mappings, const char * tag);
+extern void set_cfg_tag_mappings(pfc::list_t<tag_mapping_entry> *tag_mappings);
+extern int find_tag(tag_mapping_list_type * mappings, const char * tag);
 
 extern pfc::string8 get_default_tag(const pfc::string8 &);
 
-extern cfg_tag_mappings_list_type cfg_tag_mappings;
+extern cfg_tag_mapping_list_type cfg_tag_mappings;
 
 #define TAGS cfg_tag_mappings

@@ -1,8 +1,15 @@
 #pragma once
 
+#include "version.h"
+
 #pragma warning(disable:4996)
 
 #include "discogs_interface.h"
+
+//#ifdef DC_DB
+#include "discogs_db_interface.h"
+//#endif // DC_DB
+
 #include "tags.h"
 #include "error_manager.h"
 #include "string_encoded_array.h"
@@ -13,14 +20,17 @@ using namespace Discogs;
 const UINT WM_CUSTOM_ANV_CHANGED = WM_USER + 100;
 
 class CFindReleaseDialog;
+class CFindReleaseArtistDialog;
 class CTrackMatchingDialog;
 class CPreviewTagsDialog;
-class CNewTagMappingsDialog;
+class CTagMappingDialog;
+class CTagCreditDialog;
 class CConfigurationDialog;
 class CUpdateArtDialog;
 class CUpdateTagsDialog;
 class contextmenu_discogs;
 class process_release_callback;
+class process_aside_release_callback;
 class get_artist_process_callback;
 class search_artist_process_callback;
 class edit_complete;
@@ -39,13 +49,27 @@ public:
 		ALBUM_ART_PAGE,
 	};
 
+	HICON icon = nullptr;
+
+#ifndef absdlg
+
 	CFindReleaseDialog *find_release_dialog = nullptr;
+	CFindReleaseArtistDialog* find_release_artist_dialog = nullptr;
 	CTrackMatchingDialog *track_matching_dialog = nullptr;
 	CPreviewTagsDialog *preview_tags_dialog = nullptr;
-	CNewTagMappingsDialog *tag_mappings_dialog = nullptr;
+	CTagMappingDialog *tag_mappings_dialog = nullptr;
+	CTagCreditDialog *tag_credit_dialog = nullptr;
 	CConfigurationDialog *configuration_dialog = nullptr;
-	CUpdateArtDialog *update_art_dialog = nullptr;
 	CUpdateTagsDialog *update_tags_dialog = nullptr;
+#else
+	CWindow* find_release_dialog = nullptr;
+	CWindow* track_matching_dialog = nullptr;
+	CWindow* preview_tags_dialog = nullptr;
+	CWindow* tag_mappings_dialog = nullptr;
+	CWindow* configuration_dialog = nullptr;
+	CWindow* update_art_dialog = nullptr;
+	CWindow* update_tags_dialog = nullptr;
+#endif
 	size_t locked_operation = 0;
 
 	void write_album_art(Release_ptr &release,
@@ -74,8 +98,6 @@ public:
 	bool some_item_has_tag(const metadb_handle_list items, const char *tag);
 
 	bool file_info_get_tag(const metadb_handle_ptr item, file_info &finfo, const char* tag, pfc::string8 &value, const char *backup_tag=nullptr);
-
-	const ReleaseDisc_ptr& file_info_get_discogs_disc(file_info &finfo, const metadb_handle_ptr item, const Release_ptr &release, size_t &track_num);
 	const ReleaseDisc_ptr& get_discogs_disc(const Release_ptr &release, size_t pos, size_t &track_num);
 };
 

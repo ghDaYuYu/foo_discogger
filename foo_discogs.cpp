@@ -1,6 +1,6 @@
 #include "stdafx.h"
 
-#include "foo_discogs.h"
+#include "libPPUI/gdiplus_helpers.h"
 
 #include "utils.h"
 #include "tags.h"
@@ -9,35 +9,52 @@
 #include "track_matching_dialog.h"
 #include "preview_dialog.h"
 #include "tag_mappings_dialog.h"
-#include "update_art_dialog.h"
+#include "tag_mappings_credits_dlg.h"
 #include "update_tags_dialog.h"
 #include "configuration_dialog.h"
 #include "find_release_dialog.h"
+
 #include "track_matching_utils.h"
 
+#include "foo_discogs.h"
 
 using namespace std;
 
 foo_discogs *g_discogs = nullptr;
 DiscogsInterface *discogs_interface = nullptr;
+HICON g_icon = nullptr;
+
+#ifdef DC_DB
+Discogs_DB_Interface* discogs_db_interface = nullptr;
+#endif // DC_DB
 
 #define MIN(a,b) ((a)<(b)?(a):(b))
 
 static const char * ERROR_IMAGE_NUMBER_REQUIRED = "Cannot save multiple images with the same name. Use %IMAGE_NUMBER% when forming image names.";
 
-
 class initquit_discogs : public initquit
 {
 	virtual void on_init() override {
 		console::print("Loading");
+		
 		init_conf();
-		discogs_interface = new DiscogsInterface(); 
+		discogs_interface = new DiscogsInterface();
+#ifdef DC_DB
+		discogs_db_interface = new Discogs_DB_Interface();
+#endif // DC_DB
+
 		g_discogs = new foo_discogs();
 		load_dlls();
 	}
 	virtual void on_quit() override {
 		console::print("Quitting");
-		delete g_discogs;
+		DeleteObject(g_discogs->icon);
+		delete g_discogs;				//(1)
+		delete discogs_interface;		//(2)
+#ifdef DC_DB
+		delete discogs_db_interface;
+#endif // DC_DB
+
 		unload_dlls();
 	}
 };
@@ -45,7 +62,10 @@ class initquit_discogs : public initquit
 static initquit_factory_t<initquit_discogs> foo_initquit;
 
 foo_discogs::foo_discogs() {
-	init_conf();
+
+	CSize s(48, 48);
+	icon = GdiplusLoadPNGIcon(IDB_PNG_DC_48, s);
+
 	init_tag_mappings();
 	discogs_interface->fetcher->set_oauth(CONF.oauth_token, CONF.oauth_token_secret);
 
@@ -53,29 +73,52 @@ foo_discogs::foo_discogs() {
 	gave_oauth_warning = false;
 }
 
+#ifndef absdlg
+
 foo_discogs::~foo_discogs() {
 	if (find_release_dialog)  {
 		find_release_dialog->destroy();
 	}
-	if (track_matching_dialog) {
-		track_matching_dialog->destroy();
-	}
+	if (find_release_artist_dialog)
+		find_release_artist_dialog->DestroyWindow();
+
 	if (tag_mappings_dialog) {
 		tag_mappings_dialog->destroy();
 	}
-	//if (configuration_dialog) {
-	//	configuration_dialog->destroy();
-	//}
-	if (update_art_dialog) {
-		update_art_dialog->destroy();
+	if (tag_credit_dialog) {
+		tag_credit_dialog->destroy();
 	}
-	if (update_tags_dialog) {
-		update_tags_dialog->destroy();
-	}
+
 	if (preview_tags_dialog) {
 		preview_tags_dialog->destroy();
 	}
 }
+
+#else
+foo_discogs::~foo_discogs() {
+	if (find_release_dialog) {
+		find_release_dialog->DestroyWindow();
+	}
+	if (track_matching_dialog) {
+		track_matching_dialog->DestroyWindow();
+	}
+	if (tag_mappings_dialog) {
+		tag_mappings_dialog->DestroyWindow();
+	}
+
+	if (update_art_dialog) {
+		update_art_dialog->DestroyWindow();
+	}
+	if (update_tags_dialog) {
+		update_tags_dialog->DestroyWindow();
+	}
+	if (preview_tags_dialog) {
+		preview_tags_dialog->DestroyWindow();
+	}
+}
+
+#endif
+
 
 void foo_discogs::item_display_web_page(const metadb_handle_ptr item, discog_web_page web_page) {
 	file_info_impl finfo;
@@ -178,29 +221,6 @@ bool foo_discogs::some_item_has_tag(const metadb_handle_list items, const char*t
 	return false;
 }
 
-
-const ReleaseDisc_ptr& foo_discogs::file_info_get_discogs_disc(file_info &finfo, const metadb_handle_ptr item, const Release_ptr &release, size_t &track_num) {
-	/*pfc::string8 dt_index;
-	if (g_discogs->file_info_get_tag(item, finfo, TAG_DISCOGS_TRACKLIST_INDEX, dt_index)) {
-		int pos = dt_index.find_first('/');
-		if (pos != pfc::infinite_size) {
-			int dt_index_i = std::stoi(substr(dt_index, pos + 1).get_ptr());
-			int tr_number = std::stoi(substr(dt_index, 0, pos).get_ptr());
-			if (dt_index_i == release->discogs_tracklist_count) {
-				for (size_t i = 0; i < release->discs.get_size(); i++) {
-					for (size_t j = 0; j < release->discs[i]->tracks.get_size(); j++) {
-						if (tr_number == release->discs[i]->tracks[j]->discogs_tracklist_index) {
-							track_num = j;
-							return release->discs[i];
-						}
-					}
-				}
-			}
-		}
-	}*/
-	throw foo_discogs_exception("Unable to map file to Discogs tracklist.");
-}
-
 const ReleaseDisc_ptr& foo_discogs::get_discogs_disc(const Release_ptr &release, size_t index, size_t &disc_track_index) {
 	for (size_t i = 0; i < release->discs.get_size(); i++) {
 		if (index < release->discs[i]->tracks.get_size()) {
@@ -211,10 +231,6 @@ const ReleaseDisc_ptr& foo_discogs::get_discogs_disc(const Release_ptr &release,
 	}
 	throw foo_discogs_exception("Unable to map index to Discogs tracklist.");
 }
-
-// TODO: ....
-// expand all ability for searching of sub releases?
-
 
 void foo_discogs::save_album_art(Release_ptr &release, metadb_handle_ptr item,
 	art_download_attribs ada, pfc::array_t<GUID> my_album_art_ids, bit_array_bittable& saved_mask,
@@ -255,10 +271,8 @@ void foo_discogs::save_album_art(Release_ptr &release, metadb_handle_ptr item,
 	}
 
 	pfc::string8 last_path = "";
-
 	size_t count = 0;
-	size_t offset = 0; //always 0 for album art
-	
+	size_t offset = 0; //to keep similarity to artist save
 	std::vector<bool> vwrite_it(release->images.get_size(), ada.write_it);
 	std::vector<bool> voverwrite_it(release->images.get_size(), ada.overwrite_it);
 	std::vector<bool> vembed_it(release->images.get_size(), ada.embed_it);
@@ -294,7 +308,29 @@ void foo_discogs::save_album_art(Release_ptr &release, metadb_handle_ptr item,
 
 			if (my_album_art_ids.size() > i + offset) {
 				const char* art_id_name = album_art_ids::name_of(my_album_art_ids[i + offset]);
-				file = art_id_name == nullptr ? "" : pfc::string8(art_id_name);
+				size_t postfix = 0;
+				if (art_id_name == nullptr) {
+					art_id_name = template_art_ids::name_of(my_album_art_ids[i + offset]);
+					if (art_id_name != nullptr) {
+						
+						for (size_t walk_vw = 0; walk_vw < i + offset; walk_vw++) {
+							if (vwrite_it[walk_vw]) {
+								if (pfc::guid_compare(my_album_art_ids[walk_vw + offset], my_album_art_ids[i + offset]) == 0)
+									postfix++;
+							}
+						}
+
+					}
+				}
+
+				if (art_id_name == nullptr) {
+					file = "";
+				}
+				else {
+					file << art_id_name;
+					if (postfix > 0)
+						file << "_" << postfix;
+				}
 
 				pfc::chain_list_v2_t<pfc::string8> splitfile;
 				pfc::splitStringByChar(splitfile, file.get_ptr(), ' ');
@@ -323,7 +359,6 @@ void foo_discogs::save_album_art(Release_ptr &release, metadb_handle_ptr item,
 			for (size_t i = 0; i < done_files.get_count(); i++) {
 				if (done_files[i].equals(path.get_ptr())) {
 					write_this = false;
-					//todo: recheck commented continue;
 				}
 			}
 			if (write_this) {
@@ -339,9 +374,13 @@ void foo_discogs::save_album_art(Release_ptr &release, metadb_handle_ptr item,
 			continue;
 		}
 
+
 		MemoryBlock buffer;
+		//g_discogs->fetch_image(buffer, release->images[i], p_abort);
+
 		if (write_this) {
-			if (voverwrite_it[i] || !foobar2000_io::filesystem::g_exists(path, p_abort)) {
+			//if (CONF.album_art_overwrite || !foobar2000_io::filesystem::g_exists(path, p_abort)) {
+			if (voverwrite_it[i]/*overwrite_it*/ || !foobar2000_io::filesystem::g_exists(path, p_abort)) {
 				g_discogs->fetch_image(buffer, release->images[i], p_abort);
 				g_discogs->write_image(buffer, path, p_abort);
 				saved_mask.set(i, true);
@@ -349,7 +388,7 @@ void foo_discogs::save_album_art(Release_ptr &release, metadb_handle_ptr item,
 			last_path = path;
 		}
 
-		if (vembed_it[i]) {
+		if (/*i == 0 &&*/ vembed_it[i]/*embed_it*/) {
 			if (!buffer.get_count()) {
 				//todo: get it from prev fetch if exists
 				g_discogs->fetch_image(buffer, release->images[i], p_abort);
@@ -395,7 +434,7 @@ void foo_discogs::save_artist_art(Release_ptr &release, metadb_handle_ptr item,
 		}
 		else {
 			CONF.artist_art_id_format_string->run_hook(item->get_location(), (file_info*)&info, &hook, str, nullptr);
-			//todo: recheck (artist tag not found, continue with release full artist)
+			//artist tag not found, continue with release full artist
 			if (STR_EQUAL(str, "?")) str = release->artists[0]->full_artist->id;
 		}
 
@@ -423,7 +462,7 @@ void foo_discogs::save_artist_art(Release_ptr &release, metadb_handle_ptr item,
 			pfc::string8 artist_id;
 			artist_id << ids[i];
 			Artist_ptr artist = discogs_interface->get_artist(artist_id);
-	
+			//if (CONF.save_artist_art || (CONF.embed_artist_art && i == 0)) {
 			if (ada.write_it || ada.embed_it) {
 				save_artist_art(artist, release, item, ada, my_album_art_ids, saved_mask, done_files, p_status, p_abort);
 			}
@@ -447,6 +486,9 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, meta
 
 	// ensure artist is loaded
 	artist->load(p_status, p_abort);
+
+	//bool write_it = CONF.save_artist_art;
+	//bool embed_it = CONF.embed_artist_art;
 
 	MasterRelease_ptr master = discogs_interface->get_master_release(release->master_id);
 
@@ -476,6 +518,8 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, meta
 	}
 
 	pfc::string8 last_path = "";
+	//const size_t count = CONF.artist_art_fetch_all ? artist->images.get_size() : 1;
+	
 	size_t count = 0;
 	size_t album_offset = release->images.get_size();
 
@@ -489,21 +533,28 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, meta
 	bcust_artist_save_or_embed |= CONFARTWORK.ucfg_art_ovr != uartconf.ucfg_art_ovr;
 	bcust_artist_save_or_embed |= CONFARTWORK.ucfg_art_embed != uartconf.ucfg_art_embed;
 
+	//debug
+	/*if (true) {
+		bcust_artist_save_or_embed = false;
+	
+	}*/
+
+
 	if (!bcust_artist_save_or_embed) {
 		count = ada.fetch_all_it ? artist->images.get_size() : 1;
 	}
 	else {
 		count = artist->images.get_size();
 		for (size_t i = 0; i < count; i++) {
-			vwrite_it[i] = CONFARTWORK.getflag(af::art_sd, i + album_offset);
-			voverwrite_it[i] = CONFARTWORK.getflag(af::art_ovr, i + album_offset);
-			vembed_it[i] = CONFARTWORK.getflag(af::art_emb, i + album_offset);
+			vwrite_it[i] = CONFARTWORK.getflag(af::art_sd, i /*+ album_offset*/);
+			voverwrite_it[i] = CONFARTWORK.getflag(af::art_ovr, i /*+ album_offset*/);
+			vembed_it[i] = CONFARTWORK.getflag(af::art_emb, i /*+ album_offset*/);
 		}
 	}
 
 	for (size_t i = 0; i < count; i++) {
 		pfc::string8 path = directory;
-		bool write_this = vwrite_it[i];
+		bool write_this = /*write_it*/vwrite_it[i];
 		if (write_this) {
 			hook.set_custom("IMAGE_NUMBER", i + 1);
 			hook.set_image(&artist->images[i]);
@@ -513,7 +564,7 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, meta
 			bool cust_file = false;
 
 			if (my_album_art_ids.size() > i + album_offset) {
-
+				//GUID debug = my_album_art_ids[i + album_offset];
 				const char* art_id_name = album_art_ids::name_of(my_album_art_ids[i + album_offset]);
 				file = art_id_name == nullptr ? "" : pfc::string8(art_id_name);
 
@@ -551,7 +602,7 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, meta
 			}
 		}
 
-		if (!write_this && !(vembed_it[i])) {
+		if (!write_this && !(/*i == 0 &&*/ vembed_it[i]/*embed_it*/)) {
 			continue;
 		}
 
@@ -560,9 +611,13 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, meta
 		}
 
 		MemoryBlock buffer;
+		//g_discogs->fetch_image(buffer, artist->images[i], p_abort);
 
 		if (write_this) {
-			if (voverwrite_it[i] || !foobar2000_io::filesystem::filesystem::g_exists(path, p_abort)) {
+
+
+			//if (CONF.artist_art_overwrite || !foobar2000_io::filesystem::filesystem::g_exists(path, p_abort)) {
+			if (/*overwrite_it*/voverwrite_it[i] || !foobar2000_io::filesystem::filesystem::g_exists(path, p_abort)) {
 				g_discogs->fetch_image(buffer, artist->images[i], p_abort);
 				g_discogs->write_image(buffer, path, p_abort);
 
@@ -587,15 +642,12 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, meta
 				
 				MemoryBlock newbuffer = MemoryBlockToPngIcon(buffer);
 				g_discogs->embed_image(newbuffer, item, my_album_art_ids[i + album_offset] /*album_art_ids::artist*/, p_abort);
-
 			}
 			else {
 				g_discogs->embed_image(buffer, item, my_album_art_ids[i + album_offset] /*album_art_ids::artist*/, p_abort);
 			}
 		}
-	}
-}
-
+		
 void foo_discogs::fetch_image(MemoryBlock &buffer, Image_ptr &image, abort_callback &p_abort) {
 	if (!image->url.get_length()) {
 		foo_discogs_exception ex;

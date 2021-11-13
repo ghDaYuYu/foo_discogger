@@ -4,18 +4,17 @@
 
 #include <libPPUI/CListControlOwnerData.h>
 
-#include <gdiplus.h>
-#include "CGdiPlusBitmap.h"
+#include "resource.h"
 
 #include "foo_discogs.h"
 #include "file_info_manager.h"
 #include "multiformat.h"
 #include "tag_writer.h"
 
+#include "icon_map.h"
+
 #include "track_match_lstdrop.h"
 #include "track_matching_dialog_presenter.h"
-
-#include "resource.h"
 
 using namespace Discogs;
 
@@ -150,11 +149,6 @@ private:
 		SetWindowText((LPCTSTR)const_cast<wchar_t*>(wtext.get_ptr()));
 	}
 
-	std::function<bool(HWND wndlist)>stdf_change_notifier =
-		[this](HWND x) -> bool {
-		match_message_update(match_manual);
-		return true; };
-
 	void load_size();
 	bool build_current_cfg();
 	void pushcfg();
@@ -175,6 +169,12 @@ protected:
 
 public:
 
+	std::function<bool(HWND wndlist)>stdf_change_notifier =
+		//todo: revise, changed after cross reference with credit tag mapping
+		[this](HWND x) -> bool {
+		match_message_update();
+		return true; };
+
 	virtual BOOL PreTranslateMessage(MSG* pMsg) override {
 		return ::IsDialogMessage(m_hWnd, pMsg);
 	}
@@ -187,6 +187,7 @@ public:
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
 		NOTIFY_HANDLER_EX(IDC_FILE_LIST, NM_RCLICK, OnListRClick)
 		NOTIFY_HANDLER_EX(IDC_FILE_LIST, NM_DBLCLK, OnListDBLClick)
+		NOTIFY_HANDLER_EX(IDC_DISCOGS_TRACK_LIST, NM_DBLCLK, OnListDBLClick)
 		NOTIFY_HANDLER_EX(IDC_DISCOGS_TRACK_LIST, NM_RCLICK, OnListRClick)
 		NOTIFY_HANDLER_EX(IDC_UI_LIST_DISCOGS, NM_RCLICK, OnListRClick)
 		NOTIFY_HANDLER_EX(IDC_UI_LIST_FILES, NM_RCLICK, OnListRClick)
@@ -254,14 +255,7 @@ public:
 
 		g_discogs->track_matching_dialog = this;
 
-		CGdiPlusBitmapResource rec_image;
-		auto hInst = core_api::get_my_instance();
-		rec_image.Load(MAKEINTRESOURCE(IDB_PNG_REC16), L"PNG", hInst);
-		Gdiplus::Status res_get = rec_image.m_pBitmap->GetHBITMAP(Gdiplus::Color(255, 255, 255)/*Color::Black*/, &m_rec_icon);
-		DeleteObject(rec_image);
-
-		//commented for fb2k::newDialog<...> auto life-time
-		//Create(p_parent);
+		m_rec_icon = LoadDpiBitmapResource(Icon::Record);
 	}
 	
 	CTrackMatchingDialog(HWND p_parent, pfc::array_t<TagWriter_ptr> tag_writers, bool use_update_tags = false) :
@@ -274,14 +268,7 @@ public:
 		m_tag_writer = nullptr;
 
 		if (init_count()) {
-			CGdiPlusBitmapResource rec_image;
-			auto hInst = core_api::get_my_instance();
-			rec_image.Load(MAKEINTRESOURCE(IDB_PNG_REC16), L"PNG", hInst);
-			Gdiplus::Status res_get = rec_image.m_pBitmap->GetHBITMAP(Gdiplus::Color(255, 255, 255)/*Color::Black*/, &m_rec_icon);
-			DeleteObject(rec_image);
-			//todo: untested
-			//commented for fb2k::newDialog<...> auto life-time
-			//Create(p_parent);
+			m_rec_icon = LoadDpiBitmapResource(Icon::Record);
 		}
 		else {
 			finished_tag_writers();
@@ -303,8 +290,6 @@ public:
 			nmhdr.idFrom = id;
 			OnListRClick(&nmhdr);
 		}
-		else {}
-
 		return;
 	};
 
@@ -338,11 +323,13 @@ public:
 	bool get_next_tag_writer();
 	bool get_previous_tag_writer();
 
+	//credits preview
+	pfc::string8 get_discogs_release_id() { return m_tag_writer->release->id; };
+
 	void enable(bool v) override;
 	void destroy_all();
 	void go_back();
 
-    //todo: revision perm_selection
 	size_t get_art_perm_selection(HWND list, bool flagselected, const size_t max_items, pfc::array_t<t_uint8>& selmask, bit_array_bittable& selalbum);
 	void request_preview(size_t img_ndx, bool artist_art, bool onlycache);
 	void request_file_preview(size_t img_ndx, bool artist_art);

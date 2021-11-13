@@ -16,6 +16,17 @@ class search_artist_process_callback;
 
 enum class updRelSrc { Artist, Releases, Filter, ArtistList, Undef };
 
+enum FilterFlag {
+	Versions	= 1 << 0,
+	FF1			= 1 << 1,
+	FF2			= 1 << 2,
+	FF3			= 1 << 3,
+	RoleMain	= 1 << 4,
+	FF5			= 1 << 5,
+	FF6			= 1 << 6,
+	FF7			= 1 << 7
+};
+
 class CFindReleaseDialog : public MyCDialogImpl<CFindReleaseDialog>,
 	public CDialogResize<CFindReleaseDialog>,
 	public CMessageFilter
@@ -35,6 +46,7 @@ private:
 	bool m_updating_releases;
 
 	pfc::string8 m_results_filter;
+	bool m_skip_fill_filter = false;
 
 	t_size m_artist_index;
 	foo_discogs_conf conf;
@@ -46,8 +58,8 @@ private:
 
 	titleformat_hook_impl_multiformat_ptr hook;
 
-	pfc::array_t<Artist_ptr> artist_exact_matches;
-	pfc::array_t<Artist_ptr> artist_other_matches;
+	pfc::array_t<Artist_ptr> m_artist_exact_matches;
+	pfc::array_t<Artist_ptr> m_artist_other_matches;
 
 	pfc::array_t<Artist_ptr> find_release_artists;
 	Artist_ptr find_release_artist;
@@ -161,6 +173,8 @@ public:
 		COMMAND_ID_HANDLER(IDC_ONLY_EXACT_MATCHES_CHECK, OnCheckOnlyExactMatches)
 		COMMAND_ID_HANDLER(IDC_SEARCH_BUTTON, OnButtonSearch)
 		COMMAND_ID_HANDLER(IDC_CONFIGURE_BUTTON, OnButtonConfigure)
+		COMMAND_ID_HANDLER(IDC_CHECK_FIND_RELEASE_FILTER_VERSIONS, OnCheckFindReleaseFilterFlags)
+		COMMAND_ID_HANDLER(IDC_CHECK_FIND_RELEASE_FILTER_ROLEMAIN, OnCheckFindReleaseFilterFlags)
 		CHAIN_MSG_MAP_MEMBER(m_release_ctree)
 		CHAIN_MSG_MAP(CDialogResize<CFindReleaseDialog>)
 		REFLECT_NOTIFICATIONS();
@@ -171,18 +185,21 @@ public:
 		DLGRESIZE_CONTROL(IDC_LABEL_RELEASE_ID, DLSZ_MOVE_X | DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_RELEASE_URL_TEXT, DLSZ_MOVE_X | DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_FILTER_EDIT, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_CHECK_FIND_RELEASE_FILTER_VERSIONS, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_RESULTS_GROUP, DLSZ_SIZE_X | DLSZ_SIZE_Y)
 		DLGRESIZE_CONTROL(IDC_LABEL_FILTER, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_ARTIST_LIST, DLSZ_SIZE_Y)
 		DLGRESIZE_CONTROL(IDC_RELEASE_TREE, DLSZ_SIZE_Y)
-		DLGRESIZE_CONTROL(IDC_CHECK_RELEASE_SHOW_ID, DLSZ_MOVE_Y)
+		DLGRESIZE_CONTROL(IDC_CHECK_FIND_RELEASE_FILTER_ROLEMAIN, DLSZ_MOVE_Y)
 		BEGIN_DLGRESIZE_GROUP()
 		DLGRESIZE_CONTROL(IDC_ARTIST_LIST, DLSZ_SIZE_X)
 		DLGRESIZE_CONTROL(IDC_RELEASE_TREE, DLSZ_SIZE_X)
-		DLGRESIZE_CONTROL(IDC_CHECK_RELEASE_SHOW_ID, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_LABEL_RELEASES, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_CHECK_FIND_RELEASE_FILTER_ROLEMAIN, DLSZ_MOVE_X)
 		END_DLGRESIZE_GROUP()
+		DLGRESIZE_CONTROL(IDC_PROFILE_EDIT, DLSZ_SIZE_X)
 		DLGRESIZE_CONTROL(IDC_ONLY_EXACT_MATCHES_CHECK, DLSZ_MOVE_Y)
+		DLGRESIZE_CONTROL(IDC_PROFILE_EDIT, DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_CONFIGURE_BUTTON, DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_STATIC_FIND_REL_REL_NAME, DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_PROCESS_RELEASE_BUTTON, DLSZ_MOVE_X | DLSZ_MOVE_Y)
@@ -217,12 +234,13 @@ public:
 	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnEditFilterText(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT ApplyFilter(pfc::string8 strFilter);
+	LRESULT ApplyFilter(pfc::string8 strFilter, bool force_redraw = false, bool force_rebuild = false);
 	LRESULT OnSelectArtist(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnRClick(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	void OnContextColumnCfgMenu(CWindow wnd, CPoint point);
 	LRESULT OnArtistListViewItemChanged(int, LPNMHDR hdr, BOOL&);
 	LRESULT OnCheckOnlyExactMatches(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnCheckFindReleaseFilterFlags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnButtonSearch(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnButtonConfigure(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 
@@ -252,6 +270,10 @@ public:
 	void enable(bool is_enabled) override;
 	void setitems(metadb_handle_list track_matching_items) {
 		items = track_matching_items;
+	}
+	//serves credits dlg test/preview
+	metadb_handle_list getitems() {
+		return items;
 	}
 };
 

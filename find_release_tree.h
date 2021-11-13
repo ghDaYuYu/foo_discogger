@@ -6,7 +6,10 @@
 
 #include "discogs.h"
 #include "discogs_interface.h"
+#include "discogs_db_interface.h"
+
 #include "find_release_utils.h"
+#include "find_release_artist_dlg.h"
 
 using namespace Discogs;
 
@@ -302,20 +305,20 @@ private:
 		}
 		lparam = myparam.lparam();
 
-		pfc::string8 sourcepage = isArtist ? "View Artist page" : !myparam.brelease ? "View Master Release page" : "View Release page";
-		pfc::string8 copytitle = "Copy Title to Clipboard";
+		pfc::string8 sourcepage = isArtist ? "View artist page" : !myparam.brelease ? "View master release page" : "View release page";
+		pfc::string8 copytitle = "Copy title to Clipboard";
 		pfc::string8 copyrow = "Copy to Clipboard";
 
 		try {
 			int coords_x = p.x, coords_y = p.y;
-			enum { ID_VIEW_PAGE = 1, ID_CLP_COPY_TITLE, ID_CLP_COPY_ROW, ID_ARTIST_DEL_CACHE };
+			enum { ID_VIEW_PAGE = 1, ID_CLP_COPY_TITLE, ID_CLP_COPY_ROW, ID_ARTIST_DEL_CACHE, ID_ARTIST_PROFILE };
 			HMENU menu = CreatePopupMenu();
-			uAppendMenu(menu, MF_STRING, ID_VIEW_PAGE, sourcepage);
+			uAppendMenu(menu, MF_STRING, ID_ARTIST_PROFILE, "Open profile panel");
 			uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 			if (isArtist) {
+				uAppendMenu(menu, MF_STRING, ID_VIEW_PAGE, sourcepage);
 				uAppendMenu(menu, MF_STRING, ID_CLP_COPY_ROW, copyrow);
 				if (isArtistOffline) {
-					uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 					uAppendMenu(menu, MF_STRING, ID_ARTIST_DEL_CACHE, "Clear artist cache");
 				}
 			}
@@ -418,20 +421,52 @@ private:
 			}
 			case ID_ARTIST_DEL_CACHE:
 			{
+				pfc::string8 utf_buffer;
+				TCHAR outBuffer[MAX_PATH + 1] = {};
+
 				if (isArtist) {
-
-					Artist_ptr artist;
-					
-					if (m_find_release_artists_p.get_count() > 0) 
-						artist = m_find_release_artists_p[list_index];
-					else
-						if (m_find_release_artist_p != NULL)
-							artist = m_find_release_artist_p;
-
-					if (artist) {
-						m_discogs_interface->delete_artist_cache(artist->id);
-						artist->loaded_releases_offline = false;
+					size_t cItems = ListView_GetItemCount(p_artistlist);
+					for (size_t walk_item = 0; walk_item < cItems; walk_item++) {
+						if (LVIS_SELECTED == ListView_GetItemState(p_artistlist, walk_item, LVIS_SELECTED)) {
+							Artist_ptr artist;
+							if (m_find_release_artists_p.get_count() > 0)
+								artist = m_find_release_artists_p[list_index];
+							else
+								if (m_find_release_artist_p != NULL)
+									artist = m_find_release_artist_p;
+							if (artist) {
+								m_discogs_interface->delete_artist_cache(artist->id);
+								artist->loaded_releases_offline = false;
+							}
+						}
 					}
+				}
+				return true;
+			}
+			case ID_ARTIST_PROFILE: {
+				if (!g_discogs->find_release_artist_dialog) {
+					g_discogs->find_release_artist_dialog = fb2k::newDialog<CFindReleaseArtistDialog>(core_api::get_main_window()/*, nullptr*/);
+				}
+				
+				if (g_discogs->find_release_artist_dialog->m_hWnd != NULL) {
+
+					pfc::string8 name, profile;
+
+					if (m_find_release_artists_p.get_count() > 0) {
+						name = m_find_release_artists_p[list_index]->name;
+						profile = m_find_release_artists_p[list_index]->profile;
+					}
+					
+					else
+						if (m_find_release_artist_p != NULL) {
+							name = m_find_release_artist_p->name;
+							profile = m_find_release_artist_p->profile;
+						}
+
+
+					g_discogs->find_release_artist_dialog->UpdateProfile(name, profile);
+
+					::SetFocus(g_discogs->find_release_artist_dialog->m_hWnd);
 				}
 				return true;
 			}

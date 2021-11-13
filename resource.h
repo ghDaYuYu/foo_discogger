@@ -26,6 +26,13 @@
 #define IDD_DIALOG_TAG_MAPPINGS_CREDITS 142
 #define IDB_PNG48F                      157
 #define IDB_PNG150F                     158
+#define IDB_PNG_REC_16                  163
+#define IDB_PNG_REC_24                  164
+#define IDB_PNG_REC_32                  165
+#define IDB_PNG_REC_33                  166
+#define IDB_PNG_REC_48                  166
+#define IDB_PNG_DC_48                   167
+
 #define IDC_BOGO1                       1001
 #define IDC_BOGO2                       1002
 #define IDC_DISCOGS_LIST                1003

@@ -74,7 +74,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
-      <AdditionalIncludeDirectories>../../../WTL10_9163/Include;zlib;jansson;oauthcpp</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../WTL10_9163/Include;zlib;jansson;oauthcpp;../discogger libs/sqlite-amal-336/Include</AdditionalIncludeDirectories>
       <FloatingPointModel>Fast</FloatingPointModel>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <StringPooling>false</StringPooling>
@@ -88,7 +88,7 @@
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <TargetMachine>MachineX86</TargetMachine>
-      <AdditionalDependencies>../shared/shared.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;$(SolutionDir)$(Configuration)\jansson.lib;$(SolutionDir)$(Configuration)\oauthcpp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>../shared/shared.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;$(SolutionDir)$(Configuration)\jansson.lib;$(SolutionDir)$(Configuration)\oauthcpp.lib;..\discogger libs\sqlite-amal-336\$(Configuration)\sqlite3.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
     </Link>
     <PostBuildEvent>
@@ -108,7 +108,7 @@
       <StringPooling>
       </StringPooling>
       <OmitFramePointers>false</OmitFramePointers>
-      <AdditionalIncludeDirectories>../../../WTL10_9163/Include;zlib;jansson;oauthcpp;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./../../WTL10_9163/Include;zlib;jansson;oauthcpp;../discogger libs/sqlite-amal-336/Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FloatingPointModel>Precise</FloatingPointModel>
       <PreprocessorDefinitions>NDEBUG;_WINDLL;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -129,7 +129,7 @@
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <TargetMachine>MachineX86</TargetMachine>
-      <AdditionalDependencies>../shared/shared.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;$(SolutionDir)$(Configuration)\jansson.lib;$(SolutionDir)$(Configuration)\oauthcpp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>../shared/shared.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;$(SolutionDir)$(Configuration)\jansson.lib;..\discogger libs\sqlite-amal-336\$(Configuration)\sqlite3.lib;$(SolutionDir)$(Configuration)\oauthcpp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>%(AdditionalOptions)</AdditionalOptions>
       <IgnoreSpecificDefaultLibraries>LIBCMT;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <LinkTimeCodeGeneration>UseFastLinkTimeCodeGeneration</LinkTimeCodeGeneration>
@@ -140,16 +140,23 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="art_download_attribs.cpp" />
     <ClCompile Include="conf.cpp" />
     <ClCompile Include="configuration_dialog.cpp" />
+    <ClCompile Include="db_fetcher.cpp" />
+    <ClCompile Include="db_fetcher_component.cpp" />
+    <ClCompile Include="db_utils.cpp" />
     <ClCompile Include="discogs.cpp" />
+    <ClCompile Include="discogs_db_interface.cpp" />
     <ClCompile Include="discogs_interface.cpp" />
     <ClCompile Include="entities.cpp" />
     <ClCompile Include="fetcher.cpp" />
     <ClCompile Include="file_info_manager.cpp" />
+    <ClCompile Include="find_release_artist_dlg.cpp" />
     <ClCompile Include="find_release_dialog.cpp" />
     <ClCompile Include="find_release_tree.cpp" />
     <ClCompile Include="foo_discogs.cpp" />
+    <ClCompile Include="icon_map.cpp" />
     <ClCompile Include="json_helpers.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="mainmenu.cpp" />
@@ -162,7 +169,9 @@
     <ClCompile Include="prompt_dialog.cpp" />
     <ClCompile Include="string_encoded_array.cpp" />
     <ClCompile Include="tags.cpp" />
+    <ClCompile Include="tag_mappings_credits_dlg.cpp" />
     <ClCompile Include="tag_mappings_dialog.cpp" />
+    <ClCompile Include="tag_mapping_credit_utils.cpp" />
     <ClCompile Include="tag_writer.cpp" />
     <ClCompile Include="tasks.cpp" />
     <ClCompile Include="track_matching_dialog.cpp" />
@@ -170,8 +179,6 @@
     <ClCompile Include="track_matching_lv_helpers.cpp" />
     <ClCompile Include="track_matching_utils.cpp" />
     <ClCompile Include="track_match_lstdrop.cpp" />
-    <ClCompile Include="update_art_dialog.cpp" />
-    <ClCompile Include="update_tags_dialog.cpp" />
     <ClCompile Include="utils.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -181,7 +188,11 @@
     <ClInclude Include="CGdiPlusBitmap.h" />
     <ClInclude Include="conf.h" />
     <ClInclude Include="configuration_dialog.h" />
+    <ClInclude Include="db_fetcher.h" />
+    <ClInclude Include="db_fetcher_component.h" />
+    <ClInclude Include="db_utils.h" />
     <ClInclude Include="discogs.h" />
+    <ClInclude Include="discogs_db_interface.h" />
     <ClInclude Include="discogs_interface.h" />
     <ClInclude Include="entities.h" />
     <ClInclude Include="error_manager.h" />
@@ -189,23 +200,28 @@
     <ClInclude Include="exposetags.h" />
     <ClInclude Include="fetcher.h" />
     <ClInclude Include="file_info_manager.h" />
+    <ClInclude Include="find_release_artist_dlg.h" />
     <ClInclude Include="find_release_dialog.h" />
     <ClInclude Include="find_release_tree.h" />
     <ClInclude Include="find_release_utils.h" />
     <ClInclude Include="foo_discogs.h" />
     <ClInclude Include="formatting_script.h" />
-    <ClInclude Include="GUIDS.h" />
+    <ClInclude Include="guids_discogger.h" />
+    <ClInclude Include="icon_map.h" />
     <ClInclude Include="json_helpers.h" />
     <ClInclude Include="multiformat.h" />
     <ClInclude Include="ol_cache.h" />
     <ClInclude Include="preview_dialog.h" />
     <ClInclude Include="prompt_dialog.h" />
+    <ClInclude Include="request_q.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="sdk_helpers.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="string_encoded_array.h" />
     <ClInclude Include="tags.h" />
     <ClInclude Include="tag_mappings_dialog.h" />
+    <ClInclude Include="tag_mappings_credits_dlg.h" />
+    <ClInclude Include="tag_mapping_credit_utils.h" />
     <ClInclude Include="tag_writer.h" />
     <ClInclude Include="tasks.h" />
     <ClInclude Include="track_matching_dialog.h" />
@@ -213,9 +229,8 @@
     <ClInclude Include="track_matching_lv_helpers.h" />
     <ClInclude Include="track_matching_utils.h" />
     <ClInclude Include="track_match_lstdrop.h" />
-    <ClInclude Include="update_art_dialog.h" />
-    <ClInclude Include="update_tags_dialog.h" />
     <ClInclude Include="utils.h" />
+    <ClInclude Include="version.h" />
     <ClInclude Include="wtl_helpers.h" />
   </ItemGroup>
   <ItemGroup>
@@ -244,6 +259,12 @@
     <Image Include="ico\48F.png" />
     <Image Include="ico\alert-32_red.ico" />
     <Image Include="ico\check-32_green.ico" />
+    <Image Include="ico\png_dc_48.png" />
+    <Image Include="ico\png_rec24.png" />
+    <Image Include="ico\png_rec_16.png" />
+    <Image Include="ico\png_rec_24.png" />
+    <Image Include="ico\png_rec_32.png" />
+    <Image Include="ico\png_rec_48.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -56,6 +56,50 @@ bool vfind(pfc::string8 str, std::vector<pfc::string8> v) {
 	//return is_number(str.get_ptr()) && std::find(v.begin(), v.end(), str) != v.end();
 }
 
+pfc::string8 min_range_to_tracks(pfc::string8 tracks) {
+
+	std::vector<pfc::string8> v;
+	split(tracks, " to ", 0, v);
+	if (v.size() > 1) {
+		bool bnums = is_number(v[0].c_str()) && is_number(v[1].c_str());
+		if (bnums && (atoi(v[1]) == atoi(v[0]) + 1))
+			return PFC_string_formatter() << v[0] << ", " << v[1];
+	}
+	return tracks;
+}
+
+pfc::string8 tracks_to_range(pfc::string8 tracks) {
+	
+	pfc::string8 ret;
+	std::vector<pfc::string8> v;
+	std::vector<pfc::string8> vo;
+	split(tracks, ",", 0, v);
+
+#ifdef DEBUG
+	if (v.size() > 2)
+		v = v;
+#endif
+
+	size_t beg = 0;
+	vo.push_back(v[0]);
+	for (size_t n = 1; n < v.size(); n ++) {
+		bool bnums = is_number(v[n - 1].c_str()) && is_number(v[n].c_str());
+		if (!bnums || (atoi(v[n]) != atoi(v[n - 1]) + 1)) {
+			vo.push_back(v[n]);
+			beg = n;
+		}
+		else {
+			vo[vo.size() - 1] = PFC_string_formatter() << v[beg] << " to " << v[n];			
+		}
+	}
+	pfc::string8 separator = "";
+	for (auto x : vo) {
+		ret << separator << min_range_to_tracks(x);
+		separator = ", ";
+	}
+	return ret;
+}
+
 bool credit_tag_nfo::isGXP() {
 	return (STR_EQUAL(groupby, GROUP_BY_GXP));
 }
@@ -246,16 +290,15 @@ void credit_tag_nfo::SetTagCredit(size_t type, pfc::string8 id, bool state) {
 	//pass_v_to_cat();
 	rebuild_tag_name();
 
-	stdf_change_notifier(nullptr);
+	stdf_change_notifier(nullptr, true);
 }
 
-void credit_tag_nfo::RemoveTagCredit(size_t index, bool disable) {
+void credit_tag_nfo::RemoveTagCredit(size_t index, bool notify) {
 
 	vsplit.erase(vsplit.begin() + index);
-		
-	//pass_v_to_cat();
+
 	rebuild_tag_name();
-	stdf_change_notifier(nullptr);
+	if (notify) stdf_change_notifier(nullptr, false);
 }
 
 size_t credit_tag_nfo::GetElemType(size_t index) {
@@ -282,8 +325,8 @@ void credit_tag_nfo::build_vwhere_cats(pfc::string8& out) {
 	// instruments -> stringed instr. or vocals
 	// and ((catid = 1 and subcatid = 4) or credit_id = 178)
 
-	pfc::string8 postfix = "or ";
 	if (vsplit.size()) {
+		pfc::string8 postfix = "or ";
 		out = "and (";
 		for (auto elem : vsplit) {
 			if (elem.has_prefix("+")) {
@@ -305,91 +348,20 @@ void credit_tag_nfo::build_vwhere_cats(pfc::string8& out) {
 				}
 			}
 			out << ") " << postfix;
-		}			
-	}
-	//check/remove extra postfix
-	if (STR_EQUAL(substr(out, out.get_length() - pfc::string8(postfix).get_length(), out.get_length()), postfix)) {
-		out = substr(out, 0, out.get_length() - pfc::string8(postfix).get_length());
-	}
-	//close enclosing bracket
-	out << ") ";
+		}
 
-	//(cat = 0) -> no filter
-	pfc::string8 nofilter("( catid = 0 )");
-	size_t dbug_strstr = pfc::strstr_ex(out.get_ptr(), out.get_length(), nofilter, nofilter.get_length());
-	if (STR_EQUAL(trim(out), nofilter) || (pfc::strstr_ex(out.get_ptr(), out.get_length(), nofilter, nofilter.get_length()) != pfc_infinite)) {
-		out = "";
+		//check/remove extra postfix
+		if (STR_EQUAL(substr(out, out.get_length() - pfc::string8(postfix).get_length(), out.get_length()), postfix)) {
+			out = substr(out, 0, out.get_length() - pfc::string8(postfix).get_length());
+		}
+		//close enclosing bracket
+		out << ") ";
+
+		//(cat = 0) -> no filter
+		pfc::string8 nofilter("( catid = 0 )");
+		size_t dbug_strstr = pfc::strstr_ex(out.get_ptr(), out.get_length(), nofilter, nofilter.get_length());
+		if (STR_EQUAL(trim(out), nofilter) /*|| (pfc::strstr_ex(out.get_ptr(), out.get_length(), nofilter, nofilter.get_length()) != pfc_infinite)*/) {
+			out = "";
+		}
 	}
 }
-
-
-/*void credit_tag_nfo::SetTagCat(size_t type, pfc::string8 id, bool state) {
-
-	pfc::string8 elem;
-	elem << (pfc::string8(credit_tag_nfo::SUBHEADER == 0 ? "-" : "") << id);
-
-	pass_cat_to_v(cat);
-	auto it = std::find(vsplit.begin(), vsplit.end(), elem);
-	if (!state) {
-		if (it != vsplit.end())
-		{
-			vsplit.erase(it);
-		}
-	}
-	else {
-		if (it == vsplit.end()) {
-
-			vsplit.emplace_back(elem);
-		}
-	}
-	pass_v_to_cat();
-	rebuild_tag_name();
-	stdf_change_notifier(nullptr);
-
-}*/
-
-/*size_t plus_split(pfc::string8 str, std::pair<pfc::string8, pfc::string8>& out) {
-	size_t index = str.find_first("+", 0);
-	if (index != pfc_infinite) {
-		if (index == 0)
-			out = std::pair("", str);
-		else {
-			out = std::pair(substr(str, 0, index), substr(str, index, str.get_length()));
-		}
-
-		return is_number(out.second.c_str()) ? atoi(out.second) : pfc_infinite;
-	}
-	else {
-		out = std::pair(str, "");
-		return pfc_infinite;
-	}
-}*/
-
-//
-//	int cmp(const void* key, const void* value) {
-//#ifdef DEBUG
-//		pfc::string8 kkey;
-//		kkey << (const char*)key;
-//		pfc::string8 vvalue;
-//		vvalue << (const char*)value;
-//#endif
-//		return is_number((const char*)value) && strncmp((const char*)key, (const char*)value,
-//			(std::max)(strlen((const char*)key), strlen((const char*)value)));
-//	}
-// 
-//size_t split(std::string str, std::string token, size_t index, std::vector<std::string>& out) {
-//	size_t last_index = index;
-
-//	index = str.find(token, index);
-//	if (index != pfc_infinite) {
-//		if (str.length())
-//			out.push_back(str.substr(last_index, index-last_index));
-//		return split(str, token, index + token.length(), out);
-//	}
-//	else {
-//		std::string notoken;
-//		if ((notoken = str.substr(last_index, str.length())).length())
-//			out.push_back(notoken);
-//		return pfc_infinite; //end
-//	}
-//}

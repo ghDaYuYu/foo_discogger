@@ -63,11 +63,20 @@ public:
 		return tag;
 	}
 
-	void SetNotifier(std::function<bool(HWND)>update_notifier) {
+	pfc::string8 rebuild_tag_name(std::vector<pfc::string8> v) {
+		pfc::string8 catperm = pass_v_to_cat(v);
+		pfc::string8 parsed_cat = parse_cat(catperm, 0);
+		pass_cat_to_v(parsed_cat);
+		pass_v_to_cat();
+		rebuild_tag_name();
+		return tag_name;
+	}
+
+	void SetNotifier(std::function<bool(HWND, bool)>update_notifier) {
 		stdf_change_notifier = update_notifier;
 	}
 
-	std::function<bool(HWND)>stdf_change_notifier = nullptr;
+	std::function<bool(HWND, bool)>stdf_change_notifier = nullptr;
 
 	pfc::string8 get_src() { return src; }
 	pfc::string8 get_groupby() { return groupby; }
@@ -117,6 +126,7 @@ public:
 	void RemoveTagCredit(size_t index, bool disable);
 
 	size_t GetElemType(size_t index);
+	void ChangeNotify(HWND wnd, bool updatedata) { stdf_change_notifier(wnd, updatedata); }
 
 };
 
@@ -128,6 +138,6 @@ extern size_t split(pfc::string8 str, pfc::string8 token, size_t index, std::vec
 // 1-7	 to std::pair("1-7","")
 // +223	 to std::pair("", "223") returning size_t 223 or pfc_infinite if +token not found
 extern bool vfind(pfc::string8 str, std::vector<pfc::string8> v);
-
+extern pfc::string8 tracks_to_range(pfc::string8 tracks);
 //extern void init(pfc::string8 tag_name, credit_tag_nfo& test_ctag);
 //extern size_t plus_split(pfc::string8 str, std::pair<pfc::string8, pfc::string8>& out);

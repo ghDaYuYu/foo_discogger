@@ -6,13 +6,7 @@
 #include "find_release_dialog.h"
 #include "tag_mappings_dialog.h"
 #include "configuration_dialog.h"
-#include "update_art_dialog.h"
-#include "update_tags_dialog.h"
 #include "tags.h"
-
-// I am foo_sample and these are *my* GUIDs
-// Make your own when reusing code or else
-//
 
 static const GUID contextmenu_group_discogs_id = { 0x73505390, 0x5ff3, 0x4ca0, { 0x91, 0x1e, 0xc1, 0xf9, 0xfd, 0xaa, 0x88, 0xed } }; //mod
 static service_factory_single_t<contextmenu_group_popup_impl> mygroup(contextmenu_group_discogs_id, contextmenu_groups::tagging, "Discogger", 0);
@@ -25,12 +19,6 @@ static const GUID guid_Configuration =
 // {87014504-4FC5-4520-83CC-49663675FA51}
 static const GUID guid_WriteTags =
 { 0x87014504, 0x4fc5, 0x4520, { 0x83, 0xcc, 0x49, 0x66, 0x36, 0x75, 0xfa, 0x51 } };
-// {DE0A4663-8DCF-4FE7-9FBB-CF66DA8AADA4}
-static const GUID guid_UpdateTags =
-{ 0xde0a4663, 0x8dcf, 0x4fe7, { 0x9f, 0xbb, 0xcf, 0x66, 0xda, 0x8a, 0xad, 0xa4 } };
-// {0F574F1A-6B91-480E-9B22-F3B857448720}
-static const GUID guid_UpdateArt =
-{ 0xf574f1a, 0x6b91, 0x480e, { 0x9b, 0x22, 0xf3, 0xb8, 0x57, 0x44, 0x87, 0x20 } };
 // {D91BEF05-460B-43BB-A1CC-66BDD55DC177}
 static const GUID guid_DisplayReleasePage =
 { 0xd91bef05, 0x460b, 0x43bb, { 0xa1, 0xcc, 0x66, 0xbd, 0xd5, 0x5d, 0xc1, 0x77 } };
@@ -65,8 +53,6 @@ private:
 	enum MenuIndex
 	{
 		WriteTags,
-		UpdateTags,
-		UpdateArt,
 		DisplayReleasePage,
 		DisplayMasterReleasePage,
 		DisplayArtistPage,
@@ -84,37 +70,31 @@ public:
 	}
 
 	unsigned get_num_items() override {
-		return 11;
+		return 9;
 	}
 
 	void get_item_name(unsigned p_index, pfc::string_base& p_out) override {
 		switch (p_index) {
 		case WriteTags:
-			p_out = "Write Tags...";
-			break;
-		case UpdateTags:
-			p_out = "Update Tags...";
-			break;
-		case UpdateArt:
-			p_out = "Update Album/Artist Art...";
+			p_out = "Write tags...";
 			break;
 		case DisplayReleasePage:
-			p_out = "View Release Page";
+			p_out = "View release page";
 			break;
 		case DisplayMasterReleasePage:
-			p_out = "View Master Release Page";
+			p_out = "View master release page";
 			break;
 		case DisplayArtistPage:
-			p_out = "View Artist Page";
+			p_out = "View artist page";
 			break;
 		case DisplayArtistArtPage:
-			p_out = "View Artist Art Page";
+			p_out = "View artist artwork page";
 			break;
 		case DisplayLabelPage:
-			p_out = "View Label Page";
+			p_out = "View label page";
 			break;
 		case DisplayAlbumArtPage:
-			p_out = "View Album Art Page";
+			p_out = "View album artwork page";
 			break;
 		case EditTagMappings:
 			p_out = "Edit Tag Mappings...";
@@ -123,10 +103,6 @@ public:
 			p_out = "Configuration...";
 			break;
 		}
-	}
-
-	void get_item_default_path(unsigned p_index, pfc::string_base& p_out) override {
-		p_out = "Write Tags...";
 	}
 
 	void context_command(unsigned p_index, metadb_handle_list_cref p_data, const GUID& p_caller) override {
@@ -141,15 +117,7 @@ public:
 		case WriteTags:
 			g_discogs->find_release_dialog = fb2k::newDialog<CFindReleaseDialog>(core_api::get_main_window(), p_data, cfg_find_release_dialog_idtracker);
 			break;
-
-		case UpdateTags:
-			g_discogs->update_tags_dialog = new CUpdateTagsDialog(core_api::get_main_window(), p_data);
-			break;
-
-		case UpdateArt:
-			g_discogs->update_art_dialog = new CUpdateArtDialog(core_api::get_main_window(), p_data);
-			break;
-
+			
 		case DisplayReleasePage:
 			g_discogs->item_display_web_page(p_data.get_item(0), foo_discogs::RELEASE_PAGE);
 			break;
@@ -175,7 +143,7 @@ public:
 			break;
 
 		case EditTagMappings:
-			g_discogs->tag_mappings_dialog = fb2k::newDialog<CNewTagMappingsDialog>(core_api::get_main_window());
+			g_discogs->tag_mappings_dialog = fb2k::newDialog<CTagMappingDialog>(core_api::get_main_window());
 			break;
 
 		case Configuration:
@@ -189,13 +157,11 @@ public:
 		get_item_name(p_index, p_out);
 		switch (p_index) {
 		case WriteTags:
-			p_displayflags = !g_discogs->locked_operation && !g_discogs->find_release_dialog && !g_discogs->track_matching_dialog && !g_discogs->preview_tags_dialog ? 0 : FLAG_GRAYED;
-			break;
-		case UpdateTags:
-			p_displayflags = !g_discogs->locked_operation && !g_discogs->update_tags_dialog && !g_discogs->find_release_dialog && !g_discogs->track_matching_dialog && !g_discogs->preview_tags_dialog ? 0 : FLAG_GRAYED;
-			break;
-		case UpdateArt:
-			p_displayflags = !g_discogs->locked_operation && !g_discogs->update_art_dialog && g_discogs->some_item_has_tag(p_data, TAG_RELEASE_ID) ? 0 : FLAG_GRAYED;
+			p_displayflags =
+				!g_discogs->locked_operation &&
+				!g_discogs->find_release_dialog &&
+				!g_discogs->track_matching_dialog &&
+				!g_discogs->preview_tags_dialog ? 0 : FLAG_GRAYED;
 			break;
 		case DisplayReleasePage:
 			p_displayflags = g_discogs->item_has_tag(p_data.get_item(0), TAG_RELEASE_ID) ? 0 : FLAG_GRAYED;
@@ -230,10 +196,6 @@ public:
 		switch (p_index) {
 		case WriteTags:
 			return guid_WriteTags;
-		case UpdateTags:
-			return guid_UpdateTags;
-		case UpdateArt:
-			return guid_UpdateArt;
 		case DisplayReleasePage:
 			return guid_DisplayReleasePage;
 		case DisplayMasterReleasePage:
@@ -257,31 +219,28 @@ public:
 	bool get_item_description(unsigned p_index, pfc::string_base& p_out) override {
 		switch (p_index) {
 		case WriteTags:
-			p_out = "Write Tags";
-			break;
-		case UpdateTags:
-			p_out = "Update Tags";
-			break;
-		case UpdateArt:
-			p_out = "Update Album/Artist Art";
+			p_out = "Write tags";
 			break;
 		case DisplayReleasePage:
-			p_out = "View Release Page";
+			p_out = "View release page";
 			break;
 		case DisplayMasterReleasePage:
-			p_out = "View Master Release Page";
+			p_out = "View master release page";
 			break;
 		case DisplayArtistPage:
-			p_out = "View Artist Page";
+			p_out = "View artist page";
 			break;
 		case DisplayArtistArtPage:
-			p_out = "View Artist Art Page";
+			p_out = "View artist artwork page";
 			break;
 		case DisplayLabelPage:
-			p_out = "View Label Page";
+			p_out = "View label page";
+			break;
+		case DisplayAlbumArtPage:
+			p_out = "View album artwork page";
 			break;
 		case EditTagMappings:
-			p_out = "Edit Tag Mappings";
+			p_out = "Edit tag mappings";
 			break;
 		case Configuration:
 			p_out = "Configuration";

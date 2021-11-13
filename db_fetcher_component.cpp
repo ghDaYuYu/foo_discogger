@@ -39,14 +39,14 @@ vppair db_fetcher_component::query_release_credit_categories(int gx, pfc::string
 			"pcd.id pcdid, "
 			"[REPLACE](GROUP_CONCAT(DISTINCT(pcd.val)), \',\', \', \') pcdval, "
 			"pcd.obs, "
-			"GROUP_CONCAT(distinct (case when pcd.subval != \'SUBVAL\' then case when pcd.obs = 0 then pcd.subval else pcd.obs || \'-\' || pcd.subval end else pcd.subval end)) pcdsubval, "
+			"GROUP_CONCAT(distinct (case when pcd.subval != \'SUBVAL\' then case when pcd.obs = 0 then pcd.subval else pcd.obs || \'.\' || pcd.subval end else pcd.subval end)) pcdsubval, "
 			"(select c.credit_cat_sub_id ccsubid "
 			"from credit c where c.id = pcd.credit_id) subcatid "
 			""
 			"from parsed_credit_det pcd "
 			"inner join parsed_credit pc on pc.id = pcd.parsed_credit_id "
 			""
-			"where pc.subtype = \'P\' and ((catid = 1 and subcatid = 4) or credit_id = 178)) "
+			"where pc.subtype = \'C\' and ((catid = 1 and subcatid = 4) or credit_id = 178)) "
 			"group by /*pcdval*/credit_id;";
 
 		size_t replace_res = query_gxc.replace_string(outnon, innon, 0);
@@ -74,7 +74,7 @@ vppair db_fetcher_component::query_release_credit_categories(int gx, pfc::string
 			"pcd.id pcdid, "
 			"pcd.val pcdval, "
 			"pcd.obs, "
-			"GROUP_CONCAT(distinct(case when pcd.subval != \'SUBVAL\' then case when pcd.obs != \'OBS\' then pcd.subval else pcd.obs || \'-\' || pcd.subval end else pcd.subval end)) pcdsubval , "
+			"GROUP_CONCAT(distinct(case when pcd.subval != \'SUBVAL\' then case when pcd.obs != \'OBS\' then pcd.subval else pcd.obs || \'.\' || pcd.subval end else pcd.subval end)) pcdsubval , "
 			"/*GROUP_CONCAT(/*distinct*/(select c.credit_cat_sub_id ccsubid "
 			"from credit c where c.id = pcd.credit_id)/*)*/ subcatid "
 			""
@@ -95,8 +95,6 @@ vppair db_fetcher_component::query_release_credit_categories(int gx, pfc::string
 		log_msg(query);
 #endif
 
-		//p_status.set_item("Fetching release categories from local database...");
-
 		int ret = 0;
 		pfc::string8 err_msg;
 
@@ -111,7 +109,6 @@ vppair db_fetcher_component::query_release_credit_categories(int gx, pfc::string
 		//
 
 		// step into row
-		//if (SQLITE_ROW == (ret = sqlite3_step(stmt_query)))
 		while (SQLITE_ROW == (ret = sqlite3_step(stmt_query)))
 		{
 			//while (SQLITE_ROW == ret) {
@@ -131,12 +128,15 @@ vppair db_fetcher_component::query_release_credit_categories(int gx, pfc::string
 			}
 
 #ifdef DEBUG
-			log_msg(tmp_val_credits);
+			if (!tmp_val_credits) {
+				//orphan credit?
+				pfc::string8 warn_msg;
+				warn_msg << "Unknown role credit for artist " << tmp_val_credits_2 << " found";
+				log_msg(warn_msg);
+			}
+			else
+				log_msg(tmp_val_credits);
 #endif
-
-				//ret = sqlite3_step(stmt_query);
-			//}
-			//if (ret == SQLITE_DONE) break;
 		}
 		
 		if (ret == SQLITE_DONE) {
@@ -155,7 +155,7 @@ vppair db_fetcher_component::query_release_credit_categories(int gx, pfc::string
 	return vresult;
 }
 
-int db_fetcher_component::add_def_credit(sqldb* db, Release_ptr release, size_t gx) {
+int db_fetcher_component::add_parsed_credit(sqldb* db, Release_ptr release, size_t gx) {
 
 	pfc::string8 cmd;
 	pfc::string8 query;
@@ -242,7 +242,6 @@ int db_fetcher_component::add_def_credit(sqldb* db, Release_ptr release, size_t 
 					pfc::string8 thisartists;
 					pfc::string8 thisrole_spec;
 					if (thisrole.get_length() != thisfullrole.get_length()) {
-						// 1 + 1 = space + [
 						thisrole_spec = substr(thisfullrole, thisrole.get_length() + 1 + 1 , thisfullrole.get_length() - 1 - (thisrole.get_length() + 1 + 1));
 					}
 					
@@ -297,7 +296,7 @@ int db_fetcher_component::add_def_credit(sqldb* db, Release_ptr release, size_t 
 						//type c (1): one detail containing comma separated artist names (per credit)
 
 						if (gx == 0) {
-							size_t insres = insert_def_credit_detail(db, err_msg, credit_id, inc_parsed_credit_id,
+							size_t insres = insert_parsed_credit_detail(db, err_msg, credit_id, inc_parsed_credit_id,
 								~0, ~0, thisrole_spec, thisartist->name);
 							if (insres == pfc_infinite) break;
 						}
@@ -307,7 +306,7 @@ int db_fetcher_component::add_def_credit(sqldb* db, Release_ptr release, size_t 
 					}
 
 					if (gx == 1) {
-						size_t insres = insert_def_credit_detail(db, err_msg,
+						size_t insres = insert_parsed_credit_detail(db, err_msg,
 							credit_id, inc_parsed_credit_id,
 							~0, ~0, thisrole_spec, thisartists);
 						if (insres == pfc_infinite) break;
@@ -391,7 +390,7 @@ int db_fetcher_component::add_def_credit(sqldb* db, Release_ptr release, size_t 
 
 								if (gx == 0) {
 									//todo: add disc # to track #
-									size_t insres = insert_def_credit_detail(db, err_msg,
+									size_t insres = insert_parsed_credit_detail(db, err_msg,
 										credit_id, inc_parsed_credit_id,
 										i + 1, j + 1, thisrole_spec, thisartist->name);
 
@@ -403,7 +402,7 @@ int db_fetcher_component::add_def_credit(sqldb* db, Release_ptr release, size_t 
 
 							}
 							if (gx == 1) {
-								size_t insres = insert_def_credit_detail(db, err_msg,
+								size_t insres = insert_parsed_credit_detail(db, err_msg,
 									credit_id, inc_parsed_credit_id,
 									i + 1, j + 1, thisrole_spec, thisartists);
 								if (insres == pfc_infinite) break;
@@ -430,7 +429,7 @@ int db_fetcher_component::add_def_credit(sqldb* db, Release_ptr release, size_t 
 	return inc_parsed_credit_id;
 }
 
-size_t db_fetcher_component::insert_def_credit_detail(sqldb* db, pfc::string8 &err_msg, size_t credit_id, size_t inc_parsed_credit_id, size_t i, size_t j, pfc::string8 credit_spec, pfc::string8 thisartists) {
+size_t db_fetcher_component::insert_parsed_credit_detail(sqldb* db, pfc::string8 &err_msg, size_t credit_id, size_t inc_parsed_credit_id, size_t i, size_t j, pfc::string8 credit_spec, pfc::string8 thisartists) {
 	
 	//note: thisartists contains just one artist in gxp
 	//todo: swap obs and val and mod queries
@@ -466,7 +465,7 @@ size_t db_fetcher_component::insert_def_credit_detail(sqldb* db, pfc::string8 &e
 }
 
 
-vppair db_fetcher_component::generate_dialog_credit_definitions() {
+vppair db_fetcher_component::load_db_def_credits() {
 
 	vppair vresults;
 
@@ -505,9 +504,6 @@ vppair db_fetcher_component::generate_dialog_credit_definitions() {
 			const char* tmp_val_row_1 = reinterpret_cast<const char*>(sqlite3_column_text(stmt_query, 1));	//catname
 			const char* tmp_val_row_2 = reinterpret_cast<const char*>(sqlite3_column_text(stmt_query, 2));	//track
 
-			///const char* tmp_val_credits_sub = reinterpret_cast<const char*>(sqlite3_column_text(stmt_query, 10));//credit_sub role
-			//const char* tmp_val_artist_3 = reinterpret_cast<const char*>(sqlite3_column_text(stmt_query, 7));	//artist name
-
 			vresults.emplace_back(std::pair(tmp_val_row, tmp_val_row_1), std::pair(tmp_val_row_2, ""));
 
 #ifdef DEBUG
@@ -531,11 +527,11 @@ vppair db_fetcher_component::generate_dialog_credit_definitions() {
 	return vresults;
 }
 
-bool db_fetcher_component::update_dialog_credit_definitions(vppair& vdefs) {
+bool db_fetcher_component::update_db_def_credits(vppair& vdefs) {
 
 	bool bres = false;
 
-	vppair volddefs = generate_dialog_credit_definitions();
+	vppair volddefs = load_db_def_credits();
 
 	sqldb db;
 	int ret = 0; pfc::string8 error_msg;
@@ -621,7 +617,8 @@ bool db_fetcher_component::update_dialog_credit_definitions(vppair& vdefs) {
 
 	return bres;
 }
-vppair db_fetcher_component::generate_dialog_credit_categories(vppair& vcats, vppair& vcatsubs) {
+
+vppair db_fetcher_component::load_db_def_credits(vppair& vcats, vppair& vcatsubs) {
 
 	vppair vresults;
 
@@ -654,11 +651,6 @@ vppair db_fetcher_component::generate_dialog_credit_categories(vppair& vcats, vp
 		// step into row
 		while (SQLITE_ROW == (ret = sqlite3_step(stmt_query)))
 		{
-
-			//const char* tmp_val_credits_sub = reinterpret_cast<const char*>(sqlite3_column_text(stmt_query, 10));//credit_sub role
-			//const char* tmp_val_row_2 = reinterpret_cast<const char*>(sqlite3_column_text(stmt_query, 9));	//track
-			//const char* tmp_val_artist_3 = reinterpret_cast<const char*>(sqlite3_column_text(stmt_query, 7));	//artist name
-
 			const char* tmp_val_row = reinterpret_cast<const char*>(sqlite3_column_text(stmt_query, 0));	//catid
 			const char* tmp_val_row_1 = reinterpret_cast<const char*>(sqlite3_column_text(stmt_query, 1));	//catname
 
@@ -691,10 +683,6 @@ vppair db_fetcher_component::generate_dialog_credit_categories(vppair& vcats, vp
 
 		while (SQLITE_ROW == (ret = sqlite3_step(stmt_query)))
 		{
-
-			//const char* tmp_val_credits_sub = reinterpret_cast<const char*>(sqlite3_column_text(stmt_query, 10));//credit_sub role
-			//const char* tmp_val_artist_3 = reinterpret_cast<const char*>(sqlite3_column_text(stmt_query, 7));	//artist name
-
 			const char* tmp_val_row = reinterpret_cast<const char*>(sqlite3_column_text(stmt_query, 0));	//catsubid
 			const char* tmp_val_row_1 = reinterpret_cast<const char*>(sqlite3_column_text(stmt_query, 1));	//catid
 			const char* tmp_val_row_2 = reinterpret_cast<const char*>(sqlite3_column_text(stmt_query, 2));	//name
@@ -723,13 +711,8 @@ vppair db_fetcher_component::generate_dialog_credit_categories(vppair& vcats, vp
 			break;
 		}
 
-		//ret = sqlite3_exec(db.db_handle(), "PRAGMA encoding = 'UTF-8';", NULL, NULL, NULL);
-
 		while (SQLITE_ROW == (ret = sqlite3_step(stmt_query)))
 		{
-		
-			//const char* tmp_val_credits_sub = reinterpret_cast<const char*>(sqlite3_column_text(stmt_query, 10));//credit_sub role
-			
 			const char* tmp_val_row_id = reinterpret_cast<const char*>(sqlite3_column_text(stmt_query, 0));	//creditid
 			const char* tmp_val_row = reinterpret_cast<const char*>(sqlite3_column_text(stmt_query, 1));	//catid
 			const char* tmp_val_row_1 = reinterpret_cast<const char*>(sqlite3_column_text(stmt_query, 2));	//name | notes
@@ -831,7 +814,7 @@ int db_fetcher_component::add_history(sqldb* db, Release_ptr release, pfc::strin
 	return inc_parsed_credit_id;
 }
 
-
+#ifdef DC_DB
 bool db_fetcher_component::test_discogs_db(pfc::string8 db_path, abort_callback& p_abort, threaded_process_status& p_status) {
 
 	bool lib_initialized = true;
@@ -932,3 +915,4 @@ bool db_fetcher_component::test_discogs_db(pfc::string8 db_path, abort_callback&
 
 	return ok_db;
 }
+#endif

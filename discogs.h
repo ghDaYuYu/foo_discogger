@@ -301,6 +301,18 @@ namespace Discogs
 		virtual ~HasCredits() {}
 	};
 
+	typedef std::pair<std::pair<pfc::string8, pfc::string8>, std::pair<pfc::string8, pfc::string8>> rppair;
+	typedef std::vector <rppair> vppair;
+
+	class HasCatCredits
+	{
+	public:
+		std::map<pfc::string8, vppair> catcredits_gxp;
+		std::map<pfc::string8, vppair> catcredits_gxc;
+
+		virtual ~HasCatCredits() {}
+	};
+
 
 	class ReleaseLabel : public ExposedTags<ReleaseLabel>
 	{
@@ -1019,8 +1031,8 @@ namespace Discogs
 	extern ReleaseFormat_ptr parseReleaseFormat(json_t *element);
 	extern void parseReleaseFormats(json_t *element, pfc::array_t<ReleaseFormat_ptr> &formats);
 
-	extern void parseReleaseTrack(json_t *element, pfc::array_t<ReleaseTrack_ptr> &tracks, unsigned &discogs_original_track_number, pfc::string8 heading = "", ReleaseTrack_ptr *index = nullptr, HasArtists *has_artists = nullptr);
+	extern void parseReleaseTrack(json_t *element, 
+		pfc::array_t<ReleaseTrack_ptr> &tracks, unsigned &discogs_original_track_number,
+		pfc::string8 heading = "", ReleaseTrack_ptr *index = nullptr,
+		HasArtists *has_artists = nullptr);
 	extern void parseReleaseTracks(json_t *element, HasTracklist *has_tracklist, HasArtists *has_artists);
-
-	extern int get_track_count(json_t *element);
-}

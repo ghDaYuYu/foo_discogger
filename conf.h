@@ -2,10 +2,7 @@
 
 #include "formatting_script.h"
 
-#define PREVIEW_NORMAL		1
-#define PREVIEW_DIFFERENCE	2
-#define PREVIEW_ORIGINAL	3
-#define PREVIEW_DEBUG		4
+#define ART_CUST_SKIP_DEF_FLAG 1 << 3
 
 #define CFG_REPLACE_ANVS					1
 #define CFG_MOVE_THE_AT_BEGINNING			2
@@ -38,7 +35,7 @@
 #define CFG_ARTIST_ART_FILENAME_STRING		31
 #define CFG_ARTIST_ART_FETCH_ALL			36
 #define CFG_ARTIST_ART_OVERWRITE			37
-#define CFG_ARTIST_ART_IDS_TITLEFORMAT		45
+#define CFG_ARTIST_ART_IDS_TF_STRING		45
 #define CFG_ARTIST_ART_EMBED                60
 
 #define CFG_OAUTH_TOKEN						32
@@ -49,15 +46,14 @@
 
 #define CFG_MATCH_TRACKS_USING_DURATION		6
 #define CFG_MATCH_TRACKS_USING_NUMBER		38
-#define CFG_MATCH_TRACKS_USING_META			39
+#define DEPRI_NOT_USED_CFG_MATCH_TRACKS_USING_META	39
 #define CFG_ASSUME_TRACKS_SORTED			40
 
+#define CFG_LAST_CONF_TAB					46
 
 #define CFG_SEARCH_RELEASE_FORMAT_STRING    43
 #define CFG_SEARCH_MASTER_FORMAT_STRING	    44
 #define CFG_SEARCH_MASTER_SUB_FORMAT_STRING 51
-
-#define CFG_LAST_CONF_TAB					46
 
 #define CFG_DISCOGS_TRACK_FORMAT_STRING		47
 #define CFG_FILE_TRACK_FORMAT_STRING		48
@@ -74,74 +70,75 @@
 
 #define CFG_CACHE_MAX_OBJECTS				57
 
-//v.20X
-//2001 = 2->V2, 0->bool, 01->id
-//2101 = 2->V2, 1->int,  01->id
-//2201 = 2->V2, 2->str,  01->id
+//	v.20X id format:
+// 
+//	2001 = 2 (V2), 0 (bool), 01 (id)
+//	2101 = 2 (V2), 1 (int),  01 (id)
+//	2201 = 2 (V2), 2 (str),  01 (id)
 
 // BOOLS ---------------------------------------
 
-#define CFG_EDIT_TAGS_DIALOG_SHOW_TM_STATS	2001
-#define CFG_FIND_RELEASE_DIALOG_SHOW_ID		2002
-#define CFG_RELEASE_ENTER_KEY_OVR			2003
+#define CFG_EDIT_TAGS_DIALOG_SHOW_TM_STATS		2001
+#define DEPRI_CFG_FIND_RELEASE_DIALOG_SHOW_ID	2002
+#define CFG_RELEASE_ENTER_KEY_OVR				2003
 
 //DEPRI v205
-#define CFG_SKIP_RELEASE_DLG_IF_MATCHED		41
-#define CFG_SKIP_FIND_RELEASE_DLG_IF_IDED	42
-#define CFG_SKIP_PREVIEW_DIALOG				49
+#define DEPRI_CFG_SKIP_RELEASE_DLG_IF_MATCHED		41
+#define DEPRI_CFG_SKIP_FIND_RELEASE_DLG_IF_IDED		42
+#define DEPRI_CFG_SKIP_PREVIEW_DIALOG				49
 //
 
 // INTS ----------------------------------------
 
-#define CFG_PREVIEW_TAGS_DIALOG_COL1_WIDTH	2101
-#define CFG_PREVIEW_TAGS_DIALOG_COL2_WIDTH	2102
+#define CFG_PREVIEW_TAGS_DIALOG_COL1_WIDTH		2101
+#define CFG_PREVIEW_TAGS_DIALOG_COL2_WIDTH		2102
 
-#define CFG_MATCH_TRACKS_DISCOGS_COL1_WIDTH	2103
-#define CFG_MATCH_TRACKS_DISCOGS_COL2_WIDTH	2104
-#define CFG_MATCH_TRACKS_FILES_COL1_WIDTH	2105
-#define CFG_MATCH_TRACKS_FILES_COL2_WIDTH	2106
+#define CFG_MATCH_TRACKS_DISCOGS_COL1_WIDTH		2103
+#define CFG_MATCH_TRACKS_DISCOGS_COL2_WIDTH		2104
+#define CFG_MATCH_TRACKS_FILES_COL1_WIDTH		2105
+#define CFG_MATCH_TRACKS_FILES_COL2_WIDTH		2106
 
 //v.201
 
-#define CFG_MATCH_TRACKS_DISCOGS_STYLE		2107
-#define CFG_MATCH_TRACKS_FILES_STYLE		2108
-#define CFG_PREVIEW_TAGS_DIALOG_W_WIDTH		2109
-#define CFG_PREVIEW_TAGS_DIALOG_U_WIDTH		2110
-#define CFG_PREVIEW_TAGS_DIALOG_S_WIDTH		2111
-#define CFG_PREVIEW_TAGS_DIALOG_E_WIDTH		2112
+#define CFG_MATCH_TRACKS_DISCOGS_STYLE			2107
+#define CFG_MATCH_TRACKS_FILES_STYLE			2108
+#define CFG_PREVIEW_TAGS_DIALOG_W_WIDTH			2109
+#define CFG_PREVIEW_TAGS_DIALOG_U_WIDTH			2110
+#define CFG_PREVIEW_TAGS_DIALOG_S_WIDTH			2111
+#define CFG_PREVIEW_TAGS_DIALOG_E_WIDTH			2112
 
 //v202
-#define CFG_CACHE_USE_OFFLINE_CACHE			2113
+#define CFG_CACHE_OFFLINE_CACHE_FLAG			2113
 
 //v203
-#define CFG_DISCOGS_ARTWORK_RA_WIDTH		2114
-#define CFG_DISCOGS_ARTWORK_TYPE_WIDTH		2115
-#define CFG_DISCOGS_ARTWORK_DIM_WIDTH		2116
-#define CFG_DISCOGS_ARTWORK_SAVE_WIDTH		2117
-#define CFG_DISCOGS_ARTWORK_OVR_WIDTH		2118
-#define CFG_DISCOGS_ARTWORK_EMBED_WIDTH		2119
-#define CFG_MATCH_FILE_ARTWORK_NAME_WIDTH	2120
-#define CFG_MATCH_FILE_ARTWORK_DIM_WIDTH	2121
-#define CFG_MATCH_FILE_ARTWORK_SIZE_WIDTH	2122
-#define CFG_MATCH_DISCOGS_ARTWORK_STYLE 	2123
-#define CFG_MATCH_FILE_ARTWORKS_STYLE 		2124
+#define CFG_DISCOGS_ARTWORK_RA_WIDTH			2114
+#define CFG_DISCOGS_ARTWORK_TYPE_WIDTH			2115
+#define CFG_DISCOGS_ARTWORK_DIM_WIDTH			2116
+#define CFG_DISCOGS_ARTWORK_SAVE_WIDTH			2117
+#define CFG_DISCOGS_ARTWORK_OVR_WIDTH			2118
+#define CFG_DISCOGS_ARTWORK_EMBED_WIDTH			2119
+#define CFG_MATCH_FILE_ARTWORK_NAME_WIDTH		2120
+#define CFG_MATCH_FILE_ARTWORK_DIM_WIDTH		2121
+#define CFG_MATCH_FILE_ARTWORK_SIZE_WIDTH		2122
+#define CFG_MATCH_DISCOGS_ARTWORK_STYLE 		2123
+#define CFG_MATCH_FILE_ARTWORKS_STYLE 			2124
 
-#define CFG_ALBUM_ART_SKIP_DEFAULT_CUST		2125
-#define CFG_EDIT_TAGS_DIALOG_FLAGS			2126
+#define CFG_ALBUM_ART_SKIP_DEFAULT_CUST			2125
+#define CFG_EDIT_TAGS_DIALOG_FLAGS				2126
 
 //v205 (1.0.6/1.1.0)
-#define CFG_DC_DB_FLAG						2127
-#define CFG_FIND_RELEASE_FILTER_FLAG		2128
-#define CFG_SKIP_MNG_FLAG					2129
+#define CFG_DC_DB_FLAG							2127
+#define CFG_FIND_RELEASE_FILTER_FLAG			2128
+#define CFG_SKIP_MNG_FLAG						2129
 #define DEPRI_CFG_EDIT_CAT_CREDIT_DIALOG_SIZE		2130
 #define DEPRI_CFG_EDIT_CAT_CREDIT_DIALOG_POS		2131
-#define CFG_LIST_STYLE						2132
+#define CFG_LIST_STYLE							2132
 
 // STRINGS -------------------------------------
 
-#define CFG_EDIT_TAGS_DIALOG_HL_KEYWORD		2201
+#define CFG_EDIT_TAGS_DIALOG_HL_KEYWORD			2201
 //v205 (1.0.6/1.1.0)
-#define CFG_DC_DB_PATH						2202
+#define CFG_DC_DB_PATH							2202
 //..
 
 typedef struct
@@ -162,10 +159,22 @@ inline bool operator==(const conf_int_entry& lhs, const conf_int_entry& rhs) {
 		lhs.value == rhs.value);
 }
 
+inline bool operator==(const conf_bool_entry& lhs, const conf_bool_entry& rhs) {
+	return (lhs.id == rhs.id &&
+		lhs.value == rhs.value);
+}
+
+inline int compare_id(const conf_bool_entry& p_entry, const conf_bool_entry& p_entry2) {
+	int res;
+	res = p_entry.id == p_entry2.id ? 0 : p_entry.id > p_entry2.id ? 1 : -1;
+	return res;
+}
+
 typedef struct
 {
 	int id;
 	pfc::string8 value;
+
 } conf_string_entry;
 
 extern conf_bool_entry make_conf_entry(int i, bool v);
@@ -216,34 +225,34 @@ FB2K_STREAM_WRITER_OVERLOAD(conf_string_entry) {
 	return stream;
 }
 
-
-struct foo_discogs_conf3;
-
 #ifndef VSPECS
 #define VSPECS
+
 const struct vspec;
 typedef std::vector<vspec> vec_spec_t;
 
 const struct vspec {
+
 	t_size boolvals; t_size intvals; t_size stringvals;
 	vec_spec_t* vspecs;
-	vspec() { vspecs = nullptr; boolvals = 0; intvals = 0; stringvals = 0; };
+
+	vspec() : vspecs(nullptr), boolvals(0), intvals(0), stringvals(0)  {}
 	vspec(vec_spec_t* specs, t_size boolvals, t_size intvals, t_size stringvals)
-		: boolvals(boolvals), intvals(intvals), stringvals(stringvals) {
-		if (specs != nullptr) {
-			vspecs = specs;
+		: vspecs(specs), boolvals(boolvals), intvals(intvals), stringvals(stringvals) 
+	{	
+		if (vspecs != nullptr) {			
 			vspecs->emplace_back((vspec)*this);
-		}
-		else {
-			vspecs = nullptr;
-		}
-	};
+		}		
+	}
+
 	inline bool operator==(const vspec& rhs) {
-		return signature(rhs.boolvals, rhs.intvals, rhs.stringvals);
+		return (this->boolvals == rhs.boolvals &&
+			this->intvals == rhs.intvals &&
+			this->stringvals == rhs.stringvals);
 	}
 	inline bool operator<(const vspec& rhs)
 	{
-		//specs vector in lhs can be null, but not in rhs
+		//null specs vector not allowed in rhs
 		PFC_ASSERT(rhs.vspecs != nullptr);
 
 		vec_spec_t* vec = rhs.vspecs;
@@ -265,42 +274,38 @@ const struct vspec {
 
 		return (itthis == vec->end() || itthis > itrhs);
 	}
-
-	bool signature(t_size boolvals, t_size intvals, t_size stringvals) {
-		return (this->boolvals == boolvals &&
-			this->intvals == intvals &&
-			this->stringvals == stringvals);
-	}
 };
 
 #endif
 
-class new_conf
+class CConf
 {
 private:
+
 	vec_spec_t vec_specs;
 	
 public:
-	bool load();
-	int id_to_val_int(int id, new_conf in_conf);
-	bool id_to_val_bool(int id, new_conf in_conf);
-	void id_to_val_str(int id, new_conf in_conf, pfc::string8& out);
-	void save();
-	//save just the active config tab
-	void save_active_config_tab(int newval);
 
-	enum class ConfFilter :uint8_t {
-		CONF_FILTER_CONF = 0,
-		CONF_FILTER_FIND,
-		CONF_FILTER_PREVIEW,
-		CONF_FILTER_TAG,
-		CONF_FILTER_TRACK,
-		CONF_FILTER_UPDATE_ART,
-		CONF_FILTER_UPDATE_TAG,
-		//v.205
-		CONF_CAT_CREDIT,
-		//..
+	enum class cfgFilter :uint8_t {
+		CONF = 0,
+		FIND,
+		PREVIEW,
+		TAG,
+		TRACK,
+		UPDATE_ART,
+		UPDATE_TAG,
+		CAT_CREDIT,
 	};
+
+	static int id_to_val_int(int id, CConf in_conf);
+	static bool id_to_val_bool(int id, CConf in_conf);
+	static void id_to_val_str(int id, CConf in_conf, pfc::string8& out);
+
+	bool load();
+	//save all
+	void save();
+	//save only active config tab
+	void save_active_config_tab(int newtab);
 
 	template <typename Enumeration>
 	//as_integer...
@@ -312,131 +317,128 @@ public:
 
 	std::vector<std::pair<int, int>> idarray
 	{
-		// CONF_FILTER_CONF (configuration_dialog)
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_REPLACE_ANVS },
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_MOVE_THE_AT_BEGINNING},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_DISCARD_NUMERIC_SUFFIX},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_ENABLE_AUTOSEARCH},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_DISPLAY_ANVS},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_SAVE_ALBUM_ART},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_ALBUM_ART_DIRECTORY_STRING},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_ALBUM_ART_FILENAME_STRING},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_ALBUM_ART_FETCH_ALL},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_ALBUM_ART_OVERWRITE},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_ALBUM_ART_EMBED},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_SAVE_ARTIST_ART},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_ARTIST_ART_DIRECTORY_STRING},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_ARTIST_ART_FILENAME_STRING},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_ARTIST_ART_FETCH_ALL},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_ARTIST_ART_OVERWRITE},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_ARTIST_ART_IDS_TITLEFORMAT},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_ARTIST_ART_EMBED},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_OAUTH_TOKEN},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_OAUTH_TOKEN_SECRET},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_REMOVE_OTHER_TAGS},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_REMOVE_EXCLUDE_TAGS},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_MATCH_TRACKS_USING_DURATION},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_MATCH_TRACKS_USING_NUMBER},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_MATCH_TRACKS_USING_META},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_ASSUME_TRACKS_SORTED},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_SKIP_RELEASE_DLG_IF_MATCHED},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_SKIP_FIND_RELEASE_DLG_IF_IDED},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_SEARCH_RELEASE_FORMAT_STRING},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_SEARCH_MASTER_FORMAT_STRING},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_SEARCH_MASTER_SUB_FORMAT_STRING},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_LAST_CONF_TAB},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_DISCOGS_TRACK_FORMAT_STRING},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_FILE_TRACK_FORMAT_STRING},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_SKIP_PREVIEW_DIALOG},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_PARSE_HIDDEN_AS_REGULAR},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_SKIP_VIDEO_TRACKS},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_CACHE_MAX_OBJECTS},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_RELEASE_ENTER_KEY_OVR},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_CACHE_USE_OFFLINE_CACHE},
+		//(configuration_dialog)
+		{ asi(cfgFilter::CONF), CFG_REPLACE_ANVS },
+		{ asi(cfgFilter::CONF), CFG_MOVE_THE_AT_BEGINNING},
+		{ asi(cfgFilter::CONF), CFG_DISCARD_NUMERIC_SUFFIX},
+		{ asi(cfgFilter::CONF), CFG_ENABLE_AUTOSEARCH},
+		{ asi(cfgFilter::CONF), CFG_DISPLAY_ANVS},
+		{ asi(cfgFilter::CONF), CFG_SAVE_ALBUM_ART},
+		{ asi(cfgFilter::CONF), CFG_ALBUM_ART_DIRECTORY_STRING},
+		{ asi(cfgFilter::CONF), CFG_ALBUM_ART_FILENAME_STRING},
+		{ asi(cfgFilter::CONF), CFG_ALBUM_ART_FETCH_ALL},
+		{ asi(cfgFilter::CONF), CFG_ALBUM_ART_OVERWRITE},
+		{ asi(cfgFilter::CONF), CFG_ALBUM_ART_EMBED},
+		{ asi(cfgFilter::CONF), CFG_SAVE_ARTIST_ART},
+		{ asi(cfgFilter::CONF), CFG_ARTIST_ART_DIRECTORY_STRING},
+		{ asi(cfgFilter::CONF), CFG_ARTIST_ART_FILENAME_STRING},
+		{ asi(cfgFilter::CONF), CFG_ARTIST_ART_FETCH_ALL},
+		{ asi(cfgFilter::CONF), CFG_ARTIST_ART_OVERWRITE},
+		{ asi(cfgFilter::CONF), CFG_ARTIST_ART_IDS_TF_STRING},
+		{ asi(cfgFilter::CONF), CFG_ARTIST_ART_EMBED},
+		{ asi(cfgFilter::CONF), CFG_OAUTH_TOKEN},
+		{ asi(cfgFilter::CONF), CFG_OAUTH_TOKEN_SECRET},
+		{ asi(cfgFilter::CONF), CFG_REMOVE_OTHER_TAGS},
+		{ asi(cfgFilter::CONF), CFG_REMOVE_EXCLUDE_TAGS},
+		{ asi(cfgFilter::CONF), CFG_MATCH_TRACKS_USING_DURATION},
+		{ asi(cfgFilter::CONF), CFG_MATCH_TRACKS_USING_NUMBER},
+		{ asi(cfgFilter::CONF), DEPRI_NOT_USED_CFG_MATCH_TRACKS_USING_META},
+		{ asi(cfgFilter::CONF), CFG_ASSUME_TRACKS_SORTED},
+		{ asi(cfgFilter::CONF), DEPRI_CFG_SKIP_RELEASE_DLG_IF_MATCHED},
+		{ asi(cfgFilter::CONF), DEPRI_CFG_SKIP_FIND_RELEASE_DLG_IF_IDED},
+		{ asi(cfgFilter::CONF), CFG_SEARCH_RELEASE_FORMAT_STRING},
+		{ asi(cfgFilter::CONF), CFG_SEARCH_MASTER_FORMAT_STRING},
+		{ asi(cfgFilter::CONF), CFG_SEARCH_MASTER_SUB_FORMAT_STRING},
+		{ asi(cfgFilter::CONF), CFG_LAST_CONF_TAB},
+		{ asi(cfgFilter::CONF), CFG_DISCOGS_TRACK_FORMAT_STRING},
+		{ asi(cfgFilter::CONF), CFG_FILE_TRACK_FORMAT_STRING},
+		{ asi(cfgFilter::CONF), DEPRI_CFG_SKIP_PREVIEW_DIALOG},
+		{ asi(cfgFilter::CONF), CFG_PARSE_HIDDEN_AS_REGULAR},
+		{ asi(cfgFilter::CONF), CFG_SKIP_VIDEO_TRACKS},
+		{ asi(cfgFilter::CONF), CFG_CACHE_MAX_OBJECTS},
+		{ asi(cfgFilter::CONF), CFG_RELEASE_ENTER_KEY_OVR},
+		{ asi(cfgFilter::CONF), CFG_CACHE_OFFLINE_CACHE_FLAG},
 		//v205 (1.0.6/1.1.0)
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_DC_DB_PATH},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_DC_DB_FLAG},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_SKIP_MNG_FLAG},
-		{ asi(ConfFilter::CONF_FILTER_CONF), CFG_LIST_STYLE},
+		{ asi(cfgFilter::CONF), CFG_DC_DB_PATH},
+		{ asi(cfgFilter::CONF), CFG_DC_DB_FLAG},
+		{ asi(cfgFilter::CONF), CFG_SKIP_MNG_FLAG},
+		{ asi(cfgFilter::CONF), CFG_LIST_STYLE},
 
 		//..
 
-		// CONF_FILTER_FIND (find_release_dialog)
-		{ asi(ConfFilter::CONF_FILTER_FIND), CFG_DISPLAY_EXACT_MATCHES },
+		//FIND (find_release_dialog)
+		{ asi(cfgFilter::FIND), CFG_DISPLAY_EXACT_MATCHES },
 		//v200
-		{ asi(ConfFilter::CONF_FILTER_FIND), CFG_FIND_RELEASE_DIALOG_SHOW_ID },
+		{ asi(cfgFilter::FIND), DEPRI_CFG_FIND_RELEASE_DIALOG_SHOW_ID },
 		//v205
-		{ asi(ConfFilter::CONF_FILTER_FIND), CFG_FIND_RELEASE_FILTER_FLAG },
+		{ asi(cfgFilter::FIND), CFG_FIND_RELEASE_FILTER_FLAG },
 		//..
 
-		// CONF_FILTER_PREVIEW (preview_dialog)
-		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_MODE },
-		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_REPLACE_ANVS }, //<<
+		//PREVIEW (preview_dialog)
+		{ asi(cfgFilter::PREVIEW), CFG_PREVIEW_MODE },
+		{ asi(cfgFilter::PREVIEW), CFG_REPLACE_ANVS }, //<<
 		//v200
-		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_TAGS_DIALOG_COL1_WIDTH },
-		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_TAGS_DIALOG_COL2_WIDTH },
-		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_EDIT_TAGS_DIALOG_SHOW_TM_STATS },
+		{ asi(cfgFilter::PREVIEW), CFG_PREVIEW_TAGS_DIALOG_COL1_WIDTH },
+		{ asi(cfgFilter::PREVIEW), CFG_PREVIEW_TAGS_DIALOG_COL2_WIDTH },
+		{ asi(cfgFilter::PREVIEW), CFG_EDIT_TAGS_DIALOG_SHOW_TM_STATS },
 		//v201	
-		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_TAGS_DIALOG_W_WIDTH },
-		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_TAGS_DIALOG_U_WIDTH },
-		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_TAGS_DIALOG_S_WIDTH },
-		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_PREVIEW_TAGS_DIALOG_E_WIDTH },
+		{ asi(cfgFilter::PREVIEW), CFG_PREVIEW_TAGS_DIALOG_W_WIDTH },
+		{ asi(cfgFilter::PREVIEW), CFG_PREVIEW_TAGS_DIALOG_U_WIDTH },
+		{ asi(cfgFilter::PREVIEW), CFG_PREVIEW_TAGS_DIALOG_S_WIDTH },
+		{ asi(cfgFilter::PREVIEW), CFG_PREVIEW_TAGS_DIALOG_E_WIDTH },
 		//v203
-		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_ALBUM_ART_SKIP_DEFAULT_CUST },
+		{ asi(cfgFilter::PREVIEW), CFG_ALBUM_ART_SKIP_DEFAULT_CUST },
 		//v204 (1.0.4)
-		{ asi(ConfFilter::CONF_FILTER_PREVIEW), CFG_EDIT_TAGS_DIALOG_FLAGS},
+		{ asi(cfgFilter::PREVIEW), CFG_EDIT_TAGS_DIALOG_FLAGS},
 		//..
 
-		// CONF_FILTER_TAG (tag_mappings_dialog)
-		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_EDIT_TAGS_DIALOG_COL1_WIDTH },
-		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_EDIT_TAGS_DIALOG_COL2_WIDTH },
-		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_EDIT_TAGS_DIALOG_COL3_WIDTH },
+		//TAG (tag_mappings_dialog)
+		{ asi(cfgFilter::TAG), CFG_EDIT_TAGS_DIALOG_COL1_WIDTH },
+		{ asi(cfgFilter::TAG), CFG_EDIT_TAGS_DIALOG_COL2_WIDTH },
+		{ asi(cfgFilter::TAG), CFG_EDIT_TAGS_DIALOG_COL3_WIDTH },
 		//v200
-		{ asi(ConfFilter::CONF_FILTER_TAG), CFG_EDIT_TAGS_DIALOG_HL_KEYWORD },
+		{ asi(cfgFilter::TAG), CFG_EDIT_TAGS_DIALOG_HL_KEYWORD },
 		//..
 
-		// CONF_FILTER_TRACK (track_matching_dialog)
+		//TRACK (track_matching_dialog)
 		//v200
-		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_MATCH_TRACKS_DISCOGS_COL1_WIDTH },
-		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_MATCH_TRACKS_DISCOGS_COL2_WIDTH },
-		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_MATCH_TRACKS_FILES_COL1_WIDTH },
-		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_MATCH_TRACKS_FILES_COL2_WIDTH },
-		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_MATCH_TRACKS_DISCOGS_STYLE },
-		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_MATCH_TRACKS_FILES_STYLE },
-		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_DISCOGS_ARTWORK_RA_WIDTH },
-		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_DISCOGS_ARTWORK_TYPE_WIDTH },
-		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_DISCOGS_ARTWORK_DIM_WIDTH },
-		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_DISCOGS_ARTWORK_SAVE_WIDTH },
-		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_DISCOGS_ARTWORK_OVR_WIDTH },
-		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_DISCOGS_ARTWORK_EMBED_WIDTH },
-		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_MATCH_FILE_ARTWORK_NAME_WIDTH },
-		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_MATCH_FILE_ARTWORK_DIM_WIDTH },
-		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_MATCH_FILE_ARTWORK_SIZE_WIDTH },
-		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_MATCH_DISCOGS_ARTWORK_STYLE },
-		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_MATCH_FILE_ARTWORKS_STYLE },
-		{ asi(ConfFilter::CONF_FILTER_TRACK), CFG_ALBUM_ART_SKIP_DEFAULT_CUST },
-
-		//..CFG_EDIT_CAT_CREDIT_DIALOG_POS
+		{ asi(cfgFilter::TRACK), CFG_MATCH_TRACKS_DISCOGS_COL1_WIDTH },
+		{ asi(cfgFilter::TRACK), CFG_MATCH_TRACKS_DISCOGS_COL2_WIDTH },
+		{ asi(cfgFilter::TRACK), CFG_MATCH_TRACKS_FILES_COL1_WIDTH },
+		{ asi(cfgFilter::TRACK), CFG_MATCH_TRACKS_FILES_COL2_WIDTH },
+		{ asi(cfgFilter::TRACK), CFG_MATCH_TRACKS_DISCOGS_STYLE },
+		{ asi(cfgFilter::TRACK), CFG_MATCH_TRACKS_FILES_STYLE },
+		{ asi(cfgFilter::TRACK), CFG_DISCOGS_ARTWORK_RA_WIDTH },
+		{ asi(cfgFilter::TRACK), CFG_DISCOGS_ARTWORK_TYPE_WIDTH },
+		{ asi(cfgFilter::TRACK), CFG_DISCOGS_ARTWORK_DIM_WIDTH },
+		{ asi(cfgFilter::TRACK), CFG_DISCOGS_ARTWORK_SAVE_WIDTH },
+		{ asi(cfgFilter::TRACK), CFG_DISCOGS_ARTWORK_OVR_WIDTH },
+		{ asi(cfgFilter::TRACK), CFG_DISCOGS_ARTWORK_EMBED_WIDTH },
+		{ asi(cfgFilter::TRACK), CFG_MATCH_FILE_ARTWORK_NAME_WIDTH },
+		{ asi(cfgFilter::TRACK), CFG_MATCH_FILE_ARTWORK_DIM_WIDTH },
+		{ asi(cfgFilter::TRACK), CFG_MATCH_FILE_ARTWORK_SIZE_WIDTH },
+		{ asi(cfgFilter::TRACK), CFG_MATCH_DISCOGS_ARTWORK_STYLE },
+		{ asi(cfgFilter::TRACK), CFG_MATCH_FILE_ARTWORKS_STYLE },
+		{ asi(cfgFilter::TRACK), CFG_ALBUM_ART_SKIP_DEFAULT_CUST },
 
 		//v205
 		//..
 
-
-		// CONF_FILTER_UPDATE_ART (update_art_dialog)
-		{ asi(ConfFilter::CONF_FILTER_UPDATE_ART), CFG_UPDATE_ART_FLAGS },
+		//UPDATE_ART (update_art_dialog)
+		{ asi(cfgFilter::UPDATE_ART), CFG_UPDATE_ART_FLAGS },
 		//v200
 		//..
 
-		// CONF_FILTER_UPDATE_TAG (update_tags_dialog)
-		{ asi(ConfFilter::CONF_FILTER_UPDATE_TAG), CFG_REPLACE_ANVS },	//<<
-		{ asi(ConfFilter::CONF_FILTER_UPDATE_TAG), CFG_UPDATE_TAGS_MANUALLY_PROMPT },
-		{ asi(ConfFilter::CONF_FILTER_UPDATE_TAG), CFG_UPDATE_PREVIEW_CHANGES },
+		//UPDATE_TAG (update_tags_dialog)
+		{ asi(cfgFilter::UPDATE_TAG), CFG_REPLACE_ANVS },	//<<
+		{ asi(cfgFilter::UPDATE_TAG), CFG_UPDATE_TAGS_MANUALLY_PROMPT },
+		{ asi(cfgFilter::UPDATE_TAG), CFG_UPDATE_PREVIEW_CHANGES },
 		//v200
 		//..
 	};
 
-	void save(ConfFilter cfgfilter, new_conf in_conf);
-	void save(ConfFilter cfgfilter, new_conf in_conf, int id);
+	void save(cfgFilter cfgfilter, CConf in_conf);
+	void save(cfgFilter cfgfilter, CConf in_conf, int id);
 	
 	bool replace_ANVs = false;
 	bool move_the_at_beginning = true;
@@ -448,12 +450,6 @@ public:
 	bool match_tracks_using_duration = true;
 	bool match_tracks_using_number = true;
 	bool assume_tracks_sorted = false;
-
-	//depri v205
-	bool skip_release_dialog_if_matched_depri = false;
-	bool skip_find_release_dialog_if_ided_depri = false;
-	bool skip_preview_dialog_depri = false;
-	//
 
 	bool save_album_art = true;
 	bool album_art_fetch_all = false;
@@ -482,7 +478,8 @@ public:
 	bool parse_hidden_as_regular = false;
 	bool skip_video_tracks = false;
 
-	int preview_mode = PREVIEW_NORMAL;
+	//PREVIEW_NORMAL
+	int preview_mode = 1; 
 
 	// TODO: depri
 	bool display_ANVs = false;
@@ -527,8 +524,7 @@ public:
 
 	pfc::string8 edit_tags_dlg_hl_keyword = "";
 	bool edit_tags_dlg_show_tm_stats = false;
-	bool find_release_dialog_show_id = false;
-
+	
 	bool release_enter_key_override = true;
 	int match_tracks_discogs_style = static_cast<int>(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP);
 	int match_tracks_files_style = static_cast<int>(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP);
@@ -540,7 +536,7 @@ public:
 
 	//ol::CacheFlags::OC_READ = 1 << 0,
 	//ol::CacheFlags::OC_WRITE = 1 << 1
-	int cache_use_offline_cache = 1 << 0 | 1 << 1;
+	int cache_offline_cache_flag = 1 << 0 | 1 << 1;
 
 	int match_discogs_artwork_ra_width = 0;
 	int match_discogs_artwork_type_width = 0;
@@ -565,8 +561,5 @@ public:
 	//..
 };
 
-typedef new_conf foo_discogs_conf;
-
-extern new_conf CONF;
-
-void init_conf();
+typedef CConf foo_conf;
+extern CConf CONF;

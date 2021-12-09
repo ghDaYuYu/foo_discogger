@@ -24,24 +24,31 @@ foo_discogs *g_discogs = nullptr;
 DiscogsInterface *discogs_interface = nullptr;
 HICON g_icon = nullptr;
 
-#ifdef DC_DB
+#ifdef DB_DC
 Discogs_DB_Interface* discogs_db_interface = nullptr;
-#endif // DC_DB
+#endif
 
-#define MIN(a,b) ((a)<(b)?(a):(b))
-
-static const char * ERROR_IMAGE_NUMBER_REQUIRED = "Cannot save multiple images with the same name. Use %IMAGE_NUMBER% when forming image names.";
+static const char* ERROR_IMAGE_NUMBER_REQUIRED = "Cannot save multiple images with the same name. Use %IMAGE_NUMBER% when forming image names.";
 
 class initquit_discogs : public initquit
 {
 	virtual void on_init() override {
-		console::print("Loading");
+		console::print("Loading foo_discogger");
 		
-		init_conf();
+		if (!CONF.load()) {
+
+			console::print("foo_discogger configuration error");
+
+			uMessageBox(core_api::get_main_window(),
+				"Error loading configuration.",
+				"foo_discogger initialization", MB_APPLMODAL | MB_ICONASTERISK);
+			return;
+		}
+
 		discogs_interface = new DiscogsInterface();
-#ifdef DC_DB
+#ifdef DB_DC
 		discogs_db_interface = new Discogs_DB_Interface();
-#endif // DC_DB
+#endif
 
 		g_discogs = new foo_discogs();
 		load_dlls();
@@ -51,9 +58,9 @@ class initquit_discogs : public initquit
 		DeleteObject(g_discogs->icon);
 		delete g_discogs;				//(1)
 		delete discogs_interface;		//(2)
-#ifdef DC_DB
+#ifdef DB_DC
 		delete discogs_db_interface;
-#endif // DC_DB
+#endif
 
 		unload_dlls();
 	}
@@ -63,8 +70,7 @@ static initquit_factory_t<initquit_discogs> foo_initquit;
 
 foo_discogs::foo_discogs() {
 
-	CSize s(48, 48);
-	icon = GdiplusLoadPNGIcon(IDB_PNG_DC_48, s);
+	icon = GdiplusLoadPNGIcon(IDB_PNG_DCSP_48, CSize(48,48));
 
 	init_tag_mappings();
 	discogs_interface->fetcher->set_oauth(CONF.oauth_token, CONF.oauth_token_secret);
@@ -72,8 +78,6 @@ foo_discogs::foo_discogs() {
 	static_api_ptr_t<titleformat_compiler>()->compile_force(release_name_script, "[%album artist%] - [%album%]");
 	gave_oauth_warning = false;
 }
-
-#ifndef absdlg
 
 foo_discogs::~foo_discogs() {
 	if (find_release_dialog)  {
@@ -93,32 +97,6 @@ foo_discogs::~foo_discogs() {
 		preview_tags_dialog->destroy();
 	}
 }
-
-#else
-foo_discogs::~foo_discogs() {
-	if (find_release_dialog) {
-		find_release_dialog->DestroyWindow();
-	}
-	if (track_matching_dialog) {
-		track_matching_dialog->DestroyWindow();
-	}
-	if (tag_mappings_dialog) {
-		tag_mappings_dialog->DestroyWindow();
-	}
-
-	if (update_art_dialog) {
-		update_art_dialog->DestroyWindow();
-	}
-	if (update_tags_dialog) {
-		update_tags_dialog->DestroyWindow();
-	}
-	if (preview_tags_dialog) {
-		preview_tags_dialog->DestroyWindow();
-	}
-}
-
-#endif
-
 
 void foo_discogs::item_display_web_page(const metadb_handle_ptr item, discog_web_page web_page) {
 	file_info_impl finfo;

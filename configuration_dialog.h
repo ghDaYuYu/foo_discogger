@@ -6,7 +6,7 @@
 
 #include "version.h"
 
-#ifdef DC_DB
+#ifdef DB_DC
 
 #define NUM_TABS 7
 
@@ -83,8 +83,8 @@ private:
 	my_threaded_process m_tp;
 
 	pfc::array_t<tab_entry> tab_table;
-	foo_discogs_conf conf;
-	foo_discogs_conf conf_dlg_edit;
+	foo_conf conf;
+	foo_conf conf_dlg_edit;
 
 	bool original_parsing = false;
 	bool original_skip_video = false;
@@ -99,12 +99,12 @@ private:
 	static INT_PTR WINAPI caching_dialog_proc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 	INT_PTR WINAPI on_caching_dialog_message(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-#ifdef DC_DB
+#ifdef DB_DC
 
 	static INT_PTR WINAPI db_dialog_proc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 	INT_PTR WINAPI on_db_dialog_message(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-#endif // DC_DB
+#endif // DB_DC
 
 
 	static INT_PTR WINAPI matching_dialog_proc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -148,9 +148,9 @@ private:
 	void on_authorize_oauth(HWND wnd);
 	void on_generate_oauth(HWND wnd);
 
-#ifdef DC_DB
+#ifdef DB_DC
 	void on_test_db(HWND wnd, pfc::string8 dbpath);
-#endif // DC_DB
+#endif
 
 	bool HasChanged();
 	void OnChanged();
@@ -208,7 +208,7 @@ public:
 	HWND secret_edit;
 	HWND oauth_msg;
 
-	void show_tab(unsigned int num);
+	void show_tab(unsigned int itab);
 	void show_oauth_msg(pfc::string8 msg, bool iserror);
 
 	void enable(bool v) override {}
@@ -220,5 +220,5 @@ public:
 
 	const char* get_name() { return "discogger Tagger";	}
 	GUID get_guid() { return guid_pref_page; }
-	GUID get_parent_guid() { return guid_tagging /*sdk guid*/; }
+	GUID get_parent_guid() { return guid_tagging; }
 };

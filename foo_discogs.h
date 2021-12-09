@@ -1,14 +1,11 @@
 #pragma once
 
-#include "version.h"
-
 #pragma warning(disable:4996)
 
+#include "version.h"
 #include "discogs_interface.h"
 
-//#ifdef DC_DB
 #include "discogs_db_interface.h"
-//#endif // DC_DB
 
 #include "tags.h"
 #include "error_manager.h"
@@ -51,8 +48,6 @@ public:
 
 	HICON icon = nullptr;
 
-#ifndef absdlg
-
 	CFindReleaseDialog *find_release_dialog = nullptr;
 	CFindReleaseArtistDialog* find_release_artist_dialog = nullptr;
 	CTrackMatchingDialog *track_matching_dialog = nullptr;
@@ -61,22 +56,8 @@ public:
 	CTagCreditDialog *tag_credit_dialog = nullptr;
 	CConfigurationDialog *configuration_dialog = nullptr;
 	CUpdateTagsDialog *update_tags_dialog = nullptr;
-#else
-	CWindow* find_release_dialog = nullptr;
-	CWindow* track_matching_dialog = nullptr;
-	CWindow* preview_tags_dialog = nullptr;
-	CWindow* tag_mappings_dialog = nullptr;
-	CWindow* configuration_dialog = nullptr;
-	CWindow* update_art_dialog = nullptr;
-	CWindow* update_tags_dialog = nullptr;
-#endif
-	size_t locked_operation = 0;
 
-	void write_album_art(Release_ptr &release,
-		metadb_handle_ptr item,
-		const char *item_text,
-		threaded_process_status &p_status,
-		abort_callback &p_abort);
+	size_t locked_operation = 0;
 
 	void save_album_art(Release_ptr &release, metadb_handle_ptr item, art_download_attribs ada, pfc::array_t<GUID> album_art_ids, bit_array_bittable &saved_mask, pfc::array_t<pfc::string8> &done_files, threaded_process_status &p_status, abort_callback &p_abort);
 	void save_artist_art(Release_ptr &release, metadb_handle_ptr item, art_download_attribs ada, pfc::array_t<GUID> album_art_ids, bit_array_bittable& saved_mask, pfc::array_t<pfc::string8> &done_files, threaded_process_status &p_status, abort_callback &p_abort);

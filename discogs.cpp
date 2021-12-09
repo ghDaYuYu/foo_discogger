@@ -1,12 +1,12 @@
 #include "stdafx.h"
 
-#include "discogs.h"
+#include "jansson/jansson.h"
 #include "foo_discogs.h"
 #include "utils.h"
 #include "json_helpers.h"
-
-#include "jansson/jansson.h"
 #include "tag_mapping_credit_utils.h"
+
+#include "discogs.h"
 
 using namespace Discogs;
 
@@ -449,8 +449,6 @@ pfc::string8 Discogs::format_track_number(int tracknumber) {
 	return buf;
 }
 
-/////////////////////
-
 ReleaseArtist_ptr Discogs::parseReleaseArtist(json_t *element) {
 	assert_is_object(element);
 	pfc::string8 artist_id = JSONAttributeString(element, "id");
@@ -491,7 +489,9 @@ void Discogs::parseReleaseCredits(json_t* element, pfc::array_t<ReleaseCredit_pt
 		json_t *j = json_array_get(element, i);
 		ReleaseArtist_ptr artist = parseReleaseArtist(j);
 		const pfc::string8 &tracks = JSONAttributeString(j, "tracks");
+
 		if (tracks.get_length()) {
+
 			ReleaseCredit_ptr credit(new ReleaseCredit());
 			credit->raw_roles = artist->raw_roles;
 			credit->roles = artist->roles;
@@ -508,6 +508,7 @@ void Discogs::parseReleaseCredits(json_t* element, pfc::array_t<ReleaseCredit_pt
 			}
 		}
 		else {
+
 			if (!artist->raw_roles.get_length() || (credits.get_size() && STR_EQUAL(artist->raw_roles, credits[credits.get_size() - 1]->raw_roles))) {
 				credits[credits.get_size() - 1]->artists.append_single(artist);
 			}
@@ -1022,6 +1023,7 @@ void Discogs::parseReleaseTrack(json_t *element, pfc::array_t<ReleaseTrack_ptr> 
 		if (json_is_array(sub_tracks)) {
 			for (size_t i = 0; i < json_array_size(sub_tracks); i++) {
 				json_t *sub_track = json_array_get(sub_tracks, i);
+				//recursion
 				parseReleaseTrack(sub_track, tracks, discogs_original_track_number, heading, &track, has_artists);
 			}
 		}
@@ -1292,7 +1294,9 @@ void Discogs::parseArtistReleases(json_t *root, Artist *artist) {
 }
 
 void Discogs::parseMasterVersions(json_t *root, MasterRelease *master_release) {
+
 	json_t *versions = json_object_get(root, "versions");
+
 	if (json_is_array(versions)) {
 		for (size_t i = 0; i < json_array_size(versions); i++) {
 			json_t *rel = json_array_get(versions, i);
@@ -1307,13 +1311,15 @@ void Discogs::parseMasterVersions(json_t *root, MasterRelease *master_release) {
 				release->search_formats = JSONAttributeString(rel, "format");
 				release->search_catno = JSONAttributeString(rel, "catno");
 				release->release_year = JSONAttributeString(rel, "year");
+				release->db_total_tracks = atoi(JSONAttributeString(rel, "db_total_tracks"));
 				if (release->release_year.get_length() == 0) {
 					release->release_year = getYearFromReleased(JSONAttributeString(rel, "released"));
 				}
 				release->country = JSONAttributeString(rel, "country");
 
 				bool duplicate = false;
-				for (size_t r = 0; r < master_release->sub_releases.get_size(); r++) {				
+				for (size_t r = 0; r < master_release->sub_releases.get_size(); r++) {
+					Release_ptr sub_release = master_release->sub_releases[r];
 					if (master_release->sub_releases[r]->id == release->id) {
 						duplicate = true;
 						break;
@@ -1329,6 +1335,7 @@ void Discogs::parseMasterVersions(json_t *root, MasterRelease *master_release) {
 }
 
 void Discogs::parseArtist(Artist *artist, json_t *root) {
+
 	assert_is_object(root);
 
 	artist->profile = JSONAttributeString(root, "profile");
@@ -1377,16 +1384,18 @@ void initialize_null_artist(Artist *artist) {
 }
 
 void Discogs::Artist::load(threaded_process_status &p_status, abort_callback &p_abort, bool throw_all) {
+	
 	if (loaded) {
 		return;
 	}
 
 	pfc::string8 rel_path = ol::GetOfflinePath(id, true, ol::GetFrom::Artist, "");
+
 	bool db_isready = DBFlags(CONF.db_dc_flag).IsReady() && !(DBFlags(CONF.db_dc_flag).WantArtwork());
 
-	bool offline_can_read = CONF.cache_use_offline_cache & ol::CacheFlags::OC_READ;
-	bool offline_can_write = CONF.cache_use_offline_cache & ol::CacheFlags::OC_WRITE;
-	bool offline_can_overwrite = CONF.cache_use_offline_cache & ol::CacheFlags::OC_OVERWRITE;
+	bool offline_can_read = ol::can_read();
+	bool offline_can_write = ol::can_write();
+	bool offline_can_overwrite = ol::can_ovr();
 
 	bool offline_avail_data = (ol::GetFS_IdFilePaths(id, ol::GetFrom::Artist, "").get_ptr() != nullptr) && ol::CheckDownload(rel_path);
 	bool btransient = !(offline_can_read && offline_avail_data) || offline_can_overwrite;
@@ -1438,17 +1447,13 @@ void Discogs::Artist::load(threaded_process_status &p_status, abort_callback &p_
 					discogs_interface->fetcher->fetch_html(url, "", json, p_abort);
 				}
 			}
-#ifdef DC_DB
+#ifdef DB_DC
 			else {
 				discogs_db_interface->get_artist_DB(id, json, p_abort, "Fetching artist from backup db...", p_status, nullptr);
 				btransient = true;
-#ifdef _DEBUG
-				//offline_can_write = false;
-#else
-#endif
 			}
 
-#endif // DC_DB
+#endif // DB_DC
 
 			//we have just read from offline, do not write in next step!!!
 		}
@@ -1463,7 +1468,6 @@ void Discogs::Artist::load(threaded_process_status &p_status, abort_callback &p_
 		}
 
 		JSONParser jp(json);
-
 		parseArtist(this, jp.root);
 		loaded = true;
 
@@ -1560,8 +1564,6 @@ void Discogs::Release::load(threaded_process_status &p_status, abort_callback &p
 	try {
 
 		pfc::string8 json;
-		pfc::string8 url;
-		pfc::array_t<JSONParser_ptr> res;
 
 		if (btransient) {
 
@@ -1569,7 +1571,7 @@ void Discogs::Release::load(threaded_process_status &p_status, abort_callback &p
 			msg << "Loading online releases\\" << id;
 			p_status.set_item(msg);
 
-		
+			pfc::string8 url;
 			url << "https://api.discogs.com/releases/" << id;
 			discogs_interface->fetcher->fetch_html(url, "", json, p_abort);
 		
@@ -1577,12 +1579,12 @@ void Discogs::Release::load(threaded_process_status &p_status, abort_callback &p
 		else {
 
 			//parseRelease_DB(this, p_status, p_abort);
-#ifdef DC_DB
+#ifdef DB_DC
 			if (!db_skip)
 				discogs_db_interface->get_release_db(id, json, "", p_abort, "Gettting release from local db",p_status, dbfetcher);
 			else 
 
-#endif // DC_DB
+#endif // DB_DC
 				discogs_interface->get_release_offline_cache(artist_id, release_id, json, p_abort, "Fetching offline release...", p_status);
 
 			//we have just read from offline, do not write in next step!!!
@@ -1593,11 +1595,7 @@ void Discogs::Release::load(threaded_process_status &p_status, abort_callback &p
 		log_msg(json);
 #endif
 
-
-
 		JSONParser jp(json);
-
-		//parseRelease(this, jp.root);
 		parseRelease(this, jp.root);
 		loaded = true;
 
@@ -1625,7 +1623,6 @@ void Discogs::Release::load(threaded_process_status &p_status, abort_callback &p
 				//todo: failed to created file
 			}
 		}
-
 	}
 	catch (foo_discogs_exception &e) {
 		if (throw_all) {
@@ -1652,7 +1649,6 @@ void Discogs::Release::load_my_rating(threaded_process_status &p_status, abort_c
 		discogs_interface->fetcher->fetch_html(url, "", json, p_abort);
 
 		JSONParser jp(json);
-
 		parseReleaseRating(this, jp.root);
 		loaded_my_rating = true;
 	}
@@ -1677,7 +1673,6 @@ void Discogs::MasterRelease::load(threaded_process_status &p_status, abort_callb
 		discogs_interface->fetcher->fetch_html(url, "", json, p_abort);
 
 		JSONParser jp(json);
-
 		parseMasterRelease(this, jp.root);
 		loaded = true;
 	}
@@ -1701,10 +1696,10 @@ void Discogs::Artist::load_releases(threaded_process_status &p_status, abort_cal
 
 	pfc::string8 rel_path = ol::GetOfflinePath(id, true, gfArtistReleases, "");
 
-	bool offline_can_read = CONF.cache_use_offline_cache & ol::CacheFlags::OC_READ;
-	bool offline_can_write = CONF.cache_use_offline_cache & ol::CacheFlags::OC_WRITE;
-	bool offline_can_overwrite = CONF.cache_use_offline_cache & ol::CacheFlags::OC_OVERWRITE;
-
+	bool offline_can_read = ol::can_read();
+	bool offline_can_write = ol::can_write();
+	bool offline_can_overwrite = ol::can_ovr();
+	
 	bool offline_avail_data = (ol::GetFSPagesFilePaths(id, gfArtistReleases, "").get_ptr() != nullptr) && ol::CheckDownload(rel_path);
 	bool btransient = !(offline_can_read && offline_avail_data) || offline_can_overwrite;
 	
@@ -1721,7 +1716,7 @@ void Discogs::Artist::load_releases(threaded_process_status &p_status, abort_cal
 		else {
 
 			bool db_ready = DBFlags(CONF.db_dc_flag).IsReady();
-#ifdef DC_DB
+#ifdef DB_DC
 			if (db_ready)
 
 				pages = discogs_db_interface->releases_get_all_pages(id, id, "", p_abort, "Fetching local database artist releases...", p_status, dbfetcher);
@@ -1736,42 +1731,41 @@ void Discogs::Artist::load_releases(threaded_process_status &p_status, abort_cal
 		}
 		loaded_releases_offline = !btransient;
 
-		/*if (btransient) {*/
-			const size_t count = pages.get_count();
-			for (size_t i = 0; i < count; i++) {
-				parseArtistReleases(pages[i]->root, this);
-				if (btransient && offline_can_write) {
+		const size_t count = pages.get_count();
+		for (size_t i = 0; i < count; i++) {
+			parseArtistReleases(pages[i]->root, this);
+			if (btransient && offline_can_write) {
+				try {
+					if (i == 0) {
+						//create release folder, mark as pending
+						ol::CreateOfflinePagesPath(id, art_src::unknown, pfc_infinite, gfArtistReleases, "");
+						pfc::string8 markcontent = JSONString(json_object_get(pages[i]->root, "items"));
+						ol::MarkDownload(markcontent, rel_path, false);
+					}
+					//create page-n folder
+					ol::CreateOfflinePagesPath(id, art_src::unknown, i, gfArtistReleases, "");
+					pfc::string8 page_path = ol::GetOfflinePagesPath(id, i, true, gfArtistReleases, "");
+					page_path << "\\root.json";
+					discogs_interface->offline_cache_save(page_path, pages[i]->root);
+				}
+				catch (...) {
+					//todo:
+					//failed to create folder
+				}
+			}
+				
+			if (btransient && offline_can_write) {
+				if (i == count - 1) {
 					try {
-						if (i == 0) {
-							//create release folder, mark as pending
-							ol::CreateOfflinePagesPath(id, art_src::unknown, pfc_infinite, gfArtistReleases, "");
-							pfc::string8 markcontent = JSONString(json_object_get(pages[i]->root, "items"));
-							ol::MarkDownload(markcontent, rel_path, false);
-						}
-						//create page-n folder
-						ol::CreateOfflinePagesPath(id, art_src::unknown, i, gfArtistReleases, "");
-						pfc::string8 page_path = ol::GetOfflinePagesPath(id, i, true, gfArtistReleases, "");
-						page_path << "\\root.json";
-						discogs_interface->offline_cache_save(page_path, pages[i]->root);
+						//mark as done...
+						ol::MarkDownload("", rel_path, true);
 					}
 					catch (...) {
-						//todo:
-						//failed to create folder
-					}
-				}
-				
-				if (btransient && offline_can_write) {
-					if (i == count - 1) {
-						try {
-							//mark as done...
-							ol::MarkDownload("", rel_path, true);
-						}
-						catch (...) {
-							//todo: failed to created file
-						}
+						//todo: failed to created file
 					}
 				}
 			}
+		}
 
 		loaded_releases = true;
 	}
@@ -1796,10 +1790,10 @@ void Discogs::MasterRelease::load_releases(threaded_process_status &p_status, ab
 
 	pfc::string8 rel_path = ol::GetOfflinePath(artist_id, true, gfVersions, master_id);
 
-	bool offline_can_read = CONF.cache_use_offline_cache & ol::CacheFlags::OC_READ;
-	bool offline_can_write = CONF.cache_use_offline_cache & ol::CacheFlags::OC_WRITE;
-	bool offline_can_overwrite = CONF.cache_use_offline_cache & ol::CacheFlags::OC_OVERWRITE;
-
+	bool offline_can_read = ol::can_read();
+	bool offline_can_write = ol::can_write();
+	bool offline_can_overwrite = ol::can_ovr();
+	
 	bool offline_avail_data = (ol::GetFSPagesFilePaths(artist_id, gfVersions, master_id).get_ptr() != nullptr) && ol::CheckDownload(rel_path);
 	bool btransient = !(offline_can_read && offline_avail_data) || offline_can_overwrite;
 	
@@ -1807,7 +1801,6 @@ void Discogs::MasterRelease::load_releases(threaded_process_status &p_status, ab
 	btransient &= !db_isready;
 
 	try {
-		pfc::string8 json;
 		pfc::string8 url;
 		pfc::array_t<JSONParser_ptr> pages;
 		if (btransient) {
@@ -1815,20 +1808,19 @@ void Discogs::MasterRelease::load_releases(threaded_process_status &p_status, ab
 			pages = discogs_interface->get_all_pages(url, "", p_abort, "Fetching master release versions...", p_status);
 		}
 		else {
-#ifdef DC_DB
+#ifdef DB_DC
 			if (db_isready)
 				pages = discogs_db_interface->versions_get_all_pages(artist_id, master_id, "", p_abort, "Fetching local database master releases versions ...", p_status, dbfetcher);
 			else
-#endif // DC_DB
+#endif
 				pages = discogs_interface->get_all_pages_offline_cache(gfVersions, artist_id, master_id, "", p_abort, "Fetching offline master releases versions ...", p_status);
 
 			//we have just read from offline, do not write in next step!!!
 			offline_can_write = false;
 		}
-		//loaded_releases_offline = !btransient;
 
-		const size_t count = pages.get_count();
-		for (size_t i = 0; i < count; i++) {
+		const size_t cPages = pages.get_count();
+		for (size_t i = 0; i < cPages; i++) {
 			parseMasterVersions(pages[i]->root, this);
 
 			if (btransient && offline_can_write) {
@@ -1850,7 +1842,7 @@ void Discogs::MasterRelease::load_releases(threaded_process_status &p_status, ab
 					//failed to create folder
 				}
 				if (btransient && offline_can_write) {
-					if (i == count - 1) {
+					if (i == cPages - 1) {
 						try {
 							//mark as done...
 							ol::MarkDownload("", rel_path, true);
@@ -1875,17 +1867,18 @@ void Discogs::MasterRelease::load_releases(threaded_process_status &p_status, ab
 }
 
 void Discogs::parseIdentity(json_t *root, Identity *identity) {
+	
 	assert_is_object(root);
 
 	identity->user_id = JSONAttributeString(root, "id");
 	identity->username = JSONAttributeString(root, "username");
 	identity->consumer_name = JSONAttributeString(root, "consumer_name");
-	//..
+
 	pfc::string8 resource_url = JSONAttributeString(root, "resource_url");
-	int dbug = resource_url.length();
 }
 
 void Discogs::parseCollection(json_t *root, pfc::array_t<pfc::string8> &collection) {
+	
 	assert_is_object(root);
 
 	json_t *releases = json_object_get(root, "releases");
@@ -1901,8 +1894,9 @@ void Discogs::parseCollection(json_t *root, pfc::array_t<pfc::string8> &collecti
 		}
 	}
 }
-//..
+
 void Discogs::parseProfile(json_t* root, Profile* profile) {
+	
 	assert_is_object(root);
 
 	profile->id = JSONAttributeString(root, "id");

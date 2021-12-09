@@ -18,13 +18,9 @@ enum class updRelSrc { Artist, Releases, Filter, ArtistList, Undef };
 
 enum FilterFlag {
 	Versions	= 1 << 0,
-	FF1			= 1 << 1,
-	FF2			= 1 << 2,
-	FF3			= 1 << 3,
+	//..
 	RoleMain	= 1 << 4,
-	FF5			= 1 << 5,
-	FF6			= 1 << 6,
-	FF7			= 1 << 7
+	//..
 };
 
 class CFindReleaseDialog : public MyCDialogImpl<CFindReleaseDialog>,
@@ -49,7 +45,8 @@ private:
 	bool m_skip_fill_filter = false;
 
 	t_size m_artist_index;
-	foo_discogs_conf conf;
+
+	foo_conf conf;
 
 	playable_location_impl location;
 	file_info_impl info;
@@ -68,7 +65,7 @@ private:
 
 	std::shared_ptr<filter_cache> m_cache_find_release_ptr;
 	std::shared_ptr<vec_t> m_vec_items_ptr;
-	std::vector<std::pair<int, int>> m_vec_filter; //master_id, release_id
+	std::vector<std::pair<int, int>> m_vec_filter;
 
 	std::vector<std::pair<int, int>> vec_icol_subitems;
 	void update_sorted_icol_map(bool reset);
@@ -169,7 +166,7 @@ public:
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		COMMAND_ID_HANDLER(IDC_FILTER_EDIT, OnEditFilterText)
 		COMMAND_HANDLER(IDC_ARTIST_LIST, LBN_SELCHANGE, OnSelectArtist)
-		NOTIFY_HANDLER(IDC_ARTIST_LIST, /*LVN_ODSTATECHANGED*/LVN_ITEMCHANGED, OnArtistListViewItemChanged)
+		NOTIFY_HANDLER(IDC_ARTIST_LIST, LVN_ITEMCHANGED, OnArtistListViewItemChanged)
 		COMMAND_ID_HANDLER(IDC_ONLY_EXACT_MATCHES_CHECK, OnCheckOnlyExactMatches)
 		COMMAND_ID_HANDLER(IDC_SEARCH_BUTTON, OnButtonSearch)
 		COMMAND_ID_HANDLER(IDC_CONFIGURE_BUTTON, OnButtonConfigure)

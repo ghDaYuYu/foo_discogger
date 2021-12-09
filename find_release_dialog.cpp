@@ -5,14 +5,12 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #include "stdafx.h"
 #include <CommCtrl.h>
 #include <commoncontrols.h>
-
 #include <atlctrls.h>
-
 #include <WinUser.h>
 
 #include "libPPUI/win32_utility.h"
 
-#include "find_release_dialog.h"
+#include "resource.h"
 #include "find_release_tree.h"
 #include "configuration_dialog.h"
 
@@ -20,8 +18,9 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #include "multiformat.h"
 #include "sdk_helpers.h"
 
-#include "resource.h"
 #include "utils.h"
+
+#include "find_release_dialog.h"
 
 static const GUID guid_cfg_window_placement_find_release_dlg = { 0x7342d2f3, 0x235d, 0x4bed, { 0x86, 0x7e, 0x82, 0x7f, 0xa8, 0x8e, 0xd9, 0x87 } };
 static cfg_window_placement cfg_window_placement_find_release_dlg(guid_cfg_window_placement_find_release_dlg);
@@ -103,7 +102,7 @@ inline void CFindReleaseDialog::load_size() {
 void CFindReleaseDialog::pushcfg() {
 	bool conf_changed = build_current_cfg();
 	if (conf_changed) {
-		CONF.save(new_conf::ConfFilter::CONF_FILTER_FIND, conf);
+		CONF.save(CConf::cfgFilter::FIND, conf);
 		CONF.load();
 	}
 }
@@ -111,11 +110,9 @@ void CFindReleaseDialog::pushcfg() {
 inline bool CFindReleaseDialog::build_current_cfg() {
 	bool bres = false;
 
-	//dlg exact match
-	bool checked = IsDlgButtonChecked(IDC_ONLY_EXACT_MATCHES_CHECK);
-	if (CONF.display_exact_matches != checked ) {
-
-		conf.display_exact_matches = checked;
+	bool bcheck = IsDlgButtonChecked(IDC_ONLY_EXACT_MATCHES_CHECK);
+	if (CONF.display_exact_matches != bcheck) {
+		conf.display_exact_matches = bcheck;
 		bres |= true;
 	}
 
@@ -125,7 +122,6 @@ inline bool CFindReleaseDialog::build_current_cfg() {
 	if ((CONF.find_release_filter_flag & FilterFlag::RoleMain) != (conf.find_release_filter_flag & FilterFlag::RoleMain)) {
 		bres |= true;
 	}
-	
 	return bres;
 }
 
@@ -154,7 +150,7 @@ LRESULT CFindReleaseDialog::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWnd
 	return TRUE;
 }
 
-bool OAuthCheck(foo_discogs_conf conf) {
+bool OAuthCheck(foo_conf conf) {
 	if (!g_discogs->gave_oauth_warning &&
 		(!conf.oauth_token.get_length() || !conf.oauth_token_secret.get_length())) {
 		g_discogs->gave_oauth_warning = true;
@@ -199,6 +195,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 
 	HIMAGELIST hImageList = NULL;
 	if (S_OK == SHGetImageList(SHIL_SMALL, IID_IImageList, reinterpret_cast<LPVOID*>(&hImageList))) {
+		
 		CImageList shimagelist(hImageList);
 		SIZE iconsize;
 		shimagelist.GetIconSize(iconsize);
@@ -266,14 +263,8 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 		}
 	}
 
-	DlgResize_Init(mygripp.grip, true);
-	load_size();
 
-	if (conf.find_release_dialog_show_id) {
-		BOOL bdummy = false;
-		conf.find_release_dialog_show_id = false;
-		//OnCheckReleasesShowId(0, 0, NULL, bdummy);
-	}
+	DlgResize_Init(mygripp.enabled, true);
 
 	if (conf.find_release_filter_flag & FilterFlag::Versions) {
 		uButton_SetCheck(m_hWnd, IDC_CHECK_FIND_RELEASE_FILTER_VERSIONS, true);
@@ -382,7 +373,7 @@ void CFindReleaseDialog::fill_artist_list(bool force_exact, updRelSrc updsrc) {
 	}
 	else if (updsrc == updRelSrc::Undef) {
 		
-		::EnableWindow(exactcheck, false ||DBFlags(CONF.db_dc_flag).IsReady());
+		::EnableWindow(exactcheck, false || DBFlags(CONF.db_dc_flag).IsReady());
 		pfc::string8 name = find_release_artist->name;
 		bool artist_offline = find_release_artist->loaded_releases_offline;
 		_idtracer.artist_check(find_release_artist->id, 0);
@@ -493,6 +484,7 @@ void CFindReleaseDialog::on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist
 			myparam = { _idtracer.master_i, _idtracer.release_i, _idtracer.master,_idtracer.release };
 			src_lparam = myparam.lparam();
 			//select if release is loaded
+
 			vec_iterator_t vec_lv_it;
 			find_vec_by_lparam(*m_vec_items_ptr, src_lparam, vec_lv_it);
 
@@ -501,7 +493,9 @@ void CFindReleaseDialog::on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist
 				on_release_selected(src_lparam);
 			}
 			else {
+
 				//release not loaded, try to select master and expand
+
 				mounted_param not_found;
 				myparam = mounted_param(_idtracer.master_i, ~0, _idtracer.master, false);
 				src_lparam = myparam.lparam();

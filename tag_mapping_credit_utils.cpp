@@ -56,6 +56,72 @@ bool vfind(pfc::string8 str, std::vector<pfc::string8> v) {
 	//return is_number(str.get_ptr()) && std::find(v.begin(), v.end(), str) != v.end();
 }
 
+//todo: general revision
+//		implement multi-disk range
+//test: 
+//		bass gxp (+827) https://www.discogs.com/release/796538-Sonny-Criss-The-Complete-Imperial-Sessions
+//		RELEASE_CAT_CREDITS_GXP_+827&+374&+392&+445_ALL
+//		Bass: Bill Woodson (tracks: 1-1 to 1-12), Buddy Clark (tracks: 2-7 to 2-16), Leroy Vinnegar (tracks: 1-13 to 2-6)
+
+pfc::string8 disc_tracks_to_range(pfc::string8 tracks) {
+	pfc::string8 ret;
+
+	std::vector<pfc::string8> v;
+	split(tracks, ",", 0, v);
+#ifdef DEBUG
+	size_t pos;
+	if (pos = tracks.find_first("1.13", 0) != pfc_infinite) {
+		int debug = 1;
+	}
+#endif
+
+	std::vector <std::pair<pfc::string8, pfc::string8>> disc;
+	for (auto w : v) {
+		std::vector<pfc::string8> track;
+		split(w, ".", 0, track);
+		size_t ndx;
+		if (track.size() == 1 || atoi(track.at(0)) == 1)
+			ndx = 1;
+		else
+			ndx = atoi(track.at(0));
+
+		if (ndx > disc.size()) {
+			disc.resize(ndx);
+			auto& disctrack = disc.at(ndx - 1);
+			disctrack = std::pair(pfc::toString(ndx).c_str(), track.at(1));
+		}
+		else {
+			auto& disctrack = disc.at(ndx - 1);
+			pfc::string8 left = pfc::toString(ndx).c_str();
+			disctrack = std::pair(left, (PFC_string_formatter() << disctrack.second << "," << track.at(1)).c_str());
+		}
+	}
+
+	pfc::string8 separator = "";
+	for (auto w : disc) {
+		if (!w.second.length()) continue;
+		pfc::string8 tmpstr = tracks_to_range(w.second);
+		if ((!atoi(w.first) || atoi(w.first) == 1) && disc.size() == 1)
+			;//todo: do not add disc prefix if not multi disc?
+		else {
+			size_t pos = tmpstr.find_first(" to ", 0);
+			if (pos != pfc_infinite)			
+				tmpstr = PFC_string_formatter() << w.first << "." <<
+						substr(tmpstr, 0, pos) << " to " <<
+						w.first << "." << substr(tmpstr, pos + pfc::string8(" to ").length(), pfc_infinite);
+			else {
+				tmpstr = PFC_string_formatter() << w.first << "." <<
+					tmpstr.replace_string(", ", PFC_string_formatter() << ", " << w.first);
+			}
+		}
+
+		ret << separator << tmpstr;
+		separator = ", ";
+	}
+
+	return ret;
+}
+
 pfc::string8 min_range_to_tracks(pfc::string8 tracks) {
 
 	std::vector<pfc::string8> v;
@@ -75,11 +141,6 @@ pfc::string8 tracks_to_range(pfc::string8 tracks) {
 	std::vector<pfc::string8> vo;
 	split(tracks, ",", 0, v);
 
-#ifdef DEBUG
-	if (v.size() > 2)
-		v = v;
-#endif
-
 	size_t beg = 0;
 	vo.push_back(v[0]);
 	for (size_t n = 1; n < v.size(); n ++) {
@@ -93,8 +154,8 @@ pfc::string8 tracks_to_range(pfc::string8 tracks) {
 		}
 	}
 	pfc::string8 separator = "";
-	for (auto x : vo) {
-		ret << separator << min_range_to_tracks(x);
+	for (auto w : vo) {
+		ret << separator << min_range_to_tracks(w);
 		separator = ", ";
 	}
 	return ret;
@@ -227,7 +288,7 @@ void credit_tag_nfo::init(pfc::string8 tagname) {
 	if (strncmp(pfc::stringToUpper(tagname), CAT_CREDIT_TAG_PREFIX, 20) == 0)
 		tag_name = pfc::stringToUpper(tagname);
 	else
-		tag_name = DEFAULT_CAT_CREDIT_TAG;
+		tag_name = DEF_CAT_CREDIT_TAG;
 
 	sub_tag_name = substr(tag_name, 20);
 
@@ -330,7 +391,7 @@ void credit_tag_nfo::build_vwhere_cats(pfc::string8& out) {
 		out = "and (";
 		for (auto elem : vsplit) {
 			if (elem.has_prefix("+")) {
-				out << "( credit_id == ";
+				out << "( credit_id = ";
 				out << substr(elem, 1, elem.get_length() - 1) << " ";
 			}
 			else {
@@ -358,10 +419,13 @@ void credit_tag_nfo::build_vwhere_cats(pfc::string8& out) {
 		out << ") ";
 
 		//(cat = 0) -> no filter
-		pfc::string8 nofilter("( catid = 0 )");
+		pfc::string8 nofilter("and ( catid = 0 )");
 		size_t dbug_strstr = pfc::strstr_ex(out.get_ptr(), out.get_length(), nofilter, nofilter.get_length());
 		if (STR_EQUAL(trim(out), nofilter) /*|| (pfc::strstr_ex(out.get_ptr(), out.get_length(), nofilter, nofilter.get_length()) != pfc_infinite)*/) {
 			out = "";
 		}
+	}
+	else {
+		out = "";
 	}
 }

@@ -64,7 +64,7 @@ void CListControlCredits::RenderItemBackground(CDCHandle p_dc, const CRect& p_it
 void CTagCreditDialog::pushcfg(bool force) {
 	bool conf_changed = build_current_cfg();
 	if (conf_changed || force) {
-		CONF.save(new_conf::ConfFilter::CONF_CAT_CREDIT, conf);
+		CONF.save(CConf::cfgFilter::CAT_CREDIT, conf);
 		CONF.load();
 	}
 }
@@ -85,7 +85,6 @@ void CTagCreditDialog::updateTagCreditUI(HWND list, bool remake_list) {
 
 	bool add_group = false;
 	UINT idc_grp;
-	
 	if (m_ctag.isGXC())
 		idc_grp = IDC_TAG_CREDITS_GRP_GXC;
 	else if (m_ctag.isGXP())
@@ -99,27 +98,32 @@ void CTagCreditDialog::updateTagCreditUI(HWND list, bool remake_list) {
 	BOOL bdummy = false;
 	OnBtnCheckGroup(0, idc_grp, m_hWnd, bdummy);
 
-	bool add_src = false;
-	if (m_ctag.isAll())
+	if (m_ctag.isAll()) {
 		uButton_SetCheck(m_hWnd, IDC_TAG_CREDITS_RADIO_ALL, TRUE);
-	else if (m_ctag.isRelease())
+		uButton_SetCheck(m_hWnd, IDC_TAG_CREDITS_RADIO_RELEASE, FALSE);
+		uButton_SetCheck(m_hWnd, IDC_TAG_CREDITS_RADIO_TRACKS, FALSE);
+	}
+	else if (m_ctag.isRelease()) {		
+		uButton_SetCheck(m_hWnd, IDC_TAG_CREDITS_RADIO_ALL, FALSE);
 		uButton_SetCheck(m_hWnd, IDC_TAG_CREDITS_RADIO_RELEASE, TRUE);
-	else if (m_ctag.isTracks())
+		uButton_SetCheck(m_hWnd, IDC_TAG_CREDITS_RADIO_TRACKS, FALSE);
+	}
+	else if (m_ctag.isTracks()) {		
+		uButton_SetCheck(m_hWnd, IDC_TAG_CREDITS_RADIO_ALL, FALSE);
+		uButton_SetCheck(m_hWnd, IDC_TAG_CREDITS_RADIO_RELEASE, FALSE);
 		uButton_SetCheck(m_hWnd, IDC_TAG_CREDITS_RADIO_TRACKS, TRUE);
+	}
 	else {
 		uButton_SetCheck(m_hWnd, IDC_TAG_CREDITS_RADIO_ALL, TRUE);
-		add_src = true;
+		uButton_SetCheck(m_hWnd, IDC_TAG_CREDITS_RADIO_RELEASE, FALSE);
+		uButton_SetCheck(m_hWnd, IDC_TAG_CREDITS_RADIO_TRACKS, FALSE);
 	}
 
-	bool add_cat = false;
-	
 	if (m_ctag.get_cat().get_length()) {
 		uSetDlgItemText(m_hWnd, IDC_TAG_CREDITS_STATIC_PREVIEW_TF, m_ctag.get_tagname());
 	}
-	else
-		add_cat = true;
 
-	//todo: move to notifier/remove notifier?
+	//todo: move to notifier/remove notifier
 
 	if (remake_list) {
 		bit_array_bittable credit_list_mask = m_credit_sel_list.InitCatInfo(&m_ctag, vcats, vsubcats);
@@ -127,6 +131,7 @@ void CTagCreditDialog::updateTagCreditUI(HWND list, bool remake_list) {
 		if (list == m_credit_sel_list)
 			m_credit_list.SetChecked(credit_list_mask);
 	}
+
 	m_rebuilding_tag_name = false;
 }
 
@@ -253,8 +258,6 @@ LRESULT CTagCreditDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM 
 	m_credit_list.SetRowStyle(conf.list_style);
 	m_credit_sel_list.SetRowStyle(conf.list_style);
 
-	// inititalize radio buttons & checkboxes
-
 	if (m_ptag_mappings == nullptr)
 		m_ptag_mappings = new pfc::list_t<tag_mapping_entry>();
 
@@ -274,23 +277,13 @@ LRESULT CTagCreditDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM 
 	cewb_highlight.SubclassWindow(wnd_hledit);
 	cewb_highlight.SetEnterEscHandlers();
 
-	uSetWindowText(wnd_hledit, conf.edit_tags_dlg_hl_keyword);
-
-	//::SetFocus(GetDlgItem(IDC_OK));
-
 	DlgResize_Init(mygripp.enabled, true);
-
-	//load_size();
 
 	cfg_window_placement_tag_mappings_credits_dlg.on_window_creation(m_hWnd, true);
 
 	show();
 
-	//on_mapping_changed(get_mapping_changed());
-
-	::uPostMessage(m_hWnd, WM_NEXTDLGCTL, (WPARAM)(HWND)GetDlgItem(IDAPPLY), TRUE);
-
-	////FALSE: prevent the system from setting the default focus
+	::uPostMessage(m_hWnd, WM_NEXTDLGCTL, (WPARAM)(HWND)GetDlgItem(IDC_APPLY), TRUE);
 	return FALSE;
 }
 

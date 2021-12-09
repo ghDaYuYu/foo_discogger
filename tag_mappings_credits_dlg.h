@@ -677,9 +677,9 @@ class TemplateNameDialog : private dialog_helper::dialog_modal {
 		switch (uMsg) {
 		case WM_INITDIALOG:
 			if (value != nullptr) {
-				uSetDlgItemText(get_wnd(), IDC_CONFIG_NAME, value);
+				uSetDlgItemText(get_wnd(), IDC_EDIT_CAT_CREDIT_TMPL_NAME, value);
 			}
-			SetFocus(uGetDlgItem(get_wnd(), IDC_CONFIG_NAME));
+			SetFocus(uGetDlgItem(get_wnd(), IDC_EDIT_CAT_CREDIT_TMPL_NAME));
 			return 0;
 		case WM_COMMAND:
 			if (HIWORD(wParam) == BN_CLICKED) {
@@ -691,7 +691,7 @@ class TemplateNameDialog : private dialog_helper::dialog_modal {
 				}
 			}
 			else if (HIWORD(wParam) == EN_CHANGE) {
-				uGetDlgItemText(get_wnd(), IDC_CONFIG_NAME, value);
+				uGetDlgItemText(get_wnd(), IDC_EDIT_CAT_CREDIT_TMPL_NAME, value);
 			}
 			return 0;
 		}
@@ -712,7 +712,8 @@ public:
 //
 
 class CTagCreditDialog : public MyCDialogImpl<CTagCreditDialog>,
-	public CDialogResize<CTagCreditDialog>,	public CMessageFilter
+	public CDialogResize<CTagCreditDialog>,
+	public CMessageFilter
 {
 
 public:
@@ -740,7 +741,7 @@ private:
 	//HWND tag_list;
 	HWND remove_button;
 
-	foo_discogs_conf conf;
+	foo_conf conf;
 
 	metadb_handle_list m_items;
 	file_info_manager_ptr m_pfinfo_manager;
@@ -811,7 +812,7 @@ public:
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		COMMAND_ID_HANDLER(IDOK, OnOK)
-		COMMAND_ID_HANDLER(IDAPPLY, OnApply)
+		COMMAND_ID_HANDLER(IDC_APPLY, OnApply)
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
 		COMMAND_ID_HANDLER(IDC_TAG_CREDITS_EDIT_HL, OnEditHLText)
 
@@ -837,7 +838,7 @@ public:
 	BEGIN_DLGRESIZE_MAP(CTagCreditDialog)
 		DLGRESIZE_CONTROL(IDOK, DLSZ_MOVE_X | DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDCANCEL, DLSZ_MOVE_X | DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDAPPLY, DLSZ_MOVE_X | DLSZ_MOVE_Y)
+		DLGRESIZE_CONTROL(IDC_APPLY, DLSZ_MOVE_X | DLSZ_MOVE_Y)
 
 		DLGRESIZE_CONTROL(IDC_TAG_CREDIT_SEL_LIST, DLSZ_SIZE_X)
 		DLGRESIZE_CONTROL(IDC_TAG_CREDITS_STATIC_SELECTION, DLSZ_SIZE_X)
@@ -850,6 +851,7 @@ public:
 			DLGRESIZE_CONTROL(IDC_TAG_CREDIT_LIST, DLSZ_SIZE_Y)
 			DLGRESIZE_CONTROL(IDC_TAG_CREDITS_EDIT_HL, /*DLSZ_MOVE_X |*/ DLSZ_MOVE_Y)
 		END_DLGRESIZE_GROUP()
+
 		DLGRESIZE_CONTROL(IDC_TAG_CREDITS_STATIC_PREVIEW, DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_TAG_CREDITS_STATIC_PREVIEW_TF, DLSZ_SIZE_X | DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_TAG_CREDITS_PREVIEW, DLSZ_SIZE_X | DLSZ_MOVE_Y)

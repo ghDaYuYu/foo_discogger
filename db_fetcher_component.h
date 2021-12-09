@@ -41,14 +41,17 @@ class db_fetcher_component {
 public:
 
 	~db_fetcher_component() {
+		//
 	}
 
-	// db CTAG GENERATION
+	// db ctag generation
+	//bool lookup_credit(sqldb* db, pfc::string8& err_msg, pfc::string8 thisrole, pfc::string8 thisfullrole, size_t& credit_id, pfc::string8& thisrole_spec);
+	bool lookup_credit_tk(sqldb* db, sqlite3_stmt* qry, pfc::string8& err_msg, pfc::string8 thisrole, pfc::string8 thisfullrole, size_t& credit_id, pfc::string8& thisrole_spec);
 	int add_parsed_credit(sqldb* db, Release_ptr release, size_t gx);
 	size_t insert_parsed_credit_detail(sqldb* db, pfc::string8& err_msg, size_t credit_id, size_t inc_parsed_credit_id, size_t i, size_t j, pfc::string8 credit_spec, pfc::string8 thisartists);
 	vppair query_release_credit_categories(int gx, pfc::string8 non);
 
-	// db CTAG DEFINITIONS
+	// db ctag definitions
 	vppair load_db_def_credits();
 
 	// dlg
@@ -58,14 +61,14 @@ public:
 	// history
 	int add_history(sqldb* db, Release_ptr release,	pfc::string8 cmd_id, pfc::string8 cmd_text);
 
-#ifdef DC_DB
+#ifdef DB_DC
 	// test
 	bool test_discogs_db(pfc::string8 db_path, abort_callback& p_abort, threaded_process_status& p_status);
 #endif
 
 private:
 
-	sqlite3* m_pDb;
+	//sqlite3* m_pDb;
 };
 
 

@@ -1,8 +1,7 @@
 #include "stdafx.h"
-
 #include "db_utils.h"
-#include "db_fetcher_component.h"
 #include "tag_mapping_credit_utils.h"
+#include "db_fetcher_component.h"
 
 
 vppair db_fetcher_component::query_release_credit_categories(int gx, pfc::string8 innon) {
@@ -47,7 +46,7 @@ vppair db_fetcher_component::query_release_credit_categories(int gx, pfc::string
 			"inner join parsed_credit pc on pc.id = pcd.parsed_credit_id "
 			""
 			"where pc.subtype = \'C\' and ((catid = 1 and subcatid = 4) or credit_id = 178)) "
-			"group by /*pcdval*/credit_id;";
+			"group by credit_id, IIF(pcd.credit_spec IS NULL,\'\', \' (\' || pcd.credit_spec || \')\' );";
 
 		size_t replace_res = query_gxc.replace_string(outnon, innon, 0);
 
@@ -74,7 +73,7 @@ vppair db_fetcher_component::query_release_credit_categories(int gx, pfc::string
 			"pcd.id pcdid, "
 			"pcd.val pcdval, "
 			"pcd.obs, "
-			"GROUP_CONCAT(distinct(case when pcd.subval != \'SUBVAL\' then case when pcd.obs != \'OBS\' then pcd.subval else pcd.obs || \'.\' || pcd.subval end else pcd.subval end)) pcdsubval , "
+			"GROUP_CONCAT(distinct(case when pcd.subval != \'SUBVAL\' then case when pcd.obs == \'OBS\' then pcd.subval else pcd.obs || \'.\' || pcd.subval end else pcd.subval end)) pcdsubval , "
 			"/*GROUP_CONCAT(/*distinct*/(select c.credit_cat_sub_id ccsubid "
 			"from credit c where c.id = pcd.credit_id)/*)*/ subcatid "
 			""
@@ -108,12 +107,8 @@ vppair db_fetcher_component::query_release_credit_categories(int gx, pfc::string
 		if (!db.debug_sql_return(ret, cmd, "", "", 0, dbg_msg))	break;
 		//
 
-		// step into row
 		while (SQLITE_ROW == (ret = sqlite3_step(stmt_query)))
 		{
-			//while (SQLITE_ROW == ret) {
-
-			//to be added to cat id (1-7)
 			const char* tmp_val_credits_sub = reinterpret_cast<const char*>(sqlite3_column_text(stmt_query, 10));	//credit_sub role
 			const char* tmp_val_credits_id = reinterpret_cast<const char*>(sqlite3_column_text(stmt_query, 1));		//credit_id role
 
@@ -129,7 +124,7 @@ vppair db_fetcher_component::query_release_credit_categories(int gx, pfc::string
 
 #ifdef DEBUG
 			if (!tmp_val_credits) {
-				//orphan credit?
+				//orphan credit
 				pfc::string8 warn_msg;
 				warn_msg << "Unknown role credit for artist " << tmp_val_credits_2 << " found";
 				log_msg(warn_msg);
@@ -155,31 +150,87 @@ vppair db_fetcher_component::query_release_credit_categories(int gx, pfc::string
 	return vresult;
 }
 
+bool db_fetcher_component::lookup_credit_tk(sqldb* db, sqlite3_stmt* qry, pfc::string8& err_msg, pfc::string8 thisrole, pfc::string8 thisfullrole, size_t& credit_id, pfc::string8& thisrole_spec) {
+	bool bbreak = false;
+	do {
+		if (thisrole.get_length() != thisfullrole.get_length()) {
+			// 1 + 1 = space + [
+			thisrole_spec = substr(thisfullrole, thisrole.get_length() + 1 + 1, thisfullrole.get_length() - 1 - (thisrole.get_length() + 1 + 1));
+		}
+
+		// todo: test nulls on cat and sub cat
+		int ret = -1;
+		pfc::string8 cmd;
+		sqlite3* pDb = db->db_handle();
+		const char* param_role = "@param_role";
+		int param_ndx = sqlite3_bind_parameter_index(qry, param_role);
+		ret = sqlite3_bind_text(qry, param_ndx, thisrole, thisrole.get_length(), nullptr);
+		cmd = "step";
+
+		if (SQLITE_ROW == (ret = sqlite3_step(qry))) // see documentation, can return more values as success
+		{
+			int val = sqlite3_column_int(qry, 0);
+			credit_id = val ? val : pfc_infinite;
+		}
+		else {
+			if (SQLITE_DONE != ret) {
+				//extra
+				//ret = sqlite3_finalize(qry);
+				err_msg = sqlite3_errmsg(pDb);
+				break;
+			}
+			else {
+				//non-matching roles are added without category reference
+			}
+		}
+
+		cmd = "finalize";
+		ret = sqlite3_reset(qry);
+		//
+		if (!db->debug_sql_return(ret, cmd, "", "", 0, err_msg)) break;
+		//
+		return true;
+
+	} while (false);
+
+	return false;
+}
+
 int db_fetcher_component::add_parsed_credit(sqldb* db, Release_ptr release, size_t gx) {
 
+	int ret = -1;
 	pfc::string8 cmd;
 	pfc::string8 query;
 	pfc::string8 err_msg;
-	int ret = -1;
 	size_t inc_parsed_credit_id = pfc_infinite;
 
 	pfc::string8 subtype_cell = (gx == 0 ? "P" : "C");
 
+	sqlite3_stmt* stmt_lk = 0;
+	pfc::string8 query_lk = "select * from credit c "
+		"left outer join credit_cat cc on cc.id = c.credit_cat_id "
+		"left outer join credit_cat_sub ccs on ccs.id = c.credit_cat_sub_id "
+		"where c.name = @param_role;";
+		//"where c.name = \'Bass\';";
+
+	ret = db->open(dll_db_name());
+	//
+	if (!db->debug_sql_return(ret, "open", "foo_discogger", "", 0, err_msg)) goto quit;
+	//
+	ret = sqlite3_prepare_v2(db->db_handle(), query_lk, -1, &stmt_lk, 0);
+	//
+	if (!db->debug_sql_return(ret, "open", "foo_discogger - prepare credit lookup query", "", 0, err_msg)) goto quit;
+	//
+
+//#ifdef DO_TRANSACTIONS
+	ret = sqlite3_exec(db->db_handle(), "BEGIN TRANSACTION;", NULL, NULL, NULL);
+//#endif
+
 	do {
-
-		int ret = db->open(dll_db_name());
-
-		//
-		if (!db->debug_sql_return(ret, "open", "foo_discogger", "", 0, err_msg)) break;
-		//
-		
+	
 		sqlite3* pDb = db->db_handle();
 
 		if (ret == SQLITE_OK) {
-
-#ifdef DO_TRANSACTIONS
-			ret = sqlite3_exec(m_pDb, "BEGIN TRANSACTION;", NULL, NULL, NULL);
-#endif
 
 			cmd = "delete";
 
@@ -220,7 +271,7 @@ int db_fetcher_component::add_parsed_credit(sqldb* db, Release_ptr release, size
 			ret = sqlite3_exec(pDb,
 				"select seq from sqlite_sequence where name = 'parsed_credit'",
 				int_type_sqlite3_exec_callback,
-				&inc_parsed_credit_id/*this*/,
+				&inc_parsed_credit_id,
 				&err
 			);
 
@@ -241,53 +292,10 @@ int db_fetcher_component::add_parsed_credit(sqldb* db, Release_ptr release, size
 					pfc::string8 thisfullrole = full_roles[i];
 					pfc::string8 thisartists;
 					pfc::string8 thisrole_spec;
-					if (thisrole.get_length() != thisfullrole.get_length()) {
-						thisrole_spec = substr(thisfullrole, thisrole.get_length() + 1 + 1 , thisfullrole.get_length() - 1 - (thisrole.get_length() + 1 + 1));
-					}
+
+					bool blkok = lookup_credit_tk(db, stmt_lk, err_msg, thisrole, thisfullrole, credit_id, thisrole_spec);
 					
-					sqlite3_stmt* stmt_lk;
-					// todo: test nulls on cat and sub cat with 'Other'
-					pfc::string8 query_lk = "select * from credit c "
-						"left outer join credit_cat cc on cc.id = c.credit_cat_id "
-						"left outer join credit_cat_sub ccs on ccs.id = c.credit_cat_sub_id "
-						"where c.name = \'Bass\';";
-
-					bool breplace = query_lk.replace_string("Bass", thisrole);
-
-					cmd = "prepare";
-
-					ret = sqlite3_prepare_v2(pDb, query_lk, -1, &stmt_lk, NULL);
-					
-					//
-					if (!db->debug_sql_return(ret, cmd, "", "", 0, err_msg)) break;
-					//
-
-					cmd = "step";
-
-					if (SQLITE_ROW == (ret = sqlite3_step(stmt_lk))) // see documentation, can return more values as success
-					{
-						int val = sqlite3_column_int(stmt_lk, 0);
-						credit_id = val ? val : pfc_infinite;
-					}
-					else {
-						if (SQLITE_DONE != ret) {
-							//extra
-							ret = sqlite3_finalize(stmt_lk);
-							err_msg = sqlite3_errmsg(pDb);
-							break;
-						}
-						else {
-							//non-matching roles are added without category reference
-						}
-					}
-
-					cmd = "finalize";
-
-					ret = sqlite3_finalize(stmt_lk);
-					
-					//
-					if (!db->debug_sql_return(ret, cmd, "", "", 0, err_msg)) break;
-					//
+					if (!blkok) break;
 					
 					for (size_t j = 0; j < walk_credit->artists.get_count(); j++) {
 						ReleaseArtist_ptr thisartist = walk_credit->artists[j];
@@ -337,53 +345,11 @@ int db_fetcher_component::add_parsed_credit(sqldb* db, Release_ptr release, size
 							pfc::string8 thisrole = roles[l];
 							pfc::string8 thisfullrole = full_roles[l];
 							pfc::string8 thisartists;
-
 							pfc::string8 thisrole_spec;
-							if (thisrole.get_length() != thisfullrole.get_length()) {
-								thisrole_spec = substr(thisfullrole, thisrole.get_length() + 1 + 1, thisfullrole.get_length() - 1 - (thisrole.get_length() + 1 + 1));
-							}
 
-							sqlite3_stmt* stmt_lk;
-							pfc::string8 query_lk = "select * from credit c "
-								"left outer join credit_cat cc on cc.id = c.credit_cat_id "
-								"left outer join credit_cat_sub ccs on ccs.id = c.credit_cat_sub_id "
-								"where c.name = \'Bass\';";
-							bool breplace = query_lk.replace_string("Bass", thisrole);
+							bool blkok = lookup_credit_tk(db, stmt_lk, err_msg, thisrole, thisfullrole, credit_id, thisrole_spec);
 
-							cmd = "prepare";
-
-							ret = sqlite3_prepare_v2(pDb, query_lk, -1, &stmt_lk, NULL);
-
-							//
-							if (!db->debug_sql_return(ret, cmd, "", "", 0, err_msg)) break;
-							//
-
-							cmd = "step";
-							
-							if (SQLITE_ROW == (ret = sqlite3_step(stmt_lk))) 
-							{
-								int val = sqlite3_column_int(stmt_lk, 0);
-								credit_id = val == 0 ? pfc_infinite : val;
-							}
-							else {
-								if (SQLITE_DONE != ret) {
-
-									ret = sqlite3_finalize(stmt_lk);
-									err_msg = sqlite3_errmsg(pDb);
-									break;
-								}
-								else {
-									//non-matching roles are added without category reference
-								}
-							}
-
-							cmd = "finalize";
-
-							ret = sqlite3_finalize(stmt_lk);
-
-							//
-							if (!db->debug_sql_return(ret, cmd, "", "", 0, err_msg)) break;
-							//
+							if (!blkok) break;
 
 							for (size_t m = 0; m < walk_track_credit->artists.get_count(); m++) {
 								ReleaseArtist_ptr thisartist = walk_track_credit->artists[m];
@@ -410,20 +376,30 @@ int db_fetcher_component::add_parsed_credit(sqldb* db, Release_ptr release, size
 							
 							//todo: swap obs and val and mod queries
 							
-						} //end for roles
-					} // end for credits
-				} // end for tracks
-			} // end for discs
+						} //end roles
+					} // end credits
+				} // end tracks
+			} // end discs
 		}
-
-		db->close();
-
 	} while (false);
 
+quit:
+	if (stmt_lk)
+		ret = sqlite3_finalize(stmt_lk);
+
+//#ifdef DO_TRANSACTIONS
+	ret = sqlite3_exec(db->db_handle(), "END TRANSACTION;", NULL, NULL, NULL);
+//#endif
+
+	db->close();
+
 	if (err_msg.get_length()) {
-		db->close();
+		//db->close();
 		foo_db_cmd_exception e(ret, cmd, err_msg);
 		throw e;
+	}
+	else {
+		//
 	}
 
 	return inc_parsed_credit_id;
@@ -584,7 +560,7 @@ bool db_fetcher_component::update_db_def_credits(vppair& vdefs) {
 			ret = sqlite3_exec(db.db_handle(),
 				"select seq from sqlite_sequence where name = 'def_credit'",
 				int_type_sqlite3_exec_callback,
-				&inc_id/*this*/,
+				&inc_id,
 				&err
 			);
 			walk_row.first.first = pfc::toString(inc_id).get_ptr();
@@ -612,9 +588,7 @@ bool db_fetcher_component::update_db_def_credits(vppair& vdefs) {
 		foo_db_cmd_exception e(ret, "update credit definitions", error_msg);
 		throw e;
 	}
-
 	db.close();
-
 	return bres;
 }
 
@@ -731,7 +705,6 @@ vppair db_fetcher_component::load_db_def_credits(vppair& vcats, vppair& vcatsubs
 #ifdef DEBUG
 			//log_msg(tmp_val_credits);
 #endif
-
 		}
 		if (ret == SQLITE_DONE) {
 			sqlite3_finalize(stmt_query);
@@ -749,10 +722,8 @@ vppair db_fetcher_component::load_db_def_credits(vppair& vcats, vppair& vcatsubs
 	//sqlite3_finalize(stmt_query);
 
 	db.close();
-
 	return vresults;
 }
-
 
 int db_fetcher_component::add_history(sqldb* db, Release_ptr release, pfc::string8 cmd_id, pfc::string8 cmd_text) {
 
@@ -760,7 +731,7 @@ int db_fetcher_component::add_history(sqldb* db, Release_ptr release, pfc::strin
 	pfc::string8 query;
 	pfc::string8 err_msg;
 	int ret = -1;
-	size_t inc_parsed_credit_id = pfc_infinite;
+	size_t inc_insert = pfc_infinite;
 
 	do {
 
@@ -793,11 +764,11 @@ int db_fetcher_component::add_history(sqldb* db, Release_ptr release, pfc::strin
 #ifdef DEBUG
 			log_msg(query);
 #endif 
-
-			ret = sqlite3_exec(pDb, query, NULL, NULL, NULL);
+			//char* err;
+			ret = sqlite3_exec(pDb, query, int_type_sqlite3_exec_callback, &inc_insert, NULL /*&err*/);
 
 			//
-			if (!db->debug_sql_return(ret, cmd, "", "", 0, err_msg)) break;
+			if (!db->debug_sql_return(ret, cmd, "add history details", "", 0, err_msg)) break;
 			//
 		}
 
@@ -811,10 +782,10 @@ int db_fetcher_component::add_history(sqldb* db, Release_ptr release, pfc::strin
 		throw e;
 	}
 
-	return inc_parsed_credit_id;
+	return inc_insert;
 }
 
-#ifdef DC_DB
+#ifdef DB_DC
 bool db_fetcher_component::test_discogs_db(pfc::string8 db_path, abort_callback& p_abort, threaded_process_status& p_status) {
 
 	bool lib_initialized = true;

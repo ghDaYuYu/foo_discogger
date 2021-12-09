@@ -176,6 +176,7 @@ void DiscogsInterface::search_artist(const pfc::string8 &query, pfc::array_t<Art
 }
 
 pfc::array_t<JSONParser_ptr> DiscogsInterface::get_all_pages(pfc::string8 &url, pfc::string8 params, abort_callback &p_abort) {
+	
 	pfc::array_t<JSONParser_ptr> results;
 	if (params.get_length()) {
 		params << "&";
@@ -196,12 +197,14 @@ pfc::array_t<JSONParser_ptr> DiscogsInterface::get_all_pages(pfc::string8 &url, 
 			last = jp->get_object_int("pagination", "pages");
 		}
 		page++;
+
 	} while (page <= last && !p_abort.is_aborting());
 
 	return results;
 }
 
 pfc::array_t<JSONParser_ptr> DiscogsInterface::get_all_pages(pfc::string8 &url, pfc::string8 params, abort_callback &p_abort, const char *msg, threaded_process_status &p_status) {
+	
 	pfc::array_t<JSONParser_ptr> results;
 	if (params.get_length()) {
 		params << "&";
@@ -228,6 +231,7 @@ pfc::array_t<JSONParser_ptr> DiscogsInterface::get_all_pages(pfc::string8 &url, 
 			last = jp->get_object_int("pagination", "pages");
 		}
 		page++;
+
 	} while (page <= last && !p_abort.is_aborting());
 
 	return results;
@@ -254,8 +258,6 @@ pfc::array_t<JSONParser_ptr> DiscogsInterface::get_all_pages_offline_cache(ol::G
 		pages_path_prefix = "";
 		PFC_ASSERT(getFrom == ol::GetFrom::ArtistReleases || getFrom == ol::GetFrom::Versions);
 	}
-	
-	pfc::string8 rel_path;
 
 	pfc::array_t<pfc::string8> page_paths = ol::GetFSPagesFilePaths(id, getFrom, secid);
 	if (!page_paths.get_count()) {
@@ -268,6 +270,7 @@ pfc::array_t<JSONParser_ptr> DiscogsInterface::get_all_pages_offline_cache(ol::G
 
 	do {
 		pfc::string8 status(msg);
+
 		if (page > 1) {
 			status << " page " << page << "/" << last << " (100 x page)";
 		}
@@ -281,15 +284,14 @@ pfc::array_t<JSONParser_ptr> DiscogsInterface::get_all_pages_offline_cache(ol::G
 			foo_discogs_exception ex("Invalid root.json file");
 			throw ex;
 		}
-		
-		pfc::array_t<t_uint8> buffer;
+
 		size_t obj_size = json_object_size(j_t);
 		pfc::string8 json(json_dumps(j_t, 0));
 
 		JSONParser_ptr jp = pfc::rcnew_t<JSONParser>(json);
 		results.append_single(std::move(jp));
-		
 		page++;
+
 	} while (page <= last && !p_abort.is_aborting());
 
 	return results;
@@ -298,9 +300,7 @@ pfc::array_t<JSONParser_ptr> DiscogsInterface::get_all_pages_offline_cache(ol::G
 //todo: unify next two
 void DiscogsInterface::get_artist_offline_cache(pfc::string8& id, pfc::string8& html, abort_callback& p_abort, const char* msg, threaded_process_status& p_status) {
 
-	pfc::array_t<JSONParser_ptr> results;
 	pfc::string8 foo_path(ol::GetOfflinePath(id, true, ol::GetFrom::Artist, ""));
-	pfc::string8 rel_path;
 
 	pfc::string8 status(msg);
 	p_status.set_item(status);
@@ -324,17 +324,15 @@ void DiscogsInterface::get_artist_offline_cache(pfc::string8& id, pfc::string8& 
 void DiscogsInterface::get_release_offline_cache(pfc::string8& id, pfc::string8 &secid, pfc::string8& html, abort_callback& p_abort, const char* msg, threaded_process_status& p_status) {
 
 	pfc::string8 foo_path(ol::GetOfflinePath(id, true, ol::GetFrom::Release, secid));
-	pfc::string8 rel_path;
 
 	pfc::string8 status(msg);
-
 	p_status.set_item(status);
 
 	pfc::string8 json_path;
 	json_path << foo_path << "\\root.json";
 
 	json_t* j_t = offline_cache_release->FReadAll(json_path.get_ptr());
-	pfc::array_t<t_uint8> buffer;
+
 	size_t obj_size = json_object_size(j_t);
 	if (obj_size) {
 		pfc::string8 json(json_dumps(j_t, 0));
@@ -348,7 +346,6 @@ pfc::string8 DiscogsInterface::get_username(threaded_process_status &p_status, a
 	}
 	return username;
 }
-
 
 pfc::string8 DiscogsInterface::load_username(threaded_process_status &p_status, abort_callback &p_abort) {
 	try {
@@ -401,7 +398,7 @@ pfc::array_t<pfc::string8> DiscogsInterface::get_collection(threaded_process_sta
 	}
 	return collection;
 }
-//..
+
 pfc::array_t<pfc::string8> DiscogsInterface::load_profile(threaded_process_status& p_status, abort_callback& p_abort) {
 
 	pfc::string8 username = get_username(p_status, p_abort);
@@ -422,7 +419,6 @@ pfc::array_t<pfc::string8> DiscogsInterface::load_profile(threaded_process_statu
 	}
 	return collection;
 }
-//..
 
 bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release, bool isArtist, size_t img_ndx, MemoryBlock& small_art,
 	threaded_process_status& p_status, abort_callback& p_abort) {
@@ -526,6 +522,5 @@ bool DiscogsInterface::delete_artist_cache(const pfc::string8& artist_id) {
 
 		return true;
 	}
-
 	return false;
 }

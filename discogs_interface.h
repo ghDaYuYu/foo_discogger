@@ -18,19 +18,15 @@ public:
 	enum {
 		SKIP_RELEASE_DLG_MATCHED		= 1 << 0,
 		SKIP_FIND_RELEASE_DLG_IDED		= 1 << 1,
-		SK�P_PREVIEW_DLG				= 1 << 2,
+		SKIP_PREVIEW_DLG				= 1 << 2,
 		SKIP_LOAD_RELEASES_TASK_IDED	= 1 << 3,
-		SKIP_4							= 1 << 4,
-		SKIP_5							= 1 << 5,
-		SKIP_6							= 1 << 6,
-		SKIP_7							= 1 << 7
 	};
+
 	SkipMng() = default;
 	constexpr SkipMng(int flags) : value(flags) {}
 
 	constexpr bool canSkipReleaseDlgMatched() const {
 		bool precond = false;
-
 		return precond && (value & SKIP_RELEASE_DLG_MATCHED);
 	}
 	constexpr bool canSkipFindReleaseDlgIded() const {
@@ -39,7 +35,7 @@ public:
 	}
 	constexpr bool canSkipPreviewDlg() const {
 		bool precond = false;
-		return precond && (value & SK�P_PREVIEW_DLG);
+		return precond && (value & SKIP_PREVIEW_DLG);
 	}
 	constexpr bool canSkipLoadReleasesIded() const {
 		bool precond = false;
@@ -59,10 +55,10 @@ private:
 	lru_cache<pfc::string8, bool> *cache_deleted_releases;
 
 	ol::ol_cache<pfc::string8, json_t *> *offline_cache_artists;
+	ol::ol_cache<pfc::string8, json_t*> *offline_cache_release;
 	
 	pfc::string8 username;
 	pfc::array_t<pfc::string8> collection;
-
 
 	inline Release_ptr get_release_from_cache(const pfc::string8 &release_id) {
 		return cache_releases->exists(release_id) ? cache_releases->get(release_id) : nullptr;
@@ -101,6 +97,7 @@ private:
 	}
 
 public:
+
 	Fetcher *fetcher;
 
 	pfc::array_t<JSONParser_ptr> get_all_pages(pfc::string8 &url, pfc::string8 params, abort_callback &p_abort);
@@ -111,6 +108,7 @@ public:
 	void get_release_offline_cache(pfc::string8& id, pfc::string8& secid, pfc::string8& html, abort_callback& p_abort, const char* msg, threaded_process_status& p_status);
 
 	DiscogsInterface() {
+
 		fetcher = new Fetcher();
 		cache_releases = new lru_cache<pfc::string8, Release_ptr>(CONF.cache_max_objects);
 		cache_master_releases = new lru_cache<pfc::string8, MasterRelease_ptr>(CONF.cache_max_objects);
@@ -118,9 +116,11 @@ public:
 		cache_deleted_releases = new lru_cache<pfc::string8, bool>(CONF.cache_max_objects);
 
 		offline_cache_artists = new ol::ol_cache<pfc::string8, json_t*>(CONF.cache_max_objects);
+		offline_cache_release = new ol::ol_cache<pfc::string8, json_t*>(CONF.cache_max_objects);
 	}
 
 	~DiscogsInterface() {
+
 		delete fetcher;
 
 		delete cache_releases;
@@ -187,7 +187,6 @@ public:
 	pfc::array_t<pfc::string8> get_collection(threaded_process_status &p_status, abort_callback &p_abort);
 
 	bool delete_artist_cache(const pfc::string8& artist_id);
-
 };
 
 extern DiscogsInterface *discogs_interface;

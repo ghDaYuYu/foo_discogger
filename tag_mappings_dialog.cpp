@@ -14,6 +14,7 @@ static cfg_window_placement cfg_window_placement_tag_mapping_dlg(guid_cfg_window
 #define WRITE_UPDATE_COL_WIDTH  85
 
 inline void CTagMappingDialog::load_size() {
+
 	if (conf.edit_tags_dialog_col1_width != 0) {
 		const SIZE DPI = QueryScreenDPIEx();
 		m_tag_list.ResizeColumn(0, MulDiv(conf.edit_tags_dialog_col1_width, DPI.cx, 96), true);
@@ -21,14 +22,14 @@ inline void CTagMappingDialog::load_size() {
 		m_tag_list.ResizeColumn(2, MulDiv(conf.edit_tags_dialog_col3_width, DPI.cx, 96), true);
 	}
 	else {
-		update_list_width(true);
+		update_list_width();
 	}
 }
 
 void CTagMappingDialog::pushcfg(bool force) {
 	bool conf_changed = build_current_cfg();
 	if (conf_changed || force) {
-		CONF.save(new_conf::ConfFilter::CONF_FILTER_TAG, conf);
+		CONF.save(CConf::cfgFilter::TAG, conf);
 		CONF.load();
 	}
 }
@@ -37,12 +38,6 @@ inline bool CTagMappingDialog::build_current_cfg() {
 
 	bool bres = false;
 	bres |= check_mapping_changed();
-
-	CRect rcDlg;
-	GetWindowRect(&rcDlg);
-
-	int dlgwidth = rcDlg.Width();
-	int dlgheight = rcDlg.Height();
 
 	int width1 = m_tag_list.GetColumnWidthF(0);
 	int width2 = m_tag_list.GetColumnWidthF(1);
@@ -58,7 +53,6 @@ inline bool CTagMappingDialog::build_current_cfg() {
 		bres |= true;
 	}
 
-	//highlight keyword
 	pfc::string8 hl_word;
 	uGetDlgItemText(m_hWnd, IDC_EDIT_TAG_MATCH_HL, hl_word);
 	if (stricmp_utf8(hl_word, conf.edit_tags_dlg_hl_keyword)) {
@@ -82,7 +76,7 @@ bool CTagMappingDialog::check_mapping_changed() {
 }
 
 void CTagMappingDialog::on_mapping_changed(bool changed) {
-	::EnableWindow(uGetDlgItem(IDAPPLY), changed);
+	::EnableWindow(uGetDlgItem(IDC_APPLY), changed);
 }
 
 LRESULT CTagMappingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
@@ -150,25 +144,18 @@ void CTagMappingDialog::update_tag(int pos, const tag_mapping_entry *entry) {
 void CTagMappingDialog::update_list_width(bool initialize) {
 	CRect client_rectangle;
 	::GetClientRect(m_tag_list, &client_rectangle);
-	int width = client_rectangle.Width();
-	
+
 	int c1, c2, c3;
-	if (initialize) {	
-		width -= WRITE_UPDATE_COL_WIDTH;
-		c1 = width / 3;
-		c2 = width / 3 * 2;
-		c3 = WRITE_UPDATE_COL_WIDTH;		
-		const SIZE DPI = QueryScreenDPIEx();
-		m_tag_list.ResizeColumn(0, c1, true);
-		m_tag_list.ResizeColumn(1, c2, true);
-		m_tag_list.ResizeColumn(2, c3, true);
-	}
-	else {
-		const SIZE DPI = QueryScreenDPIEx();
-		m_tag_list.SetColumn(0, "Tag Name", 1);
-		m_tag_list.SetColumn(1, "Formatting String", 2);
-		m_tag_list.SetColumn(2, "Enabled", 3);
-	}
+	int width = client_rectangle.Width();
+
+	width -= WRITE_UPDATE_COL_WIDTH;
+	c1 = width / 3;
+	c2 = width / 3 * 2;
+	c3 = WRITE_UPDATE_COL_WIDTH;		
+
+	m_tag_list.ResizeColumn(0, c1, true);
+	m_tag_list.ResizeColumn(1, c2, true);
+	m_tag_list.ResizeColumn(2, c3, true);
 }
 
 void CTagMappingDialog::applymappings() {
@@ -201,7 +188,6 @@ LRESULT CTagMappingDialog::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndC
 
 LRESULT CTagMappingDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
 	if (build_current_cfg()) {
-		//applymappings();
 		pushcfg(true);
 	}
 	cfg_window_placement_tag_mapping_dlg.on_window_destruction(m_hWnd);
@@ -385,15 +371,16 @@ void CTagMappingDialog::update_freezer(bool enable_write, bool enable_update) {
 			bupdate = true;
 		}
 		else if (STR_EQUAL(TAG_LABEL_ID, entry.tag_name.get_ptr())) {
-		
-				entry.enable_write = enable_write;
-				entry.enable_update = enable_update;
-				bupdate = true;
+
+			entry.enable_write = enable_write;
+			entry.enable_update = enable_update;
+			bupdate = true;
+
 		}
 	}
 }
 
-#define DISABLED_RGB	RGB(150, 150, 150)
+//#define DISABLED_RGB	RGB(150, 150, 150)
 
 LRESULT CTagMappingDialog::OnEditHLText(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& /*bHandled*/) {
 	
@@ -490,8 +477,8 @@ void CTagMappingDialog::show_context_menu(CPoint& pt, pfc::bit_array_bittable& s
 			receiver.Set(ID_UPDATE, "Update tag.");
 			receiver.Set(ID_UPDATE_AND_WRITE, "Write and update tag.");
 			receiver.Set(ID_DISABLE, "Do not write or update tag.");
-
-			cmd = menu.TrackPopupMenu(TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, pt.x, pt.y, receiver);
+            
+            cmd = menu.TrackPopupMenu(TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, pt.x, pt.y, receiver);
 
 			bool bloop, bl_write, bl_update;
 			bloop = bl_write = bl_update = false;
@@ -591,7 +578,7 @@ LRESULT CTagMappingDialog::OnSplitDropDown(LPNMHDR lParam) {
 		pt.y = pDropDown->rcButton.bottom;
 		::ClientToScreen(pDropDown->hdr.hwndFrom, &pt);
 
-		enum { /*MENU_EXPORT = 1, MENU_IMPORT,*/
+		enum {
 			MENU_SUB_A = 100, MENU_SUB_B = 200,
 			MENU_SUB_C = 300, MENU_SUB_D = 400,
 			MENU_SUB_E = 500, MENU_SUB_F = 600,
@@ -603,9 +590,9 @@ LRESULT CTagMappingDialog::OnSplitDropDown(LPNMHDR lParam) {
 		size_t csubmenus = 8;
 		LPWSTR submenus_data[8] = {
 			_T("Basic"), _T("Label"),
-			_T("Id"), _T("Formats and series"),
+			_T("Id"), _T("Format and series"),
 			_T("Community"), _T("Artist"),
-			_T("Notes and credit"), _T("Tracks")
+			_T("Notes and credit"), _T("Track")
 		};
 		UINT submenus_ids[8] = {
 			MENU_SUB_A, MENU_SUB_B,
@@ -746,6 +733,5 @@ LRESULT CTagMappingDialog::OnSplitDropDown(LPNMHDR lParam) {
 
 		}
 	}
-
 	return TRUE;
 }

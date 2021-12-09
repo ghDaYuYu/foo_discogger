@@ -1,9 +1,11 @@
 #pragma once
-#include "resource.h"
+
 #include "../SDK/foobar2000.h"
+
 #include <libPPUI/CListControlOwnerData.h>
 #include "libPPUI/PaintUtils.h"
 
+#include "resource.h"
 #include "foo_discogs.h"
 #include "tags.h"
 #include "ceditwithbuttonsdim.h"
@@ -17,7 +19,7 @@ class CMyListControlOwnerData : public CListControlOwnerData {
 
 public:
 
-	CMyListControlOwnerData(IListControlOwnerDataSource* h, tag_mapping_list_type* ptag_mappings)
+	CMyListControlOwnerData(IListControlOwnerDataSource* h)
 		: CListControlOwnerData(h) {}
 
 	~CMyListControlOwnerData() {
@@ -51,7 +53,6 @@ public:
 
 		if (m_hl_string.get_length()) {			
 			GetSubItemText(item, 0, strItem);
-			//do_hlight = pfc::string(pfc::stringToLower(strItem)).contains(m_hl_string);
 			do_hlight = pfc::string_find_first(pfc::stringToLower(strItem), m_hl_string, 0) != pfc_infinite;
 		}
 
@@ -78,7 +79,7 @@ class CTagMappingDialog : public MyCDialogImpl<CTagMappingDialog>,	public CDialo
 
 private:
 
-	foo_discogs_conf conf;
+	foo_conf conf;
 	tag_mapping_list_type* m_ptag_mappings = nullptr;
 	vppair vdefs;
 
@@ -94,9 +95,10 @@ private:
 	}
 
 	void show_context_menu(CPoint& pt, pfc::bit_array_bittable& selmask);
-	void update_list_width(bool initialize = false);
+	void update_list_width();
 	void update_tag(int pos, const tag_mapping_entry* entry);
 	void update_freezer(bool enable_write, bool enable_update);
+
 	void applymappings();
 
 // LIBPPUI list: IListControlOwnerDataSource 
@@ -104,9 +106,9 @@ private:
 	//- Get Item Count
 
 	size_t listGetItemCount(ctx_t ctx) override {
-		//pointer to the object calling us
+		//pointer to object calling us
 		PFC_ASSERT(ctx == &m_tag_list);
-		return m_ptag_mappings->get_count();;
+		return m_ptag_mappings->get_count();
 	}
 
 	//- Get subitems
@@ -138,7 +140,8 @@ private:
 				buffer = pfc::string8(text);
 			}
 			else if (subItem == 3) {
-				const char* text = entry->freeze_tag_name ?	"freeze" : "";
+				//hidden. assists highlighter
+				const char* text = entry->freeze_tag_name ? "freeze" : "";
 				buffer = pfc::string8(text);
 			}
 		}
@@ -289,7 +292,7 @@ public:
 	MY_BEGIN_MSG_MAP(CTagMappingDialog)
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
 		COMMAND_ID_HANDLER(IDOK, OnOK)
-		COMMAND_ID_HANDLER(IDAPPLY, OnApply)
+		COMMAND_ID_HANDLER(IDC_APPLY, OnApply)
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		COMMAND_ID_HANDLER(IDC_EDIT_TAG_MATCH_HL, OnEditHLText)
@@ -299,11 +302,9 @@ public:
 		COMMAND_ID_HANDLER(IDC_SPLIT_BTN_TAG_ADD_NEW, OnAddTag)
 		COMMAND_ID_HANDLER(IDC_REMOVE_TAG, OnBtnRemoveTag)
 		COMMAND_ID_HANDLER(IDC_SPLIT_BTN_TAG_CAT_CREDIT, OnBtnCreditsClick)
-
 		NOTIFY_HANDLER_EX(IDC_SPLIT_BTN_TAG_FILE_DEF, BCN_DROPDOWN, OnSplitDropDown)
 		NOTIFY_HANDLER_EX(IDC_SPLIT_BTN_TAG_ADD_NEW, BCN_DROPDOWN, OnSplitDropDown)
 		NOTIFY_HANDLER_EX(IDC_SPLIT_BTN_TAG_CAT_CREDIT, BCN_DROPDOWN, OnSplitDropDown)
-
 		MESSAGE_HANDLER_EX(MSG_ADD_NEW, OnAddNew)
 		MESSAGE_HANDLER_EX(WM_CONTEXTMENU, OnContextMenu)
 
@@ -314,7 +315,7 @@ public:
 		DLGRESIZE_CONTROL(IDC_SPLIT_BTN_TAG_FILE_DEF, DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDOK, DLSZ_MOVE_X | DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDCANCEL, DLSZ_MOVE_X | DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDAPPLY, DLSZ_MOVE_X | DLSZ_MOVE_Y)
+		DLGRESIZE_CONTROL(IDC_APPLY, DLSZ_MOVE_X | DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_SPLIT_BTN_TAG_ADD_NEW, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_SYNTAX_HELP, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_REMOVE_TAG, DLSZ_MOVE_X)
@@ -327,7 +328,7 @@ public:
 	}
 
 	CTagMappingDialog::CTagMappingDialog(HWND p_parent, UINT default_button = IDOK)
-		: default_button(default_button), cewb_highlight(L" Highlight Tag"), m_tag_list(this, m_ptag_mappings), remove_button(nullptr) {
+		: default_button(default_button), cewb_highlight(L" Highlight Tag"), m_tag_list(this), remove_button(nullptr) {
 
 		set_tag_mapping(copy_tag_mappings());
 	}
@@ -356,7 +357,5 @@ public:
 	LRESULT OnSplitDropDown(LPNMHDR lParam);
 	LRESULT OnAddNew(UINT, WPARAM, LPARAM);
 	LRESULT OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam);
-	
-	//void refresh_item(int pos);
 	void enable(bool v) override {}
 };

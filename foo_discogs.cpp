@@ -290,9 +290,10 @@ void foo_discogs::save_album_art(Release_ptr &release, metadb_handle_ptr item,
 				if (art_id_name == nullptr) {
 					art_id_name = template_art_ids::name_of(my_album_art_ids[i + offset]);
 					if (art_id_name != nullptr) {
-						
-						for (size_t walk_vw = 0; walk_vw < i + offset; walk_vw++) {
+						//tmpl src rows might be non-continuous
+						for (size_t walk_vw = 0; walk_vw < vwrite_it.size(); walk_vw++) {
 							if (vwrite_it[walk_vw]) {
+								if (walk_vw == i + offset) break;
 								if (pfc::guid_compare(my_album_art_ids[walk_vw + offset], my_album_art_ids[i + offset]) == 0)
 									postfix++;
 							}
@@ -344,7 +345,7 @@ void foo_discogs::save_album_art(Release_ptr &release, metadb_handle_ptr item,
 			}
 		}
 
-		if (!write_this && !(vembed_it[i])) {
+		if (!write_this && !vembed_it[i]) {
 			continue;
 		}
 
@@ -354,11 +355,9 @@ void foo_discogs::save_album_art(Release_ptr &release, metadb_handle_ptr item,
 
 
 		MemoryBlock buffer;
-		//g_discogs->fetch_image(buffer, release->images[i], p_abort);
 
 		if (write_this) {
-			//if (CONF.album_art_overwrite || !foobar2000_io::filesystem::g_exists(path, p_abort)) {
-			if (voverwrite_it[i]/*overwrite_it*/ || !foobar2000_io::filesystem::g_exists(path, p_abort)) {
+			if (voverwrite_it[i] || !foobar2000_io::filesystem::g_exists(path, p_abort)) {
 				g_discogs->fetch_image(buffer, release->images[i], p_abort);
 				g_discogs->write_image(buffer, path, p_abort);
 				saved_mask.set(i, true);
@@ -366,7 +365,7 @@ void foo_discogs::save_album_art(Release_ptr &release, metadb_handle_ptr item,
 			last_path = path;
 		}
 
-		if (/*i == 0 &&*/ vembed_it[i]/*embed_it*/) {
+		if (vembed_it[i]) {
 			if (!buffer.get_count()) {
 				//todo: get it from prev fetch if exists
 				g_discogs->fetch_image(buffer, release->images[i], p_abort);
@@ -440,7 +439,7 @@ void foo_discogs::save_artist_art(Release_ptr &release, metadb_handle_ptr item,
 			pfc::string8 artist_id;
 			artist_id << ids[i];
 			Artist_ptr artist = discogs_interface->get_artist(artist_id);
-			//if (CONF.save_artist_art || (CONF.embed_artist_art && i == 0)) {
+
 			if (ada.write_it || ada.embed_it) {
 				save_artist_art(artist, release, item, ada, my_album_art_ids, saved_mask, done_files, p_status, p_abort);
 			}
@@ -464,9 +463,6 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, meta
 
 	// ensure artist is loaded
 	artist->load(p_status, p_abort);
-
-	//bool write_it = CONF.save_artist_art;
-	//bool embed_it = CONF.embed_artist_art;
 
 	MasterRelease_ptr master = discogs_interface->get_master_release(release->master_id);
 
@@ -496,12 +492,10 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, meta
 	}
 
 	pfc::string8 last_path = "";
-	//const size_t count = CONF.artist_art_fetch_all ? artist->images.get_size() : 1;
-	
 	size_t count = 0;
 	size_t album_offset = release->images.get_size();
 
-	//todo: CONFARTWORK is limited to 30 images, past this it takes CONF values
+	//todo: CONFARTWORK limited to 30 images
 	std::vector<bool> vwrite_it(artist->images.get_size(), ada.write_it);
 	std::vector<bool> voverwrite_it(artist->images.get_size(), ada.overwrite_it);
 	std::vector<bool> vembed_it(artist->images.get_size(), ada.embed_it);
@@ -511,28 +505,21 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, meta
 	bcust_artist_save_or_embed |= CONFARTWORK.ucfg_art_ovr != uartconf.ucfg_art_ovr;
 	bcust_artist_save_or_embed |= CONFARTWORK.ucfg_art_embed != uartconf.ucfg_art_embed;
 
-	//debug
-	/*if (true) {
-		bcust_artist_save_or_embed = false;
-	
-	}*/
-
-
 	if (!bcust_artist_save_or_embed) {
 		count = ada.fetch_all_it ? artist->images.get_size() : 1;
 	}
 	else {
 		count = artist->images.get_size();
 		for (size_t i = 0; i < count; i++) {
-			vwrite_it[i] = CONFARTWORK.getflag(af::art_sd, i /*+ album_offset*/);
-			voverwrite_it[i] = CONFARTWORK.getflag(af::art_ovr, i /*+ album_offset*/);
-			vembed_it[i] = CONFARTWORK.getflag(af::art_emb, i /*+ album_offset*/);
+			vwrite_it[i] = CONFARTWORK.getflag(af::art_sd, i);
+			voverwrite_it[i] = CONFARTWORK.getflag(af::art_ovr, i);
+			vembed_it[i] = CONFARTWORK.getflag(af::art_emb, i);
 		}
 	}
 
 	for (size_t i = 0; i < count; i++) {
 		pfc::string8 path = directory;
-		bool write_this = /*write_it*/vwrite_it[i];
+		bool write_this = vwrite_it[i];
 		if (write_this) {
 			hook.set_custom("IMAGE_NUMBER", i + 1);
 			hook.set_image(&artist->images[i]);
@@ -542,7 +529,7 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, meta
 			bool cust_file = false;
 
 			if (my_album_art_ids.size() > i + album_offset) {
-				//GUID debug = my_album_art_ids[i + album_offset];
+
 				const char* art_id_name = album_art_ids::name_of(my_album_art_ids[i + album_offset]);
 				file = art_id_name == nullptr ? "" : pfc::string8(art_id_name);
 
@@ -580,7 +567,7 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, meta
 			}
 		}
 
-		if (!write_this && !(/*i == 0 &&*/ vembed_it[i]/*embed_it*/)) {
+		if (!write_this && !vembed_it[i]) {
 			continue;
 		}
 
@@ -589,13 +576,10 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, meta
 		}
 
 		MemoryBlock buffer;
-		//g_discogs->fetch_image(buffer, artist->images[i], p_abort);
 
 		if (write_this) {
 
-
-			//if (CONF.artist_art_overwrite || !foobar2000_io::filesystem::filesystem::g_exists(path, p_abort)) {
-			if (/*overwrite_it*/voverwrite_it[i] || !foobar2000_io::filesystem::filesystem::g_exists(path, p_abort)) {
+			if (voverwrite_it[i] || !foobar2000_io::filesystem::filesystem::g_exists(path, p_abort)) {
 				g_discogs->fetch_image(buffer, artist->images[i], p_abort);
 				g_discogs->write_image(buffer, path, p_abort);
 
@@ -625,7 +609,10 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, meta
 				g_discogs->embed_image(buffer, item, my_album_art_ids[i + album_offset] /*album_art_ids::artist*/, p_abort);
 			}
 		}
-		
+	}
+}
+
+
 void foo_discogs::fetch_image(MemoryBlock &buffer, Image_ptr &image, abort_callback &p_abort) {
 	if (!image->url.get_length()) {
 		foo_discogs_exception ex;

@@ -8,7 +8,7 @@ namespace {
 		template_art_ids::page_folder,
 	};
 	static const char* const names[] = {
-		"inlay card",
+		"inlay_card",
 		"booklet",
 		"page_folder",
 	};

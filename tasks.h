@@ -372,20 +372,3 @@ private:
 	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
 };
-
-
-class expand_master_release_process_callback : public foo_discogs_threaded_process_callback
-{
-public:
-	expand_master_release_process_callback(const MasterRelease_ptr &master_release, const int pos) : m_master_release(master_release), m_pos(pos) {}
-	void start(HWND parent);
-
-private:
-	MasterRelease_ptr m_master_release;
-	int m_pos;
-
-	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
-	void on_success(HWND p_wnd) override;
-	void on_abort(HWND p_wnd) override;
-	void on_error(HWND p_wnd) override;
-};

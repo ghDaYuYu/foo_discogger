@@ -1,10 +1,8 @@
 #pragma once
+#include "resource.h"
 
 #include "../SDK/foobar2000.h"
-
 #include <libPPUI/CListControlOwnerData.h>
-
-#include "resource.h"
 
 #include "foo_discogs.h"
 #include "file_info_manager.h"
@@ -12,7 +10,6 @@
 #include "tag_writer.h"
 
 #include "icon_map.h"
-
 #include "track_match_lstdrop.h"
 #include "track_matching_dialog_presenter.h"
 
@@ -37,7 +34,7 @@ private:
 	// LIBPPUI - Get Item Count
 
 	size_t listGetItemCount(ctx_t ctx) override {
-		// ctx is a pointer to the object calling us
+		// ctx: pointer to calling object
 		PFC_ASSERT(ctx == &m_idc_list || ctx == &m_ifile_list); 
 		HWND lvlist = get_ctx_lvlist(ctx->GetDlgCtrlID());	
 
@@ -89,8 +86,6 @@ private:
 
 	bool listRemoveItems(ctx_t ctx, pfc::bit_array const& mask) override {
 
-		//pfc::remove_mask_t(m_data, mask);
-
 		int listid = ctx->GetDlgCtrlID();
 		HWND hlist = uGetDlgItem(listid);
 		size_t count = listid == IDC_UI_LIST_DISCOGS ?
@@ -132,7 +127,7 @@ private:
 		return false;
 	}
 
-	//end libPPUI list methods
+	//.. libPPUI list methods
 
 	lsmode GetMode() {
 		bool state = uButton_GetCheck(m_hWnd, IDC_TRACK_MATCH_ALBUM_ART) == TRUE;
@@ -170,7 +165,7 @@ protected:
 public:
 
 	std::function<bool(HWND wndlist)>stdf_change_notifier =
-		//todo: revise, changed after cross reference with credit tag mapping
+		//todo: revise, cross referenced credit tag mapping
 		[this](HWND x) -> bool {
 		match_message_update();
 		return true; };
@@ -251,10 +246,9 @@ public:
 	CTrackMatchingDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags = false) : 
 		m_tag_writer(tag_writer), use_update_tags(use_update_tags),	list_drop_handler(),
 		m_conf(CONF), m_coord(p_parent, CONF),
-		m_idc_list(this), m_ifile_list(this) {
-
+		m_idc_list(this), m_ifile_list(this) 
+	{
 		g_discogs->track_matching_dialog = this;
-
 		m_rec_icon = LoadDpiBitmapResource(Icon::Record);
 	}
 	
@@ -264,7 +258,6 @@ public:
 		m_idc_list(this), m_ifile_list(this) {
 
 		g_discogs->track_matching_dialog = this;
-
 		m_tag_writer = nullptr;
 
 		if (init_count()) {
@@ -323,7 +316,7 @@ public:
 	bool get_next_tag_writer();
 	bool get_previous_tag_writer();
 
-	//credits preview
+	//serves credit preview
 	pfc::string8 get_discogs_release_id() { return m_tag_writer->release->id; };
 
 	void enable(bool v) override;
@@ -352,7 +345,7 @@ public:
 
 private:
 
-	foo_discogs_conf m_conf;
+	foo_conf m_conf;
 
 	bool use_update_tags = false;
 	bool multi_mode = false;

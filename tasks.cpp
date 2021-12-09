@@ -1,14 +1,14 @@
 #include "stdafx.h"
 
-#include "tasks.h"
-
 #include "foo_discogs.h"
 #include "tags.h"
 #include "art_download_attribs.h"
 #include "ol_cache.h"
-
+#include "db_utils.h"
+#include "db_fetcher.h"
 #include "configuration_dialog.h"
 
+#include "tasks.h"
 
 void foo_discogs_threaded_process_callback::run(threaded_process_status &p_status, abort_callback &p_abort) {
 	try {

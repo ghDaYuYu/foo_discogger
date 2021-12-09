@@ -1,8 +1,5 @@
 ﻿#pragma once
 
-#include <gdiplus.h>
-#include "CGdiPlusBitmap.h"
-
 enum class Icon
 {
 	Record

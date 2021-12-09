@@ -1,5 +1,5 @@
 ﻿#include "stdafx.h"
-
+#include "version.h"
 // Declaration of your component's version information
 // Since foobar2000 v1.0 having at least one of these in your DLL is mandatory to let the troubleshooter tell different versions of your component apart.
 // Note that it is possible to declare multiple components within one DLL, but it's strongly recommended to keep only one declaration per DLL.
@@ -18,12 +18,13 @@ FOO_DISCOGGER_VERSION,
 "Compiled: "__DATE__ "\n"
 "Website: https://github.com/ghDaYuYu/foo_discogs\n"
 "\nfoo_discogger is a fork of foo_discogs v2.23 repository by zoomorph (https://bitbucket.org/zoomorph/foo_discogs)\n\n"
-"Thanks to Michael Pujos (aka bubbleguuum) for starting the foo_discogs project (up to version 1.32).\n\n"
-"Thanks to zoomorph for continuing foo_discogs development.\n\n"
-"This plugin uses the following open source libraries (thanks to their respective authors):\n\n"
+"Acknowledges:\n"
+"Thanks to Michael Pujos (aka bubbleguuum) for starting the foo_discogs project (up to version 1.32) and "
+"zoomorph for continuing development (up to version 2.23).\n\n"
+"foo_discogger uses the following open source libraries (thanks to their respective authors):\n\n"
 "jansson - JSON Parser: http://www.digip.org/jansson/\n"
-"liboauthcpp - OAuth library: https://github.com/sirikata/liboauthcpp\n\n\n"
-"This application uses Discogs' API but is not affiliated with, sponsored or endorsed by Discogs.'Discogs' is a trademark of Zink Media, LLC.");
+"liboauthcpp - OAuth library: https://github.com/sirikata/liboauthcpp\n\n"
+"This plugin uses Discogs' API but is not affiliated with, sponsored or endorsed by Discogs.'Discogs' is a trademark of Zink Media, LLC.\n");
 
 // This will prevent users from renaming your component around (important for proper troubleshooter behaviors) or loading multiple instances of it.
 VALIDATE_COMPONENT_FILENAME("foo_discogger.dll");

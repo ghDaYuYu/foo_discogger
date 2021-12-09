@@ -1,4 +1,6 @@
 ﻿#include "stdafx.h"
+
+#include "CGdiPlusBitmap.h"
 #include "icon_map.h"
 
 HBITMAP LoadDpiBitmapResource(Icon icon) {

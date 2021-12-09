@@ -13,11 +13,6 @@ namespace Offline {
 		OC_READ = 1 << 0,
 		OC_WRITE = 1 << 1,
 		OC_OVERWRITE = 1 << 2,
-		OC_3 = 1 << 3,
-		OC_4 = 1 << 4,
-		OC_5 = 1 << 5,
-		OC_6 = 1 << 6,
-		OC_7 = 1 << 7
 	};
 
 	enum GetFrom {
@@ -27,15 +22,12 @@ namespace Offline {
 		Release,
 	};
 
-	static bool can_read(new_conf conf) { return conf.cache_use_offline_cache & CacheFlags::OC_READ; }
-	static bool can_read() { return CONF.cache_use_offline_cache & CacheFlags::OC_READ; }
-	static bool can_write() { return CONF.cache_use_offline_cache & CacheFlags::OC_WRITE; }
-	static bool can_ovr() { return CONF.cache_use_offline_cache & CacheFlags::OC_OVERWRITE; }
-	static pfc::string8 GetOfflinePath(pfc::string8 id, bool native, GetFrom gfFrom, pfc::string8 secId) {
+	static bool can_read(CConf conf) { return conf.cache_offline_cache_flag & CacheFlags::OC_READ; }
+	static bool can_read() { return CONF.cache_offline_cache_flag & CacheFlags::OC_READ; }
+	static bool can_write() { return CONF.cache_offline_cache_flag & CacheFlags::OC_WRITE; }
+	static bool can_ovr() { return CONF.cache_offline_cache_flag & CacheFlags::OC_OVERWRITE; }
 
-		const char* dll_name = core_api::get_my_file_name();
-		pfc::string8 foo_path(core_api::pathInProfile("user-components\\") << dll_name);
-		
+	static pfc::string8 GetOfflinePath(pfc::string8 id, bool native, GetFrom gfFrom, pfc::string8 secId) {
 		pfc::string8 ol_path(core_api::pathInProfile(OC_NAME));
 
 		switch(gfFrom) {
@@ -63,22 +55,16 @@ namespace Offline {
 
 	static pfc::string8 get_thumbnail_cache_path(pfc::string8 id, art_src artSrc) {
 
-		const char* dll_name = core_api::get_my_file_name();
-		pfc::string8 foo_path(core_api::pathInProfile("configuration\\"));
+		pfc::string8 path(core_api::pathInProfile(OC_NAME));
+		path << "\\thumbnails\\";
+		path << (artSrc == art_src::alb ? "releases" :	artSrc == art_src::art ? "artists" : "unknown") << "\\" << id;
 		
-		pfc::string8 release_path(core_api::pathInProfile(OC_NAME));
-		release_path << "\\thumbnails\\";
-		release_path << (artSrc == art_src::alb ? "releases" :	artSrc == art_src::art ? "artists" : "unknown") << "\\" << id;
-		
-		return release_path;
+		return path;
 	}
 
 	static pfc::array_t<pfc::string8> get_thumbnail_cache_path_filenames(pfc::string8 id, art_src artSrc, size_t iImageList, size_t ndx = pfc_infinite) {
-		pfc::string8 path_native;
-		pfc::stringcvt::string_wide_from_utf8 wpath;
 
 		pfc::array_t<pfc::string8> folders;
-		pfc::array_t<pfc::string8> directories;
 		pfc::array_t<pfc::string8> filenames;
 
 		pfc::string8 rel_path = get_thumbnail_cache_path(id, artSrc);
@@ -101,7 +87,6 @@ namespace Offline {
 
 		for (t_size walk = 0; walk < folders.get_size(); ++walk) {
 			pfc::string8 tmp(folders[walk]);
-
 			if (stricmp_utf8(tmp, full_path) == 0)
 				filenames.append_single(tmp);
 		}
@@ -127,13 +112,11 @@ namespace Offline {
 		PFC_ASSERT(getFrom == GetFrom::ArtistReleases || getFrom == GetFrom::Versions);
 		PFC_ASSERT(getFrom != GetFrom::Versions || (!STR_EQUAL(id, secid) && secid.get_length()));
 
-		pfc::string8 path_native;
-		pfc::stringcvt::string_wide_from_utf8 wpath;
 		pfc::array_t<pfc::string8> folders;
 		pfc::array_t<pfc::string8> pagepaths;
 
 		pfc::string8 rel_path = GetOfflinePath(id, false, getFrom, secid);
-		
+
 		abort_callback_dummy dummy_abort;
 		try {
 			listDirectories(rel_path, folders, dummy_abort);
@@ -144,9 +127,9 @@ namespace Offline {
 
 		pfc::string8 pages_path_prefix = GetOfflinePagesPath(id, pfc_infinite, false, getFrom, secid);
 		for (t_size walk = 0; walk < folders.get_size(); ++walk) {
-			pfc::string8 tmp(folders[walk]);
-			if (tmp.has_prefix(pages_path_prefix)) {
-				extract_native_path(tmp, path_native);
+			pfc::string8 path_native(folders[walk]);
+			if (path_native.has_prefix(pages_path_prefix)) {
+				extract_native_path(path_native, path_native);
 				pagepaths.append_single(path_native);
 			}
 		}
@@ -157,9 +140,6 @@ namespace Offline {
 
 		PFC_ASSERT(getFrom == GetFrom::Artist || getFrom == GetFrom::Release);
 		PFC_ASSERT(getFrom != GetFrom::Release || (!STR_EQUAL(id, secid) && secid.get_length()));
-
-		pfc::string8 path_native;
-		pfc::stringcvt::string_wide_from_utf8 wpath;
 
 		pfc::array_t<pfc::string8> folders;
 		pfc::array_t<pfc::string8> paths;
@@ -176,8 +156,8 @@ namespace Offline {
 		if (!folders.get_size())
 			return paths;
 
-		pfc::string8 tmp(folders[0]);
-		extract_native_path(tmp, path_native);
+		pfc::string8 path_native(folders[0]);
+		extract_native_path(path_native, path_native);
 		paths.append_single(path_native);
 		return paths;
 	}
@@ -185,6 +165,7 @@ namespace Offline {
 	bool static MarkDownload(pfc::string8 fcontent, pfc::string8 path, bool done) {
 		bool bok = false;
 		if (!done) {
+			//delete prev RegTask file if exists
 			std::filesystem::path fspath;
 			char converted[MAX_PATH - 1];
 			pfc::string8 taskreg_path;
@@ -201,16 +182,15 @@ namespace Offline {
 
 			FILE* f = fopen(path << "\\" << MARK_LOADING_NAME, "ab+");
 			if (f) {
-				if (fwrite(fcontent.get_ptr(), fcontent.get_length(), 1, f) != 1)
-					bok |= false;
+				bok = (fwrite(fcontent.get_ptr(), fcontent.get_length(), 1, f) == 1);					
 			}
 
-			bok |= f && (fclose(f) == 0);
+			bok &= (f && (fclose(f) == 0));
 		}
 		else {
 			pfc::string8 oldname(path); oldname << "\\" << MARK_LOADING_NAME;
 			pfc::string8 newname(path); newname << "\\" << MARK_CHECK_NAME;
-			bok |= (rename(oldname, newname) == 0);
+			bok = (rename(oldname, newname) == 0);
 		}
 
 		return bok;
@@ -311,31 +291,8 @@ namespace Offline {
 			_max_size(max_size) {
 		}
 
-		void FDumpf(json_t* root) {
-			bool bfileempty = true;
-			const char* strfile_out = m_offlinepath;
-			struct stat stat_buf;
-			int stat_result = stat(strfile_out, &stat_buf);
-			int src_length = stat_buf.st_size;
-			bfileempty = (stat_result == -1 || src_length == 0);
-			bool badded = true;
-			int flags = 0;
-			FILE* fOut = fopen(strfile_out, stat_result == -1 ? "wb+" : "ab+");
-			int result = json_dumpf(root, fOut, flags);
-			badded = (fclose(fOut) == 0 && result == 0);
-		}
-
-		bool FDumpToFolder(pfc::string8 path, json_t* root) {
-			int flags = 0;
-			FILE* fOut = fopen(path.get_ptr(), "ab+");
-			if (!fOut)
-				return false;
-
-			int result = json_dumpf(root, fOut, flags);
-			return (fclose(fOut) == 0 && result == 0);
-		}
-
 		json_t* FReadAll(const char* offlinepath = nullptr) const {
+			//check file size
 			struct stat stat_buf;
 			pfc::string8 path = offlinepath == nullptr ? m_offlinepath : offlinepath;
 			log_msg(pfc::string8("reading offline cache page:") << path);
@@ -343,6 +300,7 @@ namespace Offline {
 			int rc_stat = stat(path.get_ptr(), &stat_buf);
 			int srclen = stat_buf.st_size;
 
+			//load or reset array
 			json_t* root = json_array();
 			FILE* fOut;
 
@@ -352,7 +310,8 @@ namespace Offline {
 					json_error_t error = {};
 					root = json_loadf(fOut, 0, &error);
 					fclose(fOut); fOut = NULL;
-					if (sizeof(error.text)) {
+					if (strlen(error.text)) {
+
 						log_msg(PFC_string_formatter() << "deleting invalid offline cache file: " << path);
 						std::filesystem::path fspath = path.get_ptr();
 						try {
@@ -368,6 +327,17 @@ namespace Offline {
 			}
 			return root;
 		}
+
+		bool FDumpToFolder(pfc::string8 path, json_t* root) {
+			int flags = 0; // JSON_ENCODE_ANY | JSON_INDENT(1);
+			FILE* fOut = fopen(path.get_ptr(), "ab+");
+			if (!fOut)
+				return false;
+
+			int result = json_dumpf(root, fOut, flags);
+			return (fclose(fOut) == 0 && result == 0);
+		}
+
 	private:
 		
 		pfc::string8 m_offlinepath;

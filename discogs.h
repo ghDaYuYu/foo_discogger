@@ -589,6 +589,16 @@ namespace Discogs
 			}
 			return false;
 		}
+
+		bool find_std_disc_track(const pfc::string8& sometrack, int* track) {
+			for (size_t i = 0; i < tracks.get_size(); i++) {
+				if (tracks[i]->discogs_track_number.equals(sometrack)) {
+					*track = i;
+					return true;
+				}
+			}
+			return false;
+		}
 	};
 
 
@@ -666,6 +676,16 @@ namespace Discogs
 				else {
 					(*disc) = d;
 					(*track) = i;
+					return true;
+				}
+			}
+			return false;
+		}
+
+		bool find_std_disc_track(const pfc::string8& sometrack, int* disc, int* track) {
+			for (size_t d = 0; d < discs.get_size(); d++) {
+				if (discs[d]->find_std_disc_track(sometrack, track)) {
+					*disc = d;
 					return true;
 				}
 			}

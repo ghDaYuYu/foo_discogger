@@ -497,9 +497,9 @@ void Discogs::parseReleaseCredits(json_t* element, pfc::array_t<ReleaseCredit_pt
 			credit->roles = artist->roles;
 			credit->full_roles = artist->full_roles;
 			credit->artists.append_single(artist);
-			
+	
 			try {
-				addReleaseTrackCredits(tracks, credit, release);
+				addReleaseTrackCredits(sanitize_track_commas(tracks), credit, release);
 			}
 			catch (parser_exception& e) {
 				pfc::string8 error;
@@ -525,6 +525,7 @@ void Discogs::parseReleaseCredits(json_t* element, pfc::array_t<ReleaseCredit_pt
 	}
 }
 
+//todo: cleanup/fix alphanumeric notation
 unsigned long long encode_track_position(const pfc::string8 &pos) {
 	// first 1-8 characters encoded
 	unsigned long long result = 0;
@@ -589,24 +590,44 @@ void Discogs::addReleaseTrackCredits(const pfc::string8 &tracks, ReleaseCredit_p
 	for (size_t j = 0; j < count; j++) {
 		pfc::array_t<pfc::string8> inner_parts;
 		size_t inner_count = tokenize(parts[j], " to ", inner_parts, true);
+
 		if (inner_count < 2) {
-			for (size_t d = 0; d < release->discs.get_size(); d++) {
-				for (size_t t = 0; t < release->discs[d]->tracks.get_size(); t++) {
-					const pfc::string8 &pos = release->discs[d]->tracks[t]->discogs_track_number;
-					if (STR_EQUAL(pos, parts[j])) {
-						release->discs[d]->tracks[t]->credits.append_single(credit);
-					}
-				}
+			int tmp_disc, tmp_track;
+			if (release->find_std_disc_track(inner_parts[0], &tmp_disc, &tmp_track)) {
+				if (tmp_disc < release->discs.get_size() && tmp_track < release->discs[tmp_disc]->tracks.get_size())
+					release->discs[tmp_disc]->tracks[tmp_track]->credits.append_single(credit);
 			}
 		}
 		else if (inner_count == 2) {
-			//parts.force_reset();
-			for (size_t d = 0; d < release->discs.get_size(); d++) {
-				for (size_t t = 0; t < release->discs[d]->tracks.get_size(); t++) {
-					pfc::string8 pos = release->discs[d]->tracks[t]->discogs_track_number;
-					if (track_in_range(pos, inner_parts[0], inner_parts[1])) {
-						release->discs[d]->tracks[t]->credits.append_single(credit);
-						//parts.append_single(pos);
+			std::vector<std::pair<size_t, size_t>> inner_std_parts;
+			int tmp_disc, tmp_track;
+			if (release->find_std_disc_track(inner_parts[0], &tmp_disc, &tmp_track))
+				inner_std_parts.emplace_back(tmp_disc, tmp_track);
+			if (release->find_std_disc_track(inner_parts[1], &tmp_disc, &tmp_track))
+				inner_std_parts.emplace_back(tmp_disc, tmp_track);
+
+			if (inner_std_parts.size() == 2) {
+				
+				pfc::string8 range_botton = PFC_string_formatter() << inner_std_parts[0].first << "." << inner_std_parts[0].second;
+				pfc::string8 range_top = PFC_string_formatter() << inner_std_parts[1].first << "." << inner_std_parts[1].second;
+
+				//check bounds
+				if (inner_std_parts[0].first < release->discs.get_size() &&
+					inner_std_parts[1].first < release->discs.get_size() &&
+					inner_std_parts[0].second < release->discs[inner_std_parts[0].first]->tracks.get_size() &&
+					inner_std_parts[1].second < release->discs[inner_std_parts[1].first]->tracks.get_size()) {
+
+					for (size_t d = inner_std_parts[0].first; d <= inner_std_parts[1].first; d++) {
+						for (size_t t = 0; t < release->discs[d]->tracks.get_size(); t++) {
+							pfc::string8 pos = release->discs[d]->tracks[t]->discogs_track_number;
+							if (release->find_std_disc_track(pos, &tmp_disc, &tmp_track)) {
+								pos = PFC_string_formatter() << tmp_disc << "." << tmp_track;
+								//todo: fix/cleanup to support release track notation
+								if (track_in_range(pos, range_botton, range_top)) {
+									release->discs[d]->tracks[t]->credits.append_single(credit);
+								}
+							}
+						}
 					}
 				}
 			}

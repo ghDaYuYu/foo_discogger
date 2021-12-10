@@ -269,15 +269,15 @@ string_encoded_array Discogs::Release::get_sub_data(pfc::string8 &tag_name, thre
 				}
 				if (!bfiltermatch) { continue; }
 
-				string_encoded_array se;
+				string_encoded_array se_array;
 				pfc::string8 row(walkcat.first.second);
 				if (credit_nfo.isGXP() && !STR_EQUAL(walkcat.second.second, "SUBVAL")) {
 					walkcat.second.second.replace_string("SUBVAL,", "", 0);
-					row << " on track " << tracks_to_range(walkcat.second.second);
+					row << " on track " << disc_tracks_to_range(walkcat.second.second, this);
 				}
 				row << " - " << walkcat.second.first;
-				se.append_item(row);
-				result.append_item_val(se);
+				se_array.append_item(row);
+				result.append_item_val(se_array);
 			}		
 		}
 	}

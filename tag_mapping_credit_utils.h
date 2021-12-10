@@ -1,5 +1,7 @@
 #pragma once
 
+#include "discogs.h"
+
 #define CAT_CREDIT_TAG_PREFIX "RELEASE_CAT_CREDITS_"
 #define DEF_CAT_CREDIT_TAG "RELEASE_CAT_CREDITS_GXP_0_ALL"
 
@@ -14,6 +16,8 @@
 
 #define DEF_CATS "0"
 #define DEF_NAME_PREFIX "TMPL_"
+
+using namespace Discogs;
 
 class credit_tag_nfo {
 
@@ -136,8 +140,10 @@ extern size_t split(pfc::string8 str, pfc::string8 token, size_t index, std::vec
 // 1-7	 to std::pair("1-7","")
 // +223	 to std::pair("", "223") returning size_t 223 or pfc_infinite if +token not found
 extern bool vfind(pfc::string8 str, std::vector<pfc::string8> v);
-extern pfc::string8 disc_tracks_to_range(pfc::string8 tracks);
-extern pfc::string8 tracks_to_range(pfc::string8 tracks);
+
+extern pfc::string8 sanitize_track_commas(const pfc::string8& tracks);
+extern pfc::string8 disc_tracks_to_range(const pfc::string8& tracks, Release* release, bool stdnames = false);
+extern pfc::string8 tracks_to_range(const pfc::string8& tracks);
 
 //extern void init(pfc::string8 tag_name, credit_tag_nfo& test_ctag);
 //extern size_t plus_split(pfc::string8 str, std::pair<pfc::string8, pfc::string8>& out);

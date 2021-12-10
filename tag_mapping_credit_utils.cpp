@@ -53,76 +53,156 @@ bool vfind(pfc::string8 str, std::vector<pfc::string8> v) {
 	}
 
 	return false;
-	//return is_number(str.get_ptr()) && std::find(v.begin(), v.end(), str) != v.end();
 }
 
-//todo: general revision
-//		implement multi-disk range
-//test: 
+//sanitize tokenize_multi(...) input
+//ej. missing commas in "A1 to A6 B1 to B3, B5"
+//https://www.discogs.com/The-Cribs-Mens-Needs-Womens-Needs-Whatever/release/6963878
+
+pfc::string8 sanitize_track_commas(const pfc::string8& tracks) {
+
+	pfc::string8 res;
+
+	//split
+	std::vector<pfc::string8>v;
+	split(tracks, " ", 0, v);
+	for (int i = 0; i < v.size(); i++) {
+		if (i < v.size() - 2) {
+			if (v.at(i).equals("to") && (v.at(i + 1).find_first(',', 0) == pfc_infinite)) {
+				auto c = std::find(v.begin() + i, v.end(), ",");
+				if (c == v.end() || (c - v.begin() + i > 1)) {
+					v.at(i + 1) = PFC_string_formatter() << v.at(i + 1) << ",";
+				}
+			}
+		}
+		v.at(i).replace_string("to", " to ");
+	}
+
+	//rebuild
+	std::vector<pfc::string8>::iterator iter_forward = v.begin();
+	for (auto w : v) {
+		iter_forward++;
+		size_t comma_pos = w.find_first(',', 0);
+		if (comma_pos != pfc_infinite) {
+			res << w << " ";
+			continue;
+		}
+		if (w.equals(" to ")) {		
+			res << w;
+			continue;
+		}
+		res << w << (iter_forward != v.end() && !iter_forward->equals(" to ") ? ", " : "");
+	}
+	return res;
+}
+
+//todo: general revision, use pfc::array_t<pfc::string8> instead of vector v_one_track
+//todo: implement credits spanning multiple vinyls (A4 to C3)
+
+//test 1: credit tracks spanning multiple discs
 //		bass gxp (+827) https://www.discogs.com/release/796538-Sonny-Criss-The-Complete-Imperial-Sessions
 //		RELEASE_CAT_CREDITS_GXP_+827&+374&+392&+445_ALL
 //		Bass: Bill Woodson (tracks: 1-1 to 1-12), Buddy Clark (tracks: 2-7 to 2-16), Leroy Vinnegar (tracks: 1-13 to 2-6)
+//
+//test 2: malformed (missing commas credit tracks)
+//		engineer (+133) https://www.discogs.com/release/1131383-The-Cribs-Mens-Needs-Womens-Needs-Whatever
+//		Engineer: David Corcos (tracks: A1 to A6 B1 to B3, B5), Jim Keller (tracks: B4, B6)
+//
+//test 3: credit v_one_track format mismatch. discogs release tracks listed 1, 2, 3 - discogs credits A1 to A6...
+//		https://www.discogs.com/release/6963878-The-Cribs-Mens-Needs-Womens-Needs-Whatever
+//
+//test 4: track notation incluing minus sign (LP-A1 to LP-B3) 
+//		https://www.discogs.com/release/2556904
+//
+//note:	func input tracks parameter is 1 based disk.v_one_track (1.1, 1.3, 2.1...) list, no ranges
+//		serves release get_sub_data()
 
-pfc::string8 disc_tracks_to_range(pfc::string8 tracks) {
+pfc::string8 disc_tracks_to_range(const pfc::string8& tracks, Release* release, bool stdnames) {
+	
 	pfc::string8 ret;
 
-	std::vector<pfc::string8> v;
-	split(tracks, ",", 0, v);
-#ifdef DEBUG
-	size_t pos;
-	if (pos = tracks.find_first("1.13", 0) != pfc_infinite) {
-		int debug = 1;
-	}
-#endif
+	//split comma separated input tracks (1.1, 2.4...) -> {1.1, 2.4...}
+	std::vector<pfc::string8> v_tracks;
+	split(tracks, ",", 0, v_tracks);
 
-	std::vector <std::pair<pfc::string8, pfc::string8>> disc;
-	for (auto w : v) {
-		std::vector<pfc::string8> track;
-		split(w, ".", 0, track);
-		size_t ndx;
-		if (track.size() == 1 || atoi(track.at(0)) == 1)
-			ndx = 1;
-		else
-			ndx = atoi(track.at(0));
+	std::vector <std::pair<pfc::string8, pfc::string8>> v_disk_tracks;
+	for (auto w : v_tracks) {
 
-		if (ndx > disc.size()) {
-			disc.resize(ndx);
-			auto& disctrack = disc.at(ndx - 1);
-			disctrack = std::pair(pfc::toString(ndx).c_str(), track.at(1));
+		//split single track {{disc, track}}
+		std::vector<pfc::string8> v_one_track;
+		split(w, ".", 0, v_one_track);
+
+		size_t media = atoi(v_one_track.at(0));
+		if (media > v_disk_tracks.size()) {
+			//new element {{}, {"2", "1"}}
+			v_disk_tracks.resize(media);
+			auto& disctrack = v_disk_tracks.at(media - 1);
+			disctrack = std::pair(pfc::toString(media).c_str(), v_one_track.at(1));
 		}
 		else {
-			auto& disctrack = disc.at(ndx - 1);
-			pfc::string8 left = pfc::toString(ndx).c_str();
-			disctrack = std::pair(left, (PFC_string_formatter() << disctrack.second << "," << track.at(1)).c_str());
+			//append track to v_disk_tracks element {{}, {"2", "1,4"}}
+			auto& disctrack = v_disk_tracks.at(media - 1);
+			pfc::string8 left = pfc::toString(media).c_str();
+			disctrack = std::pair(left, (PFC_string_formatter() << disctrack.second << "," << v_one_track.at(1)).c_str());
 		}
 	}
+
+	//define ranges and (optional) translate to release track position notation (1.1 to 1.3 -> A1 to A3)
 
 	pfc::string8 separator = "";
-	for (auto w : disc) {
-		if (!w.second.length()) continue;
-		pfc::string8 tmpstr = tracks_to_range(w.second);
-		if ((!atoi(w.first) || atoi(w.first) == 1) && disc.size() == 1)
-			;//todo: do not add disc prefix if not multi disc?
-		else {
-			size_t pos = tmpstr.find_first(" to ", 0);
-			if (pos != pfc_infinite)			
-				tmpstr = PFC_string_formatter() << w.first << "." <<
-						substr(tmpstr, 0, pos) << " to " <<
-						w.first << "." << substr(tmpstr, pos + pfc::string8(" to ").length(), pfc_infinite);
-			else {
-				tmpstr = PFC_string_formatter() << w.first << "." <<
-					tmpstr.replace_string(", ", PFC_string_formatter() << ", " << w.first);
-			}
-		}
+	for (auto w : v_disk_tracks) {
 
-		ret << separator << tmpstr;
-		separator = ", ";
+		if (!w.second.length()) continue; //skipping empty element {{empty, empty}, {"2", "1, 2, 3, 5, 8, 9, 10"}}
+
+		pfc::string8 tmpstr = tracks_to_range(w.second); // outputs "1 to 3, 5, 8 to 10"
+
+		std::vector<pfc::string8>v_cmp_tracks;
+		split(tmpstr, ",", 0, v_cmp_tracks);
+
+		//restore disc prefix or release track number notation
+
+		for (auto& wct : v_cmp_tracks) {
+
+			size_t pos = wct.find_first(" to ", 0);
+
+			if (pos != pfc_infinite) {
+				if (stdnames) {
+					tmpstr = PFC_string_formatter()
+						<< w.first << "." << substr(wct, 0, pos)
+						<< " to "
+						<< w.first << "." << substr(wct, pos + pfc::string8(" to ").length(), pfc_infinite);
+				}
+				else {
+					size_t ndx_left = atoi(substr(wct, 0, pos)) - 1;
+					size_t ndx_right = atoi(substr(wct, pos + pfc::string8(" to ").length(), pfc_infinite)) - 1;
+
+					tmpstr = PFC_string_formatter()
+						<< release->discs[atoi(w.first) - 1]->tracks[ndx_left]->discogs_track_number
+						<< " to "
+						<< release->discs[atoi(w.first) - 1]->tracks[ndx_right]->discogs_track_number;
+				}
+			}
+			else {
+				if (stdnames) {
+					tmpstr = PFC_string_formatter() << w.first << "." <<
+						tmpstr.replace_string(", ", PFC_string_formatter() << ", " << w.second);
+				}
+				else {
+					tmpstr = release->discs[atoi(w.first) - 1]->tracks[atoi(wct) - 1]->discogs_track_number;
+				}
+			}
+
+			ret << separator << tmpstr;
+			separator = ", ";
+		}
 	}
 
+	// A1 to B3, B5
+	// 1.1 to 1.9, 1.11 (option)
 	return ret;
 }
 
-pfc::string8 min_range_to_tracks(pfc::string8 tracks) {
+pfc::string8 min_range_to_tracks(const pfc::string8& tracks) {
 
 	std::vector<pfc::string8> v;
 	split(tracks, " to ", 0, v);
@@ -134,7 +214,7 @@ pfc::string8 min_range_to_tracks(pfc::string8 tracks) {
 	return tracks;
 }
 
-pfc::string8 tracks_to_range(pfc::string8 tracks) {
+pfc::string8 tracks_to_range(const pfc::string8& tracks) {
 	
 	pfc::string8 ret;
 	std::vector<pfc::string8> v;

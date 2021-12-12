@@ -120,10 +120,11 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 			request_preview(0, false, false);
 		}
 		else {
-			for (int it = 0; it < m_tag_writer->release->images.get_count(); it++) {
+
+			for (size_t it = 0; it < m_tag_writer->release->images.get_count(); it++) {
 				request_preview(it, false, it != 0);		
 			}
-			for (int it = 0; it < m_tag_writer->release->artists[0]->full_artist->images.get_count(); it++) {
+			for (size_t it = 0; it < m_tag_writer->release->artists[0]->full_artist->images.get_count(); it++) {
 				request_preview(it, true, it != 0);
 			}
 
@@ -193,7 +194,12 @@ void CTrackMatchingDialog::request_file_preview(size_t img_ndx, bool artist_art)
 	file_art_task->start(m_hWnd);
 }
 
-void CTrackMatchingDialog::process_artwork_preview_done(size_t img_ndx, bool artist_art, MemoryBlock callback_small_art) {
+void CTrackMatchingDialog::process_artwork_preview_done(size_t img_ndx, bool artist_art, MemoryBlock callback_small_art, musicbrainz_info musicbrainz_mibs) {
+	
+	if (img_ndx == 0 && !artist_art) {
+		m_musicbrainz_mibs = musicbrainz_mibs;
+	}
+
 	HWND lvlist = uGetDlgItem(IDC_DISCOGS_TRACK_LIST);
 	art_src art_source = artist_art ? art_src::art : art_src::alb;
 	bool res = m_coord.show_artwork_preview(img_ndx, art_source, callback_small_art);
@@ -931,7 +937,7 @@ LRESULT CTrackMatchingDialog::list_key_down(HWND wnd, LPNMHDR lParam) {
 	int csel = is_ilist ? ilist->GetSelectedCount()
 		: ListView_GetSelectedCount(wnd);
 
-	int citems = is_ilist ? ilist->GetItemCount()
+	size_t citems = is_ilist ? ilist->GetItemCount()
 		: ListView_GetItemCount(wnd);
 
 	bit_array_bittable selmask(0);
@@ -1513,7 +1519,7 @@ void CTrackMatchingDialog::attrib_menu_command(HWND wnd, af att_album, af att_ar
 	bit_array_bittable are_albums(citems);
 
 	const size_t max_items = m_tag_writer->get_art_count();
-	const size_t cAlbumArt = m_tag_writer->release->images.get_count();
+	const t_uint8 cAlbumArt = static_cast<t_uint8>(m_tag_writer->release->images.get_count());
 
 	size_t perm_csel = get_art_perm_selection(wnd, true, max_items, perm_selection, are_albums);
 	
@@ -1558,6 +1564,10 @@ bool CTrackMatchingDialog::track_url_context_menu(HWND wnd, LPARAM lParamPos) {
 	bool hasRelease = discogs_release_id.get_length();
 	bool hasMasterRelease = master_release_id.get_length();
 	bool hasArtist = artist_id.get_length();
+	bool hasMib_Release = m_musicbrainz_mibs.release.get_length();
+	bool hasMib_ReleaseGroup = m_musicbrainz_mibs.release_group.get_length();
+	bool hasMib_CoverArt = m_musicbrainz_mibs.hascoverart;
+	bool hasMib_Artist = m_musicbrainz_mibs.artist.get_length();
 
 	bool diff_ids = local_release_id.get_length() && (!STR_EQUAL(discogs_release_id, local_release_id));
 
@@ -1569,7 +1579,7 @@ bool CTrackMatchingDialog::track_url_context_menu(HWND wnd, LPARAM lParamPos) {
 
 	try {
 
-		enum { ID_URL_DC_INFO = 1, ID_URL_LC_INFO, ID_URL_RELEASE, ID_URL_MASTER_RELEASE, ID_URL_ARTIST };
+		enum { ID_URL_DC_INFO = 1, ID_URL_LC_INFO, ID_URL_RELEASE, ID_URL_MASTER_RELEASE, ID_URL_ARTIST, ID_URL_MB_REL, ID_URL_MB_RELGRP, ID_URL_MB_COVERS, ID_URL_MB_ARTIST };
 		HMENU menu = CreatePopupMenu();
 		uAppendMenu(menu, MF_STRING | MF_DISABLED, ID_URL_DC_INFO , discogs_release_info);
 
@@ -1580,6 +1590,11 @@ bool CTrackMatchingDialog::track_url_context_menu(HWND wnd, LPARAM lParamPos) {
 		uAppendMenu(menu, MF_STRING | (!hasRelease ? MF_DISABLED : 0), ID_URL_RELEASE , "View release page");
 		uAppendMenu(menu, MF_STRING | (!hasMasterRelease ? MF_DISABLED : 0), ID_URL_MASTER_RELEASE , "View master release page");
 		uAppendMenu(menu, MF_STRING | (!hasArtist ? MF_DISABLED : 0), ID_URL_ARTIST , "View artist page");
+		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+		uAppendMenu(menu, MF_STRING | (!hasMib_Release ? MF_DISABLED : 0), ID_URL_MB_REL, "View MusicBrainz release page");		
+		uAppendMenu(menu, MF_STRING | (!hasMib_ReleaseGroup ? MF_DISABLED : 0), ID_URL_MB_RELGRP, "View MusicBrainz release-group page");
+		uAppendMenu(menu, MF_STRING | (!hasMib_CoverArt ? MF_DISABLED : 0), ID_URL_MB_COVERS, "View MusicBrainz coverart page");
+		uAppendMenu(menu, MF_STRING | (!hasMib_Artist ? MF_DISABLED : 0), ID_URL_MB_ARTIST, "View MusicBrainz artist page");
 
 		POINT scr_point = point;
 		::ClientToScreen(m_hWnd, &scr_point);
@@ -1601,6 +1616,22 @@ bool CTrackMatchingDialog::track_url_context_menu(HWND wnd, LPARAM lParamPos) {
 		}
 		case ID_URL_ARTIST: {
 			url << "https://www.discogs.com/artist/" << artist_id;
+			break;
+		}
+		case ID_URL_MB_REL: {
+			url << "https://musicbrainz.org/release/" << m_musicbrainz_mibs.release;
+			break;
+		}
+		case ID_URL_MB_RELGRP: {
+			url << "https://musicbrainz.org/release-group/" << m_musicbrainz_mibs.release_group;
+			break;
+		}
+		case ID_URL_MB_COVERS: {
+			url << "https://musicbrainz.org/release/" << m_musicbrainz_mibs.release << "/cover-art";
+			break;
+		}
+		case ID_URL_MB_ARTIST: {
+			url << "https://musicbrainz.org/artist/" << m_musicbrainz_mibs.artist;
 			break;
 		}
 		}
@@ -1653,7 +1684,7 @@ bool CTrackMatchingDialog::track_context_menu(HWND wnd, LPARAM lParamCoords) {
 		int csel = is_ilist ? ilist->GetSelectedCount()
 			: ListView_GetSelectedCount(wnd);
 
-		int citems = is_ilist ? ilist->GetItemCount()
+		size_t citems = is_ilist ? ilist->GetItemCount()
 			: ListView_GetItemCount(wnd);
 
 		bit_array_bittable selmask(0);
@@ -1678,7 +1709,6 @@ bool CTrackMatchingDialog::track_context_menu(HWND wnd, LPARAM lParamCoords) {
 		uAppendMenu(menu, MF_STRING | (csel? 0 : MF_DISABLED), ID_REMOVE, "Remove\tDel");
 		uAppendMenu(menu, MF_STRING | (csel? 0 : MF_DISABLED), ID_CROP, "Crop\tCtrl+C");
 
-		presenter* pres;
 		std::pair<size_t, presenter*> icol_hit = m_coord.HitUiTest(point);
 		if (icol_hit.first != pfc_infinite) {
 
@@ -1816,19 +1846,16 @@ bool CTrackMatchingDialog::switch_context_menu(HWND wnd, POINT point, bool is_fi
 		return true;
 	}
 	case ID_LEFT_ALIGN: {
-		presenter* pres;
 		std::pair<size_t, presenter*> icol_hit = m_coord.HitUiTest(point);
 		m_coord.SetUiColumnFormat(icol_hit.first, icol_hit.second, HDF_LEFT);
 		return true;
 	}
 	case ID_CENTER_ALIGN:	{
-		presenter* pres;
 		std::pair<size_t, presenter*> icol_hit = m_coord.HitUiTest(point);
 		m_coord.SetUiColumnFormat(icol_hit.first, icol_hit.second, HDF_CENTER);
 		return true;
 	}
 	case ID_RIGHT_ALIGN: {
-		presenter* pres;
 		std::pair<size_t, presenter*> icol_hit = m_coord.HitUiTest(point);
 		m_coord.SetUiColumnFormat(icol_hit.first, icol_hit.second, HDF_RIGHT);
 		return true;

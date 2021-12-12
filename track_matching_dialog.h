@@ -15,14 +15,19 @@
 
 using namespace Discogs;
 
+struct musicbrainz_info {
+	pfc::string8 release_group;
+	pfc::string8 release;
+	pfc::string8 artist;
+	bool hascoverart;
+};
+
 class CTrackMatchingDialog : public MyCDialogImpl<CTrackMatchingDialog>,
 	public CDialogResize<CTrackMatchingDialog>,
 	public CMessageFilter,
 	private IListControlOwnerDataSource 
 {
 private:
-
-	HBITMAP m_rec_icon;
 
 	HWND get_ctx_lvlist(int ID) {
 		HWND dc_list = uGetDlgItem(IDC_UI_LIST_DISCOGS);
@@ -327,7 +332,7 @@ public:
 	void request_preview(size_t img_ndx, bool artist_art, bool onlycache);
 	void request_file_preview(size_t img_ndx, bool artist_art);
 
-	void process_artwork_preview_done(size_t img_ndx, bool artist_art, MemoryBlock callback_mb);
+	void process_artwork_preview_done(size_t img_ndx, bool artist_art, MemoryBlock callback_mb, musicbrainz_info musicbrainz_mibs);
 	void process_file_artwork_preview_done(size_t img_ndx, bool artist_art, std::pair<HBITMAP, HBITMAP> callback_pair_hbitmaps, std::pair<pfc::string8, pfc::string8> temp_file_names);
 	void process_download_art_paths_done(pfc::string8 callback_release_id, std::shared_ptr<std::vector<std::pair<pfc::string8, bit_array_bittable>>> vres,pfc::array_t<GUID> album_art_ids);
 
@@ -367,4 +372,7 @@ private:
 	CListControlOwnerData m_ifile_list;
 
 	coord_presenters m_coord;
+
+	HBITMAP m_rec_icon;
+	musicbrainz_info m_musicbrainz_mibs;
 };

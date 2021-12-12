@@ -8,10 +8,10 @@
 
 #include "track_matching_dialog.h"
 #include "preview_dialog.h"
+#include "tag_mappings_credits_dlg.h"
 
 
 using namespace Discogs;
-
 
 class foo_discogs_threaded_process_callback : public threaded_process_callback, public ErrorManager
 {
@@ -56,7 +56,6 @@ public:
 
 private:
 	CPreviewTagsDialog *preview_dialog = nullptr;
-
 	CTrackMatchingDialog *track_matching_dialog = nullptr;
 	bool show_preview_dialog;
 	
@@ -301,6 +300,8 @@ private:
 	size_t m_img_ndx;
 	bool m_bartist;
 	bool m_onlycache;
+
+	musicbrainz_info m_musicbrainz_mibs;
 
 	void safe_run(threaded_process_status& p_status, abort_callback& p_abort) override;
 	void on_success(HWND p_wnd) override;

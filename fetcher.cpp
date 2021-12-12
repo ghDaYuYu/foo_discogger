@@ -1,5 +1,5 @@
 #include "stdafx.h"
-
+#include "version.h"
 #include "fetcher.h"
 #include "exception.h"
 #include "utils.h"
@@ -307,6 +307,133 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 		log_msg(error_msg);
 		throw ex;
 	}
+}
+
+void Fetcher::fetch_html_simple_log(const pfc::string8& url, const pfc::string8& params, pfc::string8& html, abort_callback& p_abort, const pfc::string8& content_type) {
+
+	pfc::array_t<t_uint8> buffer;
+
+	pfc::string8 status;
+	pfc::string8 request_url = "";
+	pfc::string8 clean_url(url);
+
+	if (params.get_length()) clean_url << "?" << params;
+
+	log_msg(clean_url);
+
+	try {
+		const http_request::ptr request = client->create_request("GET");
+
+		//HEADERS
+		//Accept-Encoding header
+		request->add_header(dllinflateInit2 != NULL ? "Accept-Encoding: gzip, deflate" : "Accept-Encoding: identity");
+
+		//Accept user User-Agent and header
+		request->add_header(USER_AGENT);
+		pfc::string8 accept_header;
+		accept_header << "Accept: " << content_type;
+		request->add_header(accept_header);
+
+		//END HEADERS
+
+		int tries = 1; //3x on error loading resource
+		file::ptr f;
+
+		while (1) {
+
+			try {
+
+				f = request->run_ex(clean_url.get_ptr(), p_abort);
+
+				http_reply::ptr r;
+				f->service_query_t(r);
+				pfc::string8 status;
+				r->get_status(status);
+
+				pfc::string8 debug_keep_alive; //'content-encoding'
+				r->get_http_header("Connection", debug_keep_alive);
+
+				// check status (applies only to request->run_ex)
+
+				if (pfc::string8(status).find_first("200") == ~0) {
+
+					pfc::string8 msg_status;
+					msg_status << "HTTP error status: " << status;
+					log_msg(msg_status);
+				}
+
+				//Sleep(1000);
+
+				pfc::string8 reply_content_type;
+				f->get_content_type(reply_content_type);
+				if (reply_content_type.is_empty()) {
+					buffer.set_size(0);
+					log_msg("Error reading network response.");
+				}
+
+				// read stream...
+				buffer.set_size(1024);
+				size_t bufferUsed = 0;
+				for (;;) {
+					p_abort.check();
+					size_t delta = buffer.get_size() - bufferUsed;
+					size_t done = f->read(buffer.get_ptr() + bufferUsed, delta, p_abort);
+					bufferUsed += done;
+					if (done != delta) {
+						break;
+					}
+					buffer.set_size(buffer.get_size() << 1);
+				}
+				buffer.set_size(bufferUsed);
+
+				// see if we must unzip buffer
+				if (buffer.get_size() >= 6 && buffer[0] == 0x1f && buffer[1] == 0x8b) {
+					pfc::array_t<t_uint8> unzipped;
+					unzipped.set_size(pfc::decode_little_endian<t_uint32>(buffer.get_ptr() + buffer.get_size() - 4));
+					uLongf destLen = unzipped.get_size();
+					int state = myUncompress(unzipped.get_ptr(), &destLen, buffer.get_ptr(), buffer.get_size());
+					if (state != Z_OK) {
+						log_msg("Error unzipping network response.");
+					}
+					PFC_ASSERT(destLen == unzipped.get_size());
+					buffer = unzipped;
+				}
+
+				break;
+			}
+			catch (foobar2000_io::exception_io& e) {
+				if (tries > 5) return;
+				pfc::string8 error_msg;
+				error_msg << "Network error";
+				if (!error_msg.has_prefix(pfc::string8(e.what())))
+					error_msg << ": " << e.what();
+				error_msg << ". Retrying: " << tries;
+				log_msg(error_msg);
+				Sleep(2000 * (tries > 1 ? 2 : 1));
+			}
+			tries++;
+		}
+	}
+	catch (exception_aborted) {
+		log_msg("exception unhandled");
+	}
+	catch (const foobar2000_io::exception_io& e) {
+		//retries > max retries
+		pfc::string8 error_msg;
+		error_msg << "Network exception fetching url: " << clean_url;
+		log_msg(error_msg);
+	}
+	catch (const std::exception& e) {
+		log_msg(e.what());
+	}
+	catch (...) {
+		// fallback for request->run errors
+		pfc::string8 error_msg;
+		error_msg << "Unknown network exception handling: " << clean_url;
+		log_msg(error_msg);
+	}
+
+	html = pfc::string8((char*)buffer.get_ptr(), buffer.get_size());;
 }
 
 void Fetcher::set_oauth(const pfc::string8 &token, const pfc::string8 &token_secret) {

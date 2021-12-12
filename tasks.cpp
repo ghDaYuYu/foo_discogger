@@ -182,7 +182,8 @@ void write_tags_task::on_success(HWND p_wnd) {
 	// TODO: combine??
 	tag_writer->finfo_manager->write_infos();
 
-	bool bskip_art = ((LOWORD(CONF.album_art_skip_default_cust) & 8) == 8) || ((HIWORD(CONF.album_art_skip_default_cust) & 8) == 8);
+	bool bskip_art = ((LOWORD(CONF.album_art_skip_default_cust) & ART_CUST_SKIP_DEF_FLAG) == ART_CUST_SKIP_DEF_FLAG)
+		|| ((HIWORD(CONF.album_art_skip_default_cust) & ART_CUST_SKIP_DEF_FLAG) == ART_CUST_SKIP_DEF_FLAG);
 	bool bconf_art_save = (CONF.save_album_art || CONF.save_artist_art || CONF.embed_album_art || CONF.embed_artist_art);
 	bool bcustom_art_save = !(CONFARTWORK == uartwork(CONF));
 
@@ -951,6 +952,7 @@ void process_release_callback::on_error(HWND p_wnd) {
 
 process_artwork_preview_callback::process_artwork_preview_callback(CTrackMatchingDialog* dialog, const Release_ptr& release, const size_t img_ndx, const bool bartist, bool onlycache) :
 	m_dialog(dialog), m_release(release), m_img_ndx(img_ndx), m_bartist(bartist), m_onlycache(onlycache) {
+	m_musicbrainz_mibs = {};
 }
 
 void process_artwork_preview_callback::start(HWND parent) {
@@ -966,10 +968,72 @@ void process_artwork_preview_callback::safe_run(threaded_process_status& p_statu
 	p_status.set_item("Fetching artwork preview information...");
 	
 	if (m_release) {
+		if (m_img_ndx == 0 && !m_bartist) {
+			pfc::string8 req_mib_url = "https://beta.musicbrainz.org/ws/2/url?inc=release-rels&fmt=json&resource=https://www.discogs.com/release/";
+			req_mib_url << m_release->id;
+			pfc::string8 html;
+			discogs_interface->fetcher->fetch_html_simple_log(req_mib_url, "", html, p_abort);
+			if (html.get_length()) {
+				JSONParser jp(html);
+				try {
+					if (json_is_object(jp.root)) {
+						json_t* s = json_object_get(jp.root, "relations");
+						json_t* ar_s = json_array_get(s, 0);
+						json_t* t = json_object_get(ar_s, "release");
+						m_musicbrainz_mibs.release = JSONAttributeString(t, "id");
+					}
+				}
+				catch (...) {
+				}
+			}
+
+			if (m_release->master_id.get_length()) {			
+				req_mib_url = "https://beta.musicbrainz.org/ws/2/url?inc=release-group-rels&fmt=json&resource=https://www.discogs.com/master/";
+				req_mib_url << m_release->master_id;
+				discogs_interface->fetcher->fetch_html_simple_log(req_mib_url, "", html, p_abort);
+
+				JSONParser jp(html);
+				try {
+					if (json_is_object(jp.root)) {
+						json_t* s = json_object_get(jp.root, "relations");
+						json_t* ar_s = json_array_get(s, 0);
+						json_t* t = json_object_get(ar_s, "release_group");
+						m_musicbrainz_mibs.release_group = JSONAttributeString(t, "id");
+					}
+				}
+				catch (...) {
+				}
+			}
+			if (m_release->artists[0]->full_artist->id.get_length()) {
+				req_mib_url = "https://beta.musicbrainz.org/ws/2/url?inc=artist-rels&fmt=json&resource=https://www.discogs.com/artist/";
+				req_mib_url << m_release->artists[0]->full_artist->id;
+				discogs_interface->fetcher->fetch_html_simple_log(req_mib_url, "", html, p_abort);
+
+				JSONParser jp(html);
+				try {
+					if (json_is_object(jp.root)) {
+						json_t* s = json_object_get(jp.root, "relations");
+						json_t* ar_s = json_array_get(s, 0);
+						json_t* t = json_object_get(ar_s, "artist");
+						m_musicbrainz_mibs.artist = JSONAttributeString(t, "id");
+					}
+				}
+				catch (...) {
+				}
+			}
+
+			if (m_musicbrainz_mibs.release.get_length()) {
+				req_mib_url = "https://musicbrainz.org/release/";
+				req_mib_url << m_musicbrainz_mibs.release << "/cover-art";
+				discogs_interface->fetcher->fetch_html_simple_log(req_mib_url, "", html, p_abort);
+				m_musicbrainz_mibs.hascoverart = html.get_length() && html.find_first("Cover Art (0)", 0) == pfc_infinite;
+			}
+		}
+
 		pfc::string8 id;
 		pfc::string8 url;
-
 		bool has_thumb;
+		
 		try {
 			has_thumb = discogs_interface->get_thumbnail_from_cache(m_release, m_bartist, m_img_ndx, m_small_art,
 				p_status, p_abort);
@@ -985,7 +1049,7 @@ void process_artwork_preview_callback::safe_run(threaded_process_status& p_statu
 				p_status.set_item("Fetching artwork preview small album art...");
 				try {
 					pfc::array_t<Image_ptr> images;
-					size_t ndx;
+
 					if (m_bartist) {
 						images = m_release->artists[0]->full_artist->images;
 					}
@@ -1003,7 +1067,7 @@ void process_artwork_preview_callback::safe_run(threaded_process_status& p_statu
 }
 
 void process_artwork_preview_callback::on_success(HWND p_wnd) {
-	m_dialog->process_artwork_preview_done(m_img_ndx, m_bartist, m_small_art);
+	m_dialog->process_artwork_preview_done(m_img_ndx, m_bartist, m_small_art, m_musicbrainz_mibs);
 }
 
 void process_artwork_preview_callback::on_abort(HWND p_wnd) {
@@ -1057,6 +1121,7 @@ void process_file_artwork_preview_callback::safe_run(threaded_process_status& p_
 
 			char converted[MAX_PATH - 1];	
 			pfc::stringcvt::string_os_from_utf8 cvt(full_path);
+#pragma warning(suppress:4996)
 			wcstombs(converted, cvt.get_ptr(), MAX_PATH - 1);
 
 			FILE* fd = nullptr;

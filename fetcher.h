@@ -137,6 +137,12 @@ public:
 				bool use_oauth = true,
 				const pfc::string8 &content_type = "application/xml,text/html,image/jpeg");
 
+	void fetch_html_simple_log(const pfc::string8& url,
+		const pfc::string8& params,
+		pfc::string8& out,
+		abort_callback& p_abort,
+		const pfc::string8& content_type = "application/xml,text/html");
+
 	// OAUTH STUFF
 	void set_oauth(const pfc::string8 &token, const pfc::string8 &token_secret);
 	void init_oauth();

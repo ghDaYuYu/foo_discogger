@@ -2,6 +2,7 @@
 
 #include "utils.h"
 #include <algorithm>
+#include <regex>
 
 const char *whitespace = " \t\r\n";
 
@@ -212,6 +213,33 @@ void list_replace_text(HWND list, int pos, const char *text) {
 	lvi.pszText = const_cast<TCHAR*>(textOS.get_ptr());
 	lvi.mask = LVIF_TEXT;
 	ListView_SetItem(list, &lvi);
+
+pfc::string8 extract_max_number(const pfc::string8& s) {
+
+	size_t max = 0;
+	std::string str(s);
+	std::regex regex_v("[\\d]+");
+	std::sregex_iterator begin = std::sregex_iterator(str.begin(), str.end(), regex_v);
+	std::sregex_iterator end = std::sregex_iterator();
+
+	for (std::sregex_iterator i = begin; i != end; i++) {
+		std::string strval = i->str();
+		if (size_t ival = atoi(strval.c_str()); ival > max)
+			max = ival;
+	}
+	return max ? pfc::toString(max).c_str() : "";
+}
+
+pfc::string8 extract_musicbrainz_mib(const pfc::string8& s) {
+
+	std::regex regex_rmb("[0-9a-f]+\-[0-9a-f]+\-[0-9a-f]+\-[0-9a-f]+\-[0-9a-f]+");
+	std::smatch match;
+	std::string str(s);
+	if (std::regex_search(str, match, regex_rmb)) {
+		return pfc::string8(match.str().c_str());
+	}
+	return "";
+}
 
 void load_dlls()
 {

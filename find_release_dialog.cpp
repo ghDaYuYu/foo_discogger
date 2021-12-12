@@ -134,14 +134,19 @@ LRESULT CFindReleaseDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /
 
 LRESULT CFindReleaseDialog::OnOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	pfc::string8 release_id;
-	uGetWindowText(m_release_url_edit, release_id);
-	release_id.set_string(trim(release_id));
-	extract_id_from_url(release_id);
-	extract_release_from_link(release_id);
+	release_id = trim(uGetWindowText(m_release_url_edit).c_str());
 
-	if (release_id.get_length() != 0) {
+	if (!is_number(release_id.get_ptr())) {
+	    if (pfc::string_has_prefix(artistname, "https://www.discogs.com/release/")) {
+	        release_id = extract_max_number(release_id);
+	    }
+	    else
+	        return TRUE;
+    }		
+	
+	if (release_id.get_length()) 
 		on_write_tags(release_id);
-	}
+
 	return TRUE;
 }
 
@@ -1507,7 +1512,6 @@ LRESULT CFindReleaseDialog::ApplyFilter(pfc::string8 strFilter, bool force_redra
 	}
 
 	m_results_filter.set_string(strFilter);
-
 	return FALSE;
 }
 
@@ -1608,6 +1612,7 @@ LRESULT CFindReleaseDialog::OnCheckFindReleaseFilterFlags(WORD /*wNotifyCode*/, 
 	uGetWindowText(m_filter_edit, strFilter);
 	KillTimer(KTypeFilterTimerID);
 	ApplyFilter(strFilter, force_refresh, force_rebuild);
+
 	return FALSE;
 }
 
@@ -1805,11 +1810,26 @@ void CFindReleaseDialog::get_selected_artist_releases(updRelSrc updsrc) {
 
 void CFindReleaseDialog::search_artist(bool skip_tracer, pfc::string8 artistname) {
 
-	bool cfg_skip_search_artist_if_present = true;
-	if (cfg_skip_search_artist_if_present
-		&& !skip_tracer && _idtracer.artist && _idtracer.artist_id != pfc_infinite) {
+	pfc::string8 url_artist_id = "";
+	if (pfc::string_has_prefix(artistname, "https://www.discogs.com/artist/")) {
+		url_artist_id = extract_max_number(artistname);
+		if (url_artist_id.get_length()) {
+			_idtracer.artist_reset();
+			m_artist_index = pfc_infinite;
+			find_release_artists.force_reset();
+			ListView_DeleteAllItems(m_artist_list);
+			::EnableWindow(uGetDlgItem(IDC_ONLY_EXACT_MATCHES_CHECK), false);
+		}
+		else {
+			return; //artist id not found
+		}
+	}
 
-		pfc::string8 artist_id (std::to_string(_idtracer.artist_id).c_str());
+	bool cfg_skip_search_artist_if_present = true;
+	if (url_artist_id.get_length() || (cfg_skip_search_artist_if_present
+		&& !skip_tracer && _idtracer.artist && _idtracer.artist_id != pfc_infinite)) {
+
+		pfc::string8 artist_id = url_artist_id.get_length()? url_artist_id : pfc::toString(_idtracer.artist_id).get_ptr();
 
 		if (artist_id.get_length()) {
 			service_ptr_t<get_artist_process_callback> task =

@@ -834,6 +834,13 @@ void get_artist_process_callback::safe_run(threaded_process_status &p_status, ab
 void get_artist_process_callback::on_success(HWND p_wnd) {
 	if (m_artist) {
 		CFindReleaseDialog* find_dlg = reinterpret_cast<CFindReleaseDialog*>(g_discogs->find_release_dialog);
+		//artist history
+		rppair row = std::pair(std::pair("", ""), std::pair(m_artist->id, m_artist->name));
+		if (bool added = find_dlg->add_history_row(1, std::move(row)); added) {
+			sqldb db;
+			size_t db_parsed_credit_id = db.add_artist_history(m_artist, "get_artist_process_callback", row);
+		}
+		
 		find_dlg->on_get_artist_done(m_updsrc, m_artist);
 	}
 }
@@ -855,7 +862,17 @@ void search_artist_process_callback::safe_run(threaded_process_status &p_status,
 }
 
 void search_artist_process_callback::on_success(HWND p_wnd) {
-	CFindReleaseDialog* find_dlg = reinterpret_cast<CFindReleaseDialog*>(g_discogs->find_release_dialog);
+
+	CFindReleaseDialog* find_dlg = g_discogs->find_release_dialog;
+	if (m_artist_exact_matches.size()) {
+		//artist history
+		rppair row = std::pair(std::pair("", ""), std::pair(m_artist_exact_matches[0]->id, m_artist_exact_matches[0]->name));
+		if (bool added = find_dlg->add_history_row(1, std::move(row)); added) {
+			sqldb db;
+			size_t db_parsed_credit_id = db.add_artist_history(m_artist_exact_matches[0], "search_artist_process_callback", row);
+		}
+	}
+
 	find_dlg->on_search_artist_done(m_artist_exact_matches, m_artist_other_matches);
 }
 
@@ -958,6 +975,15 @@ void process_release_callback::safe_run(threaded_process_status &p_status, abort
 }
 
 void process_release_callback::on_success(HWND p_wnd) {
+
+	//release history
+	rppair row = std::pair(std::pair(tag_writer->release->id, tag_writer->release->title),
+		std::pair(tag_writer->release->artists[0]->full_artist->id, tag_writer->release->artists[0]->full_artist->name));
+	if (bool added = m_dialog->add_history_row(0, std::move(row)); added) {
+		sqldb db;
+		size_t db_parsed_credit_id = db.add_release_history(tag_writer->release, "proccess_release_callback", row);
+	}
+
 	fb2k::newDialog<CTrackMatchingDialog>(core_api::get_main_window(), tag_writer, false);
 }
 

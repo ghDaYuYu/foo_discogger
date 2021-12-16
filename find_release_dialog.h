@@ -85,6 +85,10 @@ private:
 
 	CFindReleaseTree m_release_ctree;
 
+	vppair m_vres_release_history;
+	vppair m_vres_artist_history;
+	vppair m_vres_filter_history;
+
 	std::function<bool()>stdf_enteroverride_artist = [this]() {
 		BOOL bdummy;
 		HWND button = uGetDlgItem(IDC_SEARCH_BUTTON);
@@ -98,6 +102,22 @@ private:
 		HWND button = uGetDlgItem(IDC_PROCESS_RELEASE_BUTTON);
 		if (::IsWindowEnabled(button))
 			OnOK(0L, 0L, NULL, bdummy);
+		return false;
+	};
+
+	pfc::string8 build_history_menu(HWND hwnd);
+
+	std::function<bool(HWND hwnd, wchar_t* editval)> m_stdf_call_history =
+		[&](HWND hwnd, wchar_t* wstrt) {
+
+		pfc::string8 menu_option = build_history_menu(hwnd);
+		if (menu_option.get_length()) {
+			wchar_t newval[MAX_PATH + 1];
+			pfc::stringcvt::convert_utf8_to_wide(newval, MAX_PATH,
+				menu_option, menu_option.get_length());
+			_tcscpy_s(wstrt, MAX_PATH, newval);
+			return true;
+		}
 		return false;
 	};
 
@@ -239,6 +259,7 @@ public:
 	LRESULT OnButtonConfigure(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 
 	void SetEnterKeyOverride(bool enable);
+	void SetHistoryServiceButtonOverride();
 
 	void OnTypeFilterTimer(WPARAM id) {
 		if (id == KTypeFilterTimerID) {
@@ -268,6 +289,58 @@ public:
 	//serves credits dlg test/preview
 	metadb_handle_list getitems() {
 		return items;
+	}
+
+	//serves config dialog
+	void zap_vhistory() {
+		m_vres_release_history.clear();
+		m_vres_artist_history.clear();
+		m_vres_filter_history.clear();
+	}
+
+	//from
+	// process release callback on success
+	// search_artist_process_callback on success
+	// get_artist_process_callback
+
+	bool add_history_row(int type, rppair row) {
+
+		bool bres = false;
+
+		rppair copyrow =
+			std::pair(
+				std::pair(row.first.first.c_str(), row.first.second.c_str()),
+				std::pair(row.second.first.c_str(), row.second.second.c_str())
+			);
+
+		if (type == 0) {
+			if (!row.first.first.get_length()) return false;
+			vppair* v_p = &m_vres_release_history;
+			auto s = std::find_if(v_p->begin(), v_p->end(),
+				[row](const rppair& w) { return w.first.first.equals(row.first.first); });
+
+			if (bres = s == v_p->end(); bres) //not found
+				v_p->emplace_back(copyrow);
+		}
+		else if (type == 1) {
+			if (!row.second.first.get_length()) return false;
+			vppair* v_p = &m_vres_artist_history;
+			auto s = std::find_if(v_p->begin(), v_p->end(),
+				[row](const rppair& w) { return w.second.first.equals(row.second.first); });
+
+			if (bres = s == v_p->end(), bres) //not found
+				v_p->emplace_back(copyrow);
+		}
+		else if (type == 2) {
+			if (!row.first.first.get_length()) return false;
+			vppair* v_p = &m_vres_filter_history;
+			auto s = std::find_if(v_p->begin(), v_p->end(),
+				[row](const rppair& w) { return w.first.first.equals(row.first.first); });
+
+			if (bres = s == v_p->end(), bres) //not found
+				v_p->emplace_back(copyrow);
+		}
+		return bres;
 	}
 };
 

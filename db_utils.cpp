@@ -225,25 +225,41 @@ size_t sqldb::gen_def_credit(Release_ptr release, pfc::string8 ctag_name, pfc::s
 			catdetails.emplace_back(walk_credit_cat);
 		}
 
-			//add result set to map 
-			catcredits->emplace(ctag_name, catdetails);
-		}
+		//add result set to map 
+		catcredits->emplace(ctag_name, catdetails);
+	}
+	return newrec;
+}
 
-	//} while (false);
+size_t sqldb::add_release_history(Release_ptr release, pfc::string8 cmd, rppair& out) {
+
+	size_t newrec = pfc_infinite;
+	db_fetcher_component dbfetcher;
+	newrec = dbfetcher.add_history(this, nullptr, release, cmd, "", out);
 
 	return newrec;
 }
 
-size_t sqldb::add_release_history(Release_ptr release, pfc::string8 cmd) {
-
+size_t sqldb::add_artist_history(Artist_ptr artist, pfc::string8 cmd, rppair& row) {
 	size_t newrec = pfc_infinite;
+	db_fetcher_component dbfetcher;
+	newrec = dbfetcher.add_history(this, artist, nullptr, cmd, "", row);
+	return newrec;
+}
 
-	//do {
+size_t sqldb::add_filter_history(pfc::string8 cmd, rppair &out) {
+	size_t newrec = pfc_infinite;
+	db_fetcher_component dbfetcher;
 
-		db_fetcher_component dbfetcher;
-		newrec = dbfetcher.add_history(this, release, cmd, "");
+	newrec = dbfetcher.add_history(this, nullptr, nullptr, cmd, "", out);
+	return newrec;
+}
 
-	//} while (false);
+size_t sqldb::delete_history(pfc::string8 cmd, pfc::string8 top_rows, std::vector<vppair*>allout) {
+	size_t newrec = pfc_infinite;
+	db_fetcher_component dbfetcher;
 
+	//cmd: "cmd_leave_latest"  //top_row: 100 (+ prefix to build vec)
+	newrec = dbfetcher.delete_history(this, nullptr, nullptr, cmd, top_rows, allout);
 	return newrec;
 }

@@ -58,7 +58,9 @@ public:
 	bool update_db_def_credits(vppair& vdefs);
 
 	// history
-	int add_history(sqldb* db, Release_ptr release,	pfc::string8 cmd_id, pfc::string8 cmd_text);
+	int add_history(sqldb* db, Artist_ptr artist, Release_ptr release,	pfc::string8 cmd_id, pfc::string8 cmd_text, rppair& out);
+	int read_history(sqldb* db, Artist_ptr artist, Release_ptr release,	pfc::string8 cmd_id, pfc::string8 cmd_text, vppair &vres);
+	int delete_history(sqldb* db, Artist_ptr artist, Release_ptr release, pfc::string8 cmd_id, pfc::string8 cmd_text, std::vector<vppair*>allout);
 
 #ifdef DB_DC
 	// test

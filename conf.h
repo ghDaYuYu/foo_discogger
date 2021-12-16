@@ -133,6 +133,7 @@
 #define DEPRI_CFG_EDIT_CAT_CREDIT_DIALOG_SIZE		2130
 #define DEPRI_CFG_EDIT_CAT_CREDIT_DIALOG_POS		2131
 #define CFG_LIST_STYLE							2132
+#define CFG_HISTORY_MAX_ITEMS					2133
 
 // STRINGS -------------------------------------
 
@@ -363,6 +364,7 @@ public:
 		{ asi(cfgFilter::CONF), CFG_DC_DB_FLAG},
 		{ asi(cfgFilter::CONF), CFG_SKIP_MNG_FLAG},
 		{ asi(cfgFilter::CONF), CFG_LIST_STYLE},
+		{ asi(cfgFilter::CONF), CFG_HISTORY_MAX_ITEMS},
 
 		//..
 
@@ -439,6 +441,8 @@ public:
 
 	void save(cfgFilter cfgfilter, CConf in_conf);
 	void save(cfgFilter cfgfilter, CConf in_conf, int id);
+
+	bool history_enabled();
 	
 	bool replace_ANVs = false;
 	bool move_the_at_beginning = true;
@@ -558,6 +562,7 @@ public:
 	int find_release_filter_flag = 0;
 	int skip_mng_flag = 0;
 	int list_style = 2;
+	int history_max_items = MAKELPARAM(20, 1); //enabled-max20
 	//..
 };
 

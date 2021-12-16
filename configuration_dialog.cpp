@@ -4,6 +4,7 @@
 #include "tag_mappings_credits_dlg.h"
 #include "utils.h"
 #include "tasks.h"
+#include "db_utils.h"
 #include "configuration_dialog.h"
 
 static HWND g_hWndTabDialog[NUM_TABS] = {nullptr};
@@ -54,12 +55,13 @@ void CConfigurationDialog::InitTabs() {
 	tab_table.append_single(tab_entry("Matching", matching_dialog_proc, IDD_DIALOG_CONF_MATCHING));
 	tab_table.append_single(tab_entry("Tagging", tagging_dialog_proc, IDD_DIALOG_CONF_TAGGING));
 	tab_table.append_single(tab_entry("Cache", caching_dialog_proc, IDD_DIALOG_CONF_CACHING));
+	tab_table.append_single(tab_entry("Artwork", art_dialog_proc, IDD_DIALOG_CONF_ART));
+	tab_table.append_single(tab_entry("UI Options", ui_dialog_proc, IDD_DIALOG_CONF_UI));
 
 #ifdef DB_DC
 	tab_table.append_single(tab_entry("Database", db_dialog_proc, IDD_DIALOG_CONF_DATABASE));
 #endif
 
-	tab_table.append_single(tab_entry("Artwork", art_dialog_proc, IDD_DIALOG_CONF_ART));
 	tab_table.append_single(tab_entry("OAuth", oauth_dialog_proc, IDD_DIALOG_CONF_OAUTH));
 }
 
@@ -210,6 +212,7 @@ LRESULT CConfigurationDialog::OnOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCt
 	save_matching_dialog(g_hWndTabDialog[CONF_MATCHING_TAB], true);
 	save_tagging_dialog(g_hWndTabDialog[CONF_TAGGING_TAB], true);
 	save_art_dialog(g_hWndTabDialog[CONF_ART_TAB], true);
+	save_ui_dialog(g_hWndTabDialog[CONF_UI_TAB], true);
 	save_oauth_dialog(g_hWndTabDialog[CONF_OATH_TAB], true);
 	conf = conf_dlg_edit;
 	CONF.save(CConf::cfgFilter::CONF, conf);
@@ -227,7 +230,7 @@ LRESULT CConfigurationDialog::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hW
 LRESULT CConfigurationDialog::OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	if (uMessageBox(m_hWnd, "Reset component settings to default?", "Reset",
 		MB_OKCANCEL | MB_ICONQUESTION | MB_DEFBUTTON2) == IDOK) {
-		foo_discogs_conf temp;
+		foo_conf temp;
 		temp.oauth_token = conf.oauth_token;
 		temp.oauth_token_secret = conf.oauth_token_secret;
 		conf = temp;
@@ -240,6 +243,7 @@ LRESULT CConfigurationDialog::OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*
 		init_matching_dialog(g_hWndTabDialog[CONF_MATCHING_TAB]);
 		init_tagging_dialog(g_hWndTabDialog[CONF_TAGGING_TAB]);
 		init_art_dialog(g_hWndTabDialog[CONF_ART_TAB]);
+		init_ui_dialog(g_hWndTabDialog[CONF_UI_TAB]);
 		init_oauth_dialog(g_hWndTabDialog[CONF_OATH_TAB]);
 	}
 	return FALSE;
@@ -271,8 +275,8 @@ void CConfigurationDialog::show_tab(unsigned int itab) {
 		//::SendDlgItemMessage(m_hWnd, IDC_TAB, TCM_SETCURSEL, itab, 0);
 
 		g_current_tab = (t_uint32)::SendDlgItemMessage(m_hWnd, IDC_TAB, TCM_GETCURSEL, itab, 0);
+
 		g_hWndCurrentTab = g_hWndTabDialog[itab];
-		
 		::ShowWindow(help_link, toggle_title_format_help() ? SW_SHOW : SW_HIDE);
 		::ShowWindow(g_hWndCurrentTab, SW_SHOW);
 	}
@@ -314,11 +318,9 @@ void CConfigurationDialog::init_searching_dialog(HWND wnd) {
 	uButton_SetCheck(wnd, IDC_ENABLE_AUTO_SEARCH_CHECK, conf.enable_autosearch);
 	uButton_SetCheck(wnd, IDC_SKIP_FIND_RELEASE_DIALOG_CHECK, conf.skip_mng_flag & SkipMng::SKIP_FIND_RELEASE_DLG_IDED);
 	uButton_SetCheck(wnd, IDC_SKIP_LOAD_RELEASES_IF_IDED_CHECK, conf.skip_mng_flag & SkipMng::SKIP_LOAD_RELEASES_TASK_IDED);
-	uButton_SetCheck(wnd, IDC_RELEASE_ENTER_KEY_OVR, conf.release_enter_key_override);
 	uSetDlgItemText(wnd, IDC_RELEASE_FORMATTING_EDIT, conf.search_release_format_string);
 	uSetDlgItemText(wnd, IDC_MASTER_FORMATTING_EDIT, conf.search_master_format_string);
-	uSetDlgItemText(wnd, IDC_MASTER_SUB_FORMATTING_EDIT, conf.search_master_sub_format_string);
-	InitComboRowStyle(wnd, IDC_CMB_CONFIG_LIST_STYLE, conf.list_style);
+	uSetDlgItemText(wnd, IDC_MASTER_SUB_FORMATTING_EDIT, conf.search_master_sub_format_string);	
 }
 
 void CConfigurationDialog::init_matching_dialog(HWND wnd) {
@@ -326,14 +328,17 @@ void CConfigurationDialog::init_matching_dialog(HWND wnd) {
 	uButton_SetCheck(wnd, IDC_MATCH_USING_NUMBERS, conf.match_tracks_using_number);
 	uButton_SetCheck(wnd, IDC_MATCH_ASSUME_SORTED, conf.assume_tracks_sorted);
 	uButton_SetCheck(wnd, IDC_SKIP_RELEASE_DIALOG_CHECK, conf.skip_mng_flag & SkipMng::SKIP_RELEASE_DLG_MATCHED);
+	uButton_SetCheck(wnd, IDC_SKIP_BRAINZ_MIBS_FETCH, conf.skip_mng_flag & SkipMng::SKIP_BRAINZ_ID_FETCH);
 	uSetDlgItemText(wnd, IDC_DISCOGS_FORMATTING_EDIT, conf.release_discogs_format_string);
 	uSetDlgItemText(wnd, IDC_FILE_FORMATTING_EDIT, conf.release_file_format_string);
+	uSetDlgItemText(wnd, IDC_MASTER_SUB_FORMATTING_EDIT, conf.search_master_sub_format_string);
 }
 
 void CConfigurationDialog::init_tagging_dialog(HWND wnd) {
 	uButton_SetCheck(wnd, IDC_ENABLE_ANV_CHECK, conf.replace_ANVs);
 	uButton_SetCheck(wnd, IDC_MOVE_THE_AT_BEGINNING_CHECK, conf.move_the_at_beginning);
 	uButton_SetCheck(wnd, IDC_DISCARD_NUMERIC_SUFFIXES_CHECK, conf.discard_numeric_suffix);
+
 	uButton_SetCheck(wnd, IDC_SKIP_PREVIEW_DIALOG, conf.skip_mng_flag & SkipMng::SKIP_PREVIEW_DLG);
 	uButton_SetCheck(wnd, IDC_REMOVE_OTHER_TAGS, conf.remove_other_tags);
 	uSetDlgItemText(wnd, IDC_REMOVE_EXCLUDING_TAGS, conf.raw_remove_exclude_tags);
@@ -393,6 +398,14 @@ void CConfigurationDialog::init_art_dialog(HWND wnd) {
 	uSetDlgItemText(wnd, IDC_ARTIST_ART_DIR_EDIT, conf.artist_art_directory_string);
 	uSetDlgItemText(wnd, IDC_ARTIST_ART_PREFIX_EDIT, conf.artist_art_filename_string);
 	uButton_SetCheck(wnd, IDC_ARTIST_ART_OVERWRITE_CHECK, conf.artist_art_overwrite);
+}
+
+void CConfigurationDialog::init_ui_dialog(HWND wnd) {
+	uButton_SetCheck(wnd, IDC_CFG_UI_HISTORY_ENABLED, HIWORD(conf.history_max_items));
+	size_t imax = LOWORD(conf.history_max_items);
+	uSetDlgItemText(wnd, IDC_UI_HISTORY_MAX_ITEMS, pfc::toString(imax).c_str());
+	uButton_SetCheck(wnd, IDC_RELEASE_ENTER_KEY_OVR, conf.release_enter_key_override);	
+	InitComboRowStyle(wnd, IDC_CMB_CONFIG_LIST_STYLE, conf.list_style);
 }
 
 void CConfigurationDialog::init_oauth_dialog(HWND wnd) {
@@ -499,6 +512,11 @@ void CConfigurationDialog::save_matching_dialog(HWND wnd, bool dlgbind) {
 
 	uGetDlgItemText(wnd, IDC_FILE_FORMATTING_EDIT, text);
 	conf_ptr->release_file_format_string = text;
+
+	if (uButton_GetCheck(wnd, IDC_SKIP_BRAINZ_MIBS_FETCH))
+		conf_ptr->skip_mng_flag |= SkipMng::SKIP_BRAINZ_ID_FETCH;
+	else
+		conf_ptr->skip_mng_flag &= ~SkipMng::SKIP_BRAINZ_ID_FETCH;
 }
 
 bool CConfigurationDialog::cfg_matching_has_changed() {
@@ -686,6 +704,28 @@ bool CConfigurationDialog::cfg_art_has_changed() {
 	return bres;
 }
 
+void CConfigurationDialog::save_ui_dialog(HWND wnd, bool dlgbind) {
+
+	foo_conf* conf_ptr = dlgbind ? &conf_dlg_edit : &conf;
+
+	bool history_enabled; pfc::string8 h_items;
+	uGetDlgItemText(wnd, IDC_UI_HISTORY_MAX_ITEMS, h_items);
+	history_enabled = uButton_GetCheck(wnd, IDC_CFG_UI_HISTORY_ENABLED);
+	conf_ptr->history_max_items = MAKELPARAM(atoi(h_items), history_enabled ? 1 : 0);
+
+	conf_ptr->release_enter_key_override = uButton_GetCheck(wnd, IDC_RELEASE_ENTER_KEY_OVR);
+	conf_ptr->list_style = ::uSendDlgItemMessage(wnd, IDC_CMB_CONFIG_LIST_STYLE, CB_GETCURSEL, 0, 0);
+}
+
+bool CConfigurationDialog::cfg_ui_has_changed() {
+
+	bool bres = false;
+	bres |= conf.history_max_items != conf_dlg_edit.history_max_items;	
+	bres |= conf.release_enter_key_override != conf_dlg_edit.release_enter_key_override;
+	bres |= conf.list_style != conf_dlg_edit.list_style;
+	return bres;
+}
+
 void CConfigurationDialog::save_oauth_dialog(HWND wnd, bool dlgbind) {
 
 	foo_conf* conf_ptr = dlgbind ? &conf_dlg_edit : &conf;
@@ -731,6 +771,9 @@ void CConfigurationDialog::init_current_tab() {
 #endif
 	else if (g_hWndCurrentTab == g_hWndTabDialog[CONF_ART_TAB]) {
 		init_art_dialog(g_hWndTabDialog[CONF_ART_TAB]);
+	}
+	else if (g_hWndCurrentTab == g_hWndTabDialog[CONF_UI_TAB]) {
+		init_ui_dialog(g_hWndTabDialog[CONF_UI_TAB]);
 	}
 	else if (g_hWndCurrentTab == g_hWndTabDialog[CONF_OATH_TAB]) {
 		init_oauth_dialog(g_hWndTabDialog[CONF_OATH_TAB]);
@@ -1032,6 +1075,60 @@ BOOL CConfigurationDialog::on_art_dialog_message(HWND wnd, UINT msg, WPARAM wp, 
 	return FALSE;
 }
 
+INT_PTR WINAPI CConfigurationDialog::ui_dialog_proc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+	CConfigurationDialog* p_this;
+	if (msg == WM_INITDIALOG) {
+		p_this = (CConfigurationDialog*)(lParam); //retrieve pointer to class
+		::uSetWindowLong(hWnd, GWL_USERDATA, (LPARAM)p_this); //store it for future use
+	}
+	else {
+		p_this = reinterpret_cast<CConfigurationDialog*>(::uGetWindowLong(hWnd, GWL_USERDATA));
+	}
+	return p_this ? p_this->on_ui_dialog_message(hWnd, msg, wParam, lParam) : FALSE;
+}
+
+BOOL CConfigurationDialog::on_ui_dialog_message(HWND wnd, UINT msg, WPARAM wp, LPARAM lp) {
+	switch (msg) {
+		case WM_INITDIALOG:
+			setting_dlg = true;
+			init_ui_dialog(wnd);
+			setting_dlg = false;
+			return TRUE;
+		case WM_COMMAND: {
+			switch (wp) {
+				case IDC_BTN_UI_CLEAR_HISTORY:
+					if (g_discogs->find_release_dialog)
+						g_discogs->find_release_dialog->zap_vhistory();
+					on_delete_history(wnd, 0, true);
+					break;
+				default:
+					if ((HIWORD(wp) == BN_CLICKED) || (HIWORD(wp) == EN_UPDATE)) {
+						if (!setting_dlg) {
+							save_ui_dialog(wnd, true);
+							OnChanged();
+						}
+					}
+					else if (HIWORD(wp) == CBN_SELCHANGE) {
+						switch (LOWORD(wp)) {
+							case IDC_CMB_CONFIG_LIST_STYLE: {
+								int s = ::uSendDlgItemMessage(wnd, IDC_CMB_CONFIG_LIST_STYLE, CB_GETCURSEL, 0, 0);
+								int data = ::uSendDlgItemMessage(wnd, IDC_CMB_CONFIG_LIST_STYLE, CB_GETITEMDATA, s, 0);
+								if (s != CB_ERR) {
+									conf_dlg_edit.list_style = s;
+								}
+								OnChanged();
+								break;
+							}
+						}
+					}
+					break;
+			}
+			break;
+		}
+	}
+	return FALSE;
+}
+
 INT_PTR WINAPI CConfigurationDialog::oauth_dialog_proc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	CConfigurationDialog * p_this;
 
@@ -1094,6 +1191,13 @@ void CConfigurationDialog::on_test_db(HWND wnd, pfc::string8 dbpath) {
 	);
 }
 #endif // DB_DC
+
+void CConfigurationDialog::on_delete_history(HWND wnd, size_t max, bool zap) {
+	/* todo: service_ptr_t */
+	sqldb db;	
+	size_t inc = db.delete_history("delete all", "", { nullptr });
+	db.close();
+}
 
 void CConfigurationDialog::on_test_oauth(HWND wnd) {
 	pfc::string8 text;
@@ -1175,6 +1279,9 @@ bool CConfigurationDialog::HasChanged() {
 #endif
 	else if (g_hWndCurrentTab == g_hWndTabDialog[CONF_ART_TAB]) {
 		bchanged = cfg_art_has_changed();
+	}
+	else if (g_hWndCurrentTab == g_hWndTabDialog[CONF_UI_TAB]) {
+		bchanged = cfg_ui_has_changed();
 	}
 	else if (g_hWndCurrentTab == g_hWndTabDialog[CONF_OATH_TAB]) {
 		bchanged = cfg_oauth_has_changed();

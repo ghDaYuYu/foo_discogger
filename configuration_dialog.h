@@ -8,26 +8,28 @@
 
 #ifdef DB_DC
 
-#define NUM_TABS 7
-
-#define CONF_FIND_RELEASE_TAB	0
-#define CONF_MATCHING_TAB		1
-#define CONF_TAGGING_TAB		2
-#define CONF_CACHING_TAB		3
-#define CONF_DB_TAB				4
-#define CONF_ART_TAB			5
-#define CONF_OATH_TAB			6
-
-#else
-
-#define NUM_TABS 6
+#define NUM_TABS 8
 
 #define CONF_FIND_RELEASE_TAB	0
 #define CONF_MATCHING_TAB		1
 #define CONF_TAGGING_TAB		2
 #define CONF_CACHING_TAB		3
 #define CONF_ART_TAB			4
-#define CONF_OATH_TAB			5
+#define CONF_UI_TAB				5
+#define CONF_DB_TAB				6
+#define CONF_OATH_TAB			7
+
+#else
+
+#define NUM_TABS 7
+
+#define CONF_FIND_RELEASE_TAB	0
+#define CONF_MATCHING_TAB		1
+#define CONF_TAGGING_TAB		2
+#define CONF_CACHING_TAB		3
+#define CONF_ART_TAB			4
+#define CONF_UI_TAB				5
+#define CONF_OATH_TAB			6
 
 #endif
 
@@ -116,6 +118,9 @@ private:
 	static INT_PTR WINAPI art_dialog_proc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 	INT_PTR WINAPI on_art_dialog_message(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+	static INT_PTR WINAPI ui_dialog_proc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+	INT_PTR WINAPI on_ui_dialog_message(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 	static INT_PTR WINAPI oauth_dialog_proc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 	INT_PTR WINAPI on_oauth_dialog_message(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -125,6 +130,7 @@ private:
 	void init_db_dialog(HWND wnd);
 	void init_tagging_dialog(HWND wnd);
 	void init_art_dialog(HWND wnd);
+	void init_ui_dialog(HWND wnd);
 	void init_oauth_dialog(HWND wnd);
 	void init_current_tab();
 
@@ -134,6 +140,7 @@ private:
 	void save_matching_dialog(HWND wnd, bool dlgbind);
 	void save_tagging_dialog(HWND wnd, bool dlgbind);
 	void save_art_dialog(HWND wnd, bool dlgbind);
+	void save_ui_dialog(HWND wnd, bool dlgbind);
 	void save_oauth_dialog(HWND wnd, bool dlgbind);
 
 	bool cfg_searching_has_changed();
@@ -142,9 +149,11 @@ private:
 	bool cfg_matching_has_changed();
 	bool cfg_tagging_has_changed();
 	bool cfg_art_has_changed();
+	bool cfg_ui_has_changed();
 	bool cfg_oauth_has_changed();
 
 	void on_test_oauth(HWND wnd);
+	void on_delete_history(HWND wnd, size_t max, bool zap);
 	void on_authorize_oauth(HWND wnd);
 	void on_generate_oauth(HWND wnd);
 

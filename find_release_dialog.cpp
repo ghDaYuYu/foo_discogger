@@ -19,6 +19,7 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #include "sdk_helpers.h"
 
 #include "utils.h"
+#include "db_utils.h"
 
 #include "find_release_dialog.h"
 
@@ -232,6 +233,18 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	cewb_release_url.SubclassWindow(m_release_url_edit);
 	SetEnterKeyOverride(conf.release_enter_key_override);
 
+	//HISTORY ----
+
+	size_t enable = HIWORD(conf.history_max_items);
+	size_t max_items = LOWORD(conf.history_max_items);
+	pfc::string8 max_param = PFC_string_formatter() << "+" << max_items;
+
+	sqldb db;
+	std::vector<vppair*>all_history = { &m_vres_release_history, &m_vres_artist_history, &m_vres_filter_history };
+	size_t inc = db.delete_history("cmd_leave_latest", max_param, all_history);
+
+	SetHistoryServiceButtonOverride();
+
 	m_release_ctree.Inititalize(m_release_tree, m_artist_list, m_filter_edit, m_release_url_edit);
 	m_release_ctree.SetDiscogsInterface(discogs_interface);
 	m_release_ctree.SetOnSelectedNotifier(
@@ -335,7 +348,15 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	return FALSE;
 }
 
+void CFindReleaseDialog::SetHistoryServiceButtonOverride() {
+
+	cewb_release_filter.SetHistoryHandlers(m_stdf_call_history);
+	cewb_artist_search.SetHistoryHandlers(m_stdf_call_history);
+	cewb_release_url.SetHistoryHandlers(m_stdf_call_history);
+}
+
 void CFindReleaseDialog::SetEnterKeyOverride(bool enter_ovr) {
+
 	cewb_release_filter.SetEnterEscHandlers();
 	cewb_artist_search.SetEnterEscHandlers();
 	cewb_release_url.SetEnterEscHandlers();
@@ -1336,6 +1357,10 @@ LRESULT CFindReleaseDialog::ApplyFilter(pfc::string8 strFilter, bool force_redra
 
 	strFilter = trim(strFilter);
 
+	rppair row;
+	row.first.first = strFilter;
+	add_history_row(2, row);
+	
 	//TODO: mutex?
 	if (!find_release_artist) {
 		return false;
@@ -1851,4 +1876,75 @@ void CFindReleaseDialog::search_artist(bool skip_tracer, pfc::string8 artistname
 			new service_impl_t<search_artist_process_callback>(artistname.get_ptr(), dlg_db_dc_flags.GetFlag());
 		task->start(m_hWnd);
 	}
+}
+
+pfc::string8 CFindReleaseDialog::build_history_menu(HWND hwnd) {
+
+	POINT pt;
+	::GetCursorPos(&pt);
+	//ARTIST HISTORY
+	if (hwnd == m_search_edit)
+	{
+		if (!m_vres_artist_history.size()) return "";
+		enum { MENU_FIRST_ITEM = 1 };
+		HMENU hMenu = CreatePopupMenu();
+
+		size_t c = 0;
+		for (auto walk_h : m_vres_artist_history) {
+			const pfc::stringcvt::string_os_from_utf8 os_str((PFC_string_formatter() << walk_h.second.first << "\t" << walk_h.second.second /*<< "\t" << walk_h.second.first*/).c_str());
+			AppendMenu(hMenu, MF_STRING, MENU_FIRST_ITEM + c, os_str);
+			++c;
+		}
+
+		int cmd = TrackPopupMenu(hMenu, TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RETURNCMD, pt.x, pt.y, 0, m_hWnd, NULL);
+		DestroyMenu(hMenu);
+
+		if (cmd) {
+			auto row_h = m_vres_artist_history.at(cmd - 1);
+			return row_h.second.second;
+		}
+	}
+	//FILTER HISTORY
+	else if (hwnd == m_filter_edit) {
+		
+		enum { MENU_FIRST_ITEM = 1 };
+		HMENU hMenu = CreatePopupMenu();
+
+		size_t c = 0;
+		for (auto walk_h : m_vres_filter_history) {
+			const pfc::stringcvt::string_os_from_utf8 os_str(walk_h.first.first.c_str());
+			AppendMenu(hMenu, MF_STRING, MENU_FIRST_ITEM + c, os_str);
+			++c;
+		}
+
+		int cmd = TrackPopupMenu(hMenu, TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RETURNCMD, pt.x, pt.y, 0, m_hWnd, NULL);
+		DestroyMenu(hMenu);
+
+		if (cmd) {
+			auto row_h = m_vres_filter_history.at(cmd - 1);
+			return row_h.first.first;
+		}
+	}
+	//RELEASE HISTORY
+	else if (hwnd == m_release_url_edit) {
+		if (!m_vres_release_history.size()) return "";
+		enum { MENU_FIRST_ITEM = 1 };
+		HMENU hMenu = CreatePopupMenu();
+		
+		size_t c = 0;
+		for (auto walk_h : m_vres_release_history) {
+			const pfc::stringcvt::string_os_from_utf8 os_str((PFC_string_formatter() << walk_h.first.first << "\t" << walk_h.first.second /*<< "\t" << walk_h.second.first*/).c_str());
+			AppendMenu(hMenu, MF_STRING, MENU_FIRST_ITEM + c, os_str);
+			++c;
+		}
+
+		int cmd = TrackPopupMenu(hMenu, TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RETURNCMD, pt.x, pt.y, 0, m_hWnd, NULL);
+		DestroyMenu(hMenu);
+
+		if (cmd) {
+			auto row_h = m_vres_release_history.at(cmd - 1);
+			return row_h.first.first;		
+		}
+	}
+	return "";
 }

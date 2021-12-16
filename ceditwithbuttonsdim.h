@@ -25,7 +25,8 @@ public:
 	CEditWithButtonsDim() : CEditWithButtons(),
 			m_getDlgCodeHandled(false),	m_dlgWantEnter(true),
 			m_isDim(true), m_dimText(L" Dimmed text"),
-			m_dimColor(RGB(150, 150, 150))
+			m_dimColor(RGB(150, 150, 150)),
+			m_stdf_call_history(nullptr)
 	{
 	}
 
@@ -68,19 +69,36 @@ public:
 			return false;
 		};
 
-		auto condition = [clearValCopy](const wchar_t* txt) -> bool {
+		auto handler_onHistKey = [this, histValCopy] {
+			
+			wchar_t wstr[MAX_PATH+1] = {};
+			GetWindowText(wstr, MAX_PATH);			
+			bool changed = this->m_stdf_call_history(this->m_hWnd, wstr);
+			if (changed) {
+				std::wstring updValCopy(wstr);
+				SetWindowText(updValCopy.c_str());
+			}			
+			return false;
+		};
+
+		auto condition_clear = [clearValCopy](const wchar_t* txt) -> bool {
 			return clearValCopy != txt;
+		};
+		auto condition_hist = [histValCopy](const wchar_t* txt) -> bool {
+			return true;
 		};
 
 		this->onEnterKey = handler_onEnterKey;
 		this->onEscKey = handler_onEscKey;
 
-		AddButton(L"clear", handler_onEscKey, condition, L"\x00D7");
+		AddButton(L"more", handler_onHistKey, condition_hist, L"\x2026");
+		AddButton(L"clear", handler_onEscKey, condition_clear, L"\x00D7");
 	}
 
 	void FocusClear() {
-		HWND wnd = this->GetNextDlgTabItem(false);
-		if (wnd) ::SetFocus(wnd);
+		HWND wnd = this->GetNextDlgTabItem(FALSE);
+		if (wnd)
+			::SetFocus(wnd);
 	}
 
 	void SetEnterOverride(std::function<bool()>stdf_func) {
@@ -89,9 +107,12 @@ public:
 	}
 
 private:
+
 	bool m_getDlgCodeHandled;
 	bool m_dlgWantEnter;
 	bool m_isDim;
 	tstring m_dimText;
 	DWORD m_dimColor;
+	std::function<bool(HWND, wchar_t* wstr)> m_stdf_call_history;
+
 };

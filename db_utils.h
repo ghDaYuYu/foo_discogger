@@ -40,7 +40,10 @@ public:
 	bool debug_sql_return(int ret, pfc::string8 op, pfc::string8 msg_subject, pfc::string8 ext_subject, size_t top, pfc::string8& msg);
 
 	size_t gen_def_credit(Release_ptr release, pfc::string8 cat_credit_name, pfc::string8 inno);
-	size_t add_release_history(Release_ptr release, pfc::string8 cmd);
+	size_t add_release_history(Release_ptr release, pfc::string8 cmd, rppair& out);
+	size_t add_artist_history(Artist_ptr release, pfc::string8 cmd, rppair& out);
+	size_t add_filter_history(pfc::string8 cmd, rppair& out);
+	size_t delete_history(pfc::string8 cmd, pfc::string8 top_rows, std::vector<vppair*>allout);
 	
 	bool test_dc_database(pfc::string8 db_path, abort_callback& p_abort, threaded_process_status& p_status);
 	

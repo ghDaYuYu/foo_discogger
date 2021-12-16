@@ -33,7 +33,7 @@ public:
 
 		const CRect* rc = &p_itemRect;
 		Gdiplus::Graphics gr(p_dc);
-		Gdiplus::Pen pen(freeze? gdiROColor : gdiHLColor, rc->bottom - rc->top);
+		Gdiplus::Pen pen(freeze? gdiROColor : gdiHLColor, static_cast<Gdiplus::REAL>(rc->bottom - rc->top));
 		gr.DrawLine(&pen, rc->left, rc->top + ((rc->bottom - rc->top) / 2), rc->right, rc->top + ((rc->bottom - rc->top) / 2));
 		DeleteObject(&pen);
 		DeleteObject(&gr);

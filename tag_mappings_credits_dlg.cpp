@@ -37,7 +37,7 @@ void RenderHLBackground(CDCHandle p_dc, const CRect& p_itemRect, size_t item, ui
 
 	const CRect* rc = &p_itemRect;
 	Gdiplus::Graphics gr(p_dc);
-	Gdiplus::Pen pen(gdiHLColor, rc->bottom - rc->top);
+	Gdiplus::Pen pen(gdiHLColor, static_cast<Gdiplus::REAL>(rc->bottom - rc->top));
 	gr.DrawLine(&pen, rc->left, rc->top + ((rc->bottom - rc->top) / 2), rc->right, rc->top + ((rc->bottom - rc->top) / 2));
 	DeleteObject(&pen);
 	DeleteObject(&gr);

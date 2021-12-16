@@ -20,6 +20,8 @@ public:
 		SKIP_FIND_RELEASE_DLG_IDED		= 1 << 1,
 		SKIP_PREVIEW_DLG				= 1 << 2,
 		SKIP_LOAD_RELEASES_TASK_IDED	= 1 << 3,
+
+		SKIP_BRAINZ_ID_FETCH			= 1 << 5,
 	};
 
 	SkipMng() = default;

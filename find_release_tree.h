@@ -161,6 +161,8 @@ public:
 
 	//message handlers are chained, notify handler should not mapped in owner
 
+#pragma warning( push )
+#pragma warning( disable : 26454 )
 	BEGIN_MSG_MAP(CFindReleaseTree)
 		NOTIFY_HANDLER(IDC_RELEASE_TREE, TVN_GETDISPINFO, OnTreeGetInfo)
 		NOTIFY_HANDLER(IDC_RELEASE_TREE, TVN_ITEMEXPANDING, OnReleaseTreeExpanding)
@@ -171,6 +173,8 @@ public:
 		NOTIFY_HANDLER(IDC_ARTIST_LIST, NM_RCLICK, OnRClickRelease)
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
 	END_MSG_MAP()
+#pragma warning(pop)
+
 private:
 
 	t_size get_mem_cache_children_count(LPARAM lparam);
@@ -246,14 +250,8 @@ private:
 	}
 
 	LRESULT OnRClickRelease(int, LPNMHDR hdr, BOOL&) {
-		//list
-		LPNMITEMACTIVATE nmView = (LPNMITEMACTIVATE)hdr;
-		//tree
-		NMTVDISPINFO* pDispInfo = reinterpret_cast<NMTVDISPINFO*>(hdr);
-		TVITEMW* pItem = &(pDispInfo)->item;
-		HTREEITEM* hItem = &(pItem->hItem);
+
 		HTREEITEM hhit = NULL;
-		//..
 
 		bool isArtist = hdr->hwndFrom == p_artistlist;
 		bool isArtistOffline = false;
@@ -263,9 +261,13 @@ private:
 		int lparam = -1;
 		mounted_param myparam(lparam);
 
-		POINT p;
+		POINT screen_cursor_position;
+		GetCursorPos(&screen_cursor_position);
+
 		if (isArtist) {
+			LPNMITEMACTIVATE nmView = (LPNMITEMACTIVATE)hdr;
 			list_index = nmView->iItem;
+
 			if (list_index == pfc_infinite)
 				return FALSE;
 
@@ -279,54 +281,57 @@ private:
 			::ClientToScreen(hdr->hwndFrom, &p);
 		}
 		else if (isReleaseTree) {
-			//get client point to hit test
-			GetCursorPos(&p);
-			::ScreenToClient(p_treeview, &p);
-			TVHITTESTINFO hitinfo = { 0 };
-			hitinfo.pt = p;
+
+			TVHITTESTINFO tvhitinfo = { 0 };
+			tvhitinfo.pt = screen_cursor_position;
+			::ScreenToClient(p_treeview, &tvhitinfo.pt);
+
 			if (hhit = (HTREEITEM)SendMessage(p_treeview,
-				TVM_HITTEST, NULL, (LPARAM)&hitinfo)) {
+				TVM_HITTEST, NULL, (LPARAM)&tvhitinfo)) {
 				TVITEM phit = { 0 };
 				phit.mask = TVIF_PARAM;
 				phit.hItem = hhit;
 				TreeView_GetItem(p_treeview, &phit);
 				lparam = phit.lParam;
 				myparam = mounted_param(lparam);
-				if (hitinfo.flags & TVHT_ONITEM) {
-					//use right click also for selection
+				if (tvhitinfo.flags & TVHT_ONITEM) {
+					//right click also selects
 					TreeView_SelectItem(p_treeview, hhit);
 				}
 			}
 			else {
 				return FALSE;
 			}
-			//screen position for context panel
-			GetCursorPos(&p);
 		}
 		lparam = myparam.lparam();
 
 		pfc::string8 sourcepage = isArtist ? "View artist page" : !myparam.brelease ? "View master release page" : "View release page";
-		pfc::string8 copytitle = "Copy title to Clipboard";
-		pfc::string8 copyrow = "Copy to Clipboard";
+		pfc::string8 copytitle = "Copy title to clipboard";
+		pfc::string8 copyrow = "Copy to clipboard";
 
 		try {
-			int coords_x = p.x, coords_y = p.y;
+
 			enum { ID_VIEW_PAGE = 1, ID_CLP_COPY_TITLE, ID_CLP_COPY_ROW, ID_ARTIST_DEL_CACHE, ID_ARTIST_PROFILE };
 			HMENU menu = CreatePopupMenu();
-			uAppendMenu(menu, MF_STRING, ID_ARTIST_PROFILE, "Open profile panel");
-			uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+			
 			if (isArtist) {
 				uAppendMenu(menu, MF_STRING, ID_VIEW_PAGE, sourcepage);
+				uAppendMenu(menu, MF_STRING, ID_ARTIST_PROFILE, "Open profile panel");
+				uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 				uAppendMenu(menu, MF_STRING, ID_CLP_COPY_ROW, copyrow);
 				if (isArtistOffline) {
+					uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 					uAppendMenu(menu, MF_STRING, ID_ARTIST_DEL_CACHE, "Clear artist cache");
 				}
 			}
 			else {
+				uAppendMenu(menu, MF_STRING, ID_VIEW_PAGE, sourcepage);
+				uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 				uAppendMenu(menu, MF_STRING, ID_CLP_COPY_TITLE, copytitle);
 				uAppendMenu(menu, MF_STRING, ID_CLP_COPY_ROW, copyrow);
 			}
-			int cmd = TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, coords_x, coords_y, 0, core_api::get_main_window(), 0);
+
+			int cmd = TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, screen_cursor_position.x, screen_cursor_position.y, 0, core_api::get_main_window(), 0);
 			DestroyMenu(menu);
 			switch (cmd)
 			{
@@ -377,7 +382,8 @@ private:
 						}
 				}
 				if (buffer != NULL) {
-					ClipboardHelper::OpenScope scope; scope.Open(core_api::get_main_window());
+					ClipboardHelper::OpenScope scope;
+					scope.Open(core_api::get_main_window());
 					ClipboardHelper::SetString(buffer);
 				}
 
@@ -389,6 +395,7 @@ private:
 				TCHAR outBuffer[MAX_PATH + 1] = {};
 
 				if (isArtist) {
+					LPNMITEMACTIVATE nmView = (LPNMITEMACTIVATE)hdr;
 					if (nmView->iItem != -1) {
 						LVITEM lvi;
 						TCHAR outBuffer[MAX_PATH + 1] = {};
@@ -403,7 +410,8 @@ private:
 					}
 				}
 				else {
-					if (hhit != NULL) {
+
+					if (hhit) {
 						TVITEM phit = { 0 };
 						phit.mask = TVIF_PARAM | TVIF_TEXT;
 						phit.pszText = outBuffer;
@@ -462,7 +470,6 @@ private:
 							name = m_find_release_artist_p->name;
 							profile = m_find_release_artist_p->profile;
 						}
-
 
 					g_discogs->find_release_artist_dialog->UpdateProfile(name, profile);
 

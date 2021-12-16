@@ -1,4 +1,5 @@
 #pragma once
+#include "version.h"
 
 #include "json_helpers.h"
 
@@ -13,9 +14,9 @@ public:
 		DB_ENABLED			= 1 << 0,
 		DB_WRITE			= 1 << 1,
 		DB_CREATE			= 1 << 2,
-		DB_3				= 1 << 3,
+		DB_SEARCH_ANV		= 1 << 3,
 		DB_SEARCH			= 1 << 4,
-		DB_SEARCH_INEXACT	= 1 << 5,
+		DB_SEARCH_LIKE		= 1 << 5,
 		DB_DWN_ARTWORK		= 1 << 6,
 		DB_ERROR			= 1 << 7
 	};
@@ -29,9 +30,29 @@ public:
 	constexpr bool WantArtwork() const {
 		return (value & (DB_DWN_ARTWORK));
 	}
+	constexpr bool Search() const {
+		return (value & (DB_SEARCH));
+	}
+	constexpr bool SearchLike() const {
+		return (value & (DB_SEARCH_LIKE));
+	}
+	constexpr bool SearchAnv() const {
+		return (value & (DB_SEARCH_ANV));
+	}
+	void SwitchFlag(int flag, bool enabled) {
+		if (enabled)
+			value |= flag;
+		else
+			value &= ~flag;
+	}
+	constexpr int GetFlag() {
+		return value;
+	}
 private:
 	int value;
 };
+
+#ifdef DB_DC
 
 class Discogs_DB_Interface {
 
@@ -47,7 +68,7 @@ public:
 
 	bool test_DB(pfc::string8 db_path, abort_callback& p_abort, threaded_process_status& p_status);
 
-	void search_artist(const pfc::string8 &artist_hint, const bool exact_match, pfc::array_t<Artist_ptr>& exact_matches, pfc::array_t<Artist_ptr>& other_matches, threaded_process_status& p_status, abort_callback& p_abort, db_fetcher* dbfetcher = nullptr);
+	void search_artist(const pfc::string8 &artist_hint, const int db_dc_flags, pfc::array_t<Artist_ptr>& exact_matches, pfc::array_t<Artist_ptr>& other_matches, threaded_process_status& p_status, abort_callback& p_abort, db_fetcher* dbfetcher = nullptr);
 	void get_artist_DB(pfc::string8& id, pfc::string8& html, abort_callback& p_abort, const char* msg, threaded_process_status& p_status, db_fetcher* dbfetcher);
 	Artist_ptr get_artist(const pfc::string8& artist_id, bool _load_releases, threaded_process_status& p_status, abort_callback& p_abort, bool bypass_cache, bool throw_all, db_fetcher* dbfetcher);
 	void get_release_db(pfc::string8& id, pfc::string8& html, pfc::string8 params, abort_callback& p_abort, const char* msg, threaded_process_status& p_status, db_fetcher* dbfetcher);
@@ -60,3 +81,4 @@ public:
 };
 
 extern Discogs_DB_Interface* discogs_db_interface;
+#endif //DB_DC

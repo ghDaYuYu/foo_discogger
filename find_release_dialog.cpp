@@ -126,6 +126,10 @@ inline bool CFindReleaseDialog::build_current_cfg() {
 }
 
 LRESULT CFindReleaseDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
+	
+	if (g_discogs->find_release_artist_dialog)
+		g_discogs->find_release_artist_dialog->DestroyWindow();
+
 	cfg_window_placement_find_release_dlg.on_window_destruction(m_hWnd);
 	pushcfg();
 	KillTimer(KTypeFilterTimerID);
@@ -137,12 +141,12 @@ LRESULT CFindReleaseDialog::OnOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*
 	release_id = trim(uGetWindowText(m_release_url_edit).c_str());
 
 	if (!is_number(release_id.get_ptr())) {
-	    if (pfc::string_has_prefix(artistname, "https://www.discogs.com/release/")) {
-	        release_id = extract_max_number(release_id);
-	    }
-	    else
-	        return TRUE;
-    }		
+		if (release_id.has_prefix("https://www.discogs.com/release/") ||
+			(release_id.has_prefix("[") && release_id.has_suffix("]")))
+			release_id = extract_max_number(release_id);
+		else
+			return TRUE;
+	}
 	
 	if (release_id.get_length()) 
 		on_write_tags(release_id);
@@ -272,10 +276,10 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	DlgResize_Init(mygripp.enabled, true);
 
 	if (conf.find_release_filter_flag & FilterFlag::Versions) {
-		uButton_SetCheck(m_hWnd, IDC_CHECK_FIND_RELEASE_FILTER_VERSIONS, true);
+		uButton_SetCheck(m_hWnd, IDC_CHK_FIND_RELEASE_FILTER_VERS, true);
 	}
 	if (conf.find_release_filter_flag & FilterFlag::RoleMain) {
-		uButton_SetCheck(m_hWnd, IDC_CHECK_FIND_RELEASE_FILTER_ROLEMAIN, true);
+		uButton_SetCheck(m_hWnd, IDC_CHK_FIND_RELEASE_FILTER_ROLEMAIN, true);
 	}
 
 	bool db_ready = DBFlags(conf.db_dc_flag).IsReady();
@@ -341,8 +345,6 @@ void CFindReleaseDialog::SetEnterKeyOverride(bool enter_ovr) {
 		cewb_release_url.SetEnterOverride(stdf_enteroverride_url);
 	}
 }
-
-//update_releases(m_results_filter, updRelSrc::Undef, false);
 
 void CFindReleaseDialog::fill_artist_list(bool force_exact, updRelSrc updsrc) {
 	HWND exactcheck = uGetDlgItem(IDC_ONLY_EXACT_MATCHES_CHECK);
@@ -424,7 +426,9 @@ void CFindReleaseDialog::on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist
 	pfc::string8 lastFilter;
 	uGetWindowText(m_filter_edit, lastFilter);
 	HWND wnd_profile = uGetDlgItem(IDC_PROFILE_EDIT);
-	uSetWindowText(wnd_profile, artist->profile);
+	uSetWindowText(wnd_profile, ltrim(artist->profile));
+	if (g_discogs->find_release_artist_dialog)
+		g_discogs->find_release_artist_dialog->UpdateProfile(artist->name, artist->profile);
 
 	if (updsrc == updRelSrc::Undef) {
 		pfc::array_t<Artist_ptr> good_matches;
@@ -774,7 +778,7 @@ void CFindReleaseDialog::init_tracker_i(pfc::string8 filter_master, pfc::string8
 std::pair<t_size, t_size> CFindReleaseDialog::init_filter_i(pfc::string8 filter_master, pfc::string8 filter_release,
 	bool ontitle, bool expanded, bool fast, bool countreserve) {
 
-	bool bsub_release_filter = conf.find_release_filter_flag & FilterFlag::Versions;
+	bool bversions_filter = conf.find_release_filter_flag & FilterFlag::Versions;
 	bool brolemain_filter = conf.find_release_filter_flag & FilterFlag::RoleMain;
 
 	std::pair<t_size, t_size> reserve = { 0 , 0 };
@@ -833,7 +837,7 @@ std::pair<t_size, t_size> CFindReleaseDialog::init_filter_i(pfc::string8 filter_
 						hook->set_release(&(find_release_artist->master_releases[master_ndx]->sub_releases[j]));
 						pfc::string8 sub_item = run_hook_columns(row_data, (master_ndx << 16) | j);
 						std::string str_role = std::string(r_p->search_role);
-						matches_release = (!brolemain_filter || (str_role.find("Main") != str_role.npos) || r_p->master_id.get_length()) && (!bsub_release_filter || check_match(sub_item, filter_master, lcf_words));
+						matches_release = (!brolemain_filter || (str_role.find("Main") != str_role.npos) || r_p->master_id.get_length()) && (!bversions_filter || check_match(sub_item, filter_master, lcf_words));
 					}
 				}
 				if (matches_release) {
@@ -1046,7 +1050,6 @@ void CFindReleaseDialog::update_releases(const pfc::string8& filter, updRelSrc u
 				}
 
 				if (init_expand && is_master) {
-					/*int prev_expanded;*/
 					int expanded = updsrc == updRelSrc::Filter ? 0 : 1;
 					bool bnew = !get_node_expanded(row_data.id, prev_expanded);
 				}
@@ -1107,9 +1110,9 @@ void CFindReleaseDialog::update_releases(const pfc::string8& filter, updRelSrc u
 								insert_cache_it->second.second.ver = m_cache_find_release_ptr->_ver;
 								int ival = 1;
 								m_cache_find_release_ptr->SetCacheFlag(insert_cache_it, NodeFlag::none, &ival);
-								std::pair<cache_iterator_t, HTREEITEM> vec_row(insert_cache_it, nullptr);
 								//VEC PUSH
-								m_vec_items_ptr->push_back(std::pair<cache_iterator_t, HTREEITEM>(insert_cache_it, (HTREEITEM)nullptr));
+								std::pair<cache_iterator_t, HTREEITEM> vec_row(insert_cache_it, nullptr);							
+								m_vec_items_ptr->push_back(vec_row);
 							
 							}
 
@@ -1180,7 +1183,7 @@ void CFindReleaseDialog::update_releases(const pfc::string8& filter, updRelSrc u
 
 void CFindReleaseDialog::expand_releases(const pfc::string8& filter, updRelSrc updsrc, t_size master_index, t_size master_list_pos) {
 	
-	bool bsub_release_filter = conf.find_release_filter_flag & FilterFlag::Versions;
+	bool bversions_filter = conf.find_release_filter_flag & FilterFlag::Versions;
 		
 	pfc::array_t<pfc::string> lcf_words;
 	bool filtered = tokenize_filter(filter, lcf_words);
@@ -1219,7 +1222,7 @@ void CFindReleaseDialog::expand_releases(const pfc::string8& filter, updRelSrc u
 							{row_data, { m_cache_find_release_ptr->_ver, 0 }/*walk_lparam*/});
 				}
 				
-				bool filter_match = !bsub_release_filter || filtered && check_match(sub_item, filter, lcf_words);
+				bool filter_match = !bversions_filter || filtered && check_match(sub_item, filter, lcf_words);
 
 				if (filter_match) {
 					cache_iterator_t walk_children =
@@ -1408,9 +1411,9 @@ LRESULT CFindReleaseDialog::ApplyFilter(pfc::string8 strFilter, bool force_redra
 						//INSERT NOT-MATCHING PARENT							
 						mounted_param mp_master(master_ndx, ~0, true, false);
 
-						bool bsub_release_filter = conf.find_release_filter_flag & FilterFlag::Versions;
+						bool bversions_filter = conf.find_release_filter_flag & FilterFlag::Versions;
 						bool brolemain_filter = conf.find_release_filter_flag & FilterFlag::RoleMain;
-						if (!bsub_release_filter) {
+						if (!bversions_filter) {
 							//parent match?
 							pfc::array_t<pfc::string> lcf_words;
 							bool filtered = tokenize_filter(strFilter, lcf_words);
@@ -1588,16 +1591,16 @@ LRESULT CFindReleaseDialog::OnCheckFindReleaseFilterFlags(WORD /*wNotifyCode*/, 
 	
 	bool force_refresh, force_rebuild;
 
-	if (wID == IDC_CHECK_FIND_RELEASE_FILTER_ROLEMAIN) {
-		bool checked = IsDlgButtonChecked(IDC_CHECK_FIND_RELEASE_FILTER_ROLEMAIN) != 0;
+	if (wID == IDC_CHK_FIND_RELEASE_FILTER_ROLEMAIN) {
+		bool checked = IsDlgButtonChecked(IDC_CHK_FIND_RELEASE_FILTER_ROLEMAIN) != 0;
 		if (checked)
 			conf.find_release_filter_flag |= FilterFlag::RoleMain;
 		else
 			conf.find_release_filter_flag &= ~FilterFlag::RoleMain;
 		force_refresh = force_rebuild = true;
 	}
-	else if (wID == IDC_CHECK_FIND_RELEASE_FILTER_VERSIONS) {
-		bool checked = IsDlgButtonChecked(IDC_CHECK_FIND_RELEASE_FILTER_VERSIONS) != 0;
+	else if (wID == IDC_CHK_FIND_RELEASE_FILTER_VERS) {
+		bool checked = IsDlgButtonChecked(IDC_CHK_FIND_RELEASE_FILTER_VERS) != 0;
 		if (checked)
 			conf.find_release_filter_flag |= FilterFlag::Versions;
 		else

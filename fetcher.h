@@ -141,6 +141,7 @@ public:
 		const pfc::string8& params,
 		pfc::string8& out,
 		abort_callback& p_abort,
+		bool throw_abort = true,
 		const pfc::string8& content_type = "application/xml,text/html");
 
 	// OAUTH STUFF

@@ -216,9 +216,10 @@ void list_replace_text(HWND list, int pos, const char *text) {
 
 pfc::string8 extract_max_number(const pfc::string8& s) {
 
+	std::regex regex_v("[\\d]+"); //\s+www.[a-z0-9]+.[a-z]{2,3}\b
+
 	size_t max = 0;
 	std::string str(s);
-	std::regex regex_v("[\\d]+");
 	std::sregex_iterator begin = std::sregex_iterator(str.begin(), str.end(), regex_v);
 	std::sregex_iterator end = std::sregex_iterator();
 
@@ -232,7 +233,8 @@ pfc::string8 extract_max_number(const pfc::string8& s) {
 
 pfc::string8 extract_musicbrainz_mib(const pfc::string8& s) {
 
-	std::regex regex_rmb("[0-9a-f]+\-[0-9a-f]+\-[0-9a-f]+\-[0-9a-f]+\-[0-9a-f]+");
+	std::regex regex_rmb("[0-9a-f]+\\-[0-9a-f]+\\-[0-9a-f]+\\-[0-9a-f]+\\-[0-9a-f]+");
+
 	std::smatch match;
 	std::string str(s);
 	if (std::regex_search(str, match, regex_rmb)) {

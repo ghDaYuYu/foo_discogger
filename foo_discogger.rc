@@ -93,11 +93,11 @@ IDD_DIALOG_CONF_CACHING DIALOGEX 0, 0, 319, 226
 STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_SYSMENU
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    GROUPBOX        "Discogs Parsing Options",IDC_STATIC,6,6,308,54
+    GROUPBOX        "Discogs parsing",IDC_STATIC,6,6,308,54
     CONTROL         "Parse hidden tracks as regular tracks",IDC_HIDDEN_AS_REGULAR_CHECK,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,18,133,10
     LTEXT           "Note: Changing parsing options will clear releases memory cache",IDC_STATIC,14,45,220,9
-    GROUPBOX        "Memory Caching Options",IDC_STATIC,6,65,308,88
+    GROUPBOX        "Memory cache",IDC_STATIC,6,65,308,88
     LTEXT           "Memory cache is cleared when closing foobar2000",IDC_STATIC,14,76,170,10
     EDITTEXT        IDC_CACHED_OBJECTS_EDIT,82,87,31,14,ES_CENTER | ES_AUTOHSCROLL
     LTEXT           "Max objects cached:",IDC_STATIC,14,89,66,9
@@ -110,7 +110,7 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,30,141,10
     CONTROL         "Read",IDC_CFG_CACHE_USE_OFFLINE_CACHE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,183,31,10
     CONTROL         "Write",IDC_CFG_CACHE_WRITE_OFFLINE_CACHE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,171,32,10
-    GROUPBOX        "Disk Caching Options",IDC_STATIC,6,158,308,52
+    GROUPBOX        "Disk cache",IDC_STATIC,6,158,308,52
     LTEXT           "Cache path: <profile>/foo_discogger-cache",IDC_STATIC,14,198,206,10
 END
 
@@ -129,27 +129,23 @@ BEGIN
     EDITTEXT        IDC_MASTER_FORMATTING_EDIT,14,105,292,42,ES_MULTILINE | WS_VSCROLL
     LTEXT           "Master sub-release formatting string:",IDC_STATIC,14,152,130,9
     EDITTEXT        IDC_MASTER_SUB_FORMATTING_EDIT,14,162,292,43,ES_MULTILINE | WS_VSCROLL
-    CONTROL         "Enter key runs input box associated command",IDC_RELEASE_ENTER_KEY_OVR,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,211,161,10
-    LTEXT           "Find Release Options",IDC_STATIC,10,6,67,8
+    LTEXT           "Find release options:",IDC_STATIC,10,6,66,8
     CONTROL         "Also skip loading releases",IDC_SKIP_LOAD_RELEASES_IF_IDED_CHECK,
                     "Button",BS_AUTOCHECKBOX | NOT WS_VISIBLE | WS_DISABLED | WS_TABSTOP,205,30,97,10
-    COMBOBOX        IDC_CMB_CONFIG_LIST_STYLE,233,210,73,30,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "List style:",IDC_STATIC,200,211,31,8
 END
 
 IDD_DIALOG_CONF_MATCHING DIALOGEX 0, 0, 319, 235
 STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_SYSMENU
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    GROUPBOX        "Track Matching Options",IDC_STATIC,6,6,308,135
-    CONTROL         "Skip dialog if tracks automatically matched successfully",IDC_SKIP_RELEASE_DIALOG_CHECK,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,18,189,10
+    GROUPBOX        "Track matching",IDC_STATIC,6,6,308,135
+    CONTROL         "Skip dialog if tracks auto-matched successfully",IDC_SKIP_RELEASE_DIALOG_CHECK,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,18,158,10
     LTEXT           "Discogs track formatting string:",IDC_STATIC,15,31,120,9
     EDITTEXT        IDC_DISCOGS_FORMATTING_EDIT,14,42,292,70,ES_MULTILINE | WS_VSCROLL
     LTEXT           "File formatting string:",IDC_STATIC,15,114,80,9
     EDITTEXT        IDC_FILE_FORMATTING_EDIT,14,124,292,12,ES_AUTOHSCROLL
-    GROUPBOX        "Automatic Matching Options",IDC_STATIC,6,145,308,79
+    GROUPBOX        "Automatic matching",IDC_STATIC,6,145,308,79
     LTEXT           "Files can be matched to the Discogs tracklist using several methods. If multiple methods return conflicting results, no method returns a successful result, or no methods are enabled, tracks will not be automatically matched.",IDC_STATIC,14,156,292,27
     CONTROL         "Match using track length durations",IDC_MATCH_USING_DURATIONS,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,186,125,10
@@ -158,6 +154,8 @@ BEGIN
     CONTROL         "Assume tracks are in sorted order",IDC_MATCH_ASSUME_SORTED,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,210,121,10
     LTEXT           "",IDC_STATIC,164,173,8,8
+    CONTROL         "Skip MusicBrainz id matching",IDC_SKIP_BRAINZ_MIBS_FETCH,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,199,18,105,10
 END
 
 IDD_DIALOG_CONF_OAUTH DIALOGEX 0, 0, 319, 204
@@ -192,14 +190,14 @@ IDD_DIALOG_CONF_TAGGING DIALOGEX 0, 0, 319, 204
 STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_SYSMENU
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    GROUPBOX        "Writing Tags Options",IDC_STATIC,6,6,308,72
+    GROUPBOX        "Writing tags",IDC_STATIC,6,6,308,72
     CONTROL         "Skip preview tags dialog by default",IDC_SKIP_PREVIEW_DIALOG,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,18,125,10
     CONTROL         "Remove any pre-existing tags",IDC_REMOVE_OTHER_TAGS,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,30,109,10
     LTEXT           "Excluding (comma separated):",IDC_STATIC,28,46,115,9
     EDITTEXT        IDC_REMOVE_EXCLUDING_TAGS,28,57,278,14,ES_AUTOHSCROLL
-    GROUPBOX        "Artist Names",IDC_STATIC,6,82,308,52
+    GROUPBOX        "Artist names",IDC_STATIC,6,82,308,52
     CONTROL         "Replace ANVs (artist name variations)",IDC_ENABLE_ANV_CHECK,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,94,135,10
     CONTROL         "Move ""The"" to the beginning",IDC_MOVE_THE_AT_BEGINNING_CHECK,
@@ -214,7 +212,7 @@ IDD_DIALOG_CONF_DATABASE DIALOGEX 0, 0, 319, 204
 STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_SYSMENU
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    GROUPBOX        "Local Database Options",IDC_STATIC_DB_GROUP,6,6,308,93
+    GROUPBOX        "Local database",IDC_STATIC_DB_GROUP,6,6,308,93
     EDITTEXT        IDC_DB_DC_PATH,14,68,276,14,ES_AUTOHSCROLL
     PUSHBUTTON      "...",IDC_CFG_DB_DC_OPEN_PATH,293,68,14,14
     CONTROL         "Enabled",IDC_CFG_DB_DC_FLAG_SEARCH,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,18,41,10
@@ -278,7 +276,7 @@ EXSTYLE WS_EX_WINDOWEDGE
 CAPTION "Match Tracks & Artwork"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    GROUPBOX        "Match Tracks",IDC_TRACKLIST_GROUP,3,3,427,175,0,WS_EX_TRANSPARENT
+    GROUPBOX        "Match tracks",IDC_TRACKLIST_GROUP,3,3,427,175,0,WS_EX_TRANSPARENT
     LTEXT           " Discogs:",IDC_STATIC,6,14,106,9,NOT WS_VISIBLE | WS_DISABLED
     LTEXT           " Local:",IDC_STATIC_FILE_LST_TITLE,219,14,105,9,NOT WS_VISIBLE | WS_DISABLED
     CONTROL         "Manage Artwork",IDC_TRACK_MATCH_ALBUM_ART,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,361,12,66,10
@@ -308,8 +306,8 @@ BEGIN
     CONTROL         "",IDC_ALBUM_ART,"Static",SS_BITMAP | SS_CENTERIMAGE,343,5,85,85
     GROUPBOX        "Options",IDC_OPTIONS_GROUP,338,93,95,50,0,WS_EX_TRANSPARENT
     CONTROL         "Replace ANVs",IDC_REPLACE_ANV_CHECK,"Button",BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,344,105,83,10
-    CONTROL         "Skip Artwork",IDC_CHECK_PREV_DLG_SKIP_ARTWORK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,344,117,83,10
-    CONTROL         "Show Stats",IDC_CHECK_PREV_DLG_SHOW_STATS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,344,129,83,10
+    CONTROL         "Skip artwork",IDC_CHECK_PREV_DLG_SKIP_ARTWORK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,344,117,83,10
+    CONTROL         "Show stats",IDC_CHECK_PREV_DLG_SHOW_STATS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,344,129,83,10
     GROUPBOX        "View",IDC_VIEW_GROUP,338,146,95,68,0,WS_EX_TRANSPARENT
     CONTROL         "Results",IDC_VIEW_NORMAL,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,344,156,83,11
     CONTROL         "Difference",IDC_VIEW_DIFFERENCE,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,344,170,83,11

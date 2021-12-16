@@ -15,6 +15,11 @@ static cfg_window_placement cfg_window_placement_preview_dlg(guid_cfg_window_pla
 
 using namespace Gdiplus;
 
+#define PREVIEW_NORMAL		1
+#define PREVIEW_DIFFERENCE	2
+#define PREVIEW_ORIGINAL	3
+#define PREVIEW_DEBUG		4
+
 struct cfg_prev_col {
 	int ndx = 0;
 	int id = 0;
@@ -38,15 +43,15 @@ const int COL_STAT_POS = 2;
 
 cfg_prev_col column_configs[TOTAL_DEF_COLS] = {
 	//#, ndx, icol, name, tf, width, celltype, factory, default, enabled, defuser
-	{1, 1, 0,"Tag Name", "", 20.0f, 0x0000, 0, true, true, false, false},
-	{2, 2, 1,"Value(s)", "", 40.0f, 0x0000, 0, true, true, false, false},
-	{3, 3, 2,"Write", "", 40.0f, 0x0000, 0, true, false, false, false},
-	{4, 4, 3,"Update", "", 40.0f, 0x0000, 0, true, false, false, false},
-	{5, 5, 4,"Skip W/U", "", 40.0f, 0x0000, 0, true,false, false, false},
-	{6, 6, 5,"Equal", "", 40.0f, 0x0000, 0, true, false, false, false},
-	{7, 7, 6,"---x", "", 20.0f, 0x0000, 0, false, false, false, false},
-	{8, 8, 7,"---y", "", 50.0f, 0x0000, 0, false, false, false, false},
-	{100, 10, 0,"---z", "", 200.0f, 0x0000, 0, false, false, false, false},
+	{1, 1, 0,"Tag Name", "",	20.0f, 0x0000, 0, true, true, false, false},
+	{2, 2, 1,"Value(s)", "",	40.0f, 0x0000, 0, true, true, false, false},
+	{3, 3, 2,"Write", "",		40.0f, 0x0000, 0, true, false, false, false},
+	{4, 4, 3,"Update", "",		40.0f, 0x0000, 0, true, false, false, false},
+	{5, 5, 4,"Skip W/U", "",	40.0f, 0x0000, 0, true,false, false, false},
+	{6, 6, 5,"Equal", "",		40.0f, 0x0000, 0, true, false, false, false},
+	{7, 7, 6,"---x", "",		20.0f, 0x0000, 0, false, false, false, false},
+	{8, 8, 7,"---y", "",		50.0f, 0x0000, 0, false, false, false, false},
+	{100, 10, 0,"---z", "",		200.0f, 0x0000, 0, false, false, false, false},
 };
 
 struct preview_lv_def {
@@ -257,7 +262,8 @@ LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	bool managed_artwork = !(CONFARTWORK == uartwork(CONF));
 	LPARAM lpskip = conf.album_art_skip_default_cust;
 
-	bool skip_artwork = ((LOWORD(lpskip) & 8) == 8 || (HIWORD(lpskip) & 8) == 8);
+	bool skip_artwork = ((LOWORD(lpskip) & ART_CUST_SKIP_DEF_FLAG) == ART_CUST_SKIP_DEF_FLAG
+		|| (HIWORD(lpskip) & ART_CUST_SKIP_DEF_FLAG) == ART_CUST_SKIP_DEF_FLAG);
 	uButton_SetCheck(m_hWnd, IDC_CHECK_PREV_DLG_SKIP_ARTWORK, managed_artwork || skip_artwork);
 
 	bool write_button_enabled = check_write_tags_status();
@@ -530,33 +536,6 @@ void CPreviewTagsDialog::insert_tag_result(int pos, const tag_result_ptr &result
 
 }
 
-void CPreviewTagsDialog::refresh_item(int pos) {
-	int mode = get_preview_mode();
-	const tag_result_ptr &result = tag_writer->tag_results[pos];
-	listview_helper::set_item_text(tag_results_list, pos, 0, result->tag_entry->tag_name);
-	if (mode == PREVIEW_NORMAL) {
-		pfc::array_t<string_encoded_array> value = GetPreviewValue(result);
-		listview_helper::set_item_text(tag_results_list, pos, 1, print_normal(value));
-	}
-	else if (mode == PREVIEW_DIFFERENCE) {
-		listview_helper::set_item_text(tag_results_list, pos, 1, print_difference(result->value, result->old_value));
-	}
-	else if (mode == PREVIEW_ORIGINAL) {
-		listview_helper::set_item_text(tag_results_list, pos, 1, print_normal(result->old_value));
-	}
-	else {
-		listview_helper::set_item_text(tag_results_list, pos, 1, print_stenar(result->value));
-	}
-
-	if (cfg_preview_dialog_show_stats) {
-		listview_helper::set_item_text(tag_results_list, pos, 2, "1");
-		listview_helper::set_item_text(tag_results_list, pos, 3, "2");
-		listview_helper::set_item_text(tag_results_list, pos, 4, "3");
-		listview_helper::set_item_text(tag_results_list, pos, 5, "4");
-	
-	}
-}
-
 void CPreviewTagsDialog::tag_mappings_updated() {
 	generating_tags = true;
 	service_ptr_t<generate_tags_task> task = new service_impl_t<generate_tags_task>(this, m_tag_writer, use_update_tags);
@@ -582,15 +561,6 @@ LRESULT CPreviewTagsDialog::OnCheckReplaceANVs(WORD /*wNotifyCode*/, WORD wID, H
 	return FALSE;
 }
 
-LRESULT CPreviewTagsDialog::OnCheckTrackMap(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	cfg_preview_dialog_track_map = IsDlgButtonChecked(IDC_CHECK_PREV_DLG_DIFF_TRACKS);
-	if (ListView_GetItemCount(tag_results_list) > 0) {
-		ListView_RedrawItems(tag_results_list, 0, ListView_GetItemCount(tag_results_list));
-		//TODO: tmp (1/2) fix empty v23 stats when Track map is on
-		compute_stats(tag_writer->tag_results);
-	}
-	return FALSE;
-}
 LRESULT CPreviewTagsDialog::OnCheckSkipArtwork(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	
 	bool state = IsDlgButtonChecked(IDC_CHECK_PREV_DLG_SKIP_ARTWORK);
@@ -598,8 +568,8 @@ LRESULT CPreviewTagsDialog::OnCheckSkipArtwork(WORD /*wNotifyCode*/, WORD wID, H
 	int lo = LOWORD(param);
 	int hi = HIWORD(param);
 
-	if (state) lo |= 8;
-	else lo &= ~8;
+	if (state) lo |= ART_CUST_SKIP_DEF_FLAG;
+	else lo &= ~ART_CUST_SKIP_DEF_FLAG;
 	
 	conf.album_art_skip_default_cust = MAKELPARAM(lo, hi);
 
@@ -618,13 +588,13 @@ LRESULT CPreviewTagsDialog::OnCheckAttachMappingPanel(WORD /*wNotifyCode*/, WORD
 
 LRESULT CPreviewTagsDialog::OnEditTagMappings(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	if (!g_discogs->tag_mappings_dialog) {
-		g_discogs->tag_mappings_dialog = fb2k::newDialog<CTagMappingDialog>(core_api::get_main_window(), IDAPPLY);
+		g_discogs->tag_mappings_dialog = fb2k::newDialog<CTagMappingDialog>(core_api::get_main_window(), IDC_APPLY);
 	}
 	else
 	{
 		if (wID == IDC_EDIT_TAG_MAPPINGS_BUTTON) {
 			::SetFocus(g_discogs->tag_mappings_dialog->m_hWnd);
-			::uPostMessage(g_discogs->tag_mappings_dialog->m_hWnd, WM_NEXTDLGCTL, (WPARAM)(HWND)GetDlgItem(IDAPPLY), TRUE);		
+			::uPostMessage(g_discogs->tag_mappings_dialog->m_hWnd, WM_NEXTDLGCTL, (WPARAM)(HWND)GetDlgItem(IDC_APPLY), TRUE);		
 		}
 	}
 	return FALSE;
@@ -717,11 +687,8 @@ void CPreviewTagsDialog::finished_tag_writers() {
 }
 
 void CPreviewTagsDialog::pushcfg() {
-	bool conf_changed = build_current_cfg();
-	//TODO: will always change
-	//v.2.23 missing preview col width persistence
-	if (conf_changed) {
-		CONF.save(new_conf::ConfFilter::CONF_FILTER_PREVIEW, conf);
+	if (build_current_cfg()) {
+		CONF.save(CConf::cfgFilter::PREVIEW, conf);
 		CONF.load();
 	}
 }
@@ -853,7 +820,6 @@ void CPreviewTagsDialog::compute_stats_track_map(tag_results_list_type tag_resul
 		for (size_t walk_tk = 0; walk_tk < tk_count; walk_tk++) {
 
 			const bool r_approved = res->r_approved[walk_tk];
-
 			string_encoded_array* oldvalue;
 			string_encoded_array* value;
 
@@ -930,7 +896,6 @@ void CPreviewTagsDialog::compute_stats_track_map(tag_results_list_type tag_resul
 
 		v_stats.emplace_back(stats);
 
-
 	} // tag loop
 }
 
@@ -943,19 +908,19 @@ LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam, BOOL& bHand
 	LPNMLVCUSTOMDRAW lplvcd = (LPNMLVCUSTOMDRAW)lParam;
 	int pos = (int)lplvcd->nmcd.dwItemSpec;
 	int sub_item;
-	bool bresults = tag_writer->tag_results.size() > 0;
+	bool bresults = m_tag_writer->tag_results.size() > 0;
 	const tag_mapping_entry* entry = bresults ?
-		tag_writer->tag_results[pos]->tag_entry: nullptr;
-	
+		m_tag_writer->tag_results[pos]->tag_entry: nullptr;
+
 	switch (lplvcd->nmcd.dwDrawStage) {
 
 	case CDDS_PREPAINT: {
 		//TODO: create EnableEx(true | false | noresult)
 		auto ctrl = uGetDlgItem(IDC_WRITE_TAGS_BUTTON);
-		ctrl.EnableWindow(write_tag_button_enabled());
+		ctrl.EnableWindow(check_write_tags_status());
 		//ctrl.EnableWindow(tag_writer->will_modify);
 		ctrl = uGetDlgItem(IDC_REPLACE_ANV_CHECK);
-		ctrl.EnableWindow(bresults && tag_writer->release->has_anv());
+		ctrl.EnableWindow(bresults && m_tag_writer->release->has_anv());
 		ctrl = uGetDlgItem(IDC_CHECK_PREV_DLG_DIFF_TRACKS);
 		ctrl.EnableWindow(cfg_preview_dialog_track_map);
 		ctrl = uGetDlgItem(IDC_VIEW_NORMAL);
@@ -976,12 +941,10 @@ LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam, BOOL& bHand
 	case CDDS_SUBITEM | CDDS_ITEMPREPAINT: {
 		sub_item = lplvcd->iSubItem;
 		if (entry && (sub_item == 0 || sub_item == 1)) {
-			bool bresview = get_preview_mode() == PREVIEW_NORMAL; /*BST_CHECKED == uButton_GetCheck(m_hWnd, IDC_VIEW_NORMAL);*/
-			// todo: revise skipped changes color highlight
-			bool bchgdiscarded = false && !tag_writer->tag_results[pos]->result_approved &&
-				tag_writer->tag_results[pos]->changed;
+			bool bresview = get_preview_mode() == PREVIEW_NORMAL;
+			bool bchgdiscarded = false && !m_tag_writer->tag_results[pos]->result_approved &&
+				m_tag_writer->tag_results[pos]->changed;
 
-			//if (sub_item == 0) compute_item(bresults, bchgdiscarded, tag_writer->tag_results[pos], entry);
 			if (entry->freeze_tag_name) {
 				if (bchgdiscarded && bresview)
 					lplvcd->clrText = CHANGE_NOT_APPROVED_RGB;
@@ -1012,7 +975,7 @@ LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam, BOOL& bHand
 
 
 void CPreviewTagsDialog::enable(bool is_enabled, bool change_focus) {
-	::uEnableWindow(GetDlgItem(IDC_WRITE_TAGS_BUTTON), !is_enabled ? FALSE : tag_writer->will_modify/*is_enabled*/);
+	::uEnableWindow(GetDlgItem(IDC_WRITE_TAGS_BUTTON), !is_enabled ? FALSE : m_tag_writer->will_modify/*is_enabled*/);
 	::uEnableWindow(GetDlgItem(IDCANCEL), is_enabled);
 	::uEnableWindow(GetDlgItem(IDC_BACK_BUTTON), is_enabled);
 	::uEnableWindow(GetDlgItem(IDC_EDIT_TAG_MAPPINGS_BUTTON), is_enabled);
@@ -1051,7 +1014,7 @@ void CPreviewTagsDialog::reset_default_columns(HWND wndlist, bool breset) {
 
 	cfg_prev_ColMap::iterator it;
 
-	float removed_stats_width = 0.0;
+	size_t removed_stats_width = 0;
 	for (int i = 0; i < COL_STAT_COLS; i++) {
 		removed_stats_width += ListView_GetColumnWidth(wndlist, COL_STAT_POS);
 		ListView_DeleteColumn(wndlist, COL_STAT_POS);
@@ -1064,7 +1027,7 @@ void CPreviewTagsDialog::reset_default_columns(HWND wndlist, bool breset) {
 		cfg_prev_col walk_cfg = cfg_lv.colmap.at(vec_icol_subitems[i].first);
 		if (breset) {
 			if (ListView_GetColumnCount(wndlist) < COL_STAT_POS) {
-				if (walk_cfg.icol < COL_STAT_POS && walk_cfg.enabled) {				
+				if (walk_cfg.icol < COL_STAT_POS && walk_cfg.enabled) {
 					int icol = listview_helper::fr_insert_column(wndlist, walk_cfg.icol,
 						walk_cfg.name, (unsigned int)walk_cfg.width, LVCFMT_LEFT);
 					cfg_lv.colmap.at(vec_icol_subitems[i].first).enabled = true;
@@ -1072,9 +1035,9 @@ void CPreviewTagsDialog::reset_default_columns(HWND wndlist, bool breset) {
 			}
 			//add removed stat cols width to the last column
 			if (walk_cfg.icol == COL_STAT_POS - 1) {
-				float width = ListView_GetColumnWidth(wndlist, walk_cfg.icol);
+				size_t width = ListView_GetColumnWidth(wndlist, walk_cfg.icol);
 				width += removed_stats_width;
-				ListView_SetColumnWidth(wndlist, COL_STAT_POS - 1, (unsigned int)width);
+				ListView_SetColumnWidth(wndlist, COL_STAT_POS - 1, width);
 			}
 		}
 		else {
@@ -1117,7 +1080,6 @@ void CPreviewTagsDialog::update_sorted_icol_map(bool reset) {
 	}
 
 	std::sort(vec_icol_subitems.begin(), vec_icol_subitems.end(), sortByVal);
-
 }
 
 LRESULT CPreviewTagsDialog::OnCheckPreviewShowStats(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {

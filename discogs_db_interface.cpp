@@ -1,12 +1,15 @@
 #include "stdafx.h"
+#include "version.h"
 
-#include "discogs_db_interface.h"
+#ifdef DB_DC
+
 #include "db_fetcher.h"
 #include "db_utils.h"
 #include "db_fetcher_component.h"
 
 //access to memory cache
 #include "discogs_interface.h"
+#include "discogs_db_interface.h"
 
 using namespace Discogs;
 
@@ -16,7 +19,7 @@ bool Discogs_DB_Interface::test_DB(pfc::string8 db_path, abort_callback& p_abort
 }
 
 //note: dbfetcher interrupts can be triggered on cancel
-void Discogs_DB_Interface::search_artist(const pfc::string8& artist_hint, const bool exact_match, pfc::array_t<Artist_ptr>& exact_matches, pfc::array_t<Artist_ptr>& other_matches, threaded_process_status& p_status, abort_callback& p_abort, db_fetcher* dbfetcher) {
+void Discogs_DB_Interface::search_artist(const pfc::string8& artist_hint, const int db_dc_flags, pfc::array_t<Artist_ptr>& exact_matches, pfc::array_t<Artist_ptr>& other_matches, threaded_process_status& p_status, abort_callback& p_abort, db_fetcher* dbfetcher) {
 	
 	pfc::string8 json;
 
@@ -28,8 +31,7 @@ void Discogs_DB_Interface::search_artist(const pfc::string8& artist_hint, const 
 	pfc::array_t<Artist_ptr> matches;
 
 	if (dbfetcher != nullptr) {
-		// json db response replacement to api GET "https://api.discogs.com/database/search...
-		dbfetcher->fetch_search_artist(artist_hint, exact_match, json, p_status, p_abort);
+		dbfetcher->fetch_search_artist(artist_hint, db_dc_flags, json, p_status, p_abort);
 	}
 
 	if (json.get_length()) {
@@ -143,3 +145,5 @@ void Discogs_DB_Interface::get_release_db(pfc::string8& id, pfc::string8& html, 
 		dbfetcher->get_release(id, html, params, p_abort, msg, p_status);
 	}
 }
+
+#endif //define DB_DC

@@ -12,9 +12,9 @@ const struct mounted_param {
 	bool brelease;
 
 	mounted_param(size_t master_ndx, size_t release_ndx, bool bmaster, bool brelease)
-		: master_ndx(master_ndx), release_ndx(release_ndx), bmaster(bmaster), brelease(brelease) {};
+		: master_ndx(master_ndx), release_ndx(release_ndx), bmaster(bmaster), brelease(brelease) {}
 	mounted_param()
-		: master_ndx(~0), release_ndx(~0), bmaster(false), brelease(false) {};
+		: master_ndx(~0), release_ndx(~0), bmaster(false), brelease(false) {}
 
 	bool mounted_param::is_master() {
 		return bmaster && !brelease;
@@ -115,6 +115,10 @@ struct id_tracer {
 
 	void id_tracer::artist_reset() {
 		artist_index = pfc_infinite;
+	}
+
+	void id_tracer::master_reset() {
+		master_index = pfc_infinite;
 	}
 
 	void id_tracer::release_reset() {

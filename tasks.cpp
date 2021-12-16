@@ -42,13 +42,16 @@ void foo_discogs_threaded_process_callback::on_done(HWND p_wnd, bool p_was_abort
 }
 
 generate_tags_task::generate_tags_task(CPreviewTagsDialog *preview_dialog, TagWriter_ptr tag_writer, bool use_update_tags) :
-		tag_writer(tag_writer), preview_dialog(preview_dialog), show_preview_dialog(NULL), use_update_tags(use_update_tags) {
+		tag_writer(tag_writer), preview_dialog(preview_dialog), show_preview_dialog(NULL), alt_mappings(nullptr), use_update_tags(use_update_tags) {
 	preview_dialog->enable(false, true);
 }
 
 generate_tags_task::generate_tags_task(CTrackMatchingDialog *track_matching_dialog, TagWriter_ptr tag_writer, bool show_preview_dialog, bool use_update_tags) :
-		tag_writer(tag_writer), track_matching_dialog(track_matching_dialog), show_preview_dialog(show_preview_dialog), use_update_tags(use_update_tags) {
+		tag_writer(tag_writer), track_matching_dialog(track_matching_dialog), show_preview_dialog(show_preview_dialog), alt_mappings(nullptr), use_update_tags(use_update_tags) {
 	track_matching_dialog->enable(false);
+}
+generate_tags_task::generate_tags_task(CTagCreditDialog* credits_dialog, TagWriter_ptr tag_writer, tag_mapping_list_type* alt_mappings) :
+		tag_writer(tag_writer), alt_mappings(alt_mappings), credits_dialog(credits_dialog), show_preview_dialog(false), use_update_tags(false) {
 }
 
 void generate_tags_task::start() {
@@ -64,7 +67,7 @@ void generate_tags_task::start() {
 }
 
 void generate_tags_task::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
-	tag_writer->generate_tags(use_update_tags, p_status, p_abort);
+	tag_writer->generate_tags(use_update_tags, alt_mappings, p_status, p_abort);
 }
 
 void generate_tags_task::on_success(HWND p_wnd) {
@@ -73,11 +76,15 @@ void generate_tags_task::on_success(HWND p_wnd) {
 			preview_dialog->cb_generate_tags();
 		}
 	}
+	else if (credits_dialog) {
+		if (IsWindow(credits_dialog->m_hWnd)) {
+			credits_dialog->cb_generate_tags();
+		}
+	}
 	else if (show_preview_dialog) {
 		track_matching_dialog->enable(true);
 		fb2k::newDialog <CPreviewTagsDialog>(core_api::get_main_window(), tag_writer, use_update_tags);
 		track_matching_dialog->hide();
-		fb2k::newDialog <CPreviewTagsDialog>(core_api::get_main_window(), tag_writer, use_update_tags);
 	}
 	else {
 		CTrackMatchingDialog* dlg = reinterpret_cast<CTrackMatchingDialog*>(g_discogs->track_matching_dialog);
@@ -130,7 +137,7 @@ void generate_tags_task_multi::safe_run(threaded_process_status &p_status, abort
 			p_status.set_progress(i + 1, count);
 
 			try {
-				tag_writers[i]->generate_tags(use_update_tags, p_status, p_abort);
+				tag_writers[i]->generate_tags(use_update_tags, nullptr, p_status, p_abort);
 			}
 			catch (foo_discogs_exception &e) {
 				pfc::string8 error("release ");
@@ -179,7 +186,7 @@ void write_tags_task::safe_run(threaded_process_status &p_status, abort_callback
 }
 
 void write_tags_task::on_success(HWND p_wnd) {
-	// TODO: combine??
+
 	tag_writer->finfo_manager->write_infos();
 
 	bool bskip_art = ((LOWORD(CONF.album_art_skip_default_cust) & ART_CUST_SKIP_DEF_FLAG) == ART_CUST_SKIP_DEF_FLAG)
@@ -283,7 +290,8 @@ void update_art_task::safe_run(threaded_process_status &p_status, abort_callback
 					ada.to_path_only = false;
 
 					if (save_album_art) {
-                            discogs->save_album_art(release, item,
+						pfc::array_t<GUID> this_item_guid; this_item_guid.add_item(CONFARTGUIDS[i]);
+						g_discogs->save_album_art(release, item,
 							ada, pfc::array_t<GUID>(), bit_array_bittable(album_art_ids::num_types()),
 							done_release_files, p_status, p_abort);
 					}
@@ -801,12 +809,20 @@ void update_tags_task::finish() {
 
 
 void get_artist_process_callback::start(HWND parent) {
+	pfc::string8 msg;
+	msg << "Loading artist id " << m_artist_id;
+
+	if ((CONF.db_dc_flag & (DBFlags::DB_SEARCH)) && get_dbfetcher())
+		msg << " releases from local database...";
+	else
+		msg << " online releases...";
+
 	threaded_process::g_run_modeless(this,
 		threaded_process::flag_show_item |
 		threaded_process::flag_show_abort |
 		threaded_process::flag_show_delayed,
 		parent,
-		"Loading artist releases..."
+		msg
 	);
 }
 
@@ -826,8 +842,8 @@ void get_artist_process_callback::on_success(HWND p_wnd) {
 void search_artist_process_callback::start(HWND parent) {
 	threaded_process::g_run_modeless(this,
 		threaded_process::flag_show_item |
-		threaded_process::flag_show_abort |
-		threaded_process::flag_show_delayed,
+		threaded_process::flag_show_abort /*|
+		threaded_process::flag_show_delayed*/,
 		parent,
 		"Searching artist..."
 	);
@@ -880,8 +896,11 @@ void expand_master_release_process_callback::on_error(HWND p_wnd) {
 
 
 
-process_release_callback::process_release_callback(CFindReleaseDialog *dialog, const pfc::string8 &release_id, const metadb_handle_list &items) :
-		items(items), m_dialog(dialog), m_release_id(release_id) {
+process_release_callback::process_release_callback(CFindReleaseDialog *dialog, const pfc::string8 &release_id,
+	const pfc::string8& offline_artist_id, pfc::string8 inno, const metadb_handle_list &items) :
+		m_dialog(dialog), m_release_id(release_id),
+		m_offline_artist_id(offline_artist_id), m_inno(inno), items(items)
+{
 	m_dialog->enable(false);
 	finfo_manager = std::make_shared<file_info_manager>(items);
 	finfo_manager->read_infos();
@@ -944,10 +963,12 @@ void process_release_callback::on_success(HWND p_wnd) {
 
 void process_release_callback::on_abort(HWND p_wnd) {
 	m_dialog->enable(true);
+	m_dialog->show();
 }
 
 void process_release_callback::on_error(HWND p_wnd) {
 	m_dialog->enable(true);
+	m_dialog->show();
 }
 
 process_artwork_preview_callback::process_artwork_preview_callback(CTrackMatchingDialog* dialog, const Release_ptr& release, const size_t img_ndx, const bool bartist, bool onlycache) :
@@ -958,6 +979,7 @@ process_artwork_preview_callback::process_artwork_preview_callback(CTrackMatchin
 void process_artwork_preview_callback::start(HWND parent) {
 	threaded_process::g_run_modeless(this,
 		threaded_process::flag_show_item |
+		threaded_process::flag_show_delayed |
 		threaded_process::flag_show_abort,
 		parent,
 		"Processing track matching artwork preview..."
@@ -968,72 +990,95 @@ void process_artwork_preview_callback::safe_run(threaded_process_status& p_statu
 	p_status.set_item("Fetching artwork preview information...");
 	
 	if (m_release) {
-		if (m_img_ndx == 0 && !m_bartist) {
-			pfc::string8 req_mib_url = "https://beta.musicbrainz.org/ws/2/url?inc=release-rels&fmt=json&resource=https://www.discogs.com/release/";
-			req_mib_url << m_release->id;
-			pfc::string8 html;
-			discogs_interface->fetcher->fetch_html_simple_log(req_mib_url, "", html, p_abort);
-			if (html.get_length()) {
-				JSONParser jp(html);
+		if (!(CONF.skip_mng_flag & SkipMng::SKIP_BRAINZ_ID_FETCH) && (m_img_ndx == 0 && !m_bartist)) {
+			do {
 				try {
-					if (json_is_object(jp.root)) {
-						json_t* s = json_object_get(jp.root, "relations");
-						json_t* ar_s = json_array_get(s, 0);
-						json_t* t = json_object_get(ar_s, "release");
-						m_musicbrainz_mibs.release = JSONAttributeString(t, "id");
+					p_status.set_item("Fetching MusicBrainz ids...");
+					pfc::string8 html;
+					pfc::string8 mib_request_url;
+					//RELEASE MIB
+					mib_request_url = "https://www.musicbrainz.org/ws/2/url?inc=release-rels&fmt=json&resource=https://www.discogs.com/release/";
+					mib_request_url << m_release->id;
+					discogs_interface->fetcher->fetch_html_simple_log(mib_request_url, "", html, p_abort);
+					
+					try {
+						JSONParser jp(html);
+						if (json_is_object(jp.root)) {
+							json_t* s = json_object_get(jp.root, "relations");
+							json_t* ar_s = json_array_get(s, 0);
+							json_t* t = json_object_get(ar_s, "release");
+							m_musicbrainz_mibs.release = JSONAttributeString(t, "id");
+						}
+					}
+					catch (...) {
+						log_msg("Error parsing release MBid");
+					}
+
+					if (m_release->master_id.get_length()) {
+						//RELEASE-GROUP MIB
+						mib_request_url = "https://www.musicbrainz.org/ws/2/url?inc=release-group-rels&fmt=json&resource=https://www.discogs.com/master/";
+						mib_request_url << m_release->master_id;
+						discogs_interface->fetcher->fetch_html_simple_log(mib_request_url, "", html, p_abort);
+
+						try {
+							JSONParser jp(html);
+							if (json_is_object(jp.root)) {
+								json_t* s = json_object_get(jp.root, "relations");
+								json_t* ar_s = json_array_get(s, 0);
+								json_t* t = json_object_get(ar_s, "release_group");
+								m_musicbrainz_mibs.release_group = JSONAttributeString(t, "id");
+							}
+						}
+						catch (...) {
+							log_msg("Error parsing release_group MBid");
+						}
+					}
+					if (m_release->artists[0]->full_artist->id.get_length()) {
+						//ARTIST MIB
+						mib_request_url = "https://www.musicbrainz.org/ws/2/url?inc=artist-rels&fmt=json&resource=https://www.discogs.com/artist/";
+						mib_request_url << m_release->artists[0]->full_artist->id;
+						discogs_interface->fetcher->fetch_html_simple_log(mib_request_url, "", html, p_abort);
+						
+						try {
+							JSONParser jp(html);
+							if (json_is_object(jp.root)) {
+								json_t* s = json_object_get(jp.root, "relations");
+								json_t* ar_s = json_array_get(s, 0);
+								json_t* t = json_object_get(ar_s, "artist");
+								m_musicbrainz_mibs.artist = JSONAttributeString(t, "id");
+							}
+						}
+						catch (...) {
+							log_msg("Error parsing artist MBid");
+						}
+					}
+
+					if (m_musicbrainz_mibs.release.get_length()) {
+						//CHECK COVERART
+						mib_request_url = "https://musicbrainz.org/release/";
+						mib_request_url << m_musicbrainz_mibs.release << "/cover-art";
+						discogs_interface->fetcher->fetch_html_simple_log(mib_request_url, "", html, p_abort);
+						m_musicbrainz_mibs.hascoverart = html.get_length() && html.find_first("Cover Art (0)", 0) == pfc_infinite;
 					}
 				}
-				catch (...) {
+				catch (network_exception) {					
+					break;
 				}
-			}
-
-			if (m_release->master_id.get_length()) {			
-				req_mib_url = "https://beta.musicbrainz.org/ws/2/url?inc=release-group-rels&fmt=json&resource=https://www.discogs.com/master/";
-				req_mib_url << m_release->master_id;
-				discogs_interface->fetcher->fetch_html_simple_log(req_mib_url, "", html, p_abort);
-
-				JSONParser jp(html);
-				try {
-					if (json_is_object(jp.root)) {
-						json_t* s = json_object_get(jp.root, "relations");
-						json_t* ar_s = json_array_get(s, 0);
-						json_t* t = json_object_get(ar_s, "release_group");
-						m_musicbrainz_mibs.release_group = JSONAttributeString(t, "id");
-					}
+				catch (exception_aborted) {
+					break;
 				}
 				catch (...) {
+					log_msg("Unhandled error parsing MBid");
+					throw;
 				}
-			}
-			if (m_release->artists[0]->full_artist->id.get_length()) {
-				req_mib_url = "https://beta.musicbrainz.org/ws/2/url?inc=artist-rels&fmt=json&resource=https://www.discogs.com/artist/";
-				req_mib_url << m_release->artists[0]->full_artist->id;
-				discogs_interface->fetcher->fetch_html_simple_log(req_mib_url, "", html, p_abort);
 
-				JSONParser jp(html);
-				try {
-					if (json_is_object(jp.root)) {
-						json_t* s = json_object_get(jp.root, "relations");
-						json_t* ar_s = json_array_get(s, 0);
-						json_t* t = json_object_get(ar_s, "artist");
-						m_musicbrainz_mibs.artist = JSONAttributeString(t, "id");
-					}
-				}
-				catch (...) {
-				}
-			}
-
-			if (m_musicbrainz_mibs.release.get_length()) {
-				req_mib_url = "https://musicbrainz.org/release/";
-				req_mib_url << m_musicbrainz_mibs.release << "/cover-art";
-				discogs_interface->fetcher->fetch_html_simple_log(req_mib_url, "", html, p_abort);
-				m_musicbrainz_mibs.hascoverart = html.get_length() && html.find_first("Cover Art (0)", 0) == pfc_infinite;
-			}
+			} while (false);
 		}
 
 		pfc::string8 id;
 		pfc::string8 url;
 		bool has_thumb;
-		
+
 		try {
 			has_thumb = discogs_interface->get_thumbnail_from_cache(m_release, m_bartist, m_img_ndx, m_small_art,
 				p_status, p_abort);
@@ -1189,13 +1234,13 @@ void test_oauth_process_callback::safe_run(threaded_process_status &p_status, ab
 void test_oauth_process_callback::on_success(HWND p_wnd) {
 	//not checking dlg (m_hWnd is the process HWND parent)
 	CConfigurationDialog* dlg = reinterpret_cast<CConfigurationDialog*>(g_discogs->configuration_dialog);
-	dlg->show_oauth_msg("OAuth is working!\nSuccess!", false);
+	dlg->show_oauth_msg("OAuth is working!", false);
 	::SetFocus(g_discogs->configuration_dialog->m_hWnd);
 }
 
 void test_oauth_process_callback::on_error(HWND p_wnd) {
 	CConfigurationDialog* dlg = reinterpret_cast<CConfigurationDialog*>(g_discogs->configuration_dialog);
-	dlg->show_oauth_msg("\nOAuth failed.", true);
+	dlg->show_oauth_msg("OAuth failed.", true);
 	::SetFocus(g_discogs->configuration_dialog->m_hWnd);
 }
 

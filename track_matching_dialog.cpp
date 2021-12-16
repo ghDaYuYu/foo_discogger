@@ -8,7 +8,9 @@
 #include "tasks.h"
 #include "utils.h"
 #include "multiformat.h"
-
+#include "foo_discogs.h"
+#include "file_info_manager.h"
+#include "tag_writer.h"
 #include "track_matching_lv_helpers.h"
 #include "track_matching_utils.h"
 
@@ -58,8 +60,8 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 	HWND write_btn = GetDlgItem(IDC_WRITE_TAGS_BUTTON);
 	::SendMessageW(write_btn, BM_SETIMAGE, IMAGE_BITMAP, (LPARAM)m_rec_icon);
 
-	list_drop_handler.Initialize(m_hWnd, discogs_track_list, file_list, &m_coord);
-	list_drop_handler.SetNotifier(stdf_change_notifier);
+	m_list_drop_handler.Initialize(m_hWnd, discogs_track_list, file_list, &m_coord);
+	m_list_drop_handler.SetNotifier(stdf_change_notifier);
 
 	if (m_tag_writer) {
 
@@ -313,8 +315,8 @@ void CTrackMatchingDialog::insert_track_mappings() {
 	static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(lenght_script, "%length%");
 
 	for (size_t i = 0; i < count; i++) {
-		const track_mapping & mapping = m_tag_writer->track_mappings[i];  
-		if (i < m_tag_writer->finfo_manager->items.get_count()) {	
+		const track_mapping & mapping = m_tag_writer->track_mappings[i];
+		if (i < m_tag_writer->finfo_manager->items.get_count()) {
 			file_info &finfo = m_tag_writer->finfo_manager->get_item(mapping.file_index);
 			auto item = m_tag_writer->finfo_manager->items.get_item(mapping.file_index);
 			pfc::string8 formatted_name;
@@ -1341,6 +1343,16 @@ LRESULT CTrackMatchingDialog::DiscogArtGetDispInfo(LPNMHDR lParam) {
 				}
 				break;
 			}
+			//position
+			case 6: {
+				pfc::string8 str = pfc::toString(lvitem->iItem).get_ptr();
+				TCHAR outBuffer[MAX_PATH + 1] = {};
+				pfc::stringcvt::convert_utf8_to_wide(outBuffer, MAX_PATH,
+					str.get_ptr(), str.get_length());
+				_tcscpy_s(pLvdi->item.pszText, MAX_PATH/*pLvdi->item.cchTextMax*/, const_cast<TCHAR*>(outBuffer));
+				pLvdi->item.cchTextMax = MAX_PATH;
+				break;
+			}
 			default: {
 				int debug = 1;
 			}
@@ -1422,6 +1434,17 @@ LRESULT CTrackMatchingDialog::DiscogArtGetDispInfo(LPNMHDR lParam) {
 			//file size
 			case 2: {
 				pfc::string8 str(imagefilerow->second.at(2));
+				TCHAR outBuffer[MAX_PATH + 1] = {};
+				pfc::stringcvt::convert_utf8_to_wide(outBuffer, MAX_PATH,
+					str.get_ptr(), str.get_length());
+				_tcscpy_s(pLvdi->item.pszText, MAX_PATH/*pLvdi->item.cchTextMax*/, const_cast<TCHAR*>(outBuffer));
+				pLvdi->item.cchTextMax = MAX_PATH;
+
+				break;
+			}
+			//position
+			case 3: {
+				pfc::string8 str = pfc::toString(lvitem->iItem).get_ptr();
 				TCHAR outBuffer[MAX_PATH + 1] = {};
 				pfc::stringcvt::convert_utf8_to_wide(outBuffer, MAX_PATH,
 					str.get_ptr(), str.get_length());
@@ -1590,11 +1613,18 @@ bool CTrackMatchingDialog::track_url_context_menu(HWND wnd, LPARAM lParamPos) {
 		uAppendMenu(menu, MF_STRING | (!hasRelease ? MF_DISABLED : 0), ID_URL_RELEASE , "View release page");
 		uAppendMenu(menu, MF_STRING | (!hasMasterRelease ? MF_DISABLED : 0), ID_URL_MASTER_RELEASE , "View master release page");
 		uAppendMenu(menu, MF_STRING | (!hasArtist ? MF_DISABLED : 0), ID_URL_ARTIST , "View artist page");
-		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
-		uAppendMenu(menu, MF_STRING | (!hasMib_Release ? MF_DISABLED : 0), ID_URL_MB_REL, "View MusicBrainz release page");		
-		uAppendMenu(menu, MF_STRING | (!hasMib_ReleaseGroup ? MF_DISABLED : 0), ID_URL_MB_RELGRP, "View MusicBrainz release-group page");
-		uAppendMenu(menu, MF_STRING | (!hasMib_CoverArt ? MF_DISABLED : 0), ID_URL_MB_COVERS, "View MusicBrainz coverart page");
-		uAppendMenu(menu, MF_STRING | (!hasMib_Artist ? MF_DISABLED : 0), ID_URL_MB_ARTIST, "View MusicBrainz artist page");
+
+		if (!(CONF.skip_mng_flag & SkipMng::SKIP_BRAINZ_ID_FETCH)) {
+			uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+			bool hasMib_Release = m_musicbrainz_mibs.release.get_length();
+			bool hasMib_ReleaseGroup = m_musicbrainz_mibs.release_group.get_length();
+			bool hasMib_CoverArt = m_musicbrainz_mibs.hascoverart;
+			bool hasMib_Artist = m_musicbrainz_mibs.artist.get_length();
+			uAppendMenu(menu, MF_STRING | (!hasMib_Release ? MF_DISABLED : 0), ID_URL_MB_REL, "View MusicBrainz release page");		
+			uAppendMenu(menu, MF_STRING | (!hasMib_ReleaseGroup ? MF_DISABLED : 0), ID_URL_MB_RELGRP, "View MusicBrainz release-group page");
+			uAppendMenu(menu, MF_STRING | (!hasMib_CoverArt ? MF_DISABLED : 0), ID_URL_MB_COVERS, "View MusicBrainz coverart page");
+			uAppendMenu(menu, MF_STRING | (!hasMib_Artist ? MF_DISABLED : 0), ID_URL_MB_ARTIST, "View MusicBrainz artist page");
+		}
 
 		POINT scr_point = point;
 		::ClientToScreen(m_hWnd, &scr_point);
@@ -2179,7 +2209,6 @@ void CTrackMatchingDialog::go_back() {
 			item_artist.set_string(file_info_get_artist_name(finfo, item));
 		}
 	}
-	
 	//dlg release
 	dlg_release_id = m_tag_writer->release->id;
 	dlg_artist_id = m_tag_writer->release->artists[0]->full_artist->id;

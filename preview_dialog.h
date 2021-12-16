@@ -3,6 +3,7 @@
 #include "../SDK/foobar2000.h"
 
 #include "icon_map.h"
+#include "CGdiPlusBitmap.h"
 #include "foo_discogs.h"
 #include "resource.h"
 #include "tag_writer.h"
@@ -22,16 +23,15 @@ struct preview_stats {
 #endif //PREVIEW_STATS_H
 
 class CPreviewTagsDialog : public MyCDialogImpl<CPreviewTagsDialog>,
-	public CDialogResize<CPreviewTagsDialog>,
-	public CMessageFilter,
+	public CDialogResize<CPreviewTagsDialog>, public CMessageFilter,
 	private InPlaceEdit::CTableEditHelperV2_ListView
 {
 private:
-	metadb_handle_list items;
+
 	HWND tag_results_list;
 	HBITMAP m_rec_icon;
 
-	foo_discogs_conf conf;
+	foo_conf conf;
 
 	bool use_update_tags = false;
 	bool multi_mode = false;
@@ -48,8 +48,9 @@ private:
 
 	bool cfg_preview_dialog_show_stats = false;
 
-	TagWriter_ptr tag_writer;
+	TagWriter_ptr m_tag_writer;
 	pfc::array_t<TagWriter_ptr> tag_writers;
+
 	size_t tw_index = 0;
 	size_t tw_skip = 0;
 
@@ -91,7 +92,6 @@ private:
 	}
 
 	void TableEdit_GetField(size_t item, size_t subItem, pfc::string_base & out, size_t & lineCount) override;
-
 	void TableEdit_SetField(size_t item, size_t subItem, const char * value) override;
 
 	void trigger_edit(size_t item, size_t sub_item) {
@@ -118,6 +118,8 @@ public:
 	bool build_current_cfg();
 	void pushcfg();
 
+#pragma warning( push )
+#pragma warning( disable : 26454 )
 	MY_BEGIN_MSG_MAP(CPreviewTagsDialog)
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
 		COMMAND_ID_HANDLER(IDC_WRITE_TAGS_BUTTON, OnWriteTags)
@@ -141,7 +143,7 @@ public:
 		NOTIFY_HANDLER(IDC_PREVIEW_LIST, NM_CUSTOMDRAW, OnCustomDraw)
 		CHAIN_MSG_MAP(CDialogResize<CPreviewTagsDialog>)
 		MY_END_MSG_MAP()
-
+#pragma warning(pop)
 		BEGIN_DLGRESIZE_MAP(CPreviewTagsDialog)
 			DLGRESIZE_CONTROL(IDC_ALBUM_ART, DLSZ_MOVE_X)
 			DLGRESIZE_CONTROL(IDC_OPTIONS_GROUP, DLSZ_MOVE_X)
@@ -184,7 +186,7 @@ public:
 			if (init_count()) {
 				CGdiPlusBitmapResource rec_image;
 				auto hInst = core_api::get_my_instance();
-				rec_image.Load(MAKEINTRESOURCE(IDB_PNG_REC16), L"PNG", hInst);
+				rec_image.Load(MAKEINTRESOURCE(IDB_PNG_REC_16), L"PNG", hInst);
 				Gdiplus::Status res_get = rec_image.m_pBitmap->GetHBITMAP(Gdiplus::Color(255, 255, 255)/*Color::Black*/, &m_rec_icon);
 				DeleteObject(rec_image);
 				//Create(p_parent);
@@ -212,9 +214,7 @@ public:
 		LRESULT OnListKeyDown(LPNMHDR lParam);
 		LRESULT OnEdit(UINT uMsg, WPARAM wParam, LPARAM lParam);
 		LRESULT OnCustomDraw(int idCtrl, LPNMHDR pnmh, BOOL& bHandled);
-		LRESULT OnListViewTFInfo(LPNMHDR lParam);
-		
-		void refresh_item(int pos);
+
 		void insert_tag_results(bool computestat);
 		void tag_mappings_updated();
 		void cb_generate_tags();

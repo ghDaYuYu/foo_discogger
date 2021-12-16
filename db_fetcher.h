@@ -2,9 +2,7 @@
 
 #include "version.h"
 
-#ifdef DC_DB
-
-#include <mutex>
+#ifdef DB_DC
 
 #include "sqlite3.h"
 #include "json_helpers.h"
@@ -42,4 +40,4 @@ private:
 class db_fetcher {
 	//
 };
-#endif // DC_DB
+#endif // DB_DC

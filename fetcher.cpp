@@ -309,7 +309,7 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 	}
 }
 
-void Fetcher::fetch_html_simple_log(const pfc::string8& url, const pfc::string8& params, pfc::string8& html, abort_callback& p_abort, const pfc::string8& content_type) {
+void Fetcher::fetch_html_simple_log(const pfc::string8& url, const pfc::string8& params, pfc::string8& html, abort_callback& p_abort, bool throw_abort, const pfc::string8& content_type) {
 
 	pfc::array_t<t_uint8> buffer;
 
@@ -350,7 +350,7 @@ void Fetcher::fetch_html_simple_log(const pfc::string8& url, const pfc::string8&
 				pfc::string8 status;
 				r->get_status(status);
 
-				pfc::string8 debug_keep_alive; //'content-encoding'
+				pfc::string8 debug_keep_alive;
 				r->get_http_header("Connection", debug_keep_alive);
 
 				// check status (applies only to request->run_ex)
@@ -369,6 +369,7 @@ void Fetcher::fetch_html_simple_log(const pfc::string8& url, const pfc::string8&
 				if (reply_content_type.is_empty()) {
 					buffer.set_size(0);
 					log_msg("Error reading network response.");
+					break;
 				}
 
 				// read stream...
@@ -394,6 +395,7 @@ void Fetcher::fetch_html_simple_log(const pfc::string8& url, const pfc::string8&
 					int state = myUncompress(unzipped.get_ptr(), &destLen, buffer.get_ptr(), buffer.get_size());
 					if (state != Z_OK) {
 						log_msg("Error unzipping network response.");
+						break;
 					}
 					PFC_ASSERT(destLen == unzipped.get_size());
 					buffer = unzipped;
@@ -402,7 +404,9 @@ void Fetcher::fetch_html_simple_log(const pfc::string8& url, const pfc::string8&
 				break;
 			}
 			catch (foobar2000_io::exception_io& e) {
-				if (tries > 5) return;
+
+				if (tries > 5) throw;
+
 				pfc::string8 error_msg;
 				error_msg << "Network error";
 				if (!error_msg.has_prefix(pfc::string8(e.what())))
@@ -415,25 +419,39 @@ void Fetcher::fetch_html_simple_log(const pfc::string8& url, const pfc::string8&
 		}
 	}
 	catch (exception_aborted) {
-		log_msg("exception unhandled");
+		if (throw_abort)
+			throw;
+	}
+	catch (foo_discogs_exception& e) {
+		e << "(url: " << clean_url << ")";
+		pfc::string8 error_msg;
+		error_msg << "Exception handling: " << clean_url;
+		log_msg(error_msg);
 	}
 	catch (const foobar2000_io::exception_io& e) {
 		//retries > max retries
-		pfc::string8 error_msg;
-		error_msg << "Network exception fetching url: " << clean_url;
+		network_exception ex("Network exception: ");
+		ex << e.what() << " (url: " << clean_url << ")";
+		pfc::string8 error_msg = PFC_string_formatter() << "Network exception (simlog fetching url): " << clean_url;
 		log_msg(error_msg);
+		throw ex;
 	}
 	catch (const std::exception& e) {
 		log_msg(e.what());
 	}
 	catch (...) {
+
 		// fallback for request->run errors
+
+		buffer.set_size(0);
+		network_exception ex("Unknown network exception: ");
+		ex << "(url: " << clean_url << ")";
 		pfc::string8 error_msg;
 		error_msg << "Unknown network exception handling: " << clean_url;
 		log_msg(error_msg);
 	}
 
-	html = pfc::string8((char*)buffer.get_ptr(), buffer.get_size());;
+	html = pfc::string8((char*)buffer.get_ptr(), buffer.get_size());
 }
 
 void Fetcher::set_oauth(const pfc::string8 &token, const pfc::string8 &token_secret) {

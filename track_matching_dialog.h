@@ -4,14 +4,9 @@
 #include "../SDK/foobar2000.h"
 #include <libPPUI/CListControlOwnerData.h>
 
-#include "foo_discogs.h"
-#include "file_info_manager.h"
-#include "multiformat.h"
-#include "tag_writer.h"
-
 #include "icon_map.h"
-#include "track_match_lstdrop.h"
 #include "track_matching_dialog_presenter.h"
+#include "track_match_lstdrop.h"
 
 using namespace Discogs;
 
@@ -204,7 +199,7 @@ public:
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		MESSAGE_HANDLER(WM_COMMAND, OnCommand)
 		COMMAND_ID_HANDLER(IDC_SKIP_BUTTON, OnMultiSkip)
-		CHAIN_MSG_MAP_MEMBER(list_drop_handler)
+		CHAIN_MSG_MAP_MEMBER(m_list_drop_handler)
 		CHAIN_MSG_MAP(CDialogResize<CTrackMatchingDialog>)
 	MY_END_MSG_MAP()
 	BEGIN_DLGRESIZE_MAP(CTrackMatchingDialog)
@@ -249,7 +244,7 @@ public:
 	}
 
 	CTrackMatchingDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags = false) : 
-		m_tag_writer(tag_writer), use_update_tags(use_update_tags),	list_drop_handler(),
+		m_tag_writer(tag_writer), use_update_tags(use_update_tags),	m_list_drop_handler(),
 		m_conf(CONF), m_coord(p_parent, CONF),
 		m_idc_list(this), m_ifile_list(this) 
 	{
@@ -258,7 +253,7 @@ public:
 	}
 	
 	CTrackMatchingDialog(HWND p_parent, pfc::array_t<TagWriter_ptr> tag_writers, bool use_update_tags = false) :
-		tag_writers(tag_writers), use_update_tags(use_update_tags), multi_mode(true), list_drop_handler(),
+		tag_writers(tag_writers), use_update_tags(use_update_tags), multi_mode(true), m_list_drop_handler(),
 		m_conf(CONF), m_coord(p_parent, CONF),
 		m_idc_list(this), m_ifile_list(this) {
 
@@ -366,7 +361,7 @@ private:
 	playable_location_impl location;
 	titleformat_hook_impl_multiformat hook;
 
-	MatchListDropHandler list_drop_handler;
+	MatchListDropHandler m_list_drop_handler;
 
 	CListControlOwnerData m_idc_list;
 	CListControlOwnerData m_ifile_list;

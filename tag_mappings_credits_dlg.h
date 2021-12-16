@@ -205,7 +205,7 @@ public:
 		size_t wpre_notes = 0, wnotes = 0;
 		size_t notes_pos = 7;
 		for (size_t pre_walk = 0; pre_walk < notes_pos; pre_walk++)
-			wpre_notes += GetColumnWidthF(pre_walk);
+			wpre_notes += static_cast<size_t>(GetColumnWidthF(pre_walk));
 
 		CRect reclist;
 		GetHeaderCtrl().GetClientRect(reclist);
@@ -701,7 +701,8 @@ class TemplateNameDialog : private dialog_helper::dialog_modal {
 public:
 	int query(HWND parent, const char* defValue = "") {
 		value = defValue;
-		return run(IDD_CONFIG_NAME, parent);
+#pragma warning(suppress:4996)
+		return run(IDD_CONFIG_NAME, parent);  // NOLINT
 	}
 
 	pfc::string8 value;

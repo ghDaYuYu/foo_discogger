@@ -126,9 +126,6 @@ private:
 	void on_expand_master_release_complete();
 	void on_release_selected(int src_lparam);
 
-	void extract_id_from_url(pfc::string8& s);
-	void extract_release_from_link(pfc::string8& s);
-	
 	pfc::string8 run_hook_columns(row_col_data& row_data, int item_data);
 	pfc::string8 get_param_id(mounted_param myparam);
 	int get_param_id_master(mounted_param myparam);
@@ -170,8 +167,8 @@ public:
 		COMMAND_ID_HANDLER(IDC_ONLY_EXACT_MATCHES_CHECK, OnCheckOnlyExactMatches)
 		COMMAND_ID_HANDLER(IDC_SEARCH_BUTTON, OnButtonSearch)
 		COMMAND_ID_HANDLER(IDC_CONFIGURE_BUTTON, OnButtonConfigure)
-		COMMAND_ID_HANDLER(IDC_CHECK_FIND_RELEASE_FILTER_VERSIONS, OnCheckFindReleaseFilterFlags)
-		COMMAND_ID_HANDLER(IDC_CHECK_FIND_RELEASE_FILTER_ROLEMAIN, OnCheckFindReleaseFilterFlags)
+		COMMAND_ID_HANDLER(IDC_CHK_FIND_RELEASE_FILTER_VERS, OnCheckFindReleaseFilterFlags)
+		COMMAND_ID_HANDLER(IDC_CHK_FIND_RELEASE_FILTER_ROLEMAIN, OnCheckFindReleaseFilterFlags)
 		CHAIN_MSG_MAP_MEMBER(m_release_ctree)
 		CHAIN_MSG_MAP(CDialogResize<CFindReleaseDialog>)
 		REFLECT_NOTIFICATIONS();

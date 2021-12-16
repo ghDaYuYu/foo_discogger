@@ -56,11 +56,6 @@ bool prepare_config_db_and_cache(bool bimport = true) {
 	abort_callback_dummy dummy_abort;
 
 	try {
-		//t_filetimestamp dummy_timestamp = t_filetimestamp();
-		const double timeoutVal = 5;
-		file::ptr fLocal = fsLocal->openRead/*->openWriteExisting*/(foo_db_config_path, dummy_abort, timeoutVal);
-		//fetch = fLocal->get_timestamp(dummy_abort) < filetimestamp_from_system_timer() - dummy_timestamp;
-
 		if (bimport) {
 
 			const double timeoutVal = 5;

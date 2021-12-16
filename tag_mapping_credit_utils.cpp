@@ -68,14 +68,16 @@ pfc::string8 sanitize_track_commas(const pfc::string8& tracks) {
 	split(tracks, " ", 0, v);
 	for (int i = 0; i < v.size(); i++) {
 		if (i < v.size() - 2) {
-			if (v.at(i).equals("to") && (v.at(i + 1).find_first(',', 0) == pfc_infinite)) {
-				auto c = std::find(v.begin() + i, v.end(), ",");
-				if (c == v.end() || (c - v.begin() + i > 1)) {
-					v.at(i + 1) = PFC_string_formatter() << v.at(i + 1) << ",";
+			if (v.at(i).equals("to")) {
+				if (v.at(i + 1).find_first(',', 0) == pfc_infinite) {
+					auto c = std::find(v.begin() + i, v.end(), ",");
+					if (c == v.end() || (c - v.begin() + i > 1)) {
+						v.at(i + 1) = PFC_string_formatter() << v.at(i + 1) << ",";
+					}					
 				}
+				v.at(i) = " to ";
 			}
 		}
-		v.at(i).replace_string("to", " to ");
 	}
 
 	//rebuild

@@ -172,6 +172,7 @@ namespace Offline {
 			taskreg_path << path << "\\" << MARK_CHECK_NAME;
 			pfc::stringcvt::string_os_from_utf8 cvt(taskreg_path);
 			wcstombs(converted, cvt.get_ptr(), MAX_PATH - 1);		
+
 			try {
 				std::filesystem::remove_all(converted);
 			}

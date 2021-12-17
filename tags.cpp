@@ -28,7 +28,7 @@ static tag_mapping_entry default_tag_mappings[] = {
 	{"DISCOGS_LABEL", true, false, false, false, false, "$unique(%<RELEASE_LABELS_NAME>%)"},
 	{"DISCOGS_CATALOG", true, false, false, false, false, "%<RELEASE_LABELS_CATALOG_NUMBER>%"},
 	{"DISCOGS_COUNTRY", true, false, false, false, false, "%RELEASE_COUNTRY%"},
-	{TAG_RELEASE_ID, true, false, false, false, true, "%RELEASE_ID%"},	
+	{TAG_RELEASE_ID, true, false, false, false, true, "%RELEASE_ID%"},
 	{TAG_MASTER_RELEASE_ID, true, false, false, false, true, "%MASTER_RELEASE_ID%"},
 	{TAG_ARTIST_ID, true, false, false, false, true, "%<ARTISTS_ID>%"},
 	{TAG_LABEL_ID, true, false, false, false, true, "$unique(%<RELEASE_LABELS_ID>%)"},

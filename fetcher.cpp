@@ -28,7 +28,7 @@ std::ostream& operator<<(std::ostream& os, std::chrono::nanoseconds ns)
 	auto s = duration_cast<seconds>(ns);
 	ns -= s;
 
-	//modded type and cast
+	//modded type int to u_uint32 & cast
 	std::optional<t_uint32> fs_count;
 	switch (os.precision()) {
 	case 9: fs_count = (t_uint32)ns.count();
@@ -79,7 +79,7 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 	log_msg(use_oauth ? "Url OAuth enabled" : "Url OAuth disabled");
 
 	if (use_api && m_throttling) {
-		chrono::steady_clock::time_point time_now = chrono::steady_clock::now();	
+		chrono::steady_clock::time_point time_now = chrono::steady_clock::now();
 		chrono::duration<double> time_span = time_now - m_last_fetch;
 
 		m_fetch_wait_rolling_avg = ROLLING_AVG_ALPHA * time_span.count() + (1.0 - ROLLING_AVG_ALPHA) * m_fetch_wait_rolling_avg;
@@ -92,11 +92,12 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 		msg_average << "Avg: " << pfc::toString(m_fetch_wait_rolling_avg).get_ptr();
 		if (time_span != chrono::steady_clock::duration::zero()) {
 			msg_average << ", Lapse: ";
+			//double microsecs = time_span.count();
 			pfc::string8 msg_delta;
 			if (m_throttle_delta) {
 				std::stringstream human_read_time;
 				human_read_time.precision(2);
-				human_read_time << std::fixed << /m_throttle_delta;
+				human_read_time << std::fixed << m_throttle_delta;
 				msg_delta << " (+ " << human_read_time.str().c_str();
 				msg_delta << ")";
 			}
@@ -199,7 +200,6 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 				if (pfc::string8(status).find_first("200") == ~0) {
 					pfc::string8 msg_status;
 					msg_status << "HTTP error status: " << status;
-					//log: status					
 					log_msg(msg_status);
 
 					int error_code = std::stoi(substr(status, 9, 3).get_ptr());
@@ -215,6 +215,8 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 						throw http_exception(error_code);
 					}
 				}
+
+				//Sleep(1000);
 
 				pfc::string8 reply_content_type;
 				f->get_content_type(reply_content_type);

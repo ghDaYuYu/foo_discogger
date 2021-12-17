@@ -62,7 +62,7 @@
 				if (i > 0 && !ListView_IsItemSelected(list, i - 1))
 				{
 					list_swap_items(list, i, i - 1);
-					if (newfocus == pfc_infinite) newfocus = i;
+					if (newfocus == pfc_infinite) newfocus = i /*- 1*/;
 					ListView_SetItemState(list, i - 1, LVIS_SELECTED, 0x000F);
 				}
 			}
@@ -85,14 +85,14 @@
 				if (i < startindex && !ListView_IsItemSelected(list, i + 1))
 				{
 					list_swap_items(list, i, i + 1);
-					if (newfocus == pfc_infinite) newfocus = i;
+					if (newfocus == pfc_infinite) newfocus = i/* + 1*/;
 					ListView_SetItemState(list, i + 1, LVIS_SELECTED, 0x000F);
 				}
 
 			}
 		}
 		if (newfocus != pfc_infinite)
-		ListView_SetItemState(list, newfocus, /*LVIS_SELECTED | */LVIS_FOCUSED, LVIS_FOCUSED);
+		ListView_SetItemState(list, newfocus /*-1 */ /*-1*/, /*LVIS_SELECTED | */LVIS_FOCUSED, LVIS_FOCUSED);
 	}
 
 	void remove_items(HWND list, bool bcrop) {

@@ -253,7 +253,7 @@ string_encoded_array Discogs::Release::get_sub_data(pfc::string8 &tag_name, thre
 						else
 							if (srcpos == 2) {
 								if (STR_EQUAL(walkcat.second.second, "SUBVAL")) {
-									bfiltermatch = false;
+									bfiltermatch = false; //reject 'only tracks'
 								}
 								else
 								if (credit_nfo.isGXP()) {
@@ -264,7 +264,7 @@ string_encoded_array Discogs::Release::get_sub_data(pfc::string8 &tag_name, thre
 							}
 					}
 					else {
-						if (srcpos == 1) bfiltermatch = false;
+						if (srcpos == 1) bfiltermatch = false; //reject 'only release'
 					}
 				}
 				if (!bfiltermatch) { continue; }
@@ -497,7 +497,7 @@ void Discogs::parseReleaseCredits(json_t* element, pfc::array_t<ReleaseCredit_pt
 			credit->roles = artist->roles;
 			credit->full_roles = artist->full_roles;
 			credit->artists.append_single(artist);
-	
+
 			try {
 				addReleaseTrackCredits(sanitize_track_commas(tracks), credit, release);
 			}
@@ -568,6 +568,7 @@ unsigned long long encode_track_position(const pfc::string8 &pos) {
 	return result;
 }
 
+//todo: fix/clean up not working for alphanumeric notations
 bool track_in_range(const pfc::string8 &pos, const pfc::string8 &start, const pfc::string8 &end) {
 	unsigned long long dpos = encode_track_position(pos);
 	unsigned long long dstart = encode_track_position(start);
@@ -599,6 +600,7 @@ void Discogs::addReleaseTrackCredits(const pfc::string8 &tracks, ReleaseCredit_p
 			}
 		}
 		else if (inner_count == 2) {
+
 			std::vector<std::pair<size_t, size_t>> inner_std_parts;
 			int tmp_disc, tmp_track;
 			if (release->find_std_disc_track(inner_parts[0], &tmp_disc, &tmp_track))
@@ -692,6 +694,10 @@ void Discogs::parseReleaseSeries(json_t *element, pfc::array_t<ReleaseSeries_ptr
 
 Image_ptr Discogs::parseImage(json_t *element) {
 	Image_ptr image(new ExpTagsImage());
+
+	//auto key = json_object_iter_key(json_object_iter(element));
+	//void* iter = json_object_iter((json_t*)element);
+
 	// Should we use thumb instead of url150?
 	image->type = JSONAttributeString(element, "type");
 	image->url = JSONAttributeString(element, "resource_url");
@@ -1287,7 +1293,7 @@ void Discogs::parseArtistReleases(json_t *root, Artist *artist) {
 					tokenize(all_formats, ",", flist, false);
 					tokenize(flist[0], ",", release->search_major_formats, false);
 					t_size formats_cpos = flist[0].get_length();
-					release->search_formats = ltrim(substr(all_formats, formats_cpos + 1, /*pfc_infinite*/ all_formats.get_length() - formats_cpos));			
+					release->search_formats = ltrim(substr(all_formats, formats_cpos + 1, all_formats.get_length() - formats_cpos));
 					release->search_catno = JSONAttributeString(rel, "catno");
 					release->release_year = JSONAttributeString(rel, "year");
 					if (release->release_year.get_length() == 0) {
@@ -1404,6 +1410,7 @@ void initialize_null_artist(Artist *artist) {
 	artist->loaded = true;
 }
 
+//todo: check integration with discogs_db_interface::get_artist
 void Discogs::Artist::load(threaded_process_status &p_status, abort_callback &p_abort, bool throw_all) {
 	
 	if (loaded) {
@@ -1417,6 +1424,9 @@ void Discogs::Artist::load(threaded_process_status &p_status, abort_callback &p_
 	bool offline_can_read = ol::can_read();
 	bool offline_can_write = ol::can_write();
 	bool offline_can_overwrite = ol::can_ovr();
+
+	//bool bdebug = (ol::GetFS_IdFilePaths(id, ol::GetFrom::Artist, "").get_ptr());
+	//bool bdebug2 = (ol::GetFS_IdFilePaths(id, ol::GetFrom::Artist, "").get_size());
 
 	bool offline_avail_data = (ol::GetFS_IdFilePaths(id, ol::GetFrom::Artist, "").get_ptr() != nullptr) && ol::CheckDownload(rel_path);
 	bool btransient = !(offline_can_read && offline_avail_data) || offline_can_overwrite;
@@ -1459,7 +1469,8 @@ void Discogs::Artist::load(threaded_process_status &p_status, abort_callback &p_
 					offline_can_write = false;
 				}
 				else {
-
+					//todo: recover from an invalid cache
+					//delete cache and reload?
 					pfc::string8 msg;
 					msg << "Error loading disk cache, deleting invalid cache (artist_id:" << id << ") ...";
 					log_msg(msg);
@@ -1471,7 +1482,11 @@ void Discogs::Artist::load(threaded_process_status &p_status, abort_callback &p_
 #ifdef DB_DC
 			else {
 				discogs_db_interface->get_artist_DB(id, json, p_abort, "Fetching artist from backup db...", p_status, nullptr);
+				//cache this if enabled
 				btransient = true;
+//#ifdef _DEBUG
+				//offline_can_write = false;
+//#else
 			}
 
 #endif // DB_DC
@@ -1542,7 +1557,6 @@ void Discogs::Release::load(threaded_process_status& p_status, abort_callback& p
 		discogs_interface->fetcher->fetch_html(url, "", json, p_abort);
 
 		JSONParser jp(json);
-
 		parseRelease(this, jp.root);
 		loaded = true;
 	}
@@ -1555,7 +1569,7 @@ void Discogs::Release::load(threaded_process_status& p_status, abort_callback& p
 		throw foo_discogs_exception(error);
 	}
 }
-
+//todo: exec paths to (both) release::load
 void Discogs::Release::load(threaded_process_status &p_status, abort_callback &p_abort, bool throw_all, pfc::string8 offlineArtistId, db_fetcher* dbfetcher) {
 	
 	if (loaded) {
@@ -1774,6 +1788,21 @@ void Discogs::Artist::load_releases(threaded_process_status &p_status, abort_cal
 					//failed to create folder
 				}
 			}
+            
+            //debug
+			//json_t* releases = json_object_get(pages[i]->root, "releases");
+			//if (json_is_array(releases)) {
+			//	for (size_t i = 0; i < json_array_size(releases); i++) {
+			//		json_t* rel = json_array_get(releases, i);
+			//		if (json_is_object(rel)) {
+			//			pfc::string8 type = JSONAttributeString(rel, "type");
+			//			if (STR_EQUAL(type, "master")) {
+			//				pfc::string8 id = JSONAttributeString(rel, "id");
+			//				//void* iter = json_object_iter((json_t*)rel);
+			//			}
+			//		}
+			//	}
+			//}
 				
 			if (btransient && offline_can_write) {
 				if (i == count - 1) {
@@ -1836,7 +1865,7 @@ void Discogs::MasterRelease::load_releases(threaded_process_status &p_status, ab
 #endif
 				pages = discogs_interface->get_all_pages_offline_cache(gfVersions, artist_id, master_id, "", p_abort, "Fetching offline master releases versions ...", p_status);
 
-			//we have just read from offline, do not write in next step!!!
+			//we have just read from offline, do not write in next step
 			offline_can_write = false;
 		}
 
@@ -1916,6 +1945,7 @@ void Discogs::parseCollection(json_t *root, pfc::array_t<pfc::string8> &collecti
 	}
 }
 
+/*
 void Discogs::parseProfile(json_t* root, Profile* profile) {
 	
 	assert_is_object(root);
@@ -1923,8 +1953,8 @@ void Discogs::parseProfile(json_t* root, Profile* profile) {
 	profile->id = JSONAttributeString(root, "id");
 	profile->username = JSONAttributeString(root, "username");
 	profile->email = JSONAttributeString(root, "email");
-	//..
-	pfc::string8 resource_url = JSONAttributeString(root, "resource_url");
-	int dbug = resource_url.length();
+
+	//pfc::string8 resource_url = JSONAttributeString(root, "resource_url");
+	//int dbug = resource_url.length();
 }
-//..
+*/

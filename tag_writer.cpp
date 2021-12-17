@@ -40,6 +40,8 @@ void TagWriter::match_tracks() {
 				track_mappings.append_single(mapping);
 			}
 		}
+		//todo: unknown scenario?
+		//match_status = compute_discogs_track_order(track_mappings);
 	}
 }
 
@@ -409,7 +411,31 @@ bool check_multiple_results(pfc::array_t<string_encoded_array> where, string_enc
 	return false;
 }
 
-void TagWriter::generate_tags(bool use_update_tags, threaded_process_status& p_status, abort_callback& p_abort) {
+/*
+void testkk(file_info& info) {
+	FB2K_console_formatter1() << "File info dump:";
+	if (info.get_length() > 0) FB2K_console_formatter() << "Duration: " << pfc::format_time_ex(info.get_length(), 6);
+	pfc::string_formatter temp;
+	for (t_size metaWalk = 0; metaWalk < info.meta_get_count(); ++metaWalk) {
+		const char* name = info.meta_enum_name(metaWalk);
+		const auto valCount = info.meta_enum_value_count(metaWalk);
+		for (size_t valWalk = 0; valWalk < valCount; ++valWalk) {
+			FB2K_console_formatter() << "Meta: " << name << " = " << info.meta_enum_value(metaWalk, valWalk);
+		}
+
+		//meta_format_entry(metaWalk, temp);
+		//FB2K_console_formatter() << "Meta: " << meta_enum_name(metaWalk) << " = " << temp;
+		//
+	}
+	for (t_size infoWalk = 0; infoWalk < info.info_get_count(); ++infoWalk) {
+		FB2K_console_formatter() << "Info: " << info.info_enum_name(infoWalk) << " = " << info.info_enum_value(infoWalk);
+	}
+}
+*/
+
+void TagWriter::generate_tags(bool use_update_tags, tag_mapping_list_type* alt_mappings, threaded_process_status& p_status, abort_callback& p_abort) {
+	
+	tag_mapping_list_type* ptags = alt_mappings ? alt_mappings : &TAGS;
 	
 	tag_results.force_reset();
 	will_modify = false;
@@ -421,11 +447,33 @@ void TagWriter::generate_tags(bool use_update_tags, threaded_process_status& p_s
 	persistent_store prompt_store;
 	MasterRelease_ptr master = discogs_interface->get_master_release(release->master_id);
 
-	for (size_t wtags = 0; wtags < TAGS.get_size(); wtags++) {
-		const tag_mapping_entry& entry = TAGS.get_item_ref(wtags);
+	for (size_t wtags = 0; wtags < ptags->get_size(); wtags++) {
+		const tag_mapping_entry& entry = ptags->get_item_ref(wtags);
+		
+		//if (stricmp_utf8(entry.tag_name, "DISCOGS_RELEASE_CREDITS") == 0) {
+		//if (stricmp_utf8(entry.tag_name, "DISCOGS_RELEASE_NOTES") == 0) {
+		//if (stricmp_utf8(entry.tag_name, "DISCOGS_SERIES") == 0) {
+		//if (stricmp_utf8(entry.tag_name, "GENRE") == 0) {
+		//if (stricmp_utf8(entry.tag_name, "DISCOGS_FORMAT") == 0) {
+		//if (stricmp_utf8(entry.tag_name, "TOTALTRACKS") == 0) {
+		//if (stricmp_utf8(entry.tag_name, "DISCOGS_ARTISTS_MEMBERS") == 0) {
+		//if (stricmp_utf8(entry.tag_name, "DISCOGS_ARTISTS_INGROUPS") == 0) {
+		//if (stricmp_utf8(entry.tag_name, "DISCOGS_TRACK_CREDITS") == 0) {
+		//if (stricmp_utf8(entry.tag_name, "DISCOGS_CREDIT_FEATURING") == 0) {
+		//if (stricmp_utf8(entry.tag_name, "DISCOGS_ARTIST_PROFILE") == 0) {
+		//if (stricmp_utf8(entry.tag_name, "DISCNUMBER") == 0) {
+		//if (stricmp_utf8(entry.tag_name, "TITLE") == 0) {
+		//	int dbug = 0;
+		//}
+		//if ((!use_update_tags && entry.enable_write) || (use_update_tags && entry.enable_update)) {
 		
 		if ((entry.enable_write) || (entry.enable_update)) {
 			
+			// one result for each TAG
+			// holding old value, new value and approval for each TRACK tag meta
+			// also a general 'changed' attribute for whole TAG
+			// #track-meta changed = old - new value
+
 			tag_result_ptr result = std::make_shared<tag_result>();
 
 			bool multiple_results = false;
@@ -475,6 +523,9 @@ void TagWriter::generate_tags(bool use_update_tags, threaded_process_status& p_s
 
 				pfc::string8 str;
 				try {
+					//if (STR_EQUAL(entry.formatting_script, "")) {
+					//	int dbug = 1;
+					//}
 					entry.formatting_script->run_hook(item->get_location(), &info, &hook, str, nullptr);
 					string_encoded_array value(str);
 					if (!multiple_results) {
@@ -510,15 +561,32 @@ void TagWriter::generate_tags(bool use_update_tags, threaded_process_status& p_s
 						
 						approved = !newvalue.has_blank() && entry.enable_write;
 
+						//debug - result->result_approved = approved;
+
 						result->r_approved.append_single(approved);
-						token_added = true; // approval value (true or false) added
+						token_added = true; // approval value (true or false) token added
+
 					}
 					else {
+						//debug - result->result_approved = entry.enable_update;
+
 						if (old_count == 1) {
 							t_size c = info.meta_get_count_by_name(entry.tag_name);
-				
+							
+							//t_size pos = info.meta_find(entry.tag_name);
+							//! Retrieves count of values in metadata entry of specified index. The value is always equal to or greater than 1.
+							//t_size vals = info.meta_enum_value_count(pos);
+							//! Retrieves specified value from specified metadata entry. Return value is a null-terminated UTF-8 encoded string.
+							//const char* cc = info.meta_enum_value(pos, 0);
+							//const char* nfo_get = info.meta_get(entry.tag_name, pos);
+							
 							old_value.set_value(info.meta_get(entry.tag_name, 0));
-                        }
+							
+							/* debug...
+							if (!stricmp_utf8(entry.tag_name, "DISCOGS_ARTIST_PROFILE"))
+								info.meta_remove_field(entry.tag_name);
+                            }*/
+						}
 						else {
 							for (size_t i = 0; i < old_count; i++) {
 								old_value.append_item(info.meta_get(entry.tag_name, i));
@@ -553,7 +621,9 @@ void TagWriter::generate_tags(bool use_update_tags, threaded_process_status& p_s
 					}
 					else {
 						PFC_ASSERT(old_count == 0);
-						//nothing to do
+						//debug...
+						//NOTHING TO DO?
+						//result->r_approved[result->r_approved.get_count() - 1] |= (old_count > 1 && meta_changed && entry.enable_update;
 					}
 					result->result_approved |= result->r_approved[result->r_approved.get_count() - 1];
 				}
@@ -574,7 +644,6 @@ void TagWriter::generate_tags(bool use_update_tags, threaded_process_status& p_s
 
 			result->tag_entry = &entry;
 			tag_results.append_single(std::move(result));
-
 		}
 	}
 }
@@ -593,7 +662,7 @@ void TagWriter::write_tags_track_map() {
 
 		size_t file_index = mapping.file_index;
 		
-		if (file_index > finfo_manager.get()->get_item_count() - 1) {
+		if (file_index >= finfo_manager.get()->get_item_count()) {
 			//run out of tracks... skip unmatched files
 			break;
 		}
@@ -603,7 +672,15 @@ void TagWriter::write_tags_track_map() {
 		const size_t count = tag_results.get_size();
 		for (size_t j = 0; j < count; j++) {
 			const tag_result_ptr &result = tag_results[j];
-
+			
+			//if (!stricmp_utf8(result->tag_entry->tag_name, "DISCOGS_RELEASE_ID")) {
+			//if (!stricmp_utf8(result->tag_entry->tag_name, "DISCOGS_ARTISTS_MEMBERS")) {
+			//if (!stricmp_utf8(result->tag_entry->tag_name, "DISCOGS_ARTISTS_PROFILE")) {
+			//if (!stricmp_utf8(result->tag_entry->tag_name, "DISCOGS_TRACK_CREDITS")) {
+			//if (!stricmp_utf8(result->tag_entry->tag_name, "DISCOGS_CREDIT_FEATURING")) {
+			//	int debug = 1;
+			//}
+			
 			string_encoded_array *value;
 
 			if (result->result_approved && (result->r_approved[i] /*|| !diff_tracks*/)) {
@@ -722,6 +799,7 @@ void TagWriter::write_tags_v23() {
 					pfc::string8 value_lf;
 					value->get_cvalue_lf(value_lf);
 					write_tag(item, info, *(result->tag_entry), value_lf);
+					//write_tag(item, info, *(result->tag_entry), value->get_pure_cvalue());
 				}
 				binvalidate = true;
 			}
@@ -742,6 +820,7 @@ void TagWriter::write_tags_v23() {
 				}
 				if (remove) {
 					for (size_t k = 0; k < CONF.remove_exclude_tags.get_size(); k++) {
+						//if (STR_EQUAL(tag_name, CONF.remove_exclude_tags[k])) {
 						if (pfc::stringCompareCaseInsensitive(tag_name, CONF.remove_exclude_tags[k]) == 0) {
 							remove = false;
 							break;

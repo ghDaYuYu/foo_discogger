@@ -58,8 +58,7 @@ public:
 		force_skip = true;
 	}
 
-	void generate_tags_ori_unchanged(bool use_update_tags, threaded_process_status& p_status, abort_callback& p_abort);
-	void generate_tags(bool use_update_tags, threaded_process_status& p_status, abort_callback& p_abort);
+	void generate_tags(bool use_update_tags, tag_mapping_list_type* alt_mappings, threaded_process_status& p_status, abort_callback& p_abort);
 	const t_size get_art_count() { return release->images.get_count() + release->artists[0]->full_artist->images.get_count();}
 
 	void write_tags();
@@ -75,8 +74,6 @@ public:
 	pfc::string8 error = "";
 
 private:
-	//void file_info_write_tags(metadb_handle_ptr item, file_info &finfo, const ReleaseDisc_ptr &disc, const ReleaseTrack_ptr &track, bool is_update);
-	//void file_info_write_tag(metadb_handle_ptr item, file_info &info, const tag_mapping_entry &entry, const ReleaseDisc_ptr &disc, const ReleaseTrack_ptr &track, persistent_store &pstore);
 
 	void write_tag(metadb_handle_ptr item, file_info &info, const tag_mapping_entry &entry, const pfc::string8 &tag_value);
 	void write_tag(metadb_handle_ptr item, file_info &info, const tag_mapping_entry &entry, const pfc::array_t<string_encoded_array> &tag_values);

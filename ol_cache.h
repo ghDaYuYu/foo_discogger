@@ -28,6 +28,7 @@ namespace Offline {
 	static bool can_ovr() { return CONF.cache_offline_cache_flag & CacheFlags::OC_OVERWRITE; }
 
 	static pfc::string8 GetOfflinePath(pfc::string8 id, bool native, GetFrom gfFrom, pfc::string8 secId) {
+
 		pfc::string8 ol_path(core_api::pathInProfile(OC_NAME));
 
 		switch(gfFrom) {
@@ -340,8 +341,10 @@ namespace Offline {
 		}
 
 	private:
-		
+		std::list<key_value_pair_t> _cache_items_list;
+		std::unordered_map<key_t, list_iterator_t> _cache_items_map;
+
 		pfc::string8 m_offlinepath;
+		size_t _max_size;
 	};
 }
-

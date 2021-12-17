@@ -15,6 +15,9 @@ Release_ptr DiscogsInterface::get_release(const pfc::string8 &release_id, bool b
 			add_release_to_cache(release);
 		}
 	}
+	//else {
+	//	int debug = 0;
+	//}
 	return release;
 }
 
@@ -184,6 +187,7 @@ pfc::array_t<JSONParser_ptr> DiscogsInterface::get_all_pages(pfc::string8 &url, 
 	params << "per_page=100";
 	size_t page = 1;
 	size_t last;
+
 	do {
 		pfc::string8 page_params;
 		page_params << params;
@@ -399,26 +403,26 @@ pfc::array_t<pfc::string8> DiscogsInterface::get_collection(threaded_process_sta
 	return collection;
 }
 
-pfc::array_t<pfc::string8> DiscogsInterface::load_profile(threaded_process_status& p_status, abort_callback& p_abort) {
-
-	pfc::string8 username = get_username(p_status, p_abort);
-
-	try {
-		pfc::string8 json;
-		pfc::string8 url;
-		url << "https://api.discogs.com/users/" << username;
-		fetcher->fetch_html(url, "", json, p_abort);
-		JSONParser jp(json);
-
-		Profile i;
-		parseProfile(jp.root, &i);
-		
-	}
-	catch (network_exception&) {
-		throw;
-	}
-	return collection;
-}
+//pfc::array_t<pfc::string8> DiscogsInterface::load_profile(threaded_process_status& p_status, abort_callback& p_abort) {
+//
+//	pfc::string8 username = get_username(p_status, p_abort);
+//
+//	try {
+//		pfc::string8 json;
+//		pfc::string8 url;
+//		url << "https://api.discogs.com/users/" << username;
+//		fetcher->fetch_html(url, "", json, p_abort);
+//		JSONParser jp(json);
+//
+//		Profile i;
+//		parseProfile(jp.root, &i);
+//		
+//	}
+//	catch (network_exception&) {
+//		throw;
+//	}
+//	return collection;
+//}
 
 bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release, bool isArtist, size_t img_ndx, MemoryBlock& small_art,
 	threaded_process_status& p_status, abort_callback& p_abort) {
@@ -486,6 +490,7 @@ bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release, bool isArti
 			small_art.set_size(filesize);
 			size_t done = fread(small_art.get_ptr(), filesize, 1, fd);
 			bres = done;
+
 			fclose(fd);
 		}
 		catch (foo_discogs_exception& e) {
@@ -513,6 +518,7 @@ bool DiscogsInterface::delete_artist_cache(const pfc::string8& artist_id) {
 
 		std::filesystem::path fspath;
 		fspath = converted;
+
 		try {
 			std::filesystem::remove_all(fspath);
 		}

@@ -30,7 +30,7 @@ private:
 		return (ID == IDC_UI_LIST_DISCOGS ? dc_list : dc_files);
 	}
 
-	// IListControlOwnerDataSource methods
+	// IListControlOwnerDataSource
 	// LIBPPUI - Get Item Count
 
 	size_t listGetItemCount(ctx_t ctx) override {
@@ -117,7 +117,7 @@ private:
 		//m_list.TableEdit_Start(item, 1);
 	}
 	void listSubItemClicked(ctx_t, size_t item, size_t subItem) override {
-		//if (subItem == 1) {	m_list.TableEdit_Start(item, subItem); }
+		//if (subItem == 1) {m_list.TableEdit_Start(item, subItem); }
 	}
 	void listSetEditField(ctx_t ctx, size_t item, size_t subItem, const char* val) override {
 		//if (subItem == 1) {m_data[item].m_value = val; }
@@ -165,7 +165,7 @@ protected:
 public:
 
 	std::function<bool(HWND wndlist)>stdf_change_notifier =
-		//todo: revise, cross referenced credit tag mapping
+		//todo: revise, modded after cross referenced credit tag mapping
 		[this](HWND x) -> bool {
 		match_message_update();
 		return true; };
@@ -227,7 +227,9 @@ public:
 
 	void DlgResize_UpdateLayout(int cxWidth, int cyHeight) {
 		CDialogResize<CTrackMatchingDialog>::DlgResize_UpdateLayout(cxWidth, cyHeight);
-		//fix dlgresize
+
+		//omitted by dlgresize...
+
 		if (!::IsWindowVisible(uGetDlgItem(IDC_UI_LIST_DISCOGS))) return;
 
 		CRect rc_dcList;
@@ -244,7 +246,7 @@ public:
 	}
 
 	CTrackMatchingDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags = false) : 
-		m_tag_writer(tag_writer), use_update_tags(use_update_tags),	m_list_drop_handler(),
+		m_tag_writer(tag_writer), use_update_tags(use_update_tags), m_list_drop_handler(),
 		m_conf(CONF), m_coord(p_parent, CONF),
 		m_idc_list(this), m_ifile_list(this) 
 	{
@@ -283,6 +285,10 @@ public:
 			nmhdr.idFrom = id;
 			OnListRClick(&nmhdr);
 		}
+		else {
+		    // 
+		}
+
 		return;
 	};
 

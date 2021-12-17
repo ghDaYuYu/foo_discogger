@@ -185,7 +185,7 @@ public:
 			p_displayflags = g_discogs->tag_mappings_dialog ? FLAG_GRAYED : 0;
 			break;
 		case Configuration:
-			p_displayflags = 0;
+			p_displayflags = /*g_discogs->configuration_dialog ? FLAG_GRAYED :*/ 0;
 			break;
 		}
 		return true;

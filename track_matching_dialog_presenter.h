@@ -86,7 +86,7 @@ public:
 
 public:
 
-	presenter(coord_presenters* coord, foo_discogs_conf conf) : presenter() {
+	presenter(coord_presenters* coord, foo_conf conf) : presenter() {
 
 		mm_hWnd = NULL;
 		m_conf = conf;
@@ -113,10 +113,8 @@ public:
 	}
 
 	~presenter() {
-		
-		//should be automatic...
-		//BOOL bres = ImageList_Destroy(m_lstimg);
-
+        //should be automatic...
+        //BOOL bres = ImageList_Destroy(m_lstimg);
 	}
 
 	void Load();
@@ -127,7 +125,7 @@ public:
 	bool IsTile();
 	bool RowHeigth() { return m_row_height; }
 
-	void Init(HWND hwndDlg, TagWriter_ptr tag_writer, foo_discogs_conf& conf, UINT ID);
+	void Init(HWND hwndDlg, TagWriter_ptr tag_writer, foo_conf& conf, UINT ID);
 	int listID() { return m_listID; }
 
 	HWND GetListView() { 
@@ -155,7 +153,7 @@ public:
 
   std::vector<pfc::string8>m_vtitles;
 
-	virtual void build_cfg_columns(foo_discogs_conf* m_conf = NULL) {};
+	virtual void build_cfg_columns(foo_conf* m_conf = NULL) {};
 
 protected:
 
@@ -182,7 +180,7 @@ protected:
 	HWND mm_hWnd;
 	bool m_loaded;
 
-	foo_discogs_conf& m_conf;
+	foo_conf& m_conf;
 	TagWriter_ptr m_tag_writer;
 	Release_ptr m_release;
 
@@ -200,7 +198,7 @@ class track_presenter : public presenter {
 
 public:
 
-	track_presenter(coord_presenters* coord, foo_discogs_conf conf) : m_ui_list(NULL), presenter(coord, conf) {
+	track_presenter(coord_presenters* coord, foo_conf conf) : m_ui_list(NULL), presenter(coord, conf) {
 	}
 
 	track_presenter() : m_ui_list(NULL) {}
@@ -244,7 +242,7 @@ class discogs_track_libui_presenter : public track_presenter {
 
 public:
 
-	discogs_track_libui_presenter(coord_presenters* coord, foo_discogs_conf conf) :
+	discogs_track_libui_presenter(coord_presenters* coord, foo_conf conf) :
 		track_presenter(coord, conf) {
 		m_vtracks = {};
 		m_lvtracks = {};
@@ -270,7 +268,7 @@ public:
 		std::vector<V>::iterator v_it;
 		v_it = m_lvtracks.begin();
 		std::advance(v_it, list_position);
-		out = v_it;
+		out = v_it; // position;
 		return std::distance(m_vtracks.begin(), std::get<0>(*v_it).second);
 	}
 
@@ -301,7 +299,7 @@ public:
 protected:
 
 	void define_columns() override;
-	void build_cfg_columns(foo_discogs_conf* out_conf) override;
+	void build_cfg_columns(foo_conf* out_conf) override;
 
 private:
 
@@ -314,7 +312,7 @@ class file_track_libui_presenter : public track_presenter {
 
 public:
 
-	file_track_libui_presenter(coord_presenters* coord, foo_discogs_conf conf) :
+	file_track_libui_presenter(coord_presenters* coord, foo_conf conf) :
 		track_presenter(coord, conf) {
 
 		m_ui_list = NULL;
@@ -367,7 +365,7 @@ public:
 protected:
 
 	void define_columns() override;
-	void build_cfg_columns(foo_discogs_conf* out_conf) override;
+	void build_cfg_columns(foo_conf* out_conf) override;
 
 private:
 
@@ -380,7 +378,7 @@ class artwork_presenter : public presenter {
 
 public:
 
-	artwork_presenter(coord_presenters* coord, foo_discogs_conf conf) :
+	artwork_presenter(coord_presenters* coord, foo_conf conf) :
 		presenter(coord, conf) {
 
 	}
@@ -422,6 +420,9 @@ protected:
 
 	std::pair<pfc::string8, pfc::string8> get_tag_writer_img_finfo(art_src src, size_t pos);
 
+private:
+
+
 };
 
 
@@ -429,7 +430,7 @@ class discogs_artwork_presenter : public artwork_presenter {
 
 public:
 
-	discogs_artwork_presenter(coord_presenters* coord, foo_discogs_conf conf) :
+	discogs_artwork_presenter(coord_presenters* coord, foo_conf conf) :
 		artwork_presenter(coord, conf) {
 
 		m_vimages = {};
@@ -494,7 +495,7 @@ protected:
 	void define_columns() override;
 	void update_list_width(bool initialize) override;
 	void display_columns() override;
-	void build_cfg_columns(foo_discogs_conf* out_conf) override;
+	void build_cfg_columns(foo_conf* out_conf) override;
 
 	art_src get_vimages_src_type_at_pos(size_t pos);
 	size_t get_ndx_at_pos(size_t pos);
@@ -514,7 +515,7 @@ class files_artwork_presenter : public artwork_presenter {
 
 public:
 
-	files_artwork_presenter(coord_presenters* coord, foo_discogs_conf conf) :
+	files_artwork_presenter(coord_presenters* coord, foo_conf conf) :
 		artwork_presenter(coord, conf) {
 
 		m_vimage_files = {};
@@ -581,6 +582,7 @@ public:
 
 	void GetExistingArtwork();
 	void Populate();
+	void Add_template(GUID template_guid, size_t template_size);
 	size_t AddFileArtwork(size_t img_ndx, art_src art_source,
 		std::pair<HBITMAP, HBITMAP> callback_mb, std::pair<pfc::string8, pfc::string8> temp_file_names);
 
@@ -590,7 +592,7 @@ protected:
 	void display_columns() override;
 	void update_list_width(bool initialize) override;
 
-	void build_cfg_columns(foo_discogs_conf* out_conf) override;
+	void build_cfg_columns(foo_conf* out_conf) override;
 
 	void update_img_defs(size_t img_ndx, size_t img_ids);
 
@@ -606,7 +608,7 @@ class coord_presenters {
 
 public:
 	
-	coord_presenters(HWND hparent, const foo_discogs_conf discogs_conf) :
+	coord_presenters(HWND hparent, const foo_conf discogs_conf) :
 
 		m_hWnd(hparent),
 		m_conf(discogs_conf),
@@ -633,13 +635,14 @@ public:
 
 	void populate_track_ui_mode();
 	void populate_artwork_mode(size_t select = 0);
+	bool template_artwork_mode(GUID template_guid, size_t template_size, size_t lv_pos, bool check_reqs);
 
   size_t GetTileMode() { return m_cImageTileMode; }
 	void SetTileMode(int mode) {}
 
 	void ListUserCmd(HWND hwnd, lsmode mode, int cmd, bit_array_bittable cmdmask, bit_array_bittable are_albums, bool cmdmod = false);
 
-	void PullConf(lsmode mode, bool tracks, foo_discogs_conf* out_conf);
+	void PullConf(lsmode mode, bool tracks, foo_conf* out_conf);
 
 	uartwork* GetUartwork() {
 		//return form_mode["artwork"]->first.GetUartwork();
@@ -703,7 +706,7 @@ public:
 	void SetTagWriter(TagWriter_ptr tag_writer);
 	TagWriter_ptr GetTagWriter() { return m_tag_writer; }
 
-	void Initialize(HWND hparent, const foo_discogs_conf* dcconf);
+	void Initialize(HWND hparent, const foo_conf* dcconf);
 	void SetMode(lsmode mode);
 	void Show(bool showleft = true, bool showright = true);
 
@@ -722,7 +725,7 @@ public:
 	bool show_file_artwork_preview(size_t image_ndx, art_src art_source, std::pair<HBITMAP, HBITMAP> callback_mb,
 		std::pair<pfc::string8, pfc::string8> temp_file_names);
 
-	foo_discogs_conf* cfgRef();
+	foo_conf* cfgRef();
 
 private:
 
@@ -752,7 +755,7 @@ private:
 	file_info_impl m_info;
 	playable_location_impl m_location;
 
-	foo_discogs_conf m_conf;
+	foo_conf m_conf;
 	
 };
 

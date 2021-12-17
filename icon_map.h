@@ -3,6 +3,17 @@
 enum class Icon
 {
 	Record
+	/*
+	Back,
+	Delete,
+	Filter,
+	Forward,
+	Help,
+	Properties,
+	Rename,
+	Search,
+	Undo,
+	*/
 };
 
 using IconMapping = std::unordered_map<Icon, std::map<int, UINT>>;

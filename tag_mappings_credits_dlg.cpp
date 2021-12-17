@@ -70,13 +70,12 @@ void CTagCreditDialog::pushcfg(bool force) {
 }
 
 inline void CTagCreditDialog::load_size() {
-    ;
+	//
 }
 
 inline bool CTagCreditDialog::build_current_cfg() {
-	bool bres = false;
 	//
-	return bres;
+	return false;
 }
 
 void CTagCreditDialog::updateTagCreditUI(HWND list, bool remake_list) {
@@ -156,7 +155,8 @@ void loadComboCreditUserDefinitions(HWND hparent, UINT id, vppair v, const char*
 	((void)SNDMSG(hwnd_cmb, WM_SETREDRAW, (WPARAM)(BOOL)(true), 0L));
 	RECT rc;
 	GetClientRect(hwnd_cmb, &rc);
-	RedrawWindow(hwnd_cmb, &rc, NULL, RDW_ERASENOW | RDW_INVALIDATE | RDW_ALLCHILDREN);
+	//::InvalidateRect(hparent, &rc, true);
+	RedrawWindow(hwnd_cmb, &rc, NULL, RDW_ERASENOW /*| RDW_VALIDATE*/ | RDW_INVALIDATE | RDW_ALLCHILDREN);
 }
 
 void loadComboHeadings(HWND hparent, UINT id, vppair v, const char* selectedItem, bool is_heading) {
@@ -278,12 +278,16 @@ LRESULT CTagCreditDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM 
 	cewb_highlight.SetEnterEscHandlers();
 
 	DlgResize_Init(mygripp.enabled, true);
+	//load_size();
 
 	cfg_window_placement_tag_mappings_credits_dlg.on_window_creation(m_hWnd, true);
 
 	show();
 
+	//on_mapping_changed(get_mapping_changed());
+
 	::uPostMessage(m_hWnd, WM_NEXTDLGCTL, (WPARAM)(HWND)GetDlgItem(IDC_APPLY), TRUE);
+
 	return FALSE;
 }
 
@@ -397,8 +401,8 @@ void CTagCreditDialog::cb_add_credit() {
 
 	track_mapping track;
 	track.enabled = true;
-	track.discogs_disc = 0;
-	track.discogs_track = 0;
+	track.discogs_disc = 0; //DECODE_DISCOGS_DISK(dindex);
+	track.discogs_track = 0;  //DECODE_DISCOGS_TRACK(dindex);
 	track.file_index = 0;
 
 	m_tag_writer->track_mappings.append_single(track);
@@ -450,7 +454,7 @@ LRESULT CTagCreditDialog::OnBtnRemove(WORD /*wNotifyCode*/, WORD wID, HWND /*hWn
 	TemplateNameDialog dialog;
 	pfc::string8 oldselection = m_ctag.get_default_name(vdefs.size() + 1);
 	uGetDlgItemText(m_hWnd, IDC_TAG_CREDITS_CMB_DEFS, oldselection);
-	int oldselected_ndx = uSendDlgItemMessage(IDC_TAG_CREDITS_CMB_DEFS, CB_GETCURSEL, 0, 0);
+	size_t oldselected_ndx = uSendDlgItemMessage(IDC_TAG_CREDITS_CMB_DEFS, CB_GETCURSEL, 0, 0);
 	pfc::string8 title;
 	title << "Delete template \"" << oldselection << "\"";
 	if (IDYES == uMessageBox(m_hWnd, "Are you sure?", title,
@@ -723,6 +727,7 @@ LRESULT CTagCreditDialog::OnBtnRadioSource(WORD /*wNotifyCode*/, WORD wID, HWND 
 	}
 	m_ctag.rebuild_tag_name();
 	updateTagCreditUI(nullptr, false);
+
 	return FALSE;
 }
 

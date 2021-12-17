@@ -183,20 +183,8 @@ private:
 		return FALSE;
 	}
 
-	LRESULT OnReleaseTreeSelChanged(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
-		CTreeViewCtrl ctrl(p_treeview);
-		HTREEITEM hsel = ctrl.GetSelectedItem();
-
-		TVITEM pItemMaster = { 0 };
-		pItemMaster.mask = TVIF_PARAM;
-		pItemMaster.hItem = hsel;
-		TreeView_GetItem(p_treeview, &pItemMaster);
-
-		m_selected = hsel;
-		return 0;
-	}
-
 	LRESULT OnDoubleClickRelease(int, LPNMHDR hdr, BOOL&) {
+
 		LPNMITEMACTIVATE nmListView = (LPNMITEMACTIVATE)hdr;
 		NMTVDISPINFO* pDispInfo = reinterpret_cast<NMTVDISPINFO*>(hdr);
 		TVITEMW* pItem = &(pDispInfo)->item;
@@ -276,9 +264,6 @@ private:
 			else
 				if (m_find_release_artist_p != NULL)
 					isArtistOffline = m_find_release_artist_p->loaded_releases_offline;
-
-			p = nmView->ptAction;
-			::ClientToScreen(hdr->hwndFrom, &p);
 		}
 		else if (isReleaseTree) {
 
@@ -295,7 +280,7 @@ private:
 				lparam = phit.lParam;
 				myparam = mounted_param(lparam);
 				if (tvhitinfo.flags & TVHT_ONITEM) {
-					//right click also selects
+					//right also selects
 					TreeView_SelectItem(p_treeview, hhit);
 				}
 			}
@@ -366,7 +351,7 @@ private:
 			{
 				pfc::string8 buffer;
 				if (isArtist) {
-					;
+					//
 				}
 				else {
 					if (myparam.is_release()) {
@@ -474,6 +459,7 @@ private:
 					g_discogs->find_release_artist_dialog->UpdateProfile(name, profile);
 
 					::SetFocus(g_discogs->find_release_artist_dialog->m_hWnd);
+					//::ShowWindow(g_discogs->find_release_artist_dialog->m_hWnd, SW_SHOW);
 				}
 				return true;
 			}

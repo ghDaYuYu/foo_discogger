@@ -558,6 +558,7 @@ bool string_encoded_array::_replace_exp(const string_encoded_array& find, const 
 	else if (with.m_depth != m_depth) {
 		array_param_too_deep(3);
 	}
+
 	std::regex regex_v;
 	try {
 		regex_v = std::regex(find.value);
@@ -603,6 +604,7 @@ bool string_encoded_array::_search_exp(const string_encoded_array& find) {
 		return false;
 	}
 	std::string str(value.toString());
+
 	try {
 		if (std::regex_search(str, match, regex_v))
 			value = "1";
@@ -1272,8 +1274,29 @@ pfc::string8 string_encoded_array::print_raw() const {
 
 bool string_encoded_array::has_diffs(string_encoded_array new_value) {
 	bool bres = false;
+
+	//TODO: maybe replace has_array() by get_width()...
+	//			check why sometimes m_depth is 0 instead of ~0
+
+	// CREDITS:
+	// fix crash comparing CREDITS sanitizing empty elements
+	// todo: should we fix it before while processing the titleformat output?
+	// ei: in release 2702206
+	// new DISCOGS_CREDIT_FEATURING can carry "\x1\x2Bone Thugs-N-Harmony\x2\x2\x2\x2\x2\x2\x2\x3"
+	// while old value is just "Bone Thugs-N-Harmony" (dim 0 vs dim 1 with empty elements)
 	
+	// URLS:
+	// new value comes as dim 1 "\x1https:xxx\x2https...\x3"
+	// old value is dim 0 so new value is limited and joined by print() before compare
+	
+	//FB2K_console_formatter1() << "has_diffs old-new:";
+	///*if (info.get_length() > 0)*/ FB2K_console_formatter() << "+" << print() << "+" << new_value.print() << "+";
+	
+	//const size_t new_count = new_value.get_citems().get_size();
+	//size_t dims = new_value.get_depth();
+
 	if (has_blank() == true && new_value.has_blank() == true)
+		//both blanks
 		return false;
 
 	if (has_array() && new_value.has_array()) {

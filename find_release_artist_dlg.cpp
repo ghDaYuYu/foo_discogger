@@ -32,6 +32,7 @@ LRESULT CFindReleaseArtistDialog::OnInitDialog(HWND hWnd, LPARAM lParam)
 	m_resize_helper.process_message(m_hWnd, WM_INITDIALOG, (WPARAM)hWnd, lParam);
 	m_resize_helper.add_sizegrip();
 	cfg_window_placement_find_release_artist_dlg.on_window_creation(m_hWnd, true);
+
 	ShowWindow(SW_SHOW);
 	return TRUE;
 }

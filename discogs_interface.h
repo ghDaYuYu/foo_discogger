@@ -27,23 +27,6 @@ public:
 	SkipMng() = default;
 	constexpr SkipMng(int flags) : value(flags) {}
 
-	constexpr bool canSkipReleaseDlgMatched() const {
-		bool precond = false;
-		return precond && (value & SKIP_RELEASE_DLG_MATCHED);
-	}
-	constexpr bool canSkipFindReleaseDlgIded() const {
-		bool precond = false;
-		return precond && (value & SKIP_FIND_RELEASE_DLG_IDED);
-	}
-	constexpr bool canSkipPreviewDlg() const {
-		bool precond = false;
-		return precond && (value & SKIP_PREVIEW_DLG);
-	}
-	constexpr bool canSkipLoadReleasesIded() const {
-		bool precond = false;
-		return precond && (value & SKIP_LOAD_RELEASES_TASK_IDED);
-	}
-
 private:
 	int value;
 };
@@ -187,6 +170,8 @@ public:
 	pfc::string8 get_username(threaded_process_status &p_status, abort_callback &p_abort);
 	pfc::string8 load_username(threaded_process_status &p_status, abort_callback &p_abort);
 	pfc::array_t<pfc::string8> get_collection(threaded_process_status &p_status, abort_callback &p_abort);
+
+	//pfc::array_t<pfc::string8> load_profile(threaded_process_status& p_status, abort_callback& p_abort);
 
 	bool delete_artist_cache(const pfc::string8& artist_id);
 };

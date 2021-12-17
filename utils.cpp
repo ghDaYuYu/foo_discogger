@@ -29,6 +29,8 @@ inline pfc::string8 trim(const pfc::string8 &str, const char *ch) {
 	return ltrim(rtrim(str, ch), ch);
 }
 
+// TODO: get rid std::string?
+
 inline pfc::string8 ltrim(const pfc::string8 &str, const char *ch) {
 	std::string dest((const char*)str);
 	dest.erase(0, dest.find_first_not_of(ch));
@@ -206,14 +208,6 @@ pfc::string8 substr(const pfc::string8 &s, size_t start, size_t count) {
 	return pfc::string8(s.get_ptr() + start, count);
 }
 
-void list_replace_text(HWND list, int pos, const char *text) {
-	pfc::stringcvt::string_os_from_utf8 textOS(text);
-	LV_ITEM lvi;
-	lvi.iItem = pos;
-	lvi.pszText = const_cast<TCHAR*>(textOS.get_ptr());
-	lvi.mask = LVIF_TEXT;
-	ListView_SetItem(list, &lvi);
-
 pfc::string8 extract_max_number(const pfc::string8& s) {
 
 	std::regex regex_v("[\\d]+"); //\s+www.[a-z0-9]+.[a-z]{2,3}\b
@@ -224,8 +218,8 @@ pfc::string8 extract_max_number(const pfc::string8& s) {
 	std::sregex_iterator end = std::sregex_iterator();
 
 	for (std::sregex_iterator i = begin; i != end; i++) {
-		std::string strval = i->str();
-		if (size_t ival = atoi(strval.c_str()); ival > max)
+		const char* strval = i->str().c_str();
+		if (size_t ival = atoi(strval); ival > max)
 			max = ival;
 	}
 	return max ? pfc::toString(max).c_str() : "";

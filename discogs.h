@@ -261,6 +261,8 @@ namespace Discogs
 			m["ROLES_RAW"] = { &ReleaseCredit::get_raw_roles, &ReleaseCredit::load };
 			m["ROLES"] = { &ReleaseCredit::get_roles, &ReleaseCredit::load };
 			m["SHORT_ROLES"] = { &ReleaseCredit::get_roles_short, &ReleaseCredit::load };
+			//todo: pending rest of implementation 
+			//m["CAT_ROLES"] = { &ReleaseCredit::get_cat_roles, &ReleaseCredit::load };
 			return m;
 		}
 
@@ -918,6 +920,8 @@ namespace Discogs
 			return discogs_total_discs;
 		}
 		string_encoded_array get_genres() const {
+			//TODO: recheck fix for 'write/update has changed' containing only element
+			//value in multivalue (ref. has_diffs)
 			return genres;
 		}
 		string_encoded_array get_styles() const {
@@ -934,7 +938,7 @@ namespace Discogs
 		}
 		string_encoded_array get_search_labels() const {
 			if (CONF.discard_numeric_suffix) {
-				// NOTE: this won't work if multiple labels
+				//todo: v2.23 NOTE: this won't work with multiple labels
 				pfc::string8 result = search_labels; 
 				result = remove_number_suffix(result);
 			}
@@ -979,6 +983,8 @@ namespace Discogs
 			m["SEARCH_FORMATS"] = { &Release::get_search_formats, &Release::load_preview };
 			m["SEARCH_LABELS"] = { &Release::get_search_labels, &Release::load_preview };
 			m["SEARCH_CATNOS"] = { &Release::get_search_catno, &Release::load_preview };
+			//todo: pending local db sql role names revision
+			//m["SEARCH_ROLE"] = { &Release::get_search_role, &Release::load_preview };
 			return m;
 		}
 
@@ -1021,6 +1027,8 @@ namespace Discogs
 	extern void parseIdentity(json_t *root, Identity *identity);
 	extern void parseCollection(json_t *root, pfc::array_t<pfc::string8> &collection);
 
+	//extern void parseProfile(json_t* root, Profile* profile);
+
 	extern void parseRelease(Release *release, json_t *root);
 	extern void parseReleaseRating(Release *release, json_t *root);
 	extern void parseMasterRelease(MasterRelease *master_release, json_t *root);
@@ -1056,3 +1064,6 @@ namespace Discogs
 		pfc::string8 heading = "", ReleaseTrack_ptr *index = nullptr,
 		HasArtists *has_artists = nullptr);
 	extern void parseReleaseTracks(json_t *element, HasTracklist *has_tracklist, HasArtists *has_artists);
+
+	//extern int get_track_count(json_t *element);
+}

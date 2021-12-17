@@ -57,6 +57,10 @@ public:
 		}
 	}
 
+	void SetHistoryHandlers(std::function<bool(HWND, wchar_t* wchart)> stdf_call_history) {
+		m_stdf_call_history = stdf_call_history;
+	}
+
 	void SetEnterEscHandlers() {
 
 		auto handler_onEnterKey = [this] {
@@ -64,6 +68,8 @@ public:
 		};
 
 		std::wstring clearValCopy(L"");
+		std::wstring histValCopy(L"");
+
 		auto handler_onEscKey = [this, clearValCopy] {
 			this->SetWindowText(clearValCopy.c_str());
 			return false;

@@ -266,8 +266,9 @@ public:
 	}
 
 	void RequestReorder(size_t const* order, size_t count) override {
-
+		// we've been asked to reorder the items, by either drag&drop or cursors+modifiers
 		PFC_ASSERT(count == GetItemCount());
+
 		if (order[footerRow()] != footerRow()) return;
 
 		pfc::reorder_t(m_data, order, count);
@@ -282,10 +283,12 @@ public:
 	}
 
 	void RequestRemoveSelection() override {
+		// Delete key etc
 		RemoveMask(GetSelectionMask());
 	}
 
 	void ExecuteDefaultAction(t_size index) override {
+		//custom default action toggles item checkbox
 		CRect chkrc = GetSubItemRect(index, 0);
 		OnSubItemClicked(index, 0, CPoint(chkrc.CenterPoint()));
 	}
@@ -335,6 +338,8 @@ public:
 	}
 
 	cellType_t GetCellType(size_t item, size_t subItem) const override {
+		// cellType_t is a pointer to a cell class object supplying cell behavior specification & rendering methods
+		// use PFC_SINGLETON to provide static instances of used cells
 		if (item == footerRow()) {
 			if (subItem == 0) {
 				return &PFC_SINGLETON(CListCell_Button);
@@ -422,14 +427,19 @@ public:
 	}
 
 	void OnContextMenu(CWindow wnd, CPoint point) {
+		// did we get a (-1,-1) point due to context menu key rather than right click?
+		// GetContextMenuPoint fixes that, returning a proper point at which the menu should be shown
 		point = this->GetContextMenuPoint(point);
 
 		CMenu menu;
+		// WIN32_OP_D() : debug build only return value check
+		// Used to check for obscure errors in debug builds, does nothing (ignores errors) in release build
 		WIN32_OP_D(menu.CreatePopupMenu());
 
 		enum { ID_REMOVE = 1, ID_DISABLE, ID_SELECTALL, ID_SELECTNONE, ID_INVERTSEL };
 		menu.AppendMenu(MF_STRING, ID_REMOVE, L"Remove");
 		menu.AppendMenu(MF_SEPARATOR);
+		// Note: Ctrl+A handled automatically by CListControl, no need for us to catch it
 		menu.AppendMenu(MF_STRING, ID_SELECTALL, L"Select all\tCtrl+A");
 		menu.AppendMenu(MF_STRING, ID_SELECTNONE, L"Select none");
 		menu.AppendMenu(MF_STRING, ID_INVERTSEL, L"Invert selection");
@@ -472,7 +482,9 @@ public:
 		{
 			auto mask = this->GetSelectionMask();
 			this->SetSelection(
+				// Items which we alter - all of them
 				pfc::bit_array_true(),
+				// Selection values - NOT'd original selection mask
 				pfc::bit_array_not(mask)
 			);
 		}
@@ -551,13 +563,19 @@ public:
 		return true;
 	}
 	t_size InsertIndexFromPointEx(const CPoint& pt, bool& bInside) const override {
+		// Drag&drop insertion point hook, for reordering only
 		auto ret = __super::InsertIndexFromPointEx(pt, bInside);
-		bInside = false;
-		if (ret > m_data.size()) ret = m_data.size();
+		bInside = false; // never drop *into* an item, only between, as we only allow reorder
+		if (ret > m_data.size()) ret = m_data.size(); // never allow drop beyond footer
 		return ret;
 	}
 	void RequestReorder(size_t const* order, size_t count) override {
+		// we've been asked to reorder the items, by either drag&drop or cursors+modifiers
+		// we can either reorder as requested, reorder partially if some of the items aren't moveable, or reject the request
+
 		PFC_ASSERT(count == GetItemCount());
+
+		// Footer row cannot be moved
 		if (footerRow() != pfc_infinite && order[footerRow()] != footerRow()) return;
 		pfc::reorder_t(m_data, order, count);
 		this->OnItemsReordered(order, count);
@@ -569,9 +587,11 @@ public:
 		this->OnItemsRemoved(mask, oldCount);
 	}
 	void RequestRemoveSelection() override {
+		// Delete key etc
 		RemoveMask(GetSelectionMask());
 	}
 	void ExecuteDefaultAction(t_size index) override {
+		// double click, enter key, etc
 		if (index == footerRow())
 			onFooterClicked();
 	}
@@ -616,6 +636,8 @@ public:
 		return 1;
 	}
 	cellType_t GetCellType(size_t item, size_t subItem) const override {
+		// cellType_t is a pointer to a cell class object supplying cell behavior specification & rendering methods
+		// use PFC_SINGLETON to provide static instances of used cells
 		if (item == footerRow()) {
 			if (subItem == 0) {
 				return &PFC_SINGLETON(CListCell_Button);
@@ -654,6 +676,8 @@ public:
 
 	uint32_t QueryDragDropTypes() const override { return dragDrop_reorder; }
 
+	// Inplace edit handlers
+	// Overrides of CTableEditHelperV2 methods
 	void TableEdit_SetField(t_size item, t_size subItem, const char* value) override {
 		if (subItem == 2) {
 			m_data[item].m_value = value;

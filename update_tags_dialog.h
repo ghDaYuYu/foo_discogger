@@ -10,7 +10,7 @@ private:
 	metadb_handle_list items;
 
 	bool conf_changed = false;
-	foo_discogs_conf conf;
+	foo_conf conf;
 
 public:
 	enum { IDD = IDD_DIALOG_UPDATE_TAGS };

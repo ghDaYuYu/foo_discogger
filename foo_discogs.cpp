@@ -85,14 +85,18 @@ foo_discogs::~foo_discogs() {
 	}
 	if (find_release_artist_dialog)
 		find_release_artist_dialog->DestroyWindow();
-
+	/*if (track_matching_dialog) {
+		track_matching_dialog->destroy();
+	}*/
 	if (tag_mappings_dialog) {
 		tag_mappings_dialog->destroy();
 	}
 	if (tag_credit_dialog) {
 		tag_credit_dialog->destroy();
 	}
-
+	//if (configuration_dialog) {
+	//	configuration_dialog->destroy();
+	//}
 	if (preview_tags_dialog) {
 		preview_tags_dialog->destroy();
 	}
@@ -285,6 +289,8 @@ void foo_discogs::save_album_art(Release_ptr &release, metadb_handle_ptr item,
 			bool cust_file = false;
 
 			if (my_album_art_ids.size() > i + offset) {
+				//GUID debug = my_album_art_ids[i + offset];
+
 				const char* art_id_name = album_art_ids::name_of(my_album_art_ids[i + offset]);
 				size_t postfix = 0;
 				if (art_id_name == nullptr) {
@@ -338,6 +344,7 @@ void foo_discogs::save_album_art(Release_ptr &release, metadb_handle_ptr item,
 			for (size_t i = 0; i < done_files.get_count(); i++) {
 				if (done_files[i].equals(path.get_ptr())) {
 					write_this = false;
+					//depri continue;
 				}
 			}
 			if (write_this) {
@@ -352,7 +359,6 @@ void foo_discogs::save_album_art(Release_ptr &release, metadb_handle_ptr item,
 		if (ada.to_path_only) {
 			continue;
 		}
-
 
 		MemoryBlock buffer;
 
@@ -590,9 +596,9 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, meta
 
 		if (vembed_it[i]) {
 
-			GUID art_id;
+			GUID guid_id;
 			if (my_album_art_ids.size() > i + album_offset) {
-				art_id = my_album_art_ids[i + album_offset];
+				guid_id = my_album_art_ids[i + album_offset];
 			}
 			
 			if (!buffer.get_count()) {
@@ -600,8 +606,7 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, meta
 				g_discogs->fetch_image(buffer, artist->images[i], p_abort);
 			}
 
-			if (art_id == album_art_ids::icon) {
-				
+			if (guid_id == album_art_ids::icon) {
 				MemoryBlock newbuffer = MemoryBlockToPngIcon(buffer);
 				g_discogs->embed_image(newbuffer, item, my_album_art_ids[i + album_offset] /*album_art_ids::artist*/, p_abort);
 			}

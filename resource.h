@@ -129,9 +129,17 @@
 #define IDC_STATIC_CONF_DB_NOTE         1072
 #define IDC_CMB_CONFIG_LIST_STYLE       1072
 #define IDC_SEARCH_BUTTON               1073
+#define IDC_UI_HISTORY_MAX_ITEMS        1073
 #define IDC_RELEASE_LIST                1074
+#define IDC_BTN_UI_CLEAR_HISTORY        1074
 #define IDC_BTN_OAUTH_TEST              1075
+#define IDC_CFG_UI_HISTORY_ENABLED      1075
 #define IDC_RELEASE_URL_TEXT            1076
+#define IDC_STATIC_SEPARATOR            1077
+#define IDC_EDIT_SEPARATOR              1078
+#define IDC_STATIC_HISTORY_GROUP        1079
+#define IDC_STATIC_CFG_TEXTBOX_GROUP    1080
+#define IDC_STATIC_CONF_HIST_SIZE       1081
 #define IDC_FILTER_EDIT                 1084
 #define IDC_FIND_ARTIST_PROFILE_EDIT    1085
 #define IDC_UPD_TAGS_REPLACE_ANV_CHECK  1087
@@ -235,9 +243,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        170
+#define _APS_NEXT_RESOURCE_VALUE        171
 #define _APS_NEXT_COMMAND_VALUE         1208
-#define _APS_NEXT_CONTROL_VALUE         1073
+#define _APS_NEXT_CONTROL_VALUE         1082
 #define _APS_NEXT_SYMED_VALUE           140
 #endif
 #endif

@@ -51,7 +51,7 @@ bool vfind(pfc::string8 str, std::vector<pfc::string8> v) {
 		//subcat equals to demanded subcat
 		return true;
 	}
-
+	//return is_number(str.get_ptr()) && std::find(v_tracks.begin(), v_tracks.end(), str) != v_tracks.end();
 	return false;
 }
 
@@ -98,7 +98,6 @@ pfc::string8 sanitize_track_commas(const pfc::string8& tracks) {
 	return res;
 }
 
-//todo: general revision, use pfc::array_t<pfc::string8> instead of vector v_one_track
 //todo: implement credits spanning multiple vinyls (A4 to C3)
 
 //test 1: credit tracks spanning multiple discs
@@ -110,13 +109,13 @@ pfc::string8 sanitize_track_commas(const pfc::string8& tracks) {
 //		engineer (+133) https://www.discogs.com/release/1131383-The-Cribs-Mens-Needs-Womens-Needs-Whatever
 //		Engineer: David Corcos (tracks: A1 to A6 B1 to B3, B5), Jim Keller (tracks: B4, B6)
 //
-//test 3: credit v_one_track format mismatch. discogs release tracks listed 1, 2, 3 - discogs credits A1 to A6...
+//test 3: credit track format mismatch. discogs release tracks listed 1, 2, 3 - discogs credits A1 to A6...
 //		https://www.discogs.com/release/6963878-The-Cribs-Mens-Needs-Womens-Needs-Whatever
 //
 //test 4: track notation incluing minus sign (LP-A1 to LP-B3) 
 //		https://www.discogs.com/release/2556904
 //
-//note:	func input tracks parameter is 1 based disk.v_one_track (1.1, 1.3, 2.1...) list, no ranges
+//note:	func input tracks parameter is 1 based disk.track (1.1, 1.3, 2.1...) list, no ranges
 //		serves release get_sub_data()
 
 pfc::string8 disc_tracks_to_range(const pfc::string8& tracks, Release* release, bool stdnames) {
@@ -126,6 +125,12 @@ pfc::string8 disc_tracks_to_range(const pfc::string8& tracks, Release* release, 
 	//split comma separated input tracks (1.1, 2.4...) -> {1.1, 2.4...}
 	std::vector<pfc::string8> v_tracks;
 	split(tracks, ",", 0, v_tracks);
+
+//#ifdef DEBUG	
+//	if (tracks.find_first("1.13", 0) != pfc_infinite) {		
+//		int debug = 1;
+//	}
+//#endif
 
 	std::vector <std::pair<pfc::string8, pfc::string8>> v_disk_tracks;
 	for (auto w : v_tracks) {
@@ -320,7 +325,7 @@ pfc::string8 credit_tag_nfo::parse_cat(pfc::string8 unparsed_cat, size_t level) 
 			pre_parsed_cat << (rightpart.get_length() ? "-" : "") << rightpart ;
 		}
 		else {
-			//remove non numbers if is not credit
+			//remove non numbers if not credit
 			if (walk_cat.has_prefix("+"))
 				pre_parsed_cat << (is_number(substr(walk_cat, 1, walk_cat.get_length() -1).c_str()) ? walk_cat : "");
 			else
@@ -390,7 +395,7 @@ void credit_tag_nfo::init(pfc::string8 tagname) {
 	//basic parse on group (src)
 	checked = STR_EQUAL(groupby, GROUP_BY_GXC) || STR_EQUAL(groupby, GROUP_BY_GXP);
 
-	//group (all, release, track) position in array
+	//group (all, release, v_one_track) position in array
 	checked = grp_array_position(src.get_ptr()) != pfc_infinite;
 
 

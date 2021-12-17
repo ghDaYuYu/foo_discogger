@@ -3,7 +3,6 @@
 #include "json_helpers.h"
 #include "entities.h"
 
-
 void assert_is_object(json_t *element) {
 	if (!json_is_object(element)) {
 		parser_exception ex;

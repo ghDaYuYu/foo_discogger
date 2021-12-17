@@ -53,7 +53,9 @@ string_encoded_array ExposedTags<T>::get_data(pfc::string8 &tag_name, threaded_p
 			auto load_func = std::bind(pair.second, ((T*)this), std::ref(p_status), std::ref(p_abort), false);
 			load_func();
 		}
+		
 		pfc::string8 out = x();
+
 		/*try {
 			out = x();
 		}

@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-	pfc::string8 duration_to_str(int seconds);
 	void list_swap_items(HWND list, unsigned int pos1, unsigned int pos2);
 	//Moves the selected items up one level
 	void move_selected_items_up(HWND list);

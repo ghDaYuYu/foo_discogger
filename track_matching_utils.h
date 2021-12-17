@@ -215,7 +215,7 @@ const struct uartwork {
 			ucfg_art_ovr == rhs.ucfg_art_ovr);
 	}
 
-	uartwork(new_conf conf) {
+	uartwork(CConf conf) {
 
 		*this = uartwork(
 			conf.embed_album_art,

@@ -138,89 +138,87 @@ public:
 		COMMAND_ID_HANDLER(IDC_VIEW_DEBUG, OnChangePreviewMode)
 		NOTIFY_HANDLER_EX(IDC_PREVIEW_LIST, NM_CLICK, OnListClick)
 		NOTIFY_HANDLER_EX(IDC_PREVIEW_LIST, LVN_KEYDOWN, OnListKeyDown)
-		NOTIFY_HANDLER_EX(IDC_PREVIEW_LIST, LVN_GETINFOTIP, OnListViewTFInfo)
 		MESSAGE_HANDLER_EX(MSG_EDIT, OnEdit)
 		NOTIFY_HANDLER(IDC_PREVIEW_LIST, NM_CUSTOMDRAW, OnCustomDraw)
 		CHAIN_MSG_MAP(CDialogResize<CPreviewTagsDialog>)
-		MY_END_MSG_MAP()
+	MY_END_MSG_MAP()
 #pragma warning(pop)
-		BEGIN_DLGRESIZE_MAP(CPreviewTagsDialog)
-			DLGRESIZE_CONTROL(IDC_ALBUM_ART, DLSZ_MOVE_X)
-			DLGRESIZE_CONTROL(IDC_OPTIONS_GROUP, DLSZ_MOVE_X)
-			DLGRESIZE_CONTROL(IDC_REPLACE_ANV_CHECK, DLSZ_MOVE_X)
-			DLGRESIZE_CONTROL(IDC_CHECK_PREV_DLG_SKIP_ARTWORK, DLSZ_MOVE_X)
-			DLGRESIZE_CONTROL(IDC_CHECK_PREV_DLG_SHOW_STATS, DLSZ_MOVE_X)
-			DLGRESIZE_CONTROL(IDC_VIEW_GROUP, DLSZ_MOVE_X)
-			DLGRESIZE_CONTROL(IDC_VIEW_NORMAL, DLSZ_MOVE_X)
-			DLGRESIZE_CONTROL(IDC_VIEW_DIFFERENCE, DLSZ_MOVE_X)
-			DLGRESIZE_CONTROL(IDC_VIEW_ORIGINAL, DLSZ_MOVE_X)
-			DLGRESIZE_CONTROL(IDC_VIEW_DEBUG, DLSZ_MOVE_X)
-			DLGRESIZE_CONTROL(IDC_EDIT_TAG_MAPPINGS_BUTTON, DLSZ_MOVE_Y)
-			DLGRESIZE_CONTROL(IDC_EDIT_TAGS_DIALOG_ATTACH_FLAG, DLSZ_MOVE_Y)
-			DLGRESIZE_CONTROL(IDC_BACK_BUTTON, DLSZ_MOVE_Y)
-			DLGRESIZE_CONTROL(IDC_WRITE_TAGS_BUTTON, DLSZ_MOVE_Y)
-			DLGRESIZE_CONTROL(IDCANCEL, DLSZ_MOVE_Y)
-			DLGRESIZE_CONTROL(IDC_SKIP_BUTTON, DLSZ_MOVE_Y)
-			DLGRESIZE_CONTROL(IDC_BACK_BUTTON, DLSZ_MOVE_X)
-			DLGRESIZE_CONTROL(IDC_WRITE_TAGS_BUTTON, DLSZ_MOVE_X)
-			DLGRESIZE_CONTROL(IDCANCEL, DLSZ_MOVE_X)
-			DLGRESIZE_CONTROL(IDC_SKIP_BUTTON, DLSZ_MOVE_X)
-			DLGRESIZE_CONTROL(IDC_PREVIEW_LIST, DLSZ_SIZE_X | DLSZ_SIZE_Y)
-		END_DLGRESIZE_MAP()
+	BEGIN_DLGRESIZE_MAP(CPreviewTagsDialog)
+		DLGRESIZE_CONTROL(IDC_ALBUM_ART, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_OPTIONS_GROUP, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_REPLACE_ANV_CHECK, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_CHECK_PREV_DLG_SKIP_ARTWORK, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_CHECK_PREV_DLG_SHOW_STATS, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_VIEW_GROUP, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_VIEW_NORMAL, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_VIEW_DIFFERENCE, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_VIEW_ORIGINAL, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_VIEW_DEBUG, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_EDIT_TAG_MAPPINGS_BUTTON, DLSZ_MOVE_Y)
+		DLGRESIZE_CONTROL(IDC_EDIT_TAGS_DIALOG_ATTACH_FLAG, DLSZ_MOVE_Y)
+		DLGRESIZE_CONTROL(IDC_BACK_BUTTON, DLSZ_MOVE_Y)
+		DLGRESIZE_CONTROL(IDC_WRITE_TAGS_BUTTON, DLSZ_MOVE_Y)
+		DLGRESIZE_CONTROL(IDCANCEL, DLSZ_MOVE_Y)
+		DLGRESIZE_CONTROL(IDC_SKIP_BUTTON, DLSZ_MOVE_Y)
+		DLGRESIZE_CONTROL(IDC_BACK_BUTTON, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_WRITE_TAGS_BUTTON, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDCANCEL, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_SKIP_BUTTON, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_PREVIEW_LIST, DLSZ_SIZE_X | DLSZ_SIZE_Y)
+	END_DLGRESIZE_MAP()
 
-		void DlgResize_UpdateLayout(int cxWidth, int cyHeight) {
-			CDialogResize<CPreviewTagsDialog>::DlgResize_UpdateLayout(cxWidth, cyHeight);
+	void DlgResize_UpdateLayout(int cxWidth, int cyHeight) {
+		CDialogResize<CPreviewTagsDialog>::DlgResize_UpdateLayout(cxWidth, cyHeight);
+	}
+
+	CPreviewTagsDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags)
+		: m_tag_writer(tag_writer), tag_results_list(NULL), use_update_tags(use_update_tags) {
+
+		g_discogs->preview_tags_dialog = this;
+
+		m_rec_icon = LoadDpiBitmapResource(Icon::Record);
+	}
+	CPreviewTagsDialog(HWND p_parent, pfc::array_t<TagWriter_ptr> tag_writers, bool use_update_tags)
+		: tag_writers(tag_writers), tag_results_list(NULL), use_update_tags(use_update_tags), multi_mode(true) {
+
+		g_discogs->preview_tags_dialog = this;
+		if (init_count()) {
+			CGdiPlusBitmapResource rec_image;
+			auto hInst = core_api::get_my_instance();
+			rec_image.Load(MAKEINTRESOURCE(IDB_PNG_REC_16), L"PNG", hInst);
+			Gdiplus::Status res_get = rec_image.m_pBitmap->GetHBITMAP(Gdiplus::Color(255, 255, 255)/*Color::Black*/, &m_rec_icon);
+			DeleteObject(rec_image);
 		}
-
-		CPreviewTagsDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags)
-			: m_tag_writer(tag_writer), tag_results_list(NULL), use_update_tags(use_update_tags) {
-
-			g_discogs->preview_tags_dialog = this;
-
-			m_rec_icon = LoadDpiBitmapResource(Icon::Record);
+		else {
+			finished_tag_writers();
+			destroy();
 		}
-		CPreviewTagsDialog(HWND p_parent, pfc::array_t<TagWriter_ptr> tag_writers, bool use_update_tags)
-			: tag_writers(tag_writers), tag_results_list(NULL), use_update_tags(use_update_tags), multi_mode(true) {
+	}
+	~CPreviewTagsDialog();
 
-			g_discogs->preview_tags_dialog = this;
-			if (init_count()) {
-				CGdiPlusBitmapResource rec_image;
-				auto hInst = core_api::get_my_instance();
-				rec_image.Load(MAKEINTRESOURCE(IDB_PNG_REC_16), L"PNG", hInst);
-				Gdiplus::Status res_get = rec_image.m_pBitmap->GetHBITMAP(Gdiplus::Color(255, 255, 255)/*Color::Black*/, &m_rec_icon);
-				DeleteObject(rec_image);
-				//Create(p_parent);
-			}
-			else {
-				finished_tag_writers();
-				destroy();
-			}
-		}
-		~CPreviewTagsDialog();
+	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+	LRESULT OnWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnMultiSkip(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnBack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnCheckReplaceANVs(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnCheckPreviewShowStats(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnCheckSkipArtwork(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnCheckAttachMappingPanel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnEditTagMappings(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnChangePreviewMode(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnListClick(LPNMHDR lParam);
+	LRESULT OnListKeyDown(LPNMHDR lParam);
+	LRESULT OnEdit(UINT uMsg, WPARAM wParam, LPARAM lParam);
+	LRESULT OnCustomDraw(int idCtrl, LPNMHDR pnmh, BOOL& bHandled);
 
-		LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
-		LRESULT OnWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-		LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
-		LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-		LRESULT OnMultiSkip(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-		LRESULT OnBack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-		LRESULT OnCheckReplaceANVs(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-		LRESULT OnCheckPreviewShowStats(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-		LRESULT OnCheckSkipArtwork(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-		LRESULT OnCheckAttachMappingPanel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-		LRESULT OnEditTagMappings(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-		LRESULT OnChangePreviewMode(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-		LRESULT OnListClick(LPNMHDR lParam);
-		LRESULT OnListKeyDown(LPNMHDR lParam);
-		LRESULT OnEdit(UINT uMsg, WPARAM wParam, LPARAM lParam);
-		LRESULT OnCustomDraw(int idCtrl, LPNMHDR pnmh, BOOL& bHandled);
-
-		void insert_tag_results(bool computestat);
-		void tag_mappings_updated();
-		void cb_generate_tags();
-		void enable(bool v) override { enable(v, true); };
-		void enable(bool v, bool change_focus);
-		bool check_write_tags_status();
-		void destroy_all();
-		void go_back();
+	void insert_tag_results(bool computestat);
+	void tag_mappings_updated();
+	void cb_generate_tags();
+	void enable(bool v) override { enable(v, true); };
+	void enable(bool v, bool change_focus);
+	bool check_write_tags_status();
+	void destroy_all();
+	void go_back();
 };

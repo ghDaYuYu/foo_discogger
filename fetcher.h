@@ -59,6 +59,19 @@ public:
 	http_429_exception() : http_exception(429, "Too Many Requests (429) [Discogs API rate-limit reached.]") {}
 };
 
+/*
+struct oauth_sign_header_info {
+	std::pair<pfc::string8, pfc::string8> oauth_consumer_kv;		    // = "XXXX",
+	std::pair<pfc::string8, pfc::string8> oauth_nonce_kv;				// = "aaaa72369a07cdcd1ceeae5d1373f70fd04d2f24",
+	std::pair<pfc::string8, pfc::string8> oauth_signature_kv;			// = "jijifYh273eQJoFAfaQlDag29q0%3D",
+	std::pair<pfc::string8, pfc::string8> oauth_signature_method_kv;	// = "HMAC-SHA1",
+	std::pair<pfc::string8, pfc::string8> oauth_timestamp_kv;			// = "1409069083",
+	std::pair<pfc::string8, pfc::string8> oauth_token_kv;				// = "XXXX",
+	std::pair<pfc::string8, pfc::string8> oauth_version_kv;				// = "1.0"
+	pfc::string8 formatted_header;
+	pfc::string8 url_param;					                            // url param, all of the above
+};
+*/
 
 class Fetcher
 {
@@ -123,12 +136,6 @@ public:
 				pfc::string8 &html,
 				abort_callback &p_abort,
 				bool use_oauth = true);
-
-	void fetch_html_pages(const pfc::string8& url,
-		const pfc::string8& params,
-		pfc::string8& html,
-		abort_callback& p_abort,
-		bool use_oauth = true, bool nosleep = false);
 	
 	void fetch_url(const pfc::string8 &url,
 				const pfc::string8 &params,
@@ -142,7 +149,7 @@ public:
 		pfc::string8& out,
 		abort_callback& p_abort,
 		bool throw_abort = true,
-		const pfc::string8& content_type = "application/xml,text/html");
+		const pfc::string8& content_type = "application/xml,text/html" /*, image / jpeg"*/);
 
 	// OAUTH STUFF
 	void set_oauth(const pfc::string8 &token, const pfc::string8 &token_secret);
@@ -153,5 +160,4 @@ public:
 	pfc::string8 oauth_sign_url_header(const pfc::string8& url, const pfc::string8& params);
 	pfc::string8 get_oauth_authorize_url(abort_callback &p_abort);
 	OAuth::Token * generate_oauth(pfc::string8 &code, abort_callback &p_abort);
-
 };

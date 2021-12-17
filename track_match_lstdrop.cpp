@@ -36,6 +36,7 @@ LRESULT MatchListDropHandler::OnCustomDraw(int wParam, LPNMHDR lParam, BOOL bHan
 		if (lplvcd->nmcd.dwItemSpec == count - 1) {
 			int h = lplvcd->nmcd.rc.bottom - lplvcd->nmcd.rc.top;
 			m_rcPastLastItem = CRect(CPoint(lplvcd->nmcd.rc.left, lplvcd->nmcd.rc.top + h), CPoint(lplvcd->nmcd.rc.right, lplvcd->nmcd.rc.bottom + h));
+			//m_rcPastLastItemSet = true;
 		}
 
 

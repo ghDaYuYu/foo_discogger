@@ -11,7 +11,7 @@ CUpdateTagsDialog::CUpdateTagsDialog(HWND p_parent, metadb_handle_list items) : 
 
 CUpdateTagsDialog::~CUpdateTagsDialog() {
 	if (conf_changed) {
-		CONF.save(new_conf::ConfFilter::CONF_FILTER_UPDATE_TAG, conf);
+		CONF.save(CConf::cfgFilter::UPDATE_TAG, conf);
 		CONF.load();
 	}
 	g_discogs->update_tags_dialog = nullptr;
@@ -63,7 +63,7 @@ LRESULT CUpdateTagsDialog::OnCheckReplaceANVs(WORD /*wNotifyCode*/, WORD wID, HW
 
 LRESULT CUpdateTagsDialog::OnEditTagMappings(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	if (!g_discogs->tag_mappings_dialog) {
-		g_discogs->tag_mappings_dialog = fb2k::newDialog<CNewTagMappingsDialog>(core_api::get_main_window());
+		g_discogs->tag_mappings_dialog = fb2k::newDialog<CTagMappingDialog>(core_api::get_main_window());
 	}
 	return FALSE;
 }

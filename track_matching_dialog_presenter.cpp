@@ -14,7 +14,7 @@ using namespace Gdiplus;
 //
 ///////////////////////////////////////////////
 
-void coord_presenters::Initialize(HWND hparent, const foo_discogs_conf* dlgconf) {
+void coord_presenters::Initialize(HWND hparent, const foo_conf* dlgconf) {
 
 	m_hWnd = hparent;
 	m_conf = *dlgconf;
@@ -48,7 +48,7 @@ void coord_presenters::SetTagWriter(TagWriter_ptr tag_writer) {
 	m_file_art_presenter.SetRelease(m_tag_writer_release);
 }
 
-foo_discogs_conf* coord_presenters::cfgRef() {
+foo_conf* coord_presenters::cfgRef() {
 
 	return &m_conf;
 }
@@ -179,17 +179,15 @@ void coord_presenters::ListUserCmd(HWND hwnd, lsmode mode, int cmd,
 	
 	presenter* pres = nullptr;
 	auto bin = form_mode[mode];
-	//for (auto fm : form_mode) {
-		if (bin->first.GetListView() == hwnd)
-			pres = &bin->first;
-		if (bin->second.GetListView() == hwnd)
-			pres = &bin->second;
-		if (!pres) return;
-	//}
+
+	if (bin->first.GetListView() == hwnd)
+		pres = &bin->first;
+	else if (bin->second.GetListView() == hwnd)
+		pres = &bin->second;
+	else return;
 
 	switch (cmd) {
 		case ID_REMOVE: {
-			
 			bool bcrop = cmdmod;
 			const size_t count = pres->GetDataLvSize();
 			const size_t cAlbumArt = m_tag_writer->release->images.get_count();
@@ -262,7 +260,7 @@ void coord_presenters::ShowFormMode(lsmode mode, bool showleft, bool showright /
 	pres_tracks = &form_mode[mode]->first;
 	pres_files = &form_mode[mode]->second;
 		
-	HWND hwndpres = pres_tracks->GetListView();
+	//HWND hwndpres = pres_tracks->GetListView();
 
 	if (mode == lsmode::tracks_ui) {
 		//insert track mapping
@@ -270,16 +268,17 @@ void coord_presenters::ShowFormMode(lsmode mode, bool showleft, bool showright /
 	}
 	else {
 		//insert artwork mapping
-		if (populate)	populate_artwork_mode(); 
+		if (populate)	populate_artwork_mode();
+
+		ListView_SetItemCount(pres_tracks->GetListView(), pres_tracks->GetDataLvSize());
+		ListView_SetItemCount(pres_files->GetListView(), pres_files->GetDataLvSize());
+
 	}		
 
 #ifdef DEBUG
 	int debugtracks = pres_tracks->GetDataLvSize();
 	int debugfiles = pres_files->GetDataLvSize();
 #endif
-
-	ListView_SetItemCount(pres_tracks->GetListView(), pres_tracks->GetDataLvSize());
-	ListView_SetItemCount(pres_files->GetListView(), pres_files->GetDataLvSize());
 
 }
 
@@ -337,17 +336,17 @@ void coord_presenters::swap_map_elements(HWND hwnd, const size_t key1, const siz
 void coord_presenters::reorder_map_elements(HWND hwnd, size_t const* order, size_t count, lsmode mode) {
 	presenter* pres = nullptr;
 	auto fm = form_mode[mode];
-	HWND debug = fm->first.GetListView();
+
 	if (fm->first.GetListView() == hwnd)
 		pres = &fm->first;
-	debug = fm->second.GetListView();
+
 	if (fm->second.GetListView() == hwnd)
 		pres = &fm->second;
 	
 	if (pres) pres->ReorderMapItem(order, count);
 }
 
-void coord_presenters::PullConf(lsmode mode, bool tracks, foo_discogs_conf* out_conf) {
+void coord_presenters::PullConf(lsmode mode, bool tracks, foo_conf* out_conf) {
 
 	PFC_ASSERT(/*mode == lsmode::tracks || */mode == lsmode::tracks_ui || mode == lsmode::art);
 
@@ -386,13 +385,13 @@ bool presenter::IsTile() {
 
 void presenter::set_lv_images_lists() {
 
-	if (!m_lstimg.m_hImageList) return;
+	//if (!m_lstimg.m_hImageList) return;
 	ListView_SetImageList(GetListView(), m_lstimg, LVSIL_NORMAL);
 	ListView_SetImageList(GetListView(), m_lstimg_small, LVSIL_SMALL);
 
 }
 
-void presenter::Init(HWND hDlg, TagWriter_ptr tag_writer, foo_discogs_conf& conf, UINT ID) {
+void presenter::Init(HWND hDlg, TagWriter_ptr tag_writer, foo_conf& conf, UINT ID) {
 
 	mm_hWnd = hDlg;
 	m_tag_writer = tag_writer;
@@ -433,7 +432,7 @@ void track_presenter::set_row_height(bool assign)
 
 		set_lv_images_lists();
 
-		//hack our way back to normal row heigth in detail view
+		//hack back to normal row heigth in detail view
 		ListView_SetView(GetListView(), LV_VIEW_LIST);
 		ListView_SetView(GetListView(), LV_VIEW_DETAILS);
 	}
@@ -496,9 +495,9 @@ void discogs_track_libui_presenter::define_columns() {
 	//track_presenter::define_columns();
 }
 
-void discogs_track_libui_presenter::build_cfg_columns(foo_discogs_conf* out_conf) {
+void discogs_track_libui_presenter::build_cfg_columns(foo_conf* out_conf) {
 
-	foo_discogs_conf* config = out_conf == nullptr ? &m_conf : out_conf;
+	foo_conf* config = out_conf == nullptr ? &m_conf : out_conf;
 
 	if (IsLoaded())	m_conf_col_woa = build_woas_libppui(m_ui_list);
 
@@ -553,9 +552,9 @@ void file_track_libui_presenter::define_columns() {
 	//track_presenter::define_columns();
 }
 
-void file_track_libui_presenter::build_cfg_columns(foo_discogs_conf* out_conf) {
+void file_track_libui_presenter::build_cfg_columns(foo_conf* out_conf) {
 
-	foo_discogs_conf* config = out_conf == nullptr ? &m_conf : out_conf;
+	foo_conf* config = out_conf == nullptr ? &m_conf : out_conf;
 
 	if (IsLoaded())	m_conf_col_woa = build_woas_libppui(m_ui_list);
 
@@ -608,7 +607,7 @@ void artwork_presenter::update_imagelist(size_t img_ndx, size_t max_img, std::pa
 		bnew_list = true;;
 	}
 
-	bool bupdate = img_ndx != pfc_infinite;
+	bool bupdate = img_ndx != pfc_infinite /*&& hRES.first != NULL && hRES.second != NULL*/;
 
 	if (!bupdate && !bnew_list) {
 		DeleteObject(hBmDefaultSmall);
@@ -869,6 +868,7 @@ void artwork_presenter::insert_columns() {
 	}
 
 	CHeaderCtrl header = ListView_GetHeader(GetListView());
+	//header.SetOrderArray(col_order.size(), &col_order[0]);
 
 	ListView_SetExtendedListViewStyle(GetListView(), m_dwHeaderStyle);
 
@@ -918,6 +918,11 @@ pfc::string8 artwork_presenter::get_tickit_label(af att, bool val) {
 	}
 }
 
+//void track_presenter::SetImageList() {
+//	CImageList dummy;
+//	//ListView_SetImageList(GetListView(), dummy, LVSIL_NORMAL);
+//	//ListView_SetImageList(GetListView(), dummy, LVSIL_SMALL);
+//};
 
 ///////////////////////////////////////////////
 //
@@ -961,7 +966,7 @@ size_t discogs_artwork_presenter::GetVRow(size_t list_position, var_it_t& out) {
 
 void discogs_artwork_presenter::define_columns() {
 
-	m_vtitles = { "", "Type", "Dim", "Save", "Overwrite", "Embed" };
+	m_vtitles = { "", "Type", "Dim", "Save", "Overwrite", "Embed", "#"};
 
 	m_conf_col_woa.clear();
 	m_conf_col_woa.push_back(m_conf.match_discogs_artwork_ra_width);
@@ -969,6 +974,7 @@ void discogs_artwork_presenter::define_columns() {
 	m_conf_col_woa.push_back(m_conf.match_discogs_artwork_dim_width);
 	m_conf_col_woa.push_back(m_conf.match_discogs_artwork_save_width);
 	m_conf_col_woa.push_back(m_conf.match_discogs_artwork_ovr_width);
+	m_conf_col_woa.push_back(m_conf.match_discogs_artwork_embed_width);
 	m_conf_col_woa.push_back(m_conf.match_discogs_artwork_embed_width);
 
 	m_dwHeaderStyle = LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | /*LVS_EX_SUBITEMIMAGES |*/ LVS_REPORT | LVS_OWNERDATA | LVS_ICON;
@@ -983,9 +989,9 @@ void discogs_artwork_presenter::define_columns() {
 
 }
 
-void discogs_artwork_presenter::build_cfg_columns(foo_discogs_conf* out_conf) {
+void discogs_artwork_presenter::build_cfg_columns(foo_conf* out_conf) {
 
-	foo_discogs_conf* config = out_conf == nullptr ? &m_conf : out_conf;
+	foo_conf* config = out_conf == nullptr ? &m_conf : out_conf;
 
 	if (IsLoaded())	m_conf_col_woa = build_woas(GetListView());
 
@@ -1017,15 +1023,16 @@ size_t files_artwork_presenter::get_icon_id(size_t iImageList) {
 }
 
 void files_artwork_presenter::AddRow(std::any imagefilerow) {
-	if (!m_vimage_files.size()) {
-		m_vimage_files.reserve(album_art_ids::num_types() /*   PFC_TABSIZE(ARTWORK_FILENAMES)*/);
-	}
 	ndx_image_file_info_row_t ndximginfo = std::any_cast<ndx_image_file_info_row_t>(imagefilerow);
-
+	const char* ccheck_art_ids = album_art_ids::name_of(ndximginfo.first.second);
+	bool bextend = false;
+	if (!m_vimage_files.size()) {
+		m_vimage_files.reserve(60);
+	}
 	m_vimage_files.push_back(ndximginfo);
 	getimages_file_it g_it = --m_vimage_files.end();
 
-	m_lvimage_files.emplace(m_lvimage_files.end(), std::pair<size_t, getimages_file_it>(m_lvimage_files.size(), g_it) /*pp*/);
+	m_lvimage_files.emplace(m_lvimage_files.end(), std::pair<size_t, getimages_file_it>(m_vimage_files.size()-1/*m_lvimage_files.size()*/, g_it) /*pp*/);
 }
 
 size_t files_artwork_presenter::GetVRow(size_t list_position, var_it_t& out) {
@@ -1038,10 +1045,11 @@ size_t files_artwork_presenter::GetVRow(size_t list_position, var_it_t& out) {
 
 void files_artwork_presenter::define_columns() {
 
-	m_vtitles = { "Cover Name", "Dim", "Size" };
+	m_vtitles = { "Cover Name", "Dim", "Size", "#"};
 	m_conf_col_woa.clear();
 	m_conf_col_woa.push_back(m_conf.match_file_artwork_name_width);
 	m_conf_col_woa.push_back(m_conf.match_file_artwork_dim_width);
+	m_conf_col_woa.push_back(m_conf.match_file_artwork_size_width);
 	m_conf_col_woa.push_back(m_conf.match_file_artwork_size_width);
 
 	m_dwHeaderStyle = LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | /*LVS_EX_SUBITEMIMAGES |*/ LVS_REPORT | LVS_OWNERDATA | LVS_ICON;
@@ -1055,9 +1063,9 @@ void files_artwork_presenter::define_columns() {
 	artwork_presenter::define_columns();
 }
 
-void files_artwork_presenter::build_cfg_columns(foo_discogs_conf* out_conf) {
+void files_artwork_presenter::build_cfg_columns(foo_conf* out_conf) {
 
-	foo_discogs_conf* config = out_conf == nullptr ? &m_conf : out_conf;
+	foo_conf* config = out_conf == nullptr ? &m_conf : out_conf;
 
 	if (IsLoaded())	m_conf_col_woa = build_woas(GetListView());
 
@@ -1139,10 +1147,8 @@ void files_artwork_presenter::GetExistingArtwork() {
 
 		pfc::string8 directory;
 		file_info_impl info;
-		fake_threaded_process_status f_status;
-		threaded_process_status kk;
-
 		threaded_process_status p_status;
+		
 		titleformat_hook_impl_multiformat hook(p_status, &m_release);
 		CONF.album_art_directory_string->run_hook(item->get_location(), &info, &hook, directory, nullptr);
 
@@ -1163,17 +1169,69 @@ void files_artwork_presenter::GetExistingArtwork() {
 	}
 }
 
-void files_artwork_presenter::Populate(/*Release_ptr release*/) {
+void files_artwork_presenter::Populate() {
 	
 	PFC_ASSERT(m_release->id.get_length());
 
 	ListView_DeleteAllItems(GetListView());
 	Reset();
-
+	//
 	GetExistingArtwork();
 	set_row_height(true);
-
+	//
 	set_lv_images_lists();
+}
+
+void files_artwork_presenter::Add_template(GUID template_guid, size_t template_size) {
+	
+	metadb_handle_ptr item = m_tag_writer->finfo_manager->get_item_handle(0);
+
+	for (size_t walk_append = 0; walk_append < template_size; walk_append++) {
+		std::pair<pfc::string8, pfc::string8> result;
+
+		pfc::string8 directory;
+		file_info_impl info;
+		fake_threaded_process_status f_status;
+		//threaded_process_status kk;
+
+		threaded_process_status p_status;
+		titleformat_hook_impl_multiformat hook(p_status, &m_release);
+		CONF.album_art_directory_string->run_hook(item->get_location(), &info, &hook, directory, nullptr);
+		
+		pfc::string8 tmpl_file_name = template_art_ids::name_of(template_guid);
+
+		if (walk_append)
+			tmpl_file_name << "_" << pfc::toString(walk_append).c_str();
+		tmpl_file_name << ".jpg";
+
+		result = ReadDimSizeFromFile(directory, tmpl_file_name);
+
+		//if (!STR_EQUAL(result.first, "") && !STR_EQUAL(result.second, "")) {
+
+		pfc::string8 full_path(directory); full_path << "\\" << tmpl_file_name;
+		char converted[MAX_PATH - 1];
+		pfc::stringcvt::string_os_from_utf8 cvt(full_path);
+		wcstombs(converted, cvt.get_ptr(), MAX_PATH - 1);
+
+		//imagefile info...
+		image_info_t image_info = { pfc::string8(converted), result.first, result.second };
+
+		//todo: debug if might be skipped
+		size_t tmpl_ndx = ~0;
+		for (size_t walk_tmpl = 0; walk_tmpl < template_art_ids::num_types(); walk_tmpl++) {
+			if (template_art_ids::query_type(walk_tmpl) == template_guid) {
+				tmpl_ndx = walk_tmpl;
+				break;
+			}
+		}
+		//
+
+		ndx_image_file_t ndx_image_file = std::pair<size_t, GUID>(tmpl_ndx, template_guid);
+		ndx_image_file_info_row_t ndximgfileinfo = std::pair(ndx_image_file, image_info);
+
+		AddRow(ndximgfileinfo);
+		//}
+	}
 }
 
 //returns album_art_id of artwork file, or pfc_infinite on indetermined
@@ -1181,6 +1239,9 @@ size_t files_artwork_presenter::AddFileArtwork(size_t img_ndx, art_src art_sourc
 	std::pair<HBITMAP, HBITMAP> callback_pair_memblock, std::pair<pfc::string8, pfc::string8> temp_file_names) {
 
 	size_t sz_res = pfc_infinite;
+
+	//todo: start artist artwork at pos 0 in param list
+	//(instead of continious count including album artwork)
 
 	size_t list_param_ndx = img_ndx;
 	//reorder disc and artist
@@ -1548,7 +1609,7 @@ bool discogs_artwork_presenter::AddArtwork(size_t img_ndx, art_src artSrc, Memor
 	cache_path_small << img_ndx << THUMB_EXTENSION;
 	cache_path_mini << img_ndx << THUMB_EXTENSION;
 
-	bool bcreated = Offline::CreateOfflinePath(id, artSrc, pfc_infinite, true);
+	bool bcreated = Offline::CreateOfflinePagesPath(id, artSrc, pfc_infinite, Offline::GetFrom::ArtistReleases, "", true);
 	std::pair<HBITMAP, HBITMAP> hRES = MemoryBlockToTmpBitmap(std::pair(cache_path_small,	cache_path_mini),
 		img_ndx, small_art);
 
@@ -1604,6 +1665,14 @@ art_src discogs_artwork_presenter::get_vimages_src_type_at_pos(size_t list_posit
 		std::pair<size_t, getimages_it> rowpair = std::get<2>(vv_it);
 		getimages_it src_img = rowpair.second;
 		ndx_image_t ndx_image = src_img->first;
+
+		/*
+		std::vector<V>::iterator v_it = m_lvimages.begin();
+		std::advance(v_it, list_position);
+		std::pair<size_t, getimages_it> lvrow = std::get<2>(*v_it);
+		ndx_image_t ndx_image = lvrow.second->first;
+		*/
+
 		size_t isource = ndx_image.first;
 
 		return (isource == 0 ? art_src::unknown : (art_src)isource);
@@ -1771,11 +1840,23 @@ void coord_presenters::populate_artwork_mode(size_t select) {
 		m_discogs_art_presenter.Populate();
 	if (select == 0 || select == 2)
 		m_file_art_presenter.Populate();
-
 }
 
 void coord_presenters::FileArtDeleteImageList(pfc::array_t<GUID> album_art_ids) {
 	
 	m_file_art_presenter.ImageListReset(album_art_ids);
 
+}
+
+bool coord_presenters::template_artwork_mode(GUID template_guid, size_t template_size, size_t lv_pos, bool check_reqs) {
+
+	if (check_reqs) {
+		//check available corresponding free row space for new elements
+		size_t lv_file_art_size = m_file_art_presenter.GetDataLvSize();
+		return lv_file_art_size <= lv_pos;
+	}
+	else {
+		m_file_art_presenter.Add_template(template_guid, template_size);
+		return false;
+	}
 }

@@ -115,6 +115,7 @@ struct id_tracer {
 
 	void id_tracer::artist_reset() {
 		artist_index = pfc_infinite;
+		//artist_lv_set = false;
 	}
 
 	void id_tracer::master_reset() {
@@ -175,7 +176,7 @@ struct id_tracer {
 
 struct row_col_data {
 	int id = -1;	//master id or release id
-	std::list<std::pair<int, pfc::string8>> col_data_list = {};
+	std::list<std::pair<int, pfc::string8>> col_data_list = {}; //column #, column content
 };
 
 #endif //ROW_COLUMN_DATA_H

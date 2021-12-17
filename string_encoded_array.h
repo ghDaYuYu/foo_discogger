@@ -110,6 +110,79 @@ public:
 	}
 
 	operator const char* () {
+
+		//bool bfound = false;
+		//int lfpos = pfc::string_find_first(value.toString(), R"(\n)", 0);
+		////if (std::string(value.c_str()).find("/n"/*R"(\n)"*/) != std::string::npos) {
+		////if (std::find_first_of(value.c_str(), "\n")) {
+		////}
+		//if (std::string(value.c_str()).find("Obi"/*R"(\n)"*/) != std::string::npos) {
+		//	
+		//	int pos = newline_offset(value.c_str());
+		//	//char* szBuf;
+		//	//szBuf = (char*)malloc(value.get_length());
+		//	//memcpy(szBuf, value.c_str(), value.get_length());
+		//	////strcpy_s(szBuf, value.get_length()* value.c_str()[0],value.c_str());
+		//	//char* thischar = &szBuf[0];
+		//	////char lf = '\n';
+		//	//char lf = '\0';
+		//	//t_size pos = 0;
+		//	//while (pos < value.get_length()) {
+		//	//	log_msg("bucle operator(): search for:" +  lf);
+		//	//	log_msg("pos:" + pos);
+		//	//	log_msg(pos);
+		//	//	log_msg("char:" + thischar[0]);
+		//	//	log_msg(thischar);
+		//	//	char kk = szBuf[pos];
+		//	//	//log_msg("skipping %s" + kk);
+		//	//	if (memcmp(thischar, &lf, 1)==0) {
+		//	//		bfound = true;
+		//	//		log_msg("FOUND");
+		//	//		break;
+		//	//	}
+		//	//	thischar++;
+		//	//	pos++;
+		//	//}
+		//	
+
+		//	//service_ptr_t<file> l_file;
+		//	//abort_callback_impl fileabort = abort_callback_impl();
+		//	//
+		//	//abort_callback_dummy noAbort;
+		//	//pfc::string8_fast tmp;
+		//	//uGetModuleFileName(core_api::get_my_instance(), tmp);
+		//	//std::filesystem::path fpath = std::filesystem::u8path(tmp.c_str()).remove_filename().lexically_normal();
+		//	//fpath.append("kkktest.txt");
+		//	////fpath.append("\\kkktest.txt");
+
+		//	////FILE *fl = foobar2000_io::filesystem::streamio_open(
+		//	////	fpath.generic_u8string().c_str(),  "wb+, CCS=UTF-8");
+		//	////wchar_t str[255];
+		//	////size_t  strSize;
+		//	////// Write a string into the file.
+		//	//////wcscpy_s(str, sizeof(str) / sizeof(wchar_t), L"<xmlTag>\n");
+		//	////wcscpy_s(str, sizeof(str) / sizeof(wchar_t), pfc::stringcvt::string_wide_from_utf8(value));
+		//	////strSize = wcslen(str);
+		//	////if (fwrite(str, sizeof(wchar_t), strSize, fl) != strSize)
+		//	////{
+		//	////	wprintf(L"fwrite failed!\n");
+		//	////}
+		//	////// Close the file.
+		//	////if (fclose(fl))
+		//	////{
+		//	////	wprintf(L"fclose failed!\n");
+		//	////}
+		//	//////output.open("test.txt", std::fstream::out);
+
+		//	////_setmode(fileno(stdout), O_BINARY);
+		//	//foobar2000_io::filesystem::g_open_write_new(l_file, fpath.generic_u8string().c_str(), noAbort);
+		//	////open(l_file, open_mode_write_new, p_abort);
+		//	//l_file->write(value, value.get_length(), noAbort);
+		//	//l_file.release();
+		//	//if (pos > 0 && pos < value.get_length())
+		//	//	;//value  << .set_string(std::regex_replace(value.get_ptr(), std::regex(R"(\r\n|\r|\n)"), R"(\r\n)").c_str());
+		//		//value  << (std::regex_replace(value.get_ptr(), std::regex(R"(\r\n|\r|\n)"), R"(\r\n)").c_str());
+		//}
 		if (dirty) {
 			encode();
 		}

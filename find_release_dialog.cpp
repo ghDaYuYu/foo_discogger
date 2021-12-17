@@ -138,9 +138,13 @@ LRESULT CFindReleaseDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /
 }
 
 LRESULT CFindReleaseDialog::OnOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+	
 	pfc::string8 release_id;
 	release_id = trim(uGetWindowText(m_release_url_edit).c_str());
-
+	
+	//note: Hyperlinks in Release Notes
+	//https://www.discogs.com/es/forum/thread/351858
+	
 	if (!is_number(release_id.get_ptr())) {
 		if (release_id.has_prefix("https://www.discogs.com/release/") ||
 			(release_id.has_prefix("[") && release_id.has_suffix("]")))
@@ -233,9 +237,11 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	cewb_release_url.SubclassWindow(m_release_url_edit);
 	SetEnterKeyOverride(conf.release_enter_key_override);
 
-	//HISTORY ----
+	//HISTORY ---
+	//todo: revision, read/ready/disabled
+	//todo: read only on init?
 
-	size_t enable = HIWORD(conf.history_max_items);
+	size_t enable = HIWORD(conf.history_max_items); //i.e. conf.history_enabled() 
 	size_t max_items = LOWORD(conf.history_max_items);
 	pfc::string8 max_param = PFC_string_formatter() << "+" << max_items;
 
@@ -270,6 +276,9 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	const char* filter = finfo.meta_get("ALBUM", 0);
 	m_results_filter = filter ? filter : "";
 
+	//const char* dbg = finfo.meta_get("TITLE", 0);
+	//todo: v2.23 TODO: make formatting strings out of these
+
 	const char* artist = finfo.meta_get("ARTIST", 0) ? finfo.meta_get("ARTIST", 0) : finfo.meta_get("ALBUM ARTIST", 0);
 
 	if (artist) {
@@ -279,14 +288,18 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 		}
 		else {
 			if (_idtracer.release && _idtracer.release_id != -1) {
+
+//#ifndef DEBUG
 				uSetWindowText(m_release_url_edit,
 					std::to_string(_idtracer.release_id).c_str());
+//#endif
 			}
 		}
 	}
 
 
 	DlgResize_Init(mygripp.enabled, true);
+	//load_size();
 
 	if (conf.find_release_filter_flag & FilterFlag::Versions) {
 		uButton_SetCheck(m_hWnd, IDC_CHK_FIND_RELEASE_FILTER_VERS, true);
@@ -620,17 +633,18 @@ pfc::string8 CFindReleaseDialog::run_hook_columns(row_col_data& row_data, int it
 
 	row_data.col_data_list.clear();
 
-	cfgcol walk_cfg = cfg_lv.colmap.at(vec_icol_subitems[0].first);
+    cfgcol walk_cfg = cfg_lv.colmap.at(vec_icol_subitems[0].first);
 
-	if (myparam.is_master()) {
-		CONF.search_master_format_string->run_hook(location, &info, hook.get(), search_formatted, nullptr);
+    if (myparam.is_master()) {
+        CONF.search_master_format_string->run_hook(location, &info, hook.get(), search_formatted, nullptr);
 
-		id << find_release_artist->master_releases[myparam.master_ndx]->id;
-	}
-	else {
+        id << find_release_artist->master_releases[myparam.master_ndx]->id;
+    }
+    else {
 
         if (myparam.is_release()) {
-            CONF.search_master_sub_format_string->run_hook(location, &info, hook.get(), search_formatted, nullptr);
+            CONF.search_master_sub_format_string->run_hook(location, &info, hook.get(), search_formatted, nullptr);           
+            //revision: hook->set_release(&(find_release_artist->master_releases[master_index]->sub_releases[subrelease]));
             pfc::string8 main_release_id = find_release_artist->master_releases[myparam.master_ndx]->main_release->id;
             pfc::string8 this_release_id = find_release_artist->master_releases[myparam.master_ndx]->sub_releases[myparam.release_ndx]->id;
             id << this_release_id;
@@ -638,6 +652,7 @@ pfc::string8 CFindReleaseDialog::run_hook_columns(row_col_data& row_data, int it
         else
         {
             CONF.search_release_format_string->run_hook(location, &info, hook.get(), search_formatted, nullptr);
+            //revision: hook->set_release(&(find_release_artist->releases[release_index]));
             id << find_release_artist->releases[myparam.release_ndx]->id;
         }
     }
@@ -931,6 +946,9 @@ void CFindReleaseDialog::update_releases(const pfc::string8& filter, updRelSrc u
 	init_tracker();
 	t_size the_artist = !find_release_artist ? pfc_infinite : atoi(find_release_artist->id);
 	t_size treeview_artist = m_release_ctree.GetTreeViewArtist();
+	
+	//bool artist_changed = m_release_list_artist_id != the_artist;
+	//todo: recycle m_vec !artist_changed?
 
 	bool artist_changed = true || treeview_artist != the_artist;
 	bool delete_on_enter = updsrc == updRelSrc::Artist || updsrc == updRelSrc::ArtistList || artist_changed;
@@ -958,7 +976,6 @@ void CFindReleaseDialog::update_releases(const pfc::string8& filter, updRelSrc u
 		else {
 			rebuild_tree_cache = false;
 		}
-
 	}
 
 	if (!find_release_artist) {
@@ -1334,7 +1351,11 @@ void CFindReleaseDialog::on_release_selected(int src_lparam) {
 			if (master_release->sub_releases.get_size()) {
 				abort_callback_dummy dummy;
 				fake_threaded_process_status fstatus;
+
 				on_expand_master_release_done(master_release, selection_index, fstatus, dummy);
+
+				//pfc::string8 id = get_param_id(myparam).get_ptr();
+				//uSetWindowText(release_url_edit, get_param_id(myparam).get_ptr());
 			}
 			else {
 				//spawn
@@ -1365,6 +1386,7 @@ LRESULT CFindReleaseDialog::ApplyFilter(pfc::string8 strFilter, bool force_redra
 	if (!find_release_artist) {
 		return false;
 	}
+
 	m_cache_find_release_ptr->_ver++;
 	
 	if (!force_rebuild && strFilter.get_length() == 0) {
@@ -1442,12 +1464,14 @@ LRESULT CFindReleaseDialog::ApplyFilter(pfc::string8 strFilter, bool force_redra
 							//parent match?
 							pfc::array_t<pfc::string> lcf_words;
 							bool filtered = tokenize_filter(strFilter, lcf_words);
+							//bool bmaster = find_release_artist->search_order_master[walk];
 							MasterRelease_ptr mr_p = find_release_artist->master_releases[master_ndx];
 							if (filtered) {
 								std::string str_role = std::string(mr_p->search_role);
 								bool matches_master = (!brolemain_filter || (str_role.find("Main") != str_role.npos)) && check_match(mr_p->title, strFilter, lcf_words);
 								if (!matches_master) {
 									int ival = 0;
+									//m_cache_find_release_ptr->SetCacheFlag(parent_it, NodeFlag::filterok, &ival);
 									m_cache_find_release_ptr->SetCacheFlag(it->first, NodeFlag::filterok, &ival);
 									continue;
 								}
@@ -1471,10 +1495,13 @@ LRESULT CFindReleaseDialog::ApplyFilter(pfc::string8 strFilter, bool force_redra
 						//VEC PUSH
 						m_vec_items_ptr->push_back(std::pair<cache_iterator_t, HTREEITEM>(parent_it, nullptr));
 
+						//int dbg_expanded = 1;
+
 						vec_iterator_t  master_row;
 						find_vec_by_id(*m_vec_items_ptr, master_id, master_row);
 
 					}
+
 					hook->set_master(&(find_release_artist->master_releases[myparam.master_ndx]));
 					hook->set_release(&(find_release_artist->master_releases[myparam.master_ndx]->sub_releases[myparam.release_ndx]));
 				}
@@ -1507,11 +1534,13 @@ LRESULT CFindReleaseDialog::ApplyFilter(pfc::string8 strFilter, bool force_redra
 			}
 			
 			TVINSERTSTRUCT tvis = { 0 };
+
 			tvis.item.pszText = LPSTR_TEXTCALLBACK;
 			tvis.item.iImage = I_IMAGECALLBACK;
 			tvis.item.iSelectedImage = I_IMAGECALLBACK;
 			tvis.item.cChildren = I_CHILDRENCALLBACK;
 			tvis.item.lParam = walk.first->first; /* whatever I need to identify this item and generate its contents later */;
+
 			tvis.hParent = TVI_ROOT; //pNMTreeView->itemNew.hItem;
 			tvis.hInsertAfter = TVI_LAST;
 
@@ -1669,9 +1698,13 @@ LRESULT CFindReleaseDialog::OnButtonConfigure(WORD /*wNotifyCode*/, WORD wID, HW
 }
 
 void CFindReleaseDialog::on_write_tags(const pfc::string8& release_id) {
+
+	//note: offline_artist_id is mem cache denormalization
+	//todo: v2.23 - TODO: PREPARE NEW FOLDER FOR TRACKS MISSING A VALID DISCOGS_ARTIST_ID
+
 	pfc::string8 assertArtistId = "";
 	pfc::string8 offlineArtistId = "";
-
+	//todo: revision, conf.skip == true, release_id != null, may both be empty?
 	if (find_release_artist)
 		assertArtistId = find_release_artist->id;
 	else
@@ -1680,7 +1713,8 @@ void CFindReleaseDialog::on_write_tags(const pfc::string8& release_id) {
 
 	if ((conf.skip_mng_flag & SkipMng::SKIP_FIND_RELEASE_DLG_IDED) && _idtracer.artist_id != pfc_infinite) {
 		offlineArtistId = pfc::toString(_idtracer.artist_id).get_ptr();
-
+		//assert user is loading a different release artist into the current release artist
+		//PFC_ASSERT(!assertArtistId.get_length() || atoi(assertArtistId) == _idtracer.artist_id);
 		if (assertArtistId.get_length() && atoi(assertArtistId) != _idtracer.artist_id) {
 			offlineArtistId = assertArtistId;
 			_idtracer.artist_reset(); _idtracer.master_reset();  _idtracer.release_reset();
@@ -1692,32 +1726,6 @@ void CFindReleaseDialog::on_write_tags(const pfc::string8& release_id) {
 
 	service_ptr_t<process_release_callback> task = new service_impl_t<process_release_callback>(this, release_id, offlineArtistId, "", items);
 	task->start(m_hWnd);
-}
-
-void CFindReleaseDialog::extract_id_from_url(pfc::string8& s) {
-	size_t pos = s.find_last('/');
-	if (pos != pfc::infinite_size) {
-		s = substr(s, pos + 1, s.get_length() - pos - 1);
-	}
-	pos = s.find_first('#');
-	if (pos != pfc::infinite_size) {
-		s = substr(s, 0, pos);
-	}
-	pos = s.find_first('-');
-	if (pos != pfc::infinite_size) {
-		s = substr(s, 0, pos);
-	}
-	pos = s.find_first('=');
-	if (pos != pfc::infinite_size) {
-		s = substr(s, pos + 1, s.get_length() - pos - 1);
-	}
-}
-
-void CFindReleaseDialog::extract_release_from_link(pfc::string8& s) {
-	size_t pos = s.find_first("[r");
-	if (pos == 0) {
-		s = substr(s, 2, s.get_length() - 3);
-	}
 }
 
 bool CFindReleaseDialog::set_node_expanded(t_size master_id, int& state, bool build) {
@@ -1762,18 +1770,27 @@ void CFindReleaseDialog::on_expand_master_release_done(const MasterRelease_ptr& 
 		}
 	}
 
+	//PFC_ASSERT(master_i != -1);
+
 	if (master_i == -1)
 		return; //do not expand artist selection changed
+
+	//HWND dbg_filter_edit = ::GetDlgItem(m_hWnd, IDC_FILTER_EDIT);
 
 	pfc::string8 filter;
 	uGetWindowText(m_filter_edit, filter);
 
-	int expanded = 1;
-	bool bnodeset = set_node_expanded(atoi(master_release->id), expanded, false);
+	/*TCHAR tstr[256];
+	SendMessage(m_filter_edit, WM_GETTEXT, 255, (LPARAM)tstr);
+	filter.set_string(pfc::stringcvt::string_utf8_from_wide(tstr, 256));*/
+	
+	int state_expanded = 1;
+	bool bnodeset = set_node_expanded(atoi(master_release->id), state_expanded, false);
 
 	if (bnodeset) {
-		expand_releases(filter, updRelSrc::Releases, master_i, list_index);
+		expand_releases(filter.c_str(), updRelSrc::Releases, master_i, list_index);
 
+		//todo: revision (0, ~0) to (master_i, ~0)
 		int ival = 1;
 		mounted_param mparam(master_i, ~0, true, false);
 		t_size lparam = mparam.lparam();
@@ -1849,10 +1866,11 @@ void CFindReleaseDialog::search_artist(bool skip_tracer, pfc::string8 artistname
 			::EnableWindow(uGetDlgItem(IDC_ONLY_EXACT_MATCHES_CHECK), false);
 		}
 		else {
-			return; //artist id not found
+			return; //url artist id not found
 		}
 	}
 
+	//todo: revision/use cfg var, skip search artist if present
 	bool cfg_skip_search_artist_if_present = true;
 	if (url_artist_id.get_length() || (cfg_skip_search_artist_if_present
 		&& !skip_tracer && _idtracer.artist && _idtracer.artist_id != pfc_infinite)) {

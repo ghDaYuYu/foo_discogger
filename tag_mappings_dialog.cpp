@@ -130,7 +130,7 @@ LRESULT CTagMappingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM
 	show();
 
 	on_mapping_changed(check_mapping_changed());
-	::uPostMessage(m_hWnd, WM_NEXTDLGCTL, (WPARAM)(HWND)GetDlgItem(IDAPPLY), TRUE);
+	::uPostMessage(m_hWnd, WM_NEXTDLGCTL, (WPARAM)(HWND)GetDlgItem(IDC_APPLY), TRUE);
 	return FALSE;
 }
 
@@ -141,7 +141,7 @@ void CTagMappingDialog::update_tag(int pos, const tag_mapping_entry *entry) {
 	on_mapping_changed(check_mapping_changed());
 }
 
-void CTagMappingDialog::update_list_width(bool initialize) {
+void CTagMappingDialog::update_list_width() {
 	CRect client_rectangle;
 	::GetClientRect(m_tag_list, &client_rectangle);
 
@@ -276,6 +276,7 @@ LRESULT CTagMappingDialog::OnExport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndC
 
 	pfc::string8 strFinalName(filename);
 	pfc::string8 tmpNoExt(pfc::string_filename(filename).get_ptr());
+	//check also extension without name
 	tmpNoExt.truncate(tmpNoExt.get_length() - pfc::string_extension(filename).length() + (pfc::string_extension(filename).length() ? 1 /*+1 dot ext length*/ : 0) );
 	if (!strFinalName.length() || !tmpNoExt.get_length()) {
 		return FALSE;
@@ -352,6 +353,7 @@ void CTagMappingDialog::update_freezer(bool enable_write, bool enable_update) {
 
 	for (size_t walk = 0; walk < m_ptag_mappings->get_count(); walk++) {
 		tag_mapping_entry& entry = (*m_ptag_mappings)[walk];
+
 		bool bupdate = false;
 		if (STR_EQUAL(TAG_RELEASE_ID, entry.tag_name.get_ptr())) {
 			entry.enable_write = enable_write;
@@ -477,8 +479,8 @@ void CTagMappingDialog::show_context_menu(CPoint& pt, pfc::bit_array_bittable& s
 			receiver.Set(ID_UPDATE, "Update tag.");
 			receiver.Set(ID_UPDATE_AND_WRITE, "Write and update tag.");
 			receiver.Set(ID_DISABLE, "Do not write or update tag.");
-            
-            cmd = menu.TrackPopupMenu(TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, pt.x, pt.y, receiver);
+
+			cmd = menu.TrackPopupMenu(TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, pt.x, pt.y, receiver);
 
 			bool bloop, bl_write, bl_update;
 			bloop = bl_write = bl_update = false;
@@ -491,6 +493,7 @@ void CTagMappingDialog::show_context_menu(CPoint& pt, pfc::bit_array_bittable& s
 					if (default_value.get_length()) {
 						entry.formatting_script = default_value;
 						update_tag(isel, &entry);
+						//refresh_item(selection);
 					}					
 				}
 				break;

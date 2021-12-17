@@ -140,7 +140,7 @@ private:
 				buffer = pfc::string8(text);
 			}
 			else if (subItem == 3) {
-				//hidden. assists highlighter
+				//hidden, assists highlighter
 				const char* text = entry->freeze_tag_name ? "freeze" : "";
 				buffer = pfc::string8(text);
 			}

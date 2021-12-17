@@ -28,16 +28,16 @@ public:
 		return (value & (/*DB_ENABLED |*/ DB_SEARCH &~ DB_ERROR)) == (/*DB_ENABLED |*/ DB_SEARCH &~ DB_ERROR);
 	}
 	constexpr bool WantArtwork() const {
-		return (value & (DB_DWN_ARTWORK));
+		return (value & DB_DWN_ARTWORK);
 	}
 	constexpr bool Search() const {
-		return (value & (DB_SEARCH));
+		return (value & DB_SEARCH);
 	}
 	constexpr bool SearchLike() const {
-		return (value & (DB_SEARCH_LIKE));
+		return (value & DB_SEARCH_LIKE);
 	}
 	constexpr bool SearchAnv() const {
-		return (value & (DB_SEARCH_ANV));
+		return (value & DB_SEARCH_ANV);
 	}
 	void SwitchFlag(int flag, bool enabled) {
 		if (enabled)

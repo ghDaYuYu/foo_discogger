@@ -127,7 +127,7 @@ bool CConf::load() {
 	//vspec v202 { &vec_specs, 28, 29, 14 };
 	//vspec v203 { &vec_specs, 28, 41, 14 };
 	vspec v204 { &vec_specs, 28, 42, 14 }; // 1.0.4
-	vspec v205 { &vec_specs, 24, 37, 15 }; // 1.0.6
+	vspec v205 { &vec_specs, 24, 38, 15 }; // 1.0.6
 
 	vspec* vlast = &vec_specs.at(vec_specs.size()-1);
 	vspec vLoad = { nullptr,
@@ -353,6 +353,9 @@ bool CConf::load() {
 			case CFG_LIST_STYLE:
 				list_style = item.value;
 				break;
+			case CFG_HISTORY_MAX_ITEMS:
+				history_max_items = item.value;
+				break;
 		}
 	}
 
@@ -415,6 +418,7 @@ bool CConf::load() {
 		cfg_int_entries.add_item(make_conf_entry(CFG_SKIP_MNG_FLAG, skip_mng_flag));
 
 		cfg_int_entries.add_item(make_conf_entry(CFG_LIST_STYLE, list_style));
+		cfg_int_entries.add_item(make_conf_entry(CFG_HISTORY_MAX_ITEMS, history_max_items));
 	}
 	//..
 
@@ -622,6 +626,8 @@ int CConf::id_to_val_int(int id, CConf in_conf) {
 			return in_conf.skip_mng_flag;
 		case CFG_LIST_STYLE:
 			return in_conf.list_style;
+		case CFG_HISTORY_MAX_ITEMS:
+			return in_conf.history_max_items;
 		//..
 	}
 	PFC_ASSERT(false);
@@ -888,6 +894,7 @@ void CConf::save() {
 	cfg_int_entries.add_item(make_conf_entry(CFG_FIND_RELEASE_FILTER_FLAG, find_release_filter_flag));
 	cfg_int_entries.add_item(make_conf_entry(CFG_SKIP_MNG_FLAG, skip_mng_flag));
 	cfg_int_entries.add_item(make_conf_entry(CFG_LIST_STYLE, list_style));
+	cfg_int_entries.add_item(make_conf_entry(CFG_HISTORY_MAX_ITEMS, history_max_items));
 	//..
 
 	cfg_string_entries.remove_all();
@@ -922,3 +929,6 @@ void CConf::save_active_config_tab(int newtab) {
 	}
 }
 
+bool CConf::history_enabled() {
+	return HIWORD(history_max_items);
+}

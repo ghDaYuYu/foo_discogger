@@ -99,11 +99,8 @@ void db_fetcher::fetch_search_artist(pfc::string8 artist_hint, const int db_dc_f
 				"	FROM artist a "
 				"	where a.name LIKE \"%Front 242%\" "
 
-
-				"or a.id IN (SELECT artist_id "
-				"	FROM artist_namevariation ann WHERE ann.name LIKE \"%Front 242%\")"
-
-				//"	where instr(a.name,\"Front 242\") > 0"
+				"OR a.id IN (SELECT artist_id "
+				"	FROM artist_namevariation anv WHERE anv.name LIKE \"%Front 242%\")"
 				"	ORDER BY a.id "
 				"	LIMIT 111 "
 				") "
@@ -113,16 +110,16 @@ void db_fetcher::fetch_search_artist(pfc::string8 artist_hint, const int db_dc_f
 
 			bool b_debug_replaced;
 
-			if (!DBFlags(db_dc_flags).SearchLike()) {
-				b_debug_replaced = query_artist.replace_string("LIKE \"%Front 242%\"", "= \"Front 242\"");
-				b_debug_replaced = query_artist.replace_string("Front 242", artist_hint);
-			}
-			else {
+			if (DBFlags(db_dc_flags).SearchLike()) {
 				pfc::string8 artist_hint_like = sqliteEscapeLIKE(artist_hint).get_ptr();		
 				b_debug_replaced = query_artist.replace_string("Front 242", artist_hint_like);
 			}
+			else {
+				b_debug_replaced = query_artist.replace_string("LIKE \"%Front 242%\"", "= \"Front 242\"");
+				b_debug_replaced = query_artist.replace_string("Front 242", artist_hint);
+			}
 
-			//query row limit
+			//climit
 			b_debug_replaced = query_artist.replace_string("111", pfc::toString(CLIMIT).get_ptr());
 
 #ifdef _DEBUG
@@ -141,6 +138,7 @@ void db_fetcher::fetch_search_artist(pfc::string8 artist_hint, const int db_dc_f
 
 			if (SQLITE_DONE != (ret = sqlite3_step(stmt_query))) // see documentation, this can return more values as success
 			{
+				//todo: step climit results
 				if (SQLITE_ROW == ret) {
 
 					const char* tmp_val = reinterpret_cast<const char*>(sqlite3_column_text(stmt_query, 0));
@@ -156,6 +154,10 @@ void db_fetcher::fetch_search_artist(pfc::string8 artist_hint, const int db_dc_f
 	}
 
 	if (NULL != stmt_query) sqlite3_finalize(stmt_query);
+	//todo: implement global engine initializer mng
+	//test closed by thread ~
+	//if (NULL != m_pDb) sqlite3_close(m_pDb);	
+	//if (m_lib_initialized) sqlite3_shutdown();
 
 	if (error_msg.get_length()) {
 		foo_discogs_exception ex;
@@ -273,7 +275,11 @@ pfc::array_t<JSONParser_ptr> db_fetcher::versions_get_all_pages(pfc::string8 & i
 	}
 
 	if (NULL != stmt_query) sqlite3_finalize(stmt_query);
-	
+	//todo: implement global engine initializer mng
+	//closed by thread ~
+	//if (NULL != m_pDb) sqlite3_close(m_pDb);
+	//if (m_lib_initialized) sqlite3_shutdown();
+
 	if (m_error_msg.get_length()) {
 		foo_discogs_exception ex;
 		ex << m_error_msg;
@@ -354,6 +360,7 @@ void db_fetcher::get_artist(pfc::string8& id, pfc::string8& html, abort_callback
 				m_error_msg << sqlite3_errmsg(m_pDb);
 				break;
 			}
+
 			p_status.set_item(msg);
 
 			if (SQLITE_DONE/*SQLITE_ROW*/ != (ret = sqlite3_step(stmt_query))) // see documentation, this can return more values as success
@@ -374,6 +381,12 @@ void db_fetcher::get_artist(pfc::string8& id, pfc::string8& html, abort_callback
 		} while (false);
 	}
 
+	if (NULL != stmt_query) sqlite3_finalize(stmt_query);
+    //todo: implement global engine initializer mng
+	//closed by thread ~
+	//if (NULL != m_pDb) sqlite3_close(m_pDb);
+	//if (m_lib_initialized) sqlite3_shutdown();
+
 	if (m_error_msg.get_length()) {
 		foo_discogs_exception ex;
 		ex << m_error_msg;
@@ -391,8 +404,10 @@ pfc::array_t<JSONParser_ptr> db_fetcher::releases_get_all_pages(pfc::string8& id
 	//https://api.discogs.com/artists/1234/releases
 	bool ok_db = true;
 	int ret = 0;
+
 	const size_t CLIMIT = 10;
 	pfc::string8 json;
+
 	sqlite3_stmt* stmt_query = nullptr;
 	
 	try {
@@ -565,34 +580,38 @@ pfc::array_t<JSONParser_ptr> db_fetcher::releases_get_all_pages(pfc::string8& id
 
 						if (tmp_val) {
 #ifdef _DEBUG
-                            log_msg(tmp_val);
+							log_msg(tmp_val);
 #endif
-                            JSONParser_ptr jp = pfc::rcnew_t<JSONParser>(tmp_val);
-                            results.append_single(std::move(jp));
-                        }
-                        else {
-                            break;
-                        }
+							JSONParser_ptr jp = pfc::rcnew_t<JSONParser>(tmp_val);
+							results.append_single(std::move(jp));
+						}
+						else {
+							break;
+						}
 
-                        ++page;
-                        ret = sqlite3_step(stmt_query);
-                    }
-                }
+						++page;
+						ret = sqlite3_step(stmt_query);
+					}
+				}
 
-            } while (false);
-        }
-    }
-    catch (...) {
-        m_error_msg << "Exception fetching release pages";
-    }
+			} while (false);
+		}
+	}
+	catch (...) {
+		m_error_msg << "Exception fetching release pages";
+	}
 
-    if (NULL != stmt_query) sqlite3_finalize(stmt_query);
+	if (NULL != stmt_query) sqlite3_finalize(stmt_query);
+	//todo: implement global engine initializer mng
+	//check closed by thread ~
+	//if (NULL != m_pDb) sqlite3_close(m_pDb);
+	//if (lib_initialized) sqlite3_shutdown();
 
-    if (m_error_msg.get_length()) {
-        foo_discogs_exception ex;
-        ex << m_error_msg;
-        throw ex;
-    }
+	if (m_error_msg.get_length()) {
+		foo_discogs_exception ex;
+		ex << m_error_msg;
+		throw ex;
+	}
 
 	return results;
 }
@@ -781,8 +800,10 @@ void db_fetcher::get_release(pfc::string8& id, pfc::string8& html, pfc::string8 
 	}
 
 	if (NULL != stmt_query) sqlite3_finalize(stmt_query);
-	if (NULL != m_pDb) sqlite3_close(m_pDb);
-	if (m_lib_initialized) sqlite3_shutdown();
+    //todo: implement global engine initializer mng
+	//check closed by thread ~
+	//if (NULL != m_pDb) sqlite3_close(m_pDb);
+	//if (m_lib_initialized) sqlite3_shutdown();
 
 	if (m_error_msg.get_length()) {
 		foo_discogs_exception ex;

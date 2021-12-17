@@ -28,7 +28,7 @@ public:
 	sqldb() {};
 	~sqldb() {
 		if (m_pDb) {
-			//should not be here...
+			//debug line, exec should not reach here...
 			sqlite3_close(m_pDb);
 		}
 	};

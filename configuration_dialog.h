@@ -192,8 +192,6 @@ public:
 	MY_END_MSG_MAP()
 	
 	CConfigurationDialog(preferences_page_callback::ptr callback) : m_callback(callback) {
-		album_art_dir_edit = nullptr;
-		album_art_file_edit = nullptr;
 		token_edit = nullptr;
 		secret_edit = nullptr;
 		oauth_msg = nullptr;

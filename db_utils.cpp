@@ -67,7 +67,7 @@ void sqldb::close() {
 	if (nullptr != m_query) m_ret = sqlite3_finalize(*m_query);
 	if (nullptr != m_pDb) {
 		bclosed = (m_ret |= sqlite3_close(m_pDb));
-		if (!m_ret) m_pDb = nullptr;
+		if (m_ret == SQLITE_OK) m_pDb = nullptr;
 	}
 	if (m_lib_initialized) m_ret |= sqlite3_shutdown();
 
@@ -150,7 +150,7 @@ bool sqldb::debug_sql_return(int ret, pfc::string8 op, pfc::string8 msg_subject,
 
 			if (SQLITE_CONSTRAINT == ret) {
 				
-				//do not treat dll.db constraints as errors for now
+				//todo: revise dll.db constraints
 				//msg << "Error in constraint rule ignored...";
 				//sqlite3_finalize(m_query);
 				//m_query = NULL;

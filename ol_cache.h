@@ -225,8 +225,8 @@ namespace Offline {
 
 	static bool is_data_avail(pfc::string8 id, pfc::string8 secid, GetFrom gfFrom, pfc::string8& out_relative_path) {
 		out_relative_path = GetOfflinePath(/*artist_id*/id, /*native*/ true, /*ol::GetFrom::Release*/gfFrom, /*release_id*/secid);
-		return (GetFS_IdFilePaths(id, gfFrom, secid).get_ptr() != nullptr) && CheckDownload(out_relative_path);
-	};
+		return (GetFS_IdFilePaths(id, gfFrom, secid).get_count()) && CheckDownload(out_relative_path);
+	}
 
 	bool static CreateOfflinePagesPath(pfc::string8 id, art_src artSrc, size_t subpage, GetFrom getFrom, pfc::string8 secid, bool thumbs = false) {
 

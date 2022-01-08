@@ -1428,7 +1428,7 @@ void Discogs::Artist::load(threaded_process_status &p_status, abort_callback &p_
 	//bool bdebug = (ol::GetFS_IdFilePaths(id, ol::GetFrom::Artist, "").get_ptr());
 	//bool bdebug2 = (ol::GetFS_IdFilePaths(id, ol::GetFrom::Artist, "").get_size());
 
-	bool offline_avail_data = (ol::GetFS_IdFilePaths(id, ol::GetFrom::Artist, "").get_ptr() != nullptr) && ol::CheckDownload(rel_path);
+	bool offline_avail_data = (ol::GetFS_IdFilePaths(id, ol::GetFrom::Artist, "").get_count()) && ol::CheckDownload(rel_path);
 	bool btransient = !(offline_can_read && offline_avail_data) || offline_can_overwrite;
 
 	btransient &= !db_isready;

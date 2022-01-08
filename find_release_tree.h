@@ -342,7 +342,8 @@ private:
 							url << "https://www.discogs.com/release/" << m_find_release_artist_p->releases[myparam.release_ndx]->id;
 						}
 				}
-				if (url != NULL)
+
+				if (url.get_length())
 					display_url(url);
 
 				return true;
@@ -366,7 +367,7 @@ private:
 							buffer << m_find_release_artist_p->releases[myparam.release_ndx]->title;
 						}
 				}
-				if (buffer != NULL) {
+				if (buffer.get_length()) {
 					ClipboardHelper::OpenScope scope;
 					scope.Open(core_api::get_main_window());
 					ClipboardHelper::SetString(buffer);
@@ -406,7 +407,7 @@ private:
 						utf_buffer << pfc::stringcvt::string_utf8_from_os(outBuffer).get_ptr();
 					}
 				}
-				if (utf_buffer != NULL) {
+				if (utf_buffer.get_length()) {
 					ClipboardHelper::OpenScope scope; scope.Open(core_api::get_main_window());
 					ClipboardHelper::SetString(utf_buffer);
 				}

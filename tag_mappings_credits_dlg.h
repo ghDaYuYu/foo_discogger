@@ -698,8 +698,8 @@ class TemplateNameDialog : private dialog_helper::dialog_modal {
 	BOOL on_message(UINT uMsg, WPARAM wParam, LPARAM /*lParam*/) final {
 		switch (uMsg) {
 		case WM_INITDIALOG:
-			if (value != nullptr) {
-				uSetDlgItemText(get_wnd(), IDC_EDIT_CAT_CREDIT_TMPL_NAME, value);
+			if (m_value.get_length()) {
+				uSetDlgItemText(get_wnd(), IDC_EDIT_CAT_CREDIT_TMPL_NAME, m_value);
 			}
 			SetFocus(uGetDlgItem(get_wnd(), IDC_EDIT_CAT_CREDIT_TMPL_NAME));
 			return 0;
@@ -713,7 +713,7 @@ class TemplateNameDialog : private dialog_helper::dialog_modal {
 				}
 			}
 			else if (HIWORD(wParam) == EN_CHANGE) {
-				uGetDlgItemText(get_wnd(), IDC_EDIT_CAT_CREDIT_TMPL_NAME, value);
+				uGetDlgItemText(get_wnd(), IDC_EDIT_CAT_CREDIT_TMPL_NAME, m_value);
 			}
 			return 0;
 		}
@@ -722,12 +722,12 @@ class TemplateNameDialog : private dialog_helper::dialog_modal {
 
 public:
 	int query(HWND parent, const char* defValue = "") {
-		value = defValue;
+		m_value = defValue;
 #pragma warning(suppress:4996)
 		return run(IDD_CONFIG_NAME, parent);  // NOLINT
 	}
 
-	pfc::string8 value;
+	pfc::string8 m_value;
 };
 
 //

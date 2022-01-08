@@ -432,14 +432,14 @@ LRESULT CTagCreditDialog::OnBtnRename(WORD /*wNotifyCode*/, WORD wID, HWND /*hWn
 	int oldselected_ndx = uSendDlgItemMessage(IDC_TAG_CREDITS_CMB_DEFS, CB_GETCURSEL, 0, 0);
 
 	if (dialog.query(m_hWnd, vdefs.at(oldselected_ndx).first.second)) {
-		dialog.value.skip_trailing_char(' ');
-		if (dialog.value.get_length()) {
+		dialog.m_value.skip_trailing_char(' ');
+		if (dialog.m_value.get_length()) {
 			auto existing = std::find_if(vdefs.begin(), vdefs.end(), [&](const rppair arow) {
-				return STR_EQUAL(arow.first.second, dialog.value.c_str()); });
+				return STR_EQUAL(arow.first.second, dialog.m_value.c_str()); });
 
 			if (existing == vdefs.end()) {
-				vdefs.at(oldselected_ndx).first.second = dialog.value;
-				loadComboCreditUserDefinitions(m_hWnd, IDC_TAG_CREDITS_CMB_DEFS, vdefs, dialog.value);
+				vdefs.at(oldselected_ndx).first.second = dialog.m_value;
+				loadComboCreditUserDefinitions(m_hWnd, IDC_TAG_CREDITS_CMB_DEFS, vdefs, dialog.m_value);
 			}
 			else {
 				//todo: template name already in use
@@ -490,15 +490,15 @@ LRESULT CTagCreditDialog::OnBtnDuplicate(WORD /*wNotifyCode*/, WORD wID, HWND /*
 	int oldselected_ndx = uSendDlgItemMessage(IDC_TAG_CREDITS_CMB_DEFS, CB_GETCURSEL, 0, 0);
 	
 	if (dialog.query(m_hWnd, oldselection)) {
-		dialog.value.skip_trailing_char(' ');
-		if (dialog.value.get_length()) {
+		dialog.m_value.skip_trailing_char(' ');
+		if (dialog.m_value.get_length()) {
 			auto existing = std::find_if(vdefs.begin(), vdefs.end(), [&](const rppair arow) {
-				return STR_EQUAL(arow.first.second, dialog.value.c_str()); });
+				return STR_EQUAL(arow.first.second, dialog.m_value.c_str()); });
 
 			if (existing == vdefs.end() &&
 				STR_EQUAL(vdefs.at(oldselected_ndx).first.second, oldselection.c_str())) {
 				auto row = vdefs.at(oldselected_ndx);
-				row.first.second = dialog.value;
+				row.first.second = dialog.m_value;
 				m_ctag.init(row.second.first);
 			
 				vdefs.emplace_back(row);
@@ -507,7 +507,7 @@ LRESULT CTagCreditDialog::OnBtnDuplicate(WORD /*wNotifyCode*/, WORD wID, HWND /*
 				bit_array_bittable selection_check_mask = m_credit_sel_list.InitCatInfo(&m_ctag, vcats, vsubcats);
 				m_credit_list.SetChecked(selection_check_mask);
 				updateTagCreditUI(nullptr, true);
-				loadComboCreditUserDefinitions(m_hWnd, IDC_TAG_CREDITS_CMB_DEFS, vdefs, dialog.value);
+				loadComboCreditUserDefinitions(m_hWnd, IDC_TAG_CREDITS_CMB_DEFS, vdefs, dialog.m_value);
 			}
 		}
 	}
@@ -520,15 +520,15 @@ LRESULT CTagCreditDialog::OnBtnAddNew(WORD /*wNotifyCode*/, WORD wID, HWND /*hWn
 	pfc::string8 oldselection = m_ctag.get_default_name(vdefs.size() + 1);
 	int oldselected_ndx = uSendDlgItemMessage(IDC_TAG_CREDITS_CMB_DEFS, CB_GETCURSEL, 0, 0);
 	if (dialog.query(m_hWnd, oldselection)) {
-		dialog.value.skip_trailing_char(' ');
-		if (dialog.value.get_length()) {
+		dialog.m_value.skip_trailing_char(' ');
+		if (dialog.m_value.get_length()) {
 			auto existing = std::find_if(vdefs.begin(), vdefs.end(), [&](const rppair arow) {
-				return STR_EQUAL(arow.first.second, dialog.value.c_str()); });
+				return STR_EQUAL(arow.first.second, dialog.m_value.c_str()); });
 
 			if (existing == vdefs.end()) {
 
 				pfc::string8 tag_name, tag_name_ff;
-				tag_name << dialog.value;
+				tag_name << dialog.m_value;
 				tag_name_ff << m_ctag.get_default_titleformat();
 				m_ctag.init(tag_name_ff);
 

@@ -89,7 +89,7 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 		m_last_fetch = time_now;
 
 		//log: average and last delta
-		msg_average << "Avg: " << pfc::toString(m_fetch_wait_rolling_avg).get_ptr();
+		msg_average << "Avg: " << std::to_string(m_fetch_wait_rolling_avg).c_str();
 		if (time_span != chrono::steady_clock::duration::zero()) {
 			msg_average << ", Lapse: ";
 			//double microsecs = time_span.count();

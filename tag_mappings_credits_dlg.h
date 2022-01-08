@@ -35,11 +35,11 @@ static std::vector<listData_t> makeListData(std::vector<rppair> dlg_credits) {
 		rec.credit_it = it;
 		LPARAM lparam = (LPARAM)atoi(it->first.first);
 		size_t tmpval = LOWORD(lparam);
-		rec.m_credit_id = tmpval ? pfc::toString(tmpval).c_str() : "";
+		rec.m_credit_id = tmpval ? std::to_string(tmpval).c_str() : "";
 		tmpval = HIWORD(lparam) / 100;
-		rec.m_key = tmpval ? pfc::toString(tmpval).c_str() : "";
+		rec.m_key = tmpval ? std::to_string(tmpval).c_str() : "";
 		tmpval = HIWORD(lparam) - ((HIWORD(lparam) / 100) * 100);
-		rec.m_subkey = tmpval ? pfc::toString(tmpval).c_str() : "";
+		rec.m_subkey = tmpval ? std::to_string(tmpval).c_str() : "";
 		std::vector<pfc::string8> split_credit_name_notes;
 		split(it->first.second, "|", 0, split_credit_name_notes);
 		rec.m_credit = split_credit_name_notes.at(0);
@@ -65,8 +65,8 @@ static std::vector<listData_t> makeSelListData(vppair dlg_vcredits, vppair dlg_v
 			auto credit_it = std::find_if(dlg_vcredits.begin(), dlg_vcredits.end(), [walk_elem, m_ctag](const rppair arow) {
 				pfc::string8 tmp = m_ctag->get_vsplit()[walk_elem];
 				if (tmp.has_prefix("+")) tmp = substr(tmp, 1, tmp.get_length() - 1);
-				pfc::string8 arow_subcat_id = pfc::toString(HIWORD(atoi(arow.first.first))).c_str();
-				pfc::string8 arow_cat_id = pfc::toString(LOWORD(atoi(arow.first.first))).c_str();
+				pfc::string8 arow_subcat_id = std::to_string(HIWORD(atoi(arow.first.first))).c_str();
+				pfc::string8 arow_cat_id = std::to_string(LOWORD(atoi(arow.first.first))).c_str();
 				return STR_EQUAL(arow_cat_id, tmp)/*atoi(arow.first.first) == atoi(tmp)*/;
 				});
 
@@ -74,9 +74,9 @@ static std::vector<listData_t> makeSelListData(vppair dlg_vcredits, vppair dlg_v
 				auto& rec = data[walk_elem];
 				rppair rpp_credit = *credit_it;
 				size_t catsubcat =HIWORD(atoi(rpp_credit.first.first));
-				pfc::string8 cat_id = pfc::toString(catsubcat / 100).c_str();
-				pfc::string8 subcat_id = pfc::toString(catsubcat - (catsubcat / 100 * 100)).c_str();
-				pfc::string8 credit_id = pfc::toString(LOWORD(atoi(rpp_credit.first.first))).c_str();
+				pfc::string8 cat_id = std::to_string(catsubcat / 100).c_str();
+				pfc::string8 subcat_id = std::to_string(catsubcat - (catsubcat / 100 * 100)).c_str();
+				pfc::string8 credit_id = std::to_string(LOWORD(atoi(rpp_credit.first.first))).c_str();
 				rec.credit_it = credit_it;
 				rec.m_credit_id = credit_id;
 				std::vector<pfc::string8> split_credit_name_notes;
@@ -87,7 +87,7 @@ static std::vector<listData_t> makeSelListData(vppair dlg_vcredits, vppair dlg_v
 					rec.m_key = cat_id;
 					auto row = dlg_vcats[atoi(cat_id) - 1]; //vector is zero based
 					rec.m_value = row.first.second;
-					rec.m_subkey = pfc::toString(subcat_id).c_str();
+					rec.m_subkey = subcat_id.c_str();
 					if (atoi(subcat_id)) {
 						row = dlg_vsubcats[atoi(subcat_id) - 1];
 						rec.m_subvalue = row.second.first;

@@ -144,12 +144,12 @@ pfc::string8 disc_tracks_to_range(const pfc::string8& tracks, Release* release, 
 			//new element {{}, {"2", "1"}}
 			v_disk_tracks.resize(media);
 			auto& disctrack = v_disk_tracks.at(media - 1);
-			disctrack = std::pair(pfc::toString(media).c_str(), v_one_track.at(1));
+			disctrack = std::pair(std::to_string(media).c_str(), v_one_track.at(1));
 		}
 		else {
 			//append track to v_disk_tracks element {{}, {"2", "1,4"}}
 			auto& disctrack = v_disk_tracks.at(media - 1);
-			pfc::string8 left = pfc::toString(media).c_str();
+			pfc::string8 left = std::to_string(media).c_str();
 			disctrack = std::pair(left, (PFC_string_formatter() << disctrack.second << "," << v_one_track.at(1)).c_str());
 		}
 	}

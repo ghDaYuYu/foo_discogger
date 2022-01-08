@@ -418,7 +418,7 @@ size_t db_fetcher_component::insert_parsed_credit_detail(sqldb* db, pfc::string8
 	query = "INSERT INTO parsed_credit_det (parsed_credit_id, credit_id, credit_spec, obs, val, subval) ";
 	query << "VALUES(";
 	query << inc_parsed_credit_id << ", ";
-	query << (credit_id == pfc_infinite ? "NULL" : pfc::toString(credit_id).get_ptr()) << ", ";
+	query << (credit_id == pfc_infinite ? "NULL" : std::to_string(credit_id).c_str()) << ", ";
 
 	query << (!credit_spec.get_length() ? "NULL" : (PFC_string_formatter() << db_slh_apos(credit_spec))) << ", ";
 
@@ -566,7 +566,7 @@ bool db_fetcher_component::update_db_def_credits(vppair& vdefs) {
 				&inc_id,
 				&err
 			);
-			walk_row.first.first = pfc::toString(inc_id).get_ptr();
+			walk_row.first.first = std::to_string(inc_id).c_str();
 		}
 	
 		if (SQLITE_OK != (ret = sqlite3_finalize(stmt_query))) {

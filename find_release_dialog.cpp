@@ -318,11 +318,11 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 
 	if (OAuthCheck(conf) || DBFlags(conf.db_dc_flag).IsReady() && DBFlags(conf.db_dc_flag).Search()) {
 		if ((conf.skip_mng_flag & SkipMng::SKIP_FIND_RELEASE_DLG_IDED) && _idtracer.release) {
-			on_write_tags(pfc::toString(_idtracer.release_id).c_str());
+			on_write_tags(std::to_string(_idtracer.release_id).c_str());
 		}
 		else {
 			if (_idtracer.release && _idtracer.release_id != pfc_infinite)
-				uSetWindowText(m_release_url_edit, pfc::toString(_idtracer.release_id).c_str());
+				uSetWindowText(m_release_url_edit, std::to_string(_idtracer.release_id).c_str());
 
 			show();
 
@@ -1712,7 +1712,7 @@ void CFindReleaseDialog::on_write_tags(const pfc::string8& release_id) {
 			assertArtistId = find_release_artists[0]->id;
 
 	if ((conf.skip_mng_flag & SkipMng::SKIP_FIND_RELEASE_DLG_IDED) && _idtracer.artist_id != pfc_infinite) {
-		offlineArtistId = pfc::toString(_idtracer.artist_id).get_ptr();
+		offlineArtistId = std::to_string(_idtracer.artist_id).c_str();
 		//assert user is loading a different release artist into the current release artist
 		//PFC_ASSERT(!assertArtistId.get_length() || atoi(assertArtistId) == _idtracer.artist_id);
 		if (assertArtistId.get_length() && atoi(assertArtistId) != _idtracer.artist_id) {
@@ -1875,7 +1875,7 @@ void CFindReleaseDialog::search_artist(bool skip_tracer, pfc::string8 artistname
 	if (url_artist_id.get_length() || (cfg_skip_search_artist_if_present
 		&& !skip_tracer && _idtracer.artist && _idtracer.artist_id != pfc_infinite)) {
 
-		pfc::string8 artist_id = url_artist_id.get_length()? url_artist_id : pfc::toString(_idtracer.artist_id).get_ptr();
+		pfc::string8 artist_id = url_artist_id.get_length()? url_artist_id : std::to_string(_idtracer.artist_id).c_str();
 
 		if (artist_id.get_length()) {
 			service_ptr_t<get_artist_process_callback> task =

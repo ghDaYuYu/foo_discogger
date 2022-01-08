@@ -687,7 +687,7 @@ LRESULT CTagMappingDialog::OnSplitDropDown(LPNMHDR lParam) {
 		int cmd = TrackPopupMenu(hSplitMenu, TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RETURNCMD, pt.x, pt.y, 0, m_hWnd, NULL);
 		DestroyMenu(hSplitMenu);
 		if (cmd) {
-			pfc::string8 strcmd = pfc::toString(cmd).get_ptr();
+			pfc::string8 strcmd = std::to_string(cmd).c_str();
 			strcmd = substr(strcmd, 1, 2);
 			cmd = atoi(strcmd);
 			PostMessage(MSG_ADD_NEW, cmd + 1, 0); //1 based to insert default tag by ndx (or ndx 0 to add new item)

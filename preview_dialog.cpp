@@ -516,10 +516,10 @@ void CPreviewTagsDialog::insert_tag_result(int pos, const tag_result_ptr &result
 	}
 	
 	if (cfg_preview_dialog_show_stats) {
-		listview_helper::set_item_text(tag_results_list, pos, 2, v_stats.size() > 0 ? pfc::toString(v_stats.at(pos).totalwrites).c_str() : "n/a");
-		listview_helper::set_item_text(tag_results_list, pos, 3, v_stats.size() > 0 ? pfc::toString(v_stats.at(pos).totalupdates).c_str() : "n/a");
-		listview_helper::set_item_text(tag_results_list, pos, 4, v_stats.size() > 0 ? pfc::toString(v_stats.at(pos).totalskips).c_str() : "n/a");
-		listview_helper::set_item_text(tag_results_list, pos, 5, v_stats.size() > 0 ? pfc::toString(v_stats.at(pos).totalequal).c_str() : "n/a");
+		listview_helper::set_item_text(tag_results_list, pos, 2, v_stats.size() > 0 ? std::to_string(v_stats.at(pos).totalwrites).c_str() : "n/a");
+		listview_helper::set_item_text(tag_results_list, pos, 3, v_stats.size() > 0 ? std::to_string(v_stats.at(pos).totalupdates).c_str() : "n/a");
+		listview_helper::set_item_text(tag_results_list, pos, 4, v_stats.size() > 0 ? std::to_string(v_stats.at(pos).totalskips).c_str() : "n/a");
+		listview_helper::set_item_text(tag_results_list, pos, 5, v_stats.size() > 0 ? std::to_string(v_stats.at(pos).totalequal).c_str() : "n/a");
 	}
 
 }

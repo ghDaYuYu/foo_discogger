@@ -1384,7 +1384,7 @@ LRESULT CTrackMatchingDialog::DiscogArtGetDispInfo(LPNMHDR lParam) {
 			}
 			//position
 			case 6: {
-				pfc::string8 str = pfc::toString(lvitem->iItem).get_ptr();
+				pfc::string8 str = std::to_string(lvitem->iItem).c_str();
 				TCHAR outBuffer[MAX_PATH + 1] = {};
 				pfc::stringcvt::convert_utf8_to_wide(outBuffer, MAX_PATH,
 					str.get_ptr(), str.get_length());
@@ -1483,7 +1483,7 @@ LRESULT CTrackMatchingDialog::DiscogArtGetDispInfo(LPNMHDR lParam) {
 			}
 			//position
 			case 3: {
-				pfc::string8 str = pfc::toString(lvitem->iItem).get_ptr();
+				pfc::string8 str = std::to_string(lvitem->iItem).c_str();
 				TCHAR outBuffer[MAX_PATH + 1] = {};
 				pfc::stringcvt::convert_utf8_to_wide(outBuffer, MAX_PATH,
 					str.get_ptr(), str.get_length());

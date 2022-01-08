@@ -124,7 +124,7 @@ bool sqldb::debug_sql_return(int ret, pfc::string8 op, pfc::string8 msg_subject,
 
 			if (SQLITE_OK != ret && SQLITE_ROW != ret)
 			{
-				out_msg << msg_subject << "(" << pfc::toString(top).get_ptr() << ") " << sqlite3_errmsg(m_pDb);
+				out_msg << msg_subject << "(" << std::to_string(top).c_str() << ") " << sqlite3_errmsg(m_pDb);
 #ifdef _DEBUG               
 				log_msg(out_msg);
 #endif					
@@ -137,7 +137,7 @@ bool sqldb::debug_sql_return(int ret, pfc::string8 op, pfc::string8 msg_subject,
 
 			if (SQLITE_DONE != ret)
 			{
-				out_msg << msg_subject << "(" << pfc::toString(top).get_ptr() << ") " << sqlite3_errmsg(m_pDb);
+				out_msg << msg_subject << "(" << std::to_string(top).c_str() << ") " << sqlite3_errmsg(m_pDb);
 #ifdef _DEBUG               
 				log_msg(out_msg);
 #endif					
@@ -160,7 +160,7 @@ bool sqldb::debug_sql_return(int ret, pfc::string8 op, pfc::string8 msg_subject,
 			else {
 				if (SQLITE_OK != ret && SQLITE_ROW != ret)
 				{
-					out_msg << msg_subject << "(" << pfc::toString(top).get_ptr() << ") " << sqlite3_errmsg(m_pDb);
+					out_msg << msg_subject << "(" << std::to_string(top).c_str() << ") " << sqlite3_errmsg(m_pDb);
 #ifdef _DEBUG               
 					log_msg(out_msg);
 #endif					

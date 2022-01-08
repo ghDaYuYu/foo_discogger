@@ -403,7 +403,7 @@ void CConfigurationDialog::init_art_dialog(HWND wnd) {
 void CConfigurationDialog::init_ui_dialog(HWND wnd) {
 	uButton_SetCheck(wnd, IDC_CFG_UI_HISTORY_ENABLED, HIWORD(conf.history_max_items));
 	size_t imax = LOWORD(conf.history_max_items);
-	uSetDlgItemText(wnd, IDC_UI_HISTORY_MAX_ITEMS, pfc::toString(imax).c_str());
+	uSetDlgItemText(wnd, IDC_UI_HISTORY_MAX_ITEMS, std::to_string(imax).c_str());
 	uButton_SetCheck(wnd, IDC_RELEASE_ENTER_KEY_OVR, conf.release_enter_key_override);	
 	InitComboRowStyle(wnd, IDC_CMB_CONFIG_LIST_STYLE, conf.list_style);
 }

@@ -22,7 +22,7 @@ LRESULT CFindReleaseTree::OnTreeGetInfo(WORD /*wNotifyCode*/, LPNMHDR hdr, BOOL&
 	if (cache_it != m_cache_ptr->cache.end()) {
 
 		row_col_data rcdata = cache_it->second.first;
-		release_id << pfc::toString(rcdata.id).c_str();
+		release_id << std::to_string(rcdata.id).c_str();
 		Release_ptr release = m_discogs_interface->get_release(release_id, false);
 
 		size_t cdiscs = release->discs.get_count();
@@ -50,7 +50,7 @@ LRESULT CFindReleaseTree::OnTreeGetInfo(WORD /*wNotifyCode*/, LPNMHDR hdr, BOOL&
         auto cit = m_cache_ptr->cache.find(lparam);
         auto row_data = cit->second.first.col_data_list.begin();
         pfc::string8 nodetext(row_data->second);
-        if (ctracks) nodetext << " [" << pfc::toString(ctracks).c_str()  << "]";
+        if (ctracks) nodetext << " [" << std::to_string(ctracks).c_str()  << "]";
         pfc::stringcvt::convert_utf8_to_wide(outBuffer, MAX_PATH,
             nodetext.get_ptr(), nodetext.get_length());
         _tcscpy_s(pItem->pszText, pItem->cchTextMax, const_cast<TCHAR*>(outBuffer));
@@ -224,7 +224,7 @@ t_size CFindReleaseTree::get_mem_cache_children_count(LPARAM lParam) {
 	if (find_it != m_vec_ptr->end()) {
 		cache_iterator_t cache_it = find_it->first;
 		row_col_data rcdata = cache_it->second.first;
-		release_id << pfc::toString(rcdata.id).c_str();
+		release_id << std::to_string(rcdata.id).c_str();
 		Release_ptr release = m_discogs_interface->get_release(release_id, false);
 		if (release->discs.get_count() > 0) {
 			int debug = 0;
@@ -258,7 +258,7 @@ LRESULT CFindReleaseTree::OnReleaseTreeSelChanged(int, LPNMHDR hdr, BOOL& bHandl
 		}
 		else {
 			int id = it->second.first.id;
-			strId = pfc::toString(id).c_str();
+			strId = std::to_string(id).c_str();
 		}
 
 		pfc::string8 release_url = strId;

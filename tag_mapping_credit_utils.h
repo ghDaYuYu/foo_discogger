@@ -112,7 +112,7 @@ public:
 	pfc::string8 get_default_name(size_t ndx) {
 		pfc::string8 def_str;
 		def_str << DEF_NAME_PREFIX;
-		def_str << pfc::toString(ndx).get_ptr();
+		def_str << std::to_string(ndx).c_str();
 		return def_str;
 	}
 

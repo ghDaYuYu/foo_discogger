@@ -218,11 +218,14 @@ pfc::string8 extract_max_number(const pfc::string8& s) {
 	std::sregex_iterator end = std::sregex_iterator();
 
 	for (std::sregex_iterator i = begin; i != end; i++) {
-		const char* strval = i->str().c_str();
-		if (size_t ival = atoi(strval); ival > max)
+		const std::string_view sv{
+			str.data() + i->position(),
+			i->str().length()
+		};
+		if (size_t ival = atoi(sv.data()); ival > max)
 			max = ival;
 	}
-	return max ? pfc::toString(max).c_str() : "";
+	return max ? std::to_string(max).c_str() : "";
 }
 
 pfc::string8 extract_musicbrainz_mib(const pfc::string8& s) {

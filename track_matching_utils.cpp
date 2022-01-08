@@ -622,7 +622,7 @@ std::pair<pfc::string8, pfc::string8> ReadDimSizeFromFile(pfc::string8 path, pfc
 	UINT w = local_bitmap.GetWidth();
 	UINT h = local_bitmap.GetHeight();
 
-	dims << pfc::toString(w).get_ptr() << "x" << pfc::toString(h).get_ptr();
+	dims << std::to_string(w).c_str() << "x" << std::to_string(h).c_str();
 
 	return std::pair(dims, size);
 }

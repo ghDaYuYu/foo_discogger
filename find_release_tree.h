@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include <atltypes.h>
 #include <windef.h>
-#include "../SDK/foobar2000.h"
+#include "resource.h"
 #include "libPPUI\clipboard.h"
 
 #include "discogs.h"

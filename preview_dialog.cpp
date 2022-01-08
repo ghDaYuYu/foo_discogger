@@ -1,5 +1,4 @@
 #include "stdafx.h"
-#include <CommCtrl.h>
 
 #include <GdiPlus.h>
 #pragma comment(lib, "gdiplus.lib")

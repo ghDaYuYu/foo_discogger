@@ -4,7 +4,6 @@
 #include <atlapp.h>
 #include <windef.h>
 
-#include "../SDK/foobar2000.h"
 #include "LibPPUI\PaintUtils.h"
 
 #include "track_matching_dialog_presenter.h"

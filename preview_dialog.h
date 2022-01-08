@@ -1,15 +1,9 @@
 #pragma once
-
-#include "../SDK/foobar2000.h"
-
+#include "resource.h"
 #include "icon_map.h"
 #include "CGdiPlusBitmap.h"
 #include "foo_discogs.h"
-#include "resource.h"
 #include "tag_writer.h"
-
-#ifndef PREVIEW_STATS_H
-#define PREVIEW_STATS_H
 
 struct preview_stats {
 	int totalwrites = 0;
@@ -19,8 +13,6 @@ struct preview_stats {
 	int totalskips = 0;
 	int totalequal = 0;
 };
-
-#endif //PREVIEW_STATS_H
 
 class CPreviewTagsDialog : public MyCDialogImpl<CPreviewTagsDialog>,
 	public CDialogResize<CPreviewTagsDialog>, public CMessageFilter,

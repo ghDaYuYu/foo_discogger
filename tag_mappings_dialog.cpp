@@ -1,6 +1,5 @@
 #include "stdafx.h"
 
-#include "resource.h"
 #include "tags.h"
 #include "db_fetcher_component.h"
 

@@ -1,10 +1,7 @@
 #pragma once
 
-#include "../SDK/foobar2000.h"
-
-#include <libPPUI/CListControlOwnerData.h>
-#include "libPPUI/PaintUtils.h"
-
+#include "../../libPPUI/PaintUtils.h"
+#include "../../libPPUI/CListControlOwnerData.h"
 #include "resource.h"
 #include "foo_discogs.h"
 #include "tags.h"

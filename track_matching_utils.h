@@ -1,12 +1,7 @@
 ﻿#pragma once
-#include "pfc/pfc.h"
-#include <CommCtrl.h>
-#include "libPPUI/CListControlOwnerData.h"
-# include "conf.h"
-
-#ifndef TRACKMATCHINGUTILS_H
-#define TRACKMATCHINGUTILS_H
-
+#include "conf.h"
+#include "utils.h"
+#include "../../libPPUI/CListControlOwnerData.h"
 
 namespace listview_helper {
 	unsigned insert_column(HWND p_listview, unsigned p_index, const char* p_name, unsigned p_width_dlu, int fmt);
@@ -252,4 +247,3 @@ std::pair<HBITMAP, HBITMAP> MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::
 std::pair<HBITMAP, HBITMAP> GenerateTmpBitmapsFromRealSize(pfc::string8 release_id, size_t pos, pfc::string8 source_full_path, std::pair<pfc::string8, pfc::string8> &temp_file_names);
 std::pair<pfc::string8, pfc::string8> ReadDimSizeFromFile(pfc::string8 path, pfc::string8 file_name);
 MemoryBlock MemoryBlockToPngIcon(MemoryBlock buffer);
-#endif

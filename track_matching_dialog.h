@@ -1,7 +1,6 @@
 #pragma once
 #include "resource.h"
 
-#include "../SDK/foobar2000.h"
 #include <libPPUI/CListControlOwnerData.h>
 
 #include "icon_map.h"

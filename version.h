@@ -1,5 +1,6 @@
 ﻿#pragma once
-#define COMPONENT_YEAR "2021"
+#define COMPONENT_NAME "foo_discogger"
+#define COMPONENT_YEAR "2022"
 #define COMPONENT_VERSION_MAJOR 1
 #define COMPONENT_VERSION_MINOR 0
 #define COMPONENT_VERSION_PATCH 6

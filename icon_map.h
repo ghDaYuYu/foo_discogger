@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "resource.h"
 
 enum class Icon
 {

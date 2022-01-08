@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "version.h"
+
 #include "fetcher.h"
 #include "exception.h"
 #include "utils.h"

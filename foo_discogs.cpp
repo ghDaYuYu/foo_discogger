@@ -10,7 +10,7 @@
 #include "preview_dialog.h"
 #include "tag_mappings_dialog.h"
 #include "tag_mappings_credits_dlg.h"
-#include "update_tags_dialog.h"
+
 #include "configuration_dialog.h"
 #include "find_release_dialog.h"
 

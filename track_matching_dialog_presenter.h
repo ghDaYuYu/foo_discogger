@@ -1,23 +1,12 @@
 ﻿#pragma once
+#include "resource.h"
 
-#include <vector>
 #include <variant>
 #include <any>
 
-#include "atlctrls.h"
-#include "pfc/pfc.h"
-#include "SDK/album_art.h"
-
-#include "libPPUI/listview_helper.h"
-#include "libPPUI/CListControlOwnerData.h"
-
 #include "multiformat.h"
-
 #include "track_matching_utils.h"
 #include "tag_writer.h"
-
-#include "resource.h"
-
 
 #define ENCODE_DISCOGS(d,t)		((d==-1||t==-1) ? -1 : ((d<<16)|t))
 #define DEF_TIME_COL_WIDTH 45  //96dpi

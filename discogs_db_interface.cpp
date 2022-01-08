@@ -1,5 +1,4 @@
 #include "stdafx.h"
-#include "version.h"
 
 #ifdef DB_DC
 

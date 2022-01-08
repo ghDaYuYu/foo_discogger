@@ -1,8 +1,7 @@
 #pragma once
 
-#include "foo_discogs.h"
 #include "resource.h"
-#include "file_info_manager.h"
+#include "foo_discogs.h"
 #include "multiformat.h"
 
 #include "ceditwithbuttonsdim.h"

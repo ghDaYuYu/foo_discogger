@@ -550,8 +550,6 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_SCROLL              ICON                    "..\\..\\libPPUI\\IDI_SCROLL.ico"
-
 IDI_STATIC_OAUTH_ICO_ERROR ICON                    "ico\\alert-32_red.ico"
 
 IDI_STATIC_OAUTH_ICO_OK ICON                    "ico\\check-32_green.ico"

@@ -1,6 +1,5 @@
 #pragma once
-#include <helpers/foobar2000+atl.h>
-#include <memory>
+#include "../helpers/foobar2000+atl.h"
 
 #pragma warning(push, 1)
 #pragma warning(disable : 4068)
@@ -12,28 +11,11 @@
 #ifndef WINVER				// Allow use of features specific to Vista or later.
 #define WINVER 0x600		// Change this to the appropriate value to target other versions of Windows.
 #endif
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x600  // Vista or later
+#endif
 
-//#define _WIN32_WINNT 0x600  // Vista or later#include <helpers/foobar2000+atl.h>
-
-#include "libPPUI/win32_op.h"
 #include <windows.h>
-#include "../SDK/foobar2000.h"
-#include "../helpers/helpers.h"
-#include "../helpers/foobar2000+atl.h"
-
-#include <atlframe.h>
-#include <atlctrlx.h>
-#include "../helpers/atl-misc.h"
-#include "../SDK/filesystem_helper.h"
-
-#include "../../libPPUI/InPlaceEdit.h"
-#include "../../libPPUI/InPlaceEditTable.h"
-#include "../../libPPUI/listview_helper.h"
-
-#include "wtl_helpers.h"
-
-#include "liboauthcpp/liboauthcpp.h"
-
 #include <string>
 #include <exception>
 #include <vector>
@@ -47,5 +29,32 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctime>
+#include <WinUser.h>
 
-#include "resource.h"
+#include <CommCtrl.h>
+#include <commoncontrols.h>
+#include <atlframe.h>
+#include <atlctrlx.h>
+#include <atlctrls.h>
+
+#include "../SDK/foobar2000.h"
+#include "../SDK/filesystem_helper.h"
+#include "../SDK/album_art.h"
+
+#include "../helpers/helpers.h"
+#include "../helpers/atl-misc.h"
+
+#include "../../libPPUI/win32_op.h"
+
+#include "../../libPPUI/win32_utility.h"
+
+#include "../../libPPUI/CListControl-Cells.h"
+#include "../../libPPUI/InPlaceEdit.h"
+#include "../../libPPUI/InPlaceEditTable.h"
+#include "../../libPPUI/listview_helper.h"
+
+#include "liboauthcpp/liboauthcpp.h"
+
+#include "version.h"
+
+#include "wtl_helpers.h"

@@ -3,9 +3,7 @@
 #include "resource.h"
 #include "helpers/win32_dialog.h"
 
-#include "../SDK/foobar2000.h"
-#include <libPPUI/CListControlComplete.h>
-#include <libPPUI/CListControl-Cells.h>
+#include "../../libPPUI/CListControlComplete.h"
 
 #include "foo_discogs.h"
 #include "tags.h"

@@ -1,10 +1,8 @@
 #pragma once
+#include "resource.h"
 
-#include "../SDK/foobar2000.h"
 #include "guids_discogger.h"
 #include "foo_discogs.h"
-
-#include "version.h"
 
 #ifdef DB_DC
 

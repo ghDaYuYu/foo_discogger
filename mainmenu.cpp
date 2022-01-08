@@ -1,7 +1,7 @@
 ﻿#include "stdafx.h"
+#include "resource.h"
 #include "guids_discogger.h"
 
-#include "../SDK/foobar2000.h"
 #include "tasks.h"
 #include "find_release_dialog.h"
 #include "tag_mappings_dialog.h"

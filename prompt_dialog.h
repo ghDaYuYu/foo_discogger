@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../SDK/foobar2000.h"
 #include "resource.h"
-
 
 class CPromptDialog : public MyCDialogImpl<CPromptDialog>
 {

@@ -1,22 +1,9 @@
-#pragma comment(linker,"\"/manifestdependency:type='win32' \
-name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
-processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
-
 #include "stdafx.h"
-#include <CommCtrl.h>
-#include <commoncontrols.h>
-#include <atlctrls.h>
-#include <WinUser.h>
 
-#include "libPPUI/win32_utility.h"
-
-#include "resource.h"
-#include "find_release_tree.h"
 #include "configuration_dialog.h"
+#include "find_release_tree.h"
 
 #include "tasks.h"
-#include "multiformat.h"
-#include "sdk_helpers.h"
 
 #include "utils.h"
 #include "db_utils.h"

@@ -1583,8 +1583,6 @@ void Discogs::Release::load(threaded_process_status &p_status, abort_callback &p
 		return;
 	}
 
-	PFC_ASSERT(offlineArtistId.get_length());
-
 	pfc::string8 artist_id = offlineArtistId;
 	pfc::string8 release_id = id;
 	pfc::string8 rel_path;

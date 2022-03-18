@@ -120,16 +120,6 @@ void generate_tags_task::on_error(HWND p_wnd) {
 	}
 }
 
-void generate_tags_task_multi::on_success(HWND p_wnd) {
-	if (show_preview_dialog) {
-		fb2k::newDialog <CPreviewTagsDialog>(core_api::get_main_window(), tag_writers, use_update_tags);
-	}
-	else {
-		service_ptr_t<write_tags_task_multi> task = new service_impl_t<write_tags_task_multi>(tag_writers);
-		task->start();
-	}
-}
-
 
 void write_tags_task::start() {
 	threaded_process::g_run_modeless(
@@ -683,15 +673,14 @@ void get_artist_process_callback::safe_run(threaded_process_status &p_status, ab
 }
 
 void get_artist_process_callback::on_success(HWND p_wnd) {
+
 	if (m_artist) {
 		CFindReleaseDialog* find_dlg = reinterpret_cast<CFindReleaseDialog*>(g_discogs->find_release_dialog);
 		//artist history
-		rppair row = std::pair(std::pair("", ""), std::pair(m_artist->id, m_artist->name));
-		if (bool added = find_dlg->add_history_row(1, std::move(row)); added) {
-			sqldb db;
-			size_t db_parsed_credit_id = db.add_artist_history(m_artist, "get_artist_process_callback", row);
+		if (m_updsrc != updRelSrc::ArtistProfile) {
+			find_dlg->add_history(oplog_type::artist, kHistoryGetArtist, "", "", m_artist->id, m_artist->name);
 		}
-		
+
 		find_dlg->on_get_artist_done(m_updsrc, m_artist);
 	}
 }
@@ -742,11 +731,8 @@ void search_artist_process_callback::on_success(HWND p_wnd) {
 	CFindReleaseDialog* find_dlg = g_discogs->find_release_dialog;
 	if (m_artist_exact_matches.size()) {
 		//artist history
-		rppair row = std::pair(std::pair("", ""), std::pair(m_artist_exact_matches[0]->id, m_artist_exact_matches[0]->name));
-		if (bool added = find_dlg->add_history_row(1, std::move(row)); added) {
-			sqldb db;
-			size_t db_parsed_credit_id = db.add_artist_history(m_artist_exact_matches[0], "search_artist_process_callback", row);
-		}
+		find_dlg->add_history(oplog_type::artist, kHistorySearchArtist, "", "",
+			m_artist_exact_matches[0]->id, m_artist_exact_matches[0]->name);
 	}
 
 	find_dlg->on_search_artist_done(m_artist_exact_matches, m_artist_other_matches);

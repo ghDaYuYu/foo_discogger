@@ -110,18 +110,33 @@ inline bool CFindReleaseDialog::build_current_cfg() {
 	if ((CONF.find_release_filter_flag & FilterFlag::RoleMain) != (conf.find_release_filter_flag & FilterFlag::RoleMain)) {
 		bres |= true;
 	}
+
+	//attach edit mappings panel
+	size_t attach_flagged = IsDlgButtonChecked(IDC_CHECK_FIND_RELEASE_SHOW_PROFILE) == BST_CHECKED ? (FLG_PROFILE_DLG_ATTACHED) : 0;
+
+	size_t open_flagged = g_discogs->find_release_artist_dialog ? FLG_PROFILE_DLG_OPENED : 0;
+
+	if ((CONF.find_release_dlg_flags & (FLG_PROFILE_DLG_ATTACHED | FLG_PROFILE_DLG_OPENED)) != (attach_flagged | open_flagged)) {
+		conf.find_release_dlg_flags &= ~(FLG_PROFILE_DLG_ATTACHED | FLG_PROFILE_DLG_OPENED);
+		conf.find_release_dlg_flags |= (attach_flagged | open_flagged);
+		bres |= true;
+	}
+
 	return bres;
 }
 
 LRESULT CFindReleaseDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
 	
-	if (g_discogs->find_release_artist_dialog)
+	if (g_discogs->find_release_artist_dialog &&
+		(conf.find_release_dlg_flags & (FLG_PROFILE_DLG_ATTACHED | FLG_PROFILE_DLG_OPENED)) == (FLG_PROFILE_DLG_ATTACHED | FLG_PROFILE_DLG_OPENED)) {
 		g_discogs->find_release_artist_dialog->DestroyWindow();
+	}
 
 	cfg_window_placement_find_release_dlg.on_window_destruction(m_hWnd);
 	pushcfg();
 	KillTimer(KTypeFilterTimerID);
-	return 0;
+
+	return FALSE;
 }
 
 LRESULT CFindReleaseDialog::OnOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
@@ -167,6 +182,17 @@ bool OAuthCheck(foo_conf conf) {
 		return false;
 	}
 	return true;
+}
+
+
+LRESULT CFindReleaseDialog::OnCheckAttacProfilePanel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+
+	bool state = IsDlgButtonChecked(IDC_CHECK_FIND_RELEASE_SHOW_PROFILE);
+	conf.find_release_dlg_flags = state ?
+		conf.find_release_dlg_flags | (FLG_PROFILE_DLG_ATTACHED)
+		: conf.find_release_dlg_flags & ~(FLG_PROFILE_DLG_ATTACHED);
+
+	return FALSE;
 }
 
 LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled) {
@@ -222,21 +248,18 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	cewb_artist_search.SubclassWindow(m_search_edit);
 	cewb_release_filter.SubclassWindow(m_filter_edit);
 	cewb_release_url.SubclassWindow(m_release_url_edit);
-	SetEnterKeyOverride(conf.release_enter_key_override);
 
 	//HISTORY ---
-	//todo: revision, read/ready/disabled
-	//todo: read only on init?
+	//todo: move to on_init
 
-	size_t enable = HIWORD(conf.history_max_items); //i.e. conf.history_enabled() 
-	size_t max_items = LOWORD(conf.history_max_items);
-	pfc::string8 max_param = PFC_string_formatter() << "+" << max_items;
+	size_t max_items = LOWORD(conf.history_enabled_max);
+	
+	if (conf.history_enabled()) {
+		m_oplogger.init(conf.history_enabled(), max_items);
+		SetHistoryKeyOverride();
+	}
 
-	sqldb db;
-	std::vector<vppair*>all_history = { &m_vres_release_history, &m_vres_artist_history, &m_vres_filter_history };
-	size_t inc = db.delete_history("cmd_leave_latest", max_param, all_history);
-
-	SetHistoryServiceButtonOverride();
+	SetEnterKeyOverride(conf.release_enter_key_override);
 
 	m_release_ctree.Inititalize(m_release_tree, m_artist_list, m_filter_edit, m_release_url_edit);
 	m_release_ctree.SetDiscogsInterface(discogs_interface);
@@ -295,12 +318,41 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 		uButton_SetCheck(m_hWnd, IDC_CHK_FIND_RELEASE_FILTER_ROLEMAIN, true);
 	}
 
-	bool db_ready = DBFlags(conf.db_dc_flag).IsReady();
+	//artist profile panel
+
+	if (conf.find_release_dlg_flags & FLG_PROFILE_DLG_ATTACHED) {
+		uButton_SetCheck(m_hWnd, IDC_CHECK_FIND_RELEASE_SHOW_PROFILE, true);
+		if (conf.find_release_dlg_flags & FLG_PROFILE_DLG_OPENED) {
+			if (!g_discogs->find_release_artist_dialog) {
+				g_discogs->find_release_artist_dialog = fb2k::newDialog<CFindReleaseArtistDialog>(core_api::get_main_window()/*, nullptr*/);
+			}
+		}
+	}
+
+	//temporarily disable events
+	m_DisableFilterBoxEvents = true;
+
+	if (!tracer->has_amr() || !conf.enable_autosearch) {
+		uSetWindowText(m_filter_edit, frm_album);
+	}
+
+	m_DisableFilterBoxEvents = false;
+	//
+
+	set_main_role_label(conf.find_release_filter_flag & FilterFlag::Versions);
+
+	bool db_ready_to_search = DBFlags(conf.db_dc_flag).IsReady() && DBFlags(conf.db_dc_flag).Search();
+
+#ifdef DB_DC
+
 	uButton_SetCheck(m_hWnd, IDC_CHECK_FIND_REL_DB_SEARCH_LIKE, conf.db_dc_flag & DBFlags::DB_SEARCH_LIKE);
 	uButton_SetCheck(m_hWnd, IDC_CHECK_FIND_REL_DB_SEARCH_ANV, conf.db_dc_flag & DBFlags::DB_SEARCH_ANV);
-	::ShowWindow(uGetDlgItem(IDC_CHECK_FIND_REL_DB_SEARCH_LIKE), db_ready);
-	::ShowWindow(uGetDlgItem(IDC_CHECK_FIND_REL_DB_SEARCH_ANV), db_ready);
-	
+	::ShowWindow(uGetDlgItem(IDC_CHECK_FIND_REL_DB_SEARCH_LIKE), db_ready_to_search);
+	::ShowWindow(uGetDlgItem(IDC_CHECK_FIND_REL_DB_SEARCH_ANV), db_ready_to_search);
+
+#endif // DB_DC
+
+
 	cfg_window_placement_find_release_dlg.on_window_creation(m_hWnd, true);
 
 	if (OAuthCheck(conf) || DBFlags(conf.db_dc_flag).IsReady() && DBFlags(conf.db_dc_flag).Search()) {
@@ -348,11 +400,11 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	return FALSE;
 }
 
-void CFindReleaseDialog::SetHistoryServiceButtonOverride() {
+void CFindReleaseDialog::SetHistoryKeyOverride() {
 
-	cewb_release_filter.SetHistoryHandlers(m_stdf_call_history);
-	cewb_artist_search.SetHistoryHandlers(m_stdf_call_history);
-	cewb_release_url.SetHistoryHandlers(m_stdf_call_history);
+	cewb_release_filter.SetHistoryHandler(m_stdf_call_history);
+	cewb_artist_search.SetHistoryHandler(m_stdf_call_history);
+	cewb_release_url.SetHistoryHandler(m_stdf_call_history);
 }
 
 void CFindReleaseDialog::SetEnterKeyOverride(bool enter_ovr) {

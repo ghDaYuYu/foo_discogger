@@ -89,7 +89,7 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 		m_last_fetch = time_now;
 
 		//log: average and last delta
-		msg_average << "Avg: " << std::to_string(m_fetch_wait_rolling_avg).c_str();
+		msg_average << "Avg >= " << std::to_string(m_fetch_wait_rolling_avg).c_str();
 		if (time_span != chrono::steady_clock::duration::zero()) {
 			msg_average << ", Lapse: ";
 			//double microsecs = time_span.count();
@@ -110,7 +110,7 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 		if (!isImageUrl && m_throttling)
 			log_msg(msg_average);
 
-		//reset when rate remaining reaches max value again
+		//reset when rate remaining reaches max m_value again
 		m_ratelimit_cruise &= (m_ratelimit_remaining < m_ratelimit_max); //60
 		
 		//apply delta/set cruise mode

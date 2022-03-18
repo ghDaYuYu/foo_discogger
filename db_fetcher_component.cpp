@@ -12,34 +12,30 @@ int db_fetcher_component::insert_history(sqldb* db, oplog_type optype, std::stri
 
 	if (!CONF.history_enabled()) return 0;
 
-	pfc::string8 artist_id;
-	pfc::string8 artist_name;
-	pfc::string8 release_id;
-	pfc::string8 release_title;
+	pfc::string8 artist_id, artist_name, release_id, release_title, filter;
 	
-	if (artist || release) {
-		artist_id = artist ? artist->id : release->artists[0]->full_artist->id;
-		artist_name = artist ? artist->name : release->artists[0]->full_artist->name;
-		release_id = release ? release->id : "";
-		release_title = release ? release->title : "";
+	if (optype == oplog_type::artist || optype == oplog_type::release) {
+
+		artist_id = out.first.first;
+		artist_name = out.first.second;
+		release_id = out.second.first;
+		release_title = out.second.second;
 	}
 	else {
-		//
+		//filter is saved as cmd param
+		filter = cmd_param = out.first.first;
 	}
 
-	if (release || artist) out = std::pair(std::pair(release_id.c_str(), release_title.c_str()), std::pair(artist_id.c_str(), artist_name.c_str()));
-
 	int ret = -1;
-	pfc::string8 cmd;
-	pfc::string8 query;
-	pfc::string8 err_msg;
-	size_t inc_insert = pfc_infinite;
+	pfc::string8 cmd, query, err_msg;
+
 	sqlite3* pDb;
+	size_t inc_insert = pfc_infinite;
 	bool in_transaction = false;
 
 	do {
 
-		ret = db->open(dll_db_name());
+		ret = db->open(dll_db_name(), SQLITE_OPEN_READWRITE);
 
 		if (!db->debug_sql_return(ret, "open", "foo_discogger", "", 0, err_msg)) break;
 
@@ -59,8 +55,8 @@ int db_fetcher_component::insert_history(sqldb* db, oplog_type optype, std::stri
 			query << "\'" << release_id << "\', ";
 			query << "\'" << db_dbl_apos(release_title) << "\', ";
 			query << "DateTime(\'now\') " << ", ";
-			query << "\'" << cmd_id << "\', ";
-			query << "\'" << db_dbl_apos(cmd_text) << "\', ";
+			query << "\'" << cmd_log.c_str() << "\', ";
+			query << "\'" << db_dbl_apos(cmd_param) << "\', ";
 			query << "\'" << artist_id << "\' , ";
 			query << "\'" << db_dbl_apos(artist_name) << "\'";
 			query << ");";
@@ -68,6 +64,7 @@ int db_fetcher_component::insert_history(sqldb* db, oplog_type optype, std::stri
 #ifdef DEBUG
 			log_msg(query);
 #endif 
+
 			char* err;
 			ret = sqlite3_exec(pDb, query, int_type_sqlite3_exec_callback, &inc_insert, &err);
 
@@ -95,188 +92,108 @@ int db_fetcher_component::insert_history(sqldb* db, oplog_type optype, std::stri
 	return inc_insert;
 }
 
-int db_fetcher_component::read_history_tmp(sqldb* db, Artist_ptr artist, Release_ptr release, pfc::string8 cmd_id, pfc::string8 cmd_text, vppair& vres) {
+bool db_fetcher_component::recharge_history(sqldb* db, std::string delete_cmd, size_t cmd_param, std::map<oplog_type, vppair*>allout) {
 
-	//todo: impl artist and filter
-
-	if (!CONF.history_enabled()) return 0;
-
-	pfc::string8 artist_id;
-	pfc::string8 artist_name;
-	pfc::string8 release_id;
-	pfc::string8 release_title;
-
-	if (artist || release) {
-		artist_id = artist ? artist->id : release->artists[0]->full_artist->id;
-		artist_name = artist ? artist->name : release->artists[0]->full_artist->name;
-		release_id = release ? release->id : "";
-		release_title = release ? release->title : "";
-	}
-	else {
-		//
-	}
-
-	int ret = -1;
-	pfc::string8 cmd;
-	pfc::string8 query;
-	pfc::string8 err_msg;
-	size_t inc_insert = pfc_infinite;
-
-	sqlite3_stmt* stmt_lk = 0;
-	sqlite3* pDb = nullptr;
-
-	do {
-
-		int ret = db->open(dll_db_name());
-
-		//
-		if (!db->debug_sql_return(ret, "open", "foo_discogger - on read history", "", 0, err_msg)) break;
-		//
-
-		pDb = db->db_handle();
-
-		//#ifdef DO_TRANSACTIONS
-		ret = sqlite3_exec(pDb, "BEGIN TRANSACTION;", NULL, NULL, NULL);
-		//#endif      
-
-		query = "SELECT release_id, title, date, cmd_id, cmd_text, artist_id, artist_name "
-			"FROM history_releases WHERE cmd_id = \"proccess_release_callback\" "
-			"GROUP BY release_id ORDER BY date DESC LIMIT 15;";
-
-		//p_status.set_item("Testing discogs local db...");
-
-		pfc::string8 query_lk = query;
-		ret = sqlite3_prepare_v2(pDb, cmd, -1, &stmt_lk, NULL);
-
-		//
-		if (!db->debug_sql_return(ret, "prepare", PFC_string_formatter() << "foo_discogger - load releases history", "", 0, err_msg)) break;
-		//
-
-		rppair rp_row;
-
-		while (SQLITE_ROW == (ret = sqlite3_step(stmt_lk)))
-		{
-			const char* tmp_val_1 = reinterpret_cast<const char*>(sqlite3_column_text(stmt_lk, 0));	//release_id
-			const char* tmp_val_2 = reinterpret_cast<const char*>(sqlite3_column_text(stmt_lk, 1));	//release_title
-
-			const char* tmp_val_3 = reinterpret_cast<const char*>(sqlite3_column_text(stmt_lk, 2));	//history date
-			const char* tmp_val_4 = reinterpret_cast<const char*>(sqlite3_column_text(stmt_lk, 3));	//artist_id
-			const char* tmp_val_5 = reinterpret_cast<const char*>(sqlite3_column_text(stmt_lk, 4));	//artist_name
-
-			if (tmp_val_1) {
-				rp_row = std::pair(std::pair(tmp_val_1, tmp_val_2), std::pair(tmp_val_3, (PFC_string_formatter() << tmp_val_4 << "|" << tmp_val_5).c_str()));
-				vres.emplace_back(rp_row);
-			}
-		}
-
-		if (ret == SQLITE_DONE) {
-			sqlite3_finalize(stmt_lk);
-			stmt_lk = nullptr;
-		}
-		else {
-			err_msg << " Failed retrieving local db release (Err." << ret << ") ";
-			break;
-		}
-
-	} while (false);
-
-	//#ifdef DO_TRANSACTIONS
-	ret = sqlite3_exec(pDb, "END TRANSACTION;", NULL, NULL, NULL);
-	//#endif
-
-	if (err_msg.get_length()) {
-		db->close();
-		foo_db_cmd_exception e(ret, cmd, err_msg);
-		throw e;
-	}
-	
-quit:
-
-	sqlite3_finalize(stmt_lk);
-	db->close();
-	return inc_insert;
-}
-
-int db_fetcher_component::delete_history(sqldb* db, Artist_ptr artist, Release_ptr release, pfc::string8 cmd_id, pfc::string8 cmd_text, std::vector<vppair*>allout) {
+	bool bres = false;
 
 	int ret = -1;
 	pfc::string8 cmd;
 	pfc::string8 err_msg;
-	size_t inc_insert = pfc_infinite;
 
-	if (cmd_id.equals("delete all")) {
-		ret =  db->open(dll_db_name());
+	if (!delete_cmd.compare(kcmdHistoryDeleteAll)) {
 
-		if (db->debug_sql_return(ret, "open", "foo_discogger - on init history update", "", 0, err_msg))
-			ret = sqlite3_exec(db->db_handle(), "DELETE FROM history_releases;", NULL, NULL, NULL);
+		ret =  db->open(dll_db_name(), SQLITE_OPEN_READWRITE);
+		bool check_ret = db->debug_sql_return(ret, "open", "foo_discogger - on init history update", "", 0, err_msg);
+		if (check_ret)	ret = sqlite3_exec(db->db_handle(), "DELETE FROM history_releases;", NULL, NULL, NULL);
 
-		return 0;
-	}
-
-	pfc::string8 artist_id;
-	pfc::string8 artist_name;
-	pfc::string8 release_id;
-	pfc::string8 release_title;
-
-	if (artist || release) {
-		artist_id = artist ? artist->id : release->artists[0]->full_artist->id;
-		artist_name = artist ? artist->name : release->artists[0]->full_artist->name;
-		release_id = release ? release->id : "";
-		release_title = release ? release->title : "";
-	}
-	else {
-		//
+		return ret == SQLITE_OK;
 	}
 
 	sqlite3_stmt* stmt_lk = 0;
 	sqlite3_stmt* stmt_read = 0;
+
 	sqlite3* pDb = nullptr;
 	bool in_transaction = false;
 
-	std::vector<pfc::string8> v_cmd_id = {
-		"proccess_release_callback",
-		"search_artist_process_callback OR cmd_id = \'get_artist_process_callback\'"
-		/*, "filter_releases"*/
-	};
+	// maps
 
-	std::vector<pfc::string8> v_group_flush = {
-		//leave latest x unique release_id rows
-		"DELETE FROM history_releases WHERE cmd_id = :cmd_id AND id NOT IN (SELECT grp_hr.id FROM "
-		"(SELECT id FROM history_releases WHERE cmd_id = :cmd_id "
-		"GROUP BY release_id ORDER BY date DESC LIMIT :param_pop_tops) grp_hr);"
-		,
-		//leave latest x unique release_id rows
-		"DELETE FROM history_releases WHERE cmd_id = :cmd_id AND id NOT IN (SELECT grp_hr.id FROM "
-		"(SELECT id FROM history_releases WHERE cmd_id = :cmd_id "
-		"GROUP BY artist_id ORDER BY date DESC LIMIT :param_pop_tops) grp_hr);"
+	std::map<oplog_type, std::string> task_map;
+	std::map<oplog_type, std::string> flush_map;
+	std::map<oplog_type, std::string> query_map;
+
+	//
+
+	task_map.emplace(oplog_type::artist, kHistoryGetArtist);
+	task_map.emplace(oplog_type::release, kHistoryProccessRelease);
+	task_map.emplace(oplog_type::filter, kHistoryFilterButton);
+
+	//todo: tidy up
+	std::string artist_sec_task = kHistorySearchArtist;
+
+	pfc::string8 keep_top_artist =
+	"DELETE FROM history_releases WHERE (cmd_id = @cmd_id OR cmd_id = @cmd_id_sec) AND id NOT IN ("
+		"SELECT grp_calc.id FROM ( "
+			"SELECT id, date, artist_name FROM ("
+				"SELECT id, date, artist_id, release_id, cmd_text FROM history_releases "
+				"WHERE cmd_id = @cmd_id OR cmd_id = @cmd_id_sec ORDER BY date DESC "
+			") filter_date_desc GROUP BY filter_date_desc.artist_id) " //diff is group by artist
+		"grp_calc ORDER BY date DESC LIMIT @param_pop_tops "
+	")";
+
+	pfc::string8 keep_top_release =
+	"DELETE FROM history_releases WHERE cmd_id = @cmd_id AND id NOT IN ("
+		"SELECT grp_calc.id FROM ( "
+			"SELECT id, date FROM ("
+				"SELECT id, date, artist_id, release_id, cmd_text FROM history_releases "
+				"WHERE cmd_id = @cmd_id ORDER BY date DESC "
+			") filter_date_desc GROUP BY filter_date_desc.release_id) " //diff is group by release
+		"grp_calc ORDER BY date DESC LIMIT @param_pop_tops "
+	")";
+
+	pfc::string8 keep_top_filter =
+	"DELETE FROM history_releases WHERE cmd_id = @cmd_id AND id NOT IN ("
+		"SELECT grp_calc.id FROM ( "
+			"SELECT id, date, artist_name FROM ("
+				"SELECT id, date, artist_id, release_id, cmd_text FROM history_releases "
+				"WHERE cmd_id = @cmd_id ORDER BY date DESC "
+			") filter_date_desc GROUP BY filter_date_desc.cmd_text) " //diff is group by filter
+		"grp_calc ORDER BY date DESC LIMIT @param_pop_tops "
+	")";
+
+	flush_map.emplace(oplog_type::release, keep_top_release);
+	flush_map.emplace(oplog_type::artist, keep_top_artist);
+	flush_map.emplace(oplog_type::filter, keep_top_filter);
+
+	std::string query_artist =
 		/*,
-		//leave latest x unique release_id rows
-		"DELETE FROM history_releases WHERE cmd_id = :cmd_id AND id NOT IN (SELECT grp_hr.id FROM "
-		"(SELECT id FROM history_releases WHERE cmd_id = :cmd_id "
-		"GROUP BY cmd_text ORDER BY date DESC LIMIT :param_pop_tops AS INT) grp_hr);"*/
-	};
+		"SELECT artist_id, artist_name, date, cmd_id, cmd_text, artist_id, artist_name "
+		"FROM history_releases WHERE cmd_id = @cmd_id "
+		"GROUP BY artist_id ORDER BY date DESC LIMIT @param_pop_tops;"*/
+		"SELECT artist_id, artist_name, date, cmd_id, cmd_text, artist_id, artist_name "
+		"FROM history_releases WHERE (cmd_id = @cmd_id OR cmd_id = @cmd_id_sec) "
+		"GROUP BY artist_id ORDER BY date DESC LIMIT @param_pop_tops;";
+
+	std::string query_release =
+		"SELECT release_id, title, date, cmd_id, cmd_text, artist_id, artist_name "
+		"FROM history_releases WHERE cmd_id = @cmd_id "
+		"GROUP BY release_id ORDER BY date DESC LIMIT @param_pop_tops;";
+
+	std::string query_filter =
+		"SELECT cmd_text, cmd_text, date, cmd_id, cmd_text, artist_id, artist_name "
+		"FROM history_releases WHERE cmd_id = @cmd_id "
+		"GROUP BY cmd_text ORDER BY date DESC LIMIT @param_pop_tops;";
+	
+	query_map.emplace(oplog_type::release, query_release);
+	query_map.emplace(oplog_type::artist, query_artist);
+	query_map.emplace(oplog_type::filter, query_filter);
 
 
-	std::vector<pfc::string8> v_group_query = {
+	ret = db->open(dll_db_name(), SQLITE_OPEN_READWRITE);
 
-	"SELECT release_id, title, date, cmd_id, cmd_text, artist_id, artist_name "
-	"FROM history_releases WHERE cmd_id = :cmd_id "
-	"GROUP BY release_id ORDER BY date DESC LIMIT :param_pop_tops;"
-	,
-	"SELECT artist_id, artist_name, date, cmd_id, cmd_text, artist_id, artist_name "
-	"FROM history_releases WHERE cmd_id = :cmd_id "
-	"GROUP BY artist_id ORDER BY date DESC LIMIT :param_pop_tops;"
-	/*,
-	"SELECT cmd_text, \"\", date, cmd_id, cmd_text, artist_id, artist_name "
-	"FROM history_releases WHERE cmd_id = :cmd_id "
-	"GROUP BY cmd_text ORDER BY date DESC LIMIT :param_pop_tops;"*/
-	};
-
-
-	ret = db->open(dll_db_name());
 	//
-	if (!db->debug_sql_return(ret, "open", "foo_discogger - on init history update", "", 0, err_msg)) return 0;
+	if (!db->debug_sql_return(ret, "open", "foo_discogger - on init history update", "", 0, err_msg)) return false;
 	//
+
 	pDb = db->db_handle();
 
 //#ifdef DO_TRANSACTIONS		
@@ -285,40 +202,44 @@ int db_fetcher_component::delete_history(sqldb* db, Artist_ptr artist, Release_p
 //#endif
 
 
-	for (size_t walk_group = 0; walk_group < v_group_query.size()/*allout.size()*/; walk_group++) {
+	for (auto walk_flush : flush_map) {
 
-		const char* param_pop_tops = ":param_pop_tops";
+		oplog_type thistype = walk_flush.first;
+
+		const char* param_pop_tops = "@param_pop_tops";
 
 		do {
 
-			bool generate_vres = false;
+			bool generate_vres = true;
 
-			pfc::string8 cmd_leave_latest = "cmd_leave_latest";
+			if (!delete_cmd.compare(kcmdHistoryWashup)) {
 
-			if (cmd_id.equals(cmd_leave_latest)) {
+				int top_rows = cmd_param;
 
-				std::string top_rows = cmd_text;
-				if (top_rows.length()) {
-					generate_vres = top_rows.at(0) == '+';
-					top_rows = top_rows.erase(0, 1);
-				}
-				else
-					top_rows = "";
-
-				pfc::string8 query_gf = v_group_flush.at(walk_group);
-
-				ret = sqlite3_prepare_v2(db->db_handle(), query_gf, -1, &stmt_lk, NULL);
+				ret = sqlite3_prepare_v2(db->db_handle(), walk_flush.second.c_str(), -1, &stmt_lk, NULL);
 
 				//
 				//if (!db->debug_sql_return(ret, "prepare", PFC_string_formatter() << "foo_discogger - prepare history", "", 0, err_msg)) break;
 				//
 
-				int param_ndx = sqlite3_bind_parameter_index(stmt_lk, ":param_pop_tops");
-				ret = sqlite3_bind_int(stmt_lk, param_ndx, atoi(top_rows.c_str()));
-				pfc::string8 cmd_idparam = v_cmd_id.at(walk_group);
-				param_ndx = sqlite3_bind_parameter_index(stmt_lk, ":cmd_id");
-				ret = sqlite3_bind_text(stmt_lk, param_ndx, cmd_idparam, cmd_idparam.get_length(), NULL);
-				ret = sqlite3_step(stmt_lk);
+				int param_ndx;
+				std::string cmd_label;
+
+				param_ndx = sqlite3_bind_parameter_index(stmt_lk, "@param_pop_tops");
+				ret = sqlite3_bind_int(stmt_lk, param_ndx, top_rows);
+				
+				cmd_label = task_map.at(thistype);
+				param_ndx = sqlite3_bind_parameter_index(stmt_lk, "@cmd_id");				
+				ret = sqlite3_bind_text(stmt_lk, param_ndx, cmd_label.c_str(), cmd_label.size(), NULL);
+
+				if (thistype == oplog_type::artist) {
+
+					param_ndx = sqlite3_bind_parameter_index(stmt_lk, "@cmd_id_sec");
+					if (param_ndx) {
+						ret = sqlite3_bind_text(stmt_lk, param_ndx, artist_sec_task.c_str(), artist_sec_task.size(), NULL);
+					}
+				}
+				ret = sqlite3_step(stmt_lk); //SQLITE_DONE (101)
 
 				sqlite3_reset(stmt_lk);
 				
@@ -328,20 +249,32 @@ int db_fetcher_component::delete_history(sqldb* db, Artist_ptr artist, Release_p
 
 				if (generate_vres) {
 
-					pfc::string8 query_gq = v_group_query.at(walk_group);
+					std::string query_gq = query_map.at(thistype);
 
 					cmd = "prepare";
 
-					ret = sqlite3_prepare_v2(pDb, query_gq, -1, &stmt_read, NULL);
+					ret = sqlite3_prepare_v2(pDb, query_gq.c_str(), -1, &stmt_read, NULL);
 					//
 					if (!db->debug_sql_return(ret, "prepare", PFC_string_formatter() << "foo_discogger - load releases history", "", 0, err_msg)) break;
 					//
-					int param_ndx = sqlite3_bind_parameter_index(stmt_read, ":param_pop_tops");
-					ret = sqlite3_bind_int(stmt_read, param_ndx, atoi(top_rows.c_str()));
-					pfc::string8 cmd_idparam = v_cmd_id.at(walk_group);
-					param_ndx = sqlite3_bind_parameter_index(stmt_read, ":cmd_id");
-					ret = sqlite3_bind_text(stmt_read, param_ndx, cmd_idparam, cmd_idparam.get_length(), NULL);
 
+					int param_ndx;
+					std::string cmd_idparam;
+
+					param_ndx = sqlite3_bind_parameter_index(stmt_read, "@param_pop_tops");
+					ret = sqlite3_bind_int(stmt_read, param_ndx, top_rows);
+
+					cmd_idparam = task_map.at(thistype);
+					param_ndx = sqlite3_bind_parameter_index(stmt_read, "@cmd_id");			
+					ret = sqlite3_bind_text(stmt_read, param_ndx, cmd_idparam.c_str(), cmd_idparam.size(), NULL);
+
+					if (thistype == oplog_type::artist) {
+						std::string cmd_idparam_sec = artist_sec_task;
+						param_ndx = sqlite3_bind_parameter_index(stmt_read, "@cmd_id_sec");
+						if (param_ndx) {
+							ret = sqlite3_bind_text(stmt_read, param_ndx, cmd_idparam_sec.c_str(), cmd_idparam_sec.size(), NULL);
+						}
+					}
 					//
 					if (!db->debug_sql_return(ret, "bind", PFC_string_formatter() << "foo_discogger - load releases history", "", 0, err_msg)) break;
 					//
@@ -357,20 +290,23 @@ int db_fetcher_component::delete_history(sqldb* db, Artist_ptr artist, Release_p
 						const char* tmp_val_4 = reinterpret_cast<const char*>(sqlite3_column_text(stmt_read, 5));	//artist_id
 						const char* tmp_val_5 = reinterpret_cast<const char*>(sqlite3_column_text(stmt_read, 6));	//artist_name
 
-						if (walk_group == 0) { //release
+						if (thistype == oplog_type::release) { //release
 							if (tmp_val_1) {
 								rp_row = std::pair(std::pair(tmp_val_1, tmp_val_2), std::pair(tmp_val_3, (PFC_string_formatter() << tmp_val_4 << " - " << tmp_val_5).c_str()));
-								allout.at(walk_group)->emplace_back(rp_row);
+								allout.at(thistype)->emplace_back(rp_row);
 							}
 						}
-						else if (walk_group == 1) { //artist
+						else if (thistype == oplog_type::artist) { //artist
 							if (tmp_val_5) {
 								rp_row = std::pair(std::pair(tmp_val_1, tmp_val_2), std::pair(tmp_val_4, tmp_val_5));
-								allout.at(walk_group)->emplace_back(rp_row);
+								allout.at(thistype)->emplace_back(rp_row);
 							}
 						}
-						else if (walk_group == 2) { //filter
-							//		
+						else if (thistype == oplog_type::filter) { //filter
+							if (tmp_val_1) {
+								rp_row = std::pair(std::pair(tmp_val_1, tmp_val_2), std::pair(tmp_val_3, ""));
+								allout.at(thistype)->emplace_back(rp_row);
+							}
 						}
 					}
 
@@ -392,7 +328,7 @@ int db_fetcher_component::delete_history(sqldb* db, Artist_ptr artist, Release_p
 		sqlite3_finalize(stmt_lk);
 		sqlite3_finalize(stmt_read);
 
-	} // END GROUP LOOP
+	} // end optype loop
 
 //#ifdef DO_TRANSACTIONS
 	if (in_transaction)
@@ -408,7 +344,8 @@ int db_fetcher_component::delete_history(sqldb* db, Artist_ptr artist, Release_p
 	}
 
 	db->close();
-	return inc_insert;
+
+	return true;
 }
 
 #ifdef DB_DC
@@ -416,48 +353,4 @@ int db_fetcher_component::delete_history(sqldb* db, Artist_ptr artist, Release_p
 #endif
 #ifdef CAT_CRED
 #include "db_fetcher_component_cat_cred.cpp"
-#endif
-
-			p_status.set_item("Testing discogs local db...");
-
-			if (SQLITE_OK != (ret = sqlite3_prepare_v2(m_pDb, query_catalog, -1, &m_query, NULL)))
-			{
-
-				ok_db = false;
-
-				error_msg << "Failed to prepare DB selection: " << ret << " . ";
-				error_msg << sqlite3_errmsg(m_pDb);
-
-				break;
-			}
-
-			if (SQLITE_ROW == (ret = sqlite3_step(m_query)))
-			{
-				//
-			}
-			else {
-				ok_db = false;
-				error_msg << "Backup information not found. ";
-				error_msg << pfc::string8(sqlite3_errmsg(m_pDb));
-
-#ifdef _DEBUG			
-				log_msg(error_msg);
-#endif
-			}
-
-		} while (false);
-	}
-
-	if (NULL != m_query) sqlite3_finalize(m_query);
-	if (NULL != m_pDb) sqlite3_close(m_pDb);
-	if (lib_initialized) sqlite3_shutdown();
-
-	if (error_msg.get_length()) {
-		foo_discogs_exception ex;
-		ex << error_msg;
-		throw ex;
-	}
-
-	return ok_db;
-}
 #endif

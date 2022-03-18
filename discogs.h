@@ -308,6 +308,7 @@ namespace Discogs
 	};
 
 	typedef std::pair<std::pair<pfc::string8, pfc::string8>, std::pair<pfc::string8, pfc::string8>> rppair;
+	typedef std::pair<std::pair<size_t, size_t>, std::pair<size_t, size_t>> rppair_t;
 	typedef std::vector <rppair> vppair;
 
 	class HasCatCredits

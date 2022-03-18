@@ -134,6 +134,7 @@
 #define DEPRI_CFG_EDIT_CAT_CREDIT_DIALOG_POS	2131
 #define CFG_LIST_STYLE							2132
 #define CFG_HISTORY_MAX_ITEMS					2133
+#define CFG_FIND_RELEASE_DIALOG_FLAGS			2134
 
 // STRINGS -------------------------------------
 
@@ -374,6 +375,7 @@ public:
 		{ asi(cfgFilter::FIND), DEPRI_CFG_FIND_RELEASE_DIALOG_SHOW_ID },
 		//v205
 		{ asi(cfgFilter::FIND), CFG_FIND_RELEASE_FILTER_FLAG },
+		{ asi(cfgFilter::FIND), CFG_FIND_RELEASE_DIALOG_FLAGS },
 		//..
 
 		//PREVIEW (preview_dialog)
@@ -443,6 +445,7 @@ public:
 	void save(cfgFilter cfgfilter, CConf in_conf, int id);
 
 	bool history_enabled();
+	bool history_max();
 	
 	bool replace_ANVs = false;
 	bool move_the_at_beginning = true;
@@ -562,7 +565,9 @@ public:
 	int find_release_filter_flag = 0;
 	int skip_mng_flag = 0;
 	int list_style = 2;
-	int history_max_items = MAKELPARAM(20, 1); //enabled-max20
+	int history_enabled_max = MAKELPARAM(10, 1);
+
+	int find_release_dlg_flags = 0;
 	//..
 };
 

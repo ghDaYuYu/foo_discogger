@@ -4,7 +4,7 @@
 #include "foo_discogs.h"
 #include "multiformat.h"
 
-#include "ceditwithbuttonsdim.h"
+#include "history_oplog.h"
 #include "find_release_tree.h"
 
 using namespace Discogs;
@@ -40,12 +40,12 @@ private:
 
 	bool m_updating_releases;
 
-	pfc::string8 m_results_filter;
 	bool m_skip_fill_filter = false;
 
-	t_size m_artist_index;
+	t_size m_artist_index = pfc_infinite;
 
 	foo_conf conf;
+	history_oplog m_oplogger;
 
 	playable_location_impl location;
 	file_info_impl info;
@@ -89,33 +89,50 @@ private:
 	vppair m_vres_filter_history;
 
 	std::function<bool()>stdf_enteroverride_artist = [this]() {
+		
 		BOOL bdummy;
 		HWND button = uGetDlgItem(IDC_SEARCH_BUTTON);
-		if (::IsWindowEnabled(button))
-			OnButtonSearch(0L, 0L, NULL, bdummy);
+		
+		if (::IsWindowEnabled(button)) OnButtonSearch(0L, 0L, NULL, bdummy);
 		return false;
 	};
 
 	std::function<bool()>stdf_enteroverride_url = [this]() {
+		
 		BOOL bdummy;
 		HWND button = uGetDlgItem(IDC_PROCESS_RELEASE_BUTTON);
-		if (::IsWindowEnabled(button))
-			OnOK(0L, 0L, NULL, bdummy);
+		
+		if (::IsWindowEnabled(button)) OnOK(0L, 0L, NULL, bdummy);
 		return false;
 	};
 
-	pfc::string8 build_history_menu(HWND hwnd);
+	std::function<bool(HWND hwnd, wchar_t* editval)> m_stdf_call_history = [&](HWND hwnd, wchar_t* wstrt) {
 
-	std::function<bool(HWND hwnd, wchar_t* editval)> m_stdf_call_history =
-		[&](HWND hwnd, wchar_t* wstrt) {
+		oplog_type optype =
 
-		pfc::string8 menu_option = build_history_menu(hwnd);
-		if (menu_option.get_length()) {
-			wchar_t newval[MAX_PATH + 1];
-			pfc::stringcvt::convert_utf8_to_wide(newval, MAX_PATH,
-				menu_option, menu_option.get_length());
-			_tcscpy_s(wstrt, MAX_PATH, newval);
-			return true;
+			hwnd == this->m_search_edit ?		oplog_type::artist :
+			hwnd == this->m_release_url_edit ?	oplog_type::release :
+			hwnd == this->m_filter_edit ?		oplog_type::filter : oplog_type::filter;
+		
+		
+		//show menu, capture menu cmd
+		
+		pfc::string8 menu_cmd;
+		bool menu_hit = this->get_oplogger()->do_history_menu(optype, this->m_hWnd, menu_cmd);
+		
+		//process menu cmd
+
+		if (menu_hit) {
+
+			pfc::string8 in = pfc::stringcvt::string_utf8_from_os(wstrt).get_ptr();
+
+			wchar_t wide_menu_cmd[MAX_PATH + 1];
+
+			pfc::stringcvt::convert_utf8_to_wide(wide_menu_cmd, MAX_PATH, menu_cmd, menu_cmd.get_length());
+			//transfer result text
+			_tcscpy_s(wstrt, MAX_PATH, wide_menu_cmd);
+			//return false if input = output
+			return (stricmp_utf8(in, menu_cmd) != 0);
 		}
 		return false;
 	};
@@ -165,11 +182,21 @@ public:
 		SetTimer(KTypeFilterTimerID, KTypeFilterTimeOut);
 	}
 
-	void KTurnOffFilterTimer() throw() {
-		KillTimer(KTypeFilterTimerID);
-	}
+	void KTurnOffFilterTimer() throw() { KillTimer(KTypeFilterTimerID);	}
+
+	void DisableFilterBoxEvents(bool bdisable) { m_DisableFilterBoxEvents = bdisable; }
+
+	void fill_artist_list(bool force_exact, updRelSrc updsrc); //called from tree?
+	void expand_master_release(MasterRelease_ptr& master_release, int pos); //called from tree
+
+	bool GetSkipFillFilter() { return m_skip_fill_filter; }
 
 	enum { IDD = IDD_DIALOG_FIND_RELEASE };
+
+	enum {
+		FLG_PROFILE_DLG_ATTACHED = 1 << 0,
+		FLG_PROFILE_DLG_OPENED = 1 << 1,
+	};
 
 #pragma warning( push )
 #pragma warning( disable : 26454 )
@@ -218,10 +245,8 @@ public:
 
 		DLGRESIZE_CONTROL(IDC_CHK_FIND_RELEASE_FILTER_VERS, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_LABEL_FILTER, DLSZ_MOVE_X)
-
-		DLGRESIZE_CONTROL(IDC_PROFILE_EDIT, DLSZ_SIZE_X)
 		DLGRESIZE_CONTROL(IDC_ONLY_EXACT_MATCHES_CHECK, DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDC_PROFILE_EDIT, DLSZ_MOVE_Y)
+		DLGRESIZE_CONTROL(IDC_CHECK_FIND_RELEASE_SHOW_PROFILE, DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_CONFIGURE_BUTTON, DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_STATIC_FIND_REL_REL_NAME, DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_PROCESS_RELEASE_BUTTON, DLSZ_MOVE_X | DLSZ_MOVE_Y)
@@ -253,6 +278,7 @@ public:
 	}
 
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+	LRESULT OnCheckAttacProfilePanel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
@@ -268,7 +294,7 @@ public:
 	LRESULT OnButtonConfigure(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 
 	void SetEnterKeyOverride(bool enable);
-	void SetHistoryServiceButtonOverride();
+	void SetHistoryKeyOverride();
 
 	void OnTypeFilterTimer(WPARAM id) {
 		if (id == KTypeFilterTimerID) {
@@ -292,66 +318,14 @@ public:
 	friend class search_artist_process_callback;
 
 	void enable(bool is_enabled) override;
-	void setitems(metadb_handle_list track_matching_items) {
-		items = track_matching_items;
-	}
+	
+	void setitems(metadb_handle_list track_matching_items) { items = track_matching_items; }
 
 	//serves credits dlg test/preview
-	metadb_handle_list getitems() {
-		return items;
-	}
+	metadb_handle_list getitems() {	return items; }
 
-	//serves config dialog
-	void zap_vhistory() {
-		m_vres_release_history.clear();
-		m_vres_artist_history.clear();
-		m_vres_filter_history.clear();
-	}
+	history_oplog* get_oplogger() { return &m_oplogger; }
 
-	//from
-	// process release callback on success
-	// search_artist_process_callback on success
-	// get_artist_process_callback
-
-	bool add_history_row(int type, rppair row) {
-
-		bool bres = false;
-
-		rppair copyrow =
-			std::pair(
-				std::pair(row.first.first.c_str(), row.first.second.c_str()),
-				std::pair(row.second.first.c_str(), row.second.second.c_str())
-			);
-
-		if (type == 0) {
-			if (!row.first.first.get_length()) return false;
-			vppair* v_p = &m_vres_release_history;
-			auto s = std::find_if(v_p->begin(), v_p->end(),
-				[row](const rppair& w) { return w.first.first.equals(row.first.first); });
-
-			if (bres = s == v_p->end(); bres) //not found
-				v_p->emplace_back(copyrow);
-		}
-		else if (type == 1) {
-			if (!row.second.first.get_length()) return false;
-			vppair* v_p = &m_vres_artist_history;
-			auto s = std::find_if(v_p->begin(), v_p->end(),
-				[row](const rppair& w) { return w.second.first.equals(row.second.first); });
-
-			if (bres = s == v_p->end(), bres) //not found
-				v_p->emplace_back(copyrow);
-		}
-		else if (type == 2) {
-			if (!row.first.first.get_length()) return false;
-			vppair* v_p = &m_vres_filter_history;
-			auto s = std::find_if(v_p->begin(), v_p->end(),
-				[row](const rppair& w) { return w.first.first.equals(row.first.first); });
-
-			if (bres = s == v_p->end(), bres) //not found
-				v_p->emplace_back(copyrow);
-		}
-		return bres;
-	}
+	bool add_history(oplog_type optype, std::string cmd, pfc::string8 ff, pfc::string8 fs, pfc::string8 sf, pfc::string8 ss);
+	bool add_history(oplog_type optype, std::string cmd, rppair row);
 };
-
-

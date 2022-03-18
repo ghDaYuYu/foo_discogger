@@ -1,7 +1,21 @@
 #pragma once
+#include <mutex>
 #include "sqlite3.h"
 
 #include "foo_discogs.h"
+
+extern std::mutex open_readwrite_mutex;
+
+const std::string kcmdHistoryWashup{ "cmd_leave_latest" };
+const std::string kcmdHistoryDeleteAll{ "cmd_delete_all" };
+const std::string kHistoryFilterButton{ "filter button" };
+const std::string kHistoryGetArtist{ "get_artist_process_callback" };
+const std::string kHistorySearchArtist{ "search_artist_process_callback" };
+const std::string kHistoryProccessRelease{ "process_release_callback" };
+
+enum oplog_type {
+	artist = 1, release, filter
+};
 
 static int int_type_sqlite3_exec_callback(void* data, int argc, char** argv, char** azColName) {
 	int& pint_results = *static_cast<int*>(data);
@@ -34,28 +48,24 @@ public:
 	};
 
 	sqlite3* db_handle() { return m_pDb; }
-	size_t open(pfc::string8 dbname);
+	size_t open(pfc::string8 dbname, size_t openmode);
 	void close();
 	int prepare(pfc::string8 query, sqlite3_stmt** m_query, pfc::string8& error_msg);
 	bool debug_sql_return(int ret, pfc::string8 op, pfc::string8 msg_subject, pfc::string8 ext_subject, size_t top, pfc::string8& msg);
 
-	size_t gen_def_credit(Release_ptr release, pfc::string8 cat_credit_name, pfc::string8 inno);
-	size_t add_release_history(Release_ptr release, pfc::string8 cmd, rppair& out);
-	size_t add_artist_history(Artist_ptr release, pfc::string8 cmd, rppair& out);
-	size_t add_filter_history(pfc::string8 cmd, rppair& out);
-	size_t delete_history(pfc::string8 cmd, pfc::string8 top_rows, std::vector<vppair*>allout);
+	//history
+	size_t insert_history(oplog_type optype, std::string cmd, rppair& out);	
+	bool recharge_history(std::string delete_cmd, size_t top_rows, std::map<oplog_type, vppair*>allout);
 	
 	bool test_dc_database(pfc::string8 db_path, abort_callback& p_abort, threaded_process_status& p_status);
 	
 private:
 
 	pfc::string8 m_dbname = pfc::string8();
-
+	size_t m_openmode = SQLITE_OPEN_READONLY;
 	sqlite3* m_pDb = nullptr;
 	sqlite3_stmt** m_query = nullptr;
 
-	bool m_lib_initialized = false;
-	bool m_ok = false;
 	int m_ret = -1;
 
 	pfc::string8 m_error_msg;

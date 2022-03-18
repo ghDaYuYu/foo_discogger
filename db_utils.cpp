@@ -3,14 +3,19 @@
 #include "tag_mapping_credit_utils.h"
 #include "db_utils.h"
 
-size_t sqldb::open(pfc::string8 dbname) {
+//#include "thread_pool.h"
+
+std::mutex open_readwrite_mutex;
+
+size_t sqldb::open(pfc::string8 dbname, size_t openmode) {
+
+	size_t open_threadsafe_mode = SQLITE_CONFIG_MULTITHREAD;
 
 	pfc::string8 dbpath;
 	m_error_msg = "";
 	
 	if (!stricmp_utf8(dll_db_name(), dbname)) {
-		dbpath << (core_api::pathInProfile("configuration\\"));
-		dbpath << dbname;
+		dbpath << (core_api::pathInProfile("configuration\\")) << dbname;
 	}
 	else {
 		dbpath = dbname;
@@ -26,24 +31,26 @@ size_t sqldb::open(pfc::string8 dbname) {
 
 	do
 	{
-		m_lib_initialized = true;
 
 		if (SQLITE_OK != (m_ret = sqlite3_initialize()))
 		{
-			m_lib_initialized = false;
-			m_ok = false;
 			m_error_msg << "Failed to initialize DB library: " << m_ret;
 			break;
 		}
 
 		// open connection
 
-		if (SQLITE_OK != (m_ret = sqlite3_open_v2(dbpath, &m_pDb, SQLITE_OPEN_READWRITE, NULL)))
 		{
-			m_ok = false;
-			m_error_msg << "Failed to open DB connection: " << m_ret << ". ";
-			m_error_msg << sqlite3_errmsg(m_pDb);
-			break;
+			std::lock_guard<std::mutex> guard(open_readwrite_mutex);
+			if (SQLITE_OK != (m_ret = sqlite3_open_v2(dbpath, &m_pDb, openmode, NULL)))
+			{
+				m_error_msg << "Failed to open DB connection: " << m_ret << ". ";
+				m_error_msg << sqlite3_errmsg(m_pDb);
+				break;
+			}
+			if (openmode == SQLITE_OPEN_READWRITE) {
+				sqlite3_busy_timeout(m_pDb, 20000);
+			}
 		}
 
 #ifdef DO_TRANSACTIONS
@@ -57,23 +64,19 @@ size_t sqldb::open(pfc::string8 dbname) {
 		throw ex;
 	}
 
-	m_ok = (m_pDb != NULL && m_ret == SQLITE_OK);
 	return m_ret;
 }
 
 void sqldb::close() {
 
-	bool bclosed = false;
 	if (nullptr != m_query) m_ret = sqlite3_finalize(*m_query);
 	if (nullptr != m_pDb) {
-		bclosed = (m_ret |= sqlite3_close(m_pDb));
+		m_ret = sqlite3_close(m_pDb);
 		if (m_ret == SQLITE_OK) m_pDb = nullptr;
 	}
-	if (m_lib_initialized) m_ret |= sqlite3_shutdown();
 
 	if (SQLITE_OK != m_ret)
 	{
-		m_ok = false;
 		m_error_msg << "Failed to close DB connection (Err. " << m_ret << "). ";
 		m_error_msg << (m_pDb != nullptr ? sqlite3_errmsg(m_pDb) : "");
 	}
@@ -88,7 +91,6 @@ int sqldb::prepare(pfc::string8 query, sqlite3_stmt** stmt_query, pfc::string8& 
 
 	if (SQLITE_OK != (m_ret = sqlite3_prepare_v2(m_pDb, query, -1, stmt_query, NULL)))
 	{
-		m_ok = false;
 		m_error_msg << "Failed to prepare insert. (Err. " << m_ret << ") " << error_msg;
 		m_error_msg << sqlite3_errmsg(m_pDb);
 	}
@@ -151,7 +153,7 @@ bool sqldb::debug_sql_return(int ret, pfc::string8 op, pfc::string8 msg_subject,
 			if (SQLITE_CONSTRAINT == ret) {
 				
 				//todo: revise dll.db constraints
-				//msg << "Error in constraint rule ignored...";
+				//msg << "Error in constraint rule (ignored)...";
 				//sqlite3_finalize(m_query);
 				//m_query = NULL;
 

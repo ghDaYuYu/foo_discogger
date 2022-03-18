@@ -52,27 +52,9 @@ public:
 		//
 	}
 
-	// db ctag generation
-	bool lookup_credit_tk(sqldb* db, sqlite3_stmt* qry, pfc::string8& err_msg, /*Release_ptr release, size_t gx*/pfc::string8 thisrole, pfc::string8 thisfullrole, size_t& credit_id, pfc::string8& thisrole_spec);
-	bool lookup_parsed_credit_tk(sqldb* db, sqlite3_stmt* qry, pfc::string8& err_msg, pfc::string8 release_id, pfc::string8 subtype, size_t& parsed_credit_id);
-	int add_parsed_credit(sqldb* db, Release_ptr release, bool bycredit);
-	int add_parsed_credit_old(sqldb* db, Release_ptr release, bool bycredit);
-	unsigned long calc_parsed_credit(sqldb* db, Release_ptr release, bool bycredit, std::vector<nfo_parsed_credit_detail>& v_pcd, size_t& inc_parsed_credit_id, bool& matched);
-	size_t insert_parsed_credit_detail(sqldb* db, pfc::string8& err_msg, size_t credit_id, size_t inc_parsed_credit_id, size_t i, size_t j, pfc::string8 credit_spec, pfc::string8 thisartists);
-	vppair query_release_credit_categories(pfc::string8 inparsedid, int gx, pfc::string8 innon);
-
-	// db ctag definitions
-	vppair load_db_def_credits();
-
-	// dlg
-	vppair load_db_def_credits(vppair& vcats, vppair& vsubcats);
-	bool update_db_def_credits(vppair& vdefs);
-#endif
-
-#ifdef DB_DC
-	// test
-	bool test_discogs_db(pfc::string8 db_path, abort_callback& p_abort, threaded_process_status& p_status);
-#endif
+	// history
+	int insert_history(sqldb* db, oplog_type optype, std::string cmd_log, pfc::string8 cmd_param, rppair& out);
+	bool recharge_history(sqldb* db, std::string delete_cmd, size_t cmd_param, std::map<oplog_type, vppair*>allout);
 
 private:
 

@@ -34,27 +34,17 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 	DlgResize_Init(mygripp.enabled, true/*, WS_SIZEBOX | WS_EX_WINDOWEDGE | WS_EX_RIGHT*/);
 	load_size();
 
-	if (multi_mode) {
-		::ShowWindow(uGetDlgItem(IDC_WRITE_TAGS_BUTTON), false);
-		::ShowWindow(uGetDlgItem(IDC_PREVIEW_TAGS_BUTTON), false);
-		::ShowWindow(uGetDlgItem(IDC_PREVIOUS_BUTTON), true);
-		::ShowWindow(uGetDlgItem(IDC_NEXT_BUTTON), true);
-		::ShowWindow(uGetDlgItem(IDC_SKIP_BUTTON), true);
-		::ShowWindow(uGetDlgItem(IDCANCEL), false);
-		::ShowWindow(uGetDlgItem(IDC_BACK_BUTTON), false);
-	}
-	else {
-		::ShowWindow(uGetDlgItem(IDC_WRITE_TAGS_BUTTON), true);
-		::ShowWindow(uGetDlgItem(IDC_PREVIEW_TAGS_BUTTON), true);
-		::ShowWindow(uGetDlgItem(IDC_PREVIOUS_BUTTON), false);
-		::ShowWindow(uGetDlgItem(IDC_NEXT_BUTTON), false);
-		::ShowWindow(uGetDlgItem(IDC_SKIP_BUTTON), false);
-		::ShowWindow(uGetDlgItem(IDCANCEL), true);
-		::ShowWindow(uGetDlgItem(IDC_BACK_BUTTON), true);
+	::ShowWindow(uGetDlgItem(IDC_WRITE_TAGS_BUTTON), true);
+	::ShowWindow(uGetDlgItem(IDC_PREVIEW_TAGS_BUTTON), true);
+	::ShowWindow(uGetDlgItem(IDC_PREVIOUS_BUTTON), false);
+	::ShowWindow(uGetDlgItem(IDC_NEXT_BUTTON), false);
+	::ShowWindow(uGetDlgItem(IDC_SKIP_BUTTON), false);
+	::ShowWindow(uGetDlgItem(IDCANCEL), true);
+	::ShowWindow(uGetDlgItem(IDC_BACK_BUTTON), true);
 
-		HWND hwndControl = GetDlgItem(IDC_PREVIEW_TAGS_BUTTON);
-		SendMessage(m_hWnd, WM_NEXTDLGCTL, (WPARAM)hwndControl, TRUE);
-	}
+	HWND hwndControl = GetDlgItem(IDC_PREVIEW_TAGS_BUTTON);
+	SendMessage(m_hWnd, WM_NEXTDLGCTL, (WPARAM)hwndControl, TRUE);
+
 
 	HWND discogs_track_list = uGetDlgItem(IDC_DISCOGS_TRACK_LIST);
 	HWND file_list = uGetDlgItem(IDC_FILE_LIST);
@@ -144,9 +134,21 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 			}		
 		}
 	}
-	else {
-		get_next_tag_writer();
-	}
+	return FALSE;
+}
+
+LRESULT CTrackMatchingDialog::OnCheckSkipArtwork(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+
+	LPARAM param = m_conf.album_art_skip_default_cust;
+	unsigned lo = LOWORD(param);
+	unsigned hi = HIWORD(param);
+
+	if (IsDlgButtonChecked(IDC_CHECK_PREV_DLG_SKIP_ARTWORK))
+		lo |= ART_CUST_SKIP_DEF_FLAG;
+	else
+		lo &= ~ART_CUST_SKIP_DEF_FLAG;
+
+	m_conf.album_art_skip_default_cust = MAKELPARAM(lo, hi);
 
 	return FALSE;
 }
@@ -500,43 +502,6 @@ bool CTrackMatchingDialog::init_count() {
 	return multi_count != 0;
 }
 
-bool CTrackMatchingDialog::get_next_tag_writer() {
-	while (tw_index < tag_writers.get_count()) {
-		m_tag_writer = tag_writers[tw_index++];
-		if (m_tag_writer->force_skip || m_tag_writer->match_status == MATCH_SUCCESS || m_tag_writer->match_status == MATCH_ASSUME) {
-			tw_skip++;
-			continue;
-		}
-		update_window_title();
-		initialize_next_tag_writer();
-		return true;
-	}
-	finished_tag_writers();
-	destroy();
-	return false;
-}
-
-bool CTrackMatchingDialog::get_previous_tag_writer() {
-	size_t previous_index = tw_index-1;
-	while (previous_index > 0) {
-		previous_index--;
-		auto tw = tag_writers[previous_index];
-		if (!(tw->force_skip || tw->match_status == MATCH_SUCCESS || tw->match_status == MATCH_ASSUME)) {
-			tw_index = previous_index;
-			m_tag_writer = tag_writers[tw_index++];
-			update_window_title();
-			initialize_next_tag_writer();
-			return true;
-		}
-		tw_skip--;
-	}
-	return false;
-}
-
-void CTrackMatchingDialog::finished_tag_writers() {
-	service_ptr_t<generate_tags_task_multi> task = new service_impl_t<generate_tags_task_multi>(tag_writers, m_conf.update_tags_preview_changes, use_update_tags);
-	task->start();
-}
 
 LRESULT CTrackMatchingDialog::OnBack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 
@@ -720,12 +685,6 @@ LRESULT CTrackMatchingDialog::OnWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /
 	return TRUE;
 }
 
-LRESULT CTrackMatchingDialog::OnMultiNext(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	PFC_ASSERT(multi_mode);
-	generate_track_mappings(m_tag_writer->track_mappings);
-	get_next_tag_writer();
-	return TRUE;
-}
 
 void CTrackMatchingDialog::pushcfg() {
 	bool conf_changed = build_current_cfg();
@@ -911,18 +870,6 @@ LRESULT CTrackMatchingDialog::OnCommand(UINT /*uMsg*/, WPARAM wParam, LPARAM lPa
 	return 0;
 }
 
-LRESULT CTrackMatchingDialog::OnMultiSkip(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	PFC_ASSERT(multi_mode);
-	m_tag_writer->skip = true;
-	get_next_tag_writer();
-	return TRUE;
-}
-
-LRESULT CTrackMatchingDialog::OnMultiPrev(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	PFC_ASSERT(multi_mode);
-	get_previous_tag_writer();
-	return TRUE;
-}
 
 void CTrackMatchingDialog::update_list_width(HWND list, bool initialize) {
 	
@@ -2280,20 +2227,16 @@ void CTrackMatchingDialog::go_back() {
 
 
 LRESULT CTrackMatchingDialog::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	if (multi_mode) {
-		destroy();
-	}
-	else {
-		destroy_all();
-	}
+
+	destroy_all();
 	return TRUE;
 }
 
 void CTrackMatchingDialog::destroy_all() {
-	if (!multi_mode) {
-		CFindReleaseDialog* dlg = reinterpret_cast<CFindReleaseDialog*>(g_discogs->find_release_dialog);
-		dlg->destroy();
-	}
+
+	CFindReleaseDialog* dlg = reinterpret_cast<CFindReleaseDialog*>(g_discogs->find_release_dialog);
+	dlg->destroy();
+
 	destroy();
 }
 

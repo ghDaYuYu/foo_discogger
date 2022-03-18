@@ -8,7 +8,10 @@
 
 #include "track_matching_dialog.h"
 #include "preview_dialog.h"
+#ifdef CAT_CRED
 #include "tag_mappings_credits_dlg.h"
+#endif // CAT_CRED
+
 
 
 using namespace Discogs;
@@ -69,25 +72,6 @@ private:
 };
 
 
-class generate_tags_task_multi : public foo_discogs_locked_threaded_process_callback
-{
-public:
-	generate_tags_task_multi(pfc::array_t<TagWriter_ptr> tag_writers, bool show_preview_dialog, bool use_update_tags);
-	void start();
-
-private:
-	bool show_preview_dialog;
-
-	pfc::array_t<TagWriter_ptr> tag_writers;
-	bool use_update_tags;
-
-	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
-	void on_success(HWND p_wnd) override;
-	void on_abort(HWND p_wnd) override;
-	void on_error(HWND p_wnd) override;
-};
-
-
 class write_tags_task : public foo_discogs_threaded_process_callback
 {
 public:
@@ -113,8 +97,6 @@ private:
 
 	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
-	void on_abort(HWND p_wnd) override;
-	void on_error(HWND p_wnd) override;
 };
 
 
@@ -208,30 +190,12 @@ private:
 };
 
 
-class update_tags_task : public foo_discogs_locked_threaded_process_callback
-{
-public:
-	update_tags_task(metadb_handle_list items, bool use_update_tags);
-	void start();
-
-private:
-	bool use_update_tags;
-	
-	file_info_manager finfo_manager;
-
-	std::map<pfc::string8, file_info_manager_ptr> finfo_manager_map;
-	pfc::array_t<TagWriter_ptr> tag_writers;
-
-	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
-	void on_success(HWND p_wnd) override;
-	void on_abort(HWND p_wnd) override;
-	void on_error(HWND p_wnd) override;
-
-	void finish();
-};
-
-
+#ifdef DB_DC
+class get_artist_process_callback : public foo_discogs_with_db_threaded_process_callback
+#else
 class get_artist_process_callback : public foo_discogs_threaded_process_callback
+#endif // DB_DC
+
 {
 public:
 	get_artist_process_callback(updRelSrc updsrc, const char *artist_id)
@@ -247,8 +211,11 @@ private:
 	void on_success(HWND p_wnd) override;
 };
 
-
+#ifdef DB_DC
+class search_artist_process_callback : public foo_discogs_with_db_locked_threaded_process_callback/*foo_discogs_locked_threaded_process_callback*/
+#else
 class search_artist_process_callback : public foo_discogs_locked_threaded_process_callback
+#endif // DB_DC
 {
 public:
 	search_artist_process_callback(const char *search) : m_search(search) {}
@@ -264,7 +231,32 @@ private:
 };
 
 
+#ifdef DB_DC
+class expand_master_release_process_callback : public foo_discogs_with_db_threaded_process_callback
+#else
+class expand_master_release_process_callback : public foo_discogs_threaded_process_callback
+#endif // DB_DC
+{
+public:
+	expand_master_release_process_callback(const MasterRelease_ptr& master_release, const int pos, pfc::string8 offlineArtistId) : m_master_release(master_release), m_pos(pos), m_offlineArtist_id(offlineArtistId) {}
+	void start(HWND parent);
+
+private:
+	MasterRelease_ptr m_master_release;
+	int m_pos;
+	pfc::string8 m_offlineArtist_id;
+
+	void safe_run(threaded_process_status& p_status, abort_callback& p_abort) override;
+	void on_success(HWND p_wnd) override;
+	void on_abort(HWND p_wnd) override;
+	void on_error(HWND p_wnd) override;
+};
+
+#ifdef DB_DC
+class process_release_callback : public foo_discogs_with_db_threaded_process_callback
+#else
 class process_release_callback : public foo_discogs_threaded_process_callback
+#endif // DB_DC
 {
 public:
 	process_release_callback(CFindReleaseDialog *dialog, const pfc::string8 &release_id, const metadb_handle_list &items);
@@ -285,6 +277,59 @@ private:
 	void on_error(HWND p_wnd) override;
 };
 
+#ifdef DB_DC
+class process_aside_release_callback : public foo_discogs_with_db_threaded_process_callback
+#else
+class process_aside_release_callback : public foo_discogs_threaded_process_callback
+#endif // DB_DC
+{
+public:
+	process_aside_release_callback(CTagCreditDialog* dialog, const pfc::string8& release_id, const pfc::string8& offline_artist_id, pfc::string8 cat_credit_name,  pfc::string8 inno/*, const metadb_handle_list& items*/);
+	void start(HWND parent);
+
+private:
+
+	CTagCreditDialog* m_dialog;
+	pfc::string8 m_release_id;
+	pfc::string8 m_offline_artist_id;
+	pfc::string8 m_cat_credit_name;
+	pfc::string8 m_inno;
+	Release_ptr m_release;
+
+	void safe_run(threaded_process_status& p_status, abort_callback& p_abort) override;
+	void on_success(HWND p_wnd) override;
+	void on_abort(HWND p_wnd) override;
+	void on_error(HWND p_wnd) override;
+};
+
+
+#ifdef CAT_UI
+#ifdef DB_DC
+class process_uielem_release_callback : public foo_discogs_with_db_locked_threaded_process_callback
+#else
+class process_uielem_release_callback : public foo_discogs_locked_threaded_process_callback
+#endif // DB_DC
+{
+public:
+	process_uielem_release_callback(ui_element_instance* uielem, const pfc::string8& release_id, const pfc::string8& offline_artist_id/*, pfc::string8 cat_credit_name, pfc::string8 inno, const metadb_handle_list& items*/);
+	void start(HWND parent);
+
+private:
+
+	ui_element_instance* m_uielem;
+	pfc::string8 m_release_id;
+	pfc::string8 m_offline_artist_id;
+
+	Release_ptr m_release;
+
+	void safe_run(threaded_process_status& p_status, abort_callback& p_abort) override;
+
+	void on_success(HWND p_wnd) override;
+	void on_abort(HWND p_wnd) override;
+	void on_error(HWND p_wnd) override;
+};
+
+#endif //CAT_UI
 
 class process_artwork_preview_callback : public foo_discogs_threaded_process_callback
 {
@@ -295,7 +340,6 @@ public:
 private:
 	MemoryBlock m_small_art;
 	CTrackMatchingDialog* m_dialog;
-	pfc::string8 m_release_id;
 	Release_ptr m_release;
 	size_t m_img_ndx;
 	bool m_bartist;
@@ -332,6 +376,21 @@ private:
 	void on_error(HWND p_wnd) override;
 };
 
+#ifdef DB_DC
+class test_db_process_callback : public foo_discogs_threaded_process_callback
+{
+public:
+	test_db_process_callback(const pfc::string8& db_path) : db_path(db_path) {}
+	void start(HWND parent);
+
+private:
+	const pfc::string8& db_path;
+
+	void safe_run(threaded_process_status& p_status, abort_callback& p_abort) override;
+	void on_success(HWND p_wnd) override;
+	void on_error(HWND p_wnd) override;
+};
+#endif // DB_DC
 
 class test_oauth_process_callback : public foo_discogs_threaded_process_callback
 {

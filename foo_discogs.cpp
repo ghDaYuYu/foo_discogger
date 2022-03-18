@@ -9,7 +9,9 @@
 #include "track_matching_dialog.h"
 #include "preview_dialog.h"
 #include "tag_mappings_dialog.h"
+#ifdef CAT_CRED
 #include "tag_mappings_credits_dlg.h"
+#endif // CAT_CRED
 
 #include "configuration_dialog.h"
 #include "find_release_dialog.h"
@@ -91,9 +93,12 @@ foo_discogs::~foo_discogs() {
 	if (tag_mappings_dialog) {
 		tag_mappings_dialog->destroy();
 	}
+#ifdef CAT_CRED
 	if (tag_credit_dialog) {
 		tag_credit_dialog->destroy();
 	}
+#endif // CAT_CRED
+
 	//if (configuration_dialog) {
 	//	configuration_dialog->destroy();
 	//}

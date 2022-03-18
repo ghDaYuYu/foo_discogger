@@ -5,12 +5,6 @@
 std::string toupper(const std::string str) { std::string tmpstr = str; for (auto& c : tmpstr) c = toupper(c); return tmpstr; }
 std::string toupper(const char* str) { std::string tmpstr(str); for (auto& c : tmpstr) c = toupper(c); return tmpstr; }
 
-bool is_number(const std::string& s)
-{
-	return !s.empty() && std::find_if(s.begin(),
-		s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
-}
-
 size_t grp_array_position(const std::string& value) 
 {
 	const std::vector<std::string> array{ SRC_ALL, SRC_RELEASE, SRC_TRACKS };
@@ -68,16 +62,14 @@ pfc::string8 sanitize_track_commas(const pfc::string8& tracks) {
 	split(tracks, " ", 0, v);
 	for (int i = 0; i < v.size(); i++) {
 		if (i < v.size() - 2) {
-			if (v.at(i).equals("to")) {
-				if (v.at(i + 1).find_first(',', 0) == pfc_infinite) {
-					auto c = std::find(v.begin() + i, v.end(), ",");
-					if (c == v.end() || (c - v.begin() + i > 1)) {
-						v.at(i + 1) = PFC_string_formatter() << v.at(i + 1) << ",";
-					}					
-				}
-				v.at(i) = " to ";
+			if (v.at(i).equals("to") && (v.at(i + 1).find_first(',', 0) == pfc_infinite)) {
+				auto c = std::find(v.begin() + i, v.end(), ",");
+				if (c == v.end() || (c - v.begin() + i > 1)) {
+					v.at(i + 1) = PFC_string_formatter() << v.at(i + 1) << ",";
+				}					
 			}
 		}
+		v.at(i).replace_string("to", " to ");
 	}
 
 	//rebuild
@@ -191,8 +183,7 @@ pfc::string8 disc_tracks_to_range(const pfc::string8& tracks, Release* release, 
 			}
 			else {
 				if (stdnames) {
-					tmpstr = PFC_string_formatter() << w.first << "." <<
-						tmpstr.replace_string(", ", PFC_string_formatter() << ", " << w.second);
+					tmpstr = PFC_string_formatter() << w.first << "." << ltrim(wct);
 				}
 				else {
 					tmpstr = release->discs[atoi(w.first) - 1]->tracks[atoi(wct) - 1]->discogs_track_number;

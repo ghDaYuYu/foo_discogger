@@ -53,6 +53,10 @@ public:
 		stdf_change_notifier = nullptr;
 	};
 
+	credit_tag_nfo(pfc::string8 tag_name) {
+		init(tag_name);
+	}
+
 	pfc::string8 rebuild_tag_name() {
 
 		pfc::string8 tag = CAT_CREDIT_TAG_PREFIX;
@@ -132,8 +136,7 @@ public:
 	void ChangeNotify(HWND wnd, bool updatedata) { stdf_change_notifier(wnd, updatedata); }
 };
 
-extern bool is_number(const std::string& s);
-//extern int cmp(const void* key, const void* value);
+//extern int cmp(const void* key, const void* m_value);
 extern size_t grp_array_position(const std::string& value/*, const std::vector<std::string>& array*/);
 extern size_t split(pfc::string8 str, pfc::string8 token, size_t index, std::vector<pfc::string8>& out);
 // 1-7+223 (drums) splits into std::pair("1-7","223")

@@ -4,7 +4,11 @@
 #include "db_fetcher_component.h"
 
 #include "preview_dialog.h"
+
+#ifdef CAT_CRED
 #include "tag_mappings_credits_dlg.h"
+#endif // CAT_CRED
+
 #include "tag_mappings_dialog.h"
 
 static const GUID guid_cfg_window_placement_tag_mapping_dlg = { 0x7056137a, 0x8fe9, 0x4b5e, { 0x89, 0x8e, 0x13, 0x59, 0x83, 0xfd, 0x3, 0x95 } };
@@ -100,8 +104,11 @@ LRESULT CTagMappingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM
 	Button_SetSplitInfo(tag_split_cat_credits, &MyInfo); // Send the BCM_SETSPLITINFO message to the control.
 
 	db_fetcher_component db;
-	vdefs = db.load_db_def_credits();
-	
+
+#ifdef CAT_CRED
+	v_cat_defs = db.load_db_def_credits();
+#endif // CAT_CRED
+
 	m_tag_list.CreateInDialog(*this, IDC_TAG_LIST);
 	m_tag_list.InitializeHeaderCtrl(HDS_DRAGDROP);
 	const SIZE DPI = QueryScreenDPIEx();
@@ -402,6 +409,7 @@ LRESULT CTagMappingDialog::OnBtnRemoveTag(WORD /*wNotifyCode*/, WORD wID, HWND /
 	return FALSE;
 }
 
+#ifdef CAT_CRED
 LRESULT CTagMappingDialog::OnBtnCreditsClick(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 
 	if (!g_discogs->tag_credit_dialog) {
@@ -413,6 +421,7 @@ LRESULT CTagMappingDialog::OnBtnCreditsClick(WORD /*wNotifyCode*/, WORD wID, HWN
 	}
 	return FALSE;
 }
+#endif // CAT_CRED
 
 LRESULT CTagMappingDialog::OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	if ((HWND)wParam == m_tag_list) {
@@ -686,23 +695,38 @@ LRESULT CTagMappingDialog::OnSplitDropDown(LPNMHDR lParam) {
 		int cmd = TrackPopupMenu(hSplitMenu, TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RETURNCMD, pt.x, pt.y, 0, m_hWnd, NULL);
 		DestroyMenu(hSplitMenu);
 		if (cmd) {
-			pfc::string8 strcmd = std::to_string(cmd).c_str();
-			strcmd = substr(strcmd, 1, 2);
-			cmd = atoi(strcmd);
-			PostMessage(MSG_ADD_NEW, cmd + 1, 0); //1 based to insert default tag by ndx (or ndx 0 to add new item)
+
+			//convert cmd to message param
+			//1 based index to insert default tag, 0 to add a new item
+
+			if (cmd == 1) {
+				cmd = 0;
+			}
+			else {
+				pfc::string8 strcmd = std::to_string(cmd).c_str();
+				cmd = atoi(substr(strcmd, 1, 2));
+				++cmd;				
+			}
+
+			PostMessage(MSG_ADD_NEW, cmd, 0);
+			
 		}
 	}
-	//cat credit split button
-	else if (pDropDown->hdr.hwndFrom == GetDlgItem(IDC_SPLIT_BTN_TAG_CAT_CREDIT)) {
-		POINT pt;
-		pt.x = pDropDown->rcButton.left;
-		pt.y = pDropDown->rcButton.bottom;
-		::ClientToScreen(pDropDown->hdr.hwndFrom, &pt);
 
-		enum { MENU_FIRST_CAT_CREDIT = 1 };
+#ifdef CAT_CRED
+	//cat credit split button
+	else if (wID == IDC_SPLIT_BTN_TAG_CAT_CREDIT) {
+	//else if (pDropDown->hdr.hwndFrom == GetDlgItem(IDC_SPLIT_BTN_TAG_CAT_CREDIT)) {
+		POINT pt;
+		pt.x = rcButton.left;
+		pt.y = rcButton.bottom;
+
+		enum { MENU_EDIT_CAT_CREDITS = 1, MENU_FIRST_CAT_CREDIT };
 		HMENU hSplitMenu = CreatePopupMenu();
+		AppendMenu(hSplitMenu, MF_STRING, MENU_EDIT_CAT_CREDITS, L"Edit...");
+
 		size_t c = 0;
-		for (auto walk_cat_credit : vdefs) {
+		for (auto walk_cat_credit : v_cat_defs) {
 			const pfc::stringcvt::string_os_from_utf8 os_tag_name(walk_cat_credit.first.second);
 			AppendMenu(hSplitMenu, MF_STRING, MENU_FIRST_CAT_CREDIT + c, os_tag_name);
 			++c;
@@ -712,28 +736,36 @@ LRESULT CTagMappingDialog::OnSplitDropDown(LPNMHDR lParam) {
 		DestroyMenu(hSplitMenu);
 
 		if (cmd) {
-			auto cat_credit = vdefs.at(cmd - 1);
-			pfc::string8 tf;
-			tf << PFC_string_formatter() << "%" << cat_credit.second.first << "%";
-			tag_mapping_entry* entry = new tag_mapping_entry();
-			entry->tag_name = cat_credit.first.second;
-			entry->formatting_script = tf;
-			entry->enable_write = true;
-			entry->enable_update = false;
-			entry->freeze_tag_name = false;
-			entry->freeze_update = false;
-			entry->freeze_write = false;
 
-			size_t index = m_ptag_mappings->add_item(*entry);
-			update_tag(m_ptag_mappings->get_count()-1, entry);
+			if (cmd == 1) {
+				BOOL bDummy;
+				OnBtnCreditsClick(0, wID, NULL, bDummy);
+			}
+			else {
+				auto cat_credit = v_cat_defs.at(cmd - MENU_FIRST_CAT_CREDIT);
+				pfc::string8 tf;
+				tf << PFC_string_formatter() << "%" << cat_credit.second.first << "%";
+				tag_mapping_entry* entry = new tag_mapping_entry();
+				entry->tag_name = cat_credit.first.second;
+				entry->formatting_script = tf;
+				entry->enable_write = true;
+				entry->enable_update = false;
+				entry->freeze_tag_name = false;
+				entry->freeze_update = false;
+				entry->freeze_write = false;
 
-			delete entry;
+				size_t index = m_ptag_mappings->add_item(*entry);
+				update_tag(m_ptag_mappings->get_count() - 1, entry);
 
-			m_tag_list.OnItemsInserted(index, 1, true);
-			m_tag_list.EnsureItemVisible(index, true);
-			on_mapping_changed(check_mapping_changed());
+				delete entry;
 
+				m_tag_list.OnItemsInserted(index, 1, true);
+				m_tag_list.EnsureItemVisible(index, true);
+				on_mapping_changed(check_mapping_changed());
+			}
 		}
 	}
-	return TRUE;
+#endif // CAT_CRED
+
+	return FALSE;
 }

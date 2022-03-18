@@ -14,6 +14,9 @@
 #ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x600  // Vista or later
 #endif
+#ifndef _WIN32_IE
+#define _WIN32_IE 0x0600
+#endif
 
 #include <windows.h>
 #include <string>

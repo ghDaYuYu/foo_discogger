@@ -26,17 +26,15 @@ private:
 	foo_conf conf;
 
 	bool use_update_tags = false;
-	bool multi_mode = false;
 	size_t multi_count = 0;
 
 	std::vector<preview_stats> v_stats;
-	void reset_default_columns(HWND wndlist, bool breset);
 	std::vector<std::pair<int, int>> vec_icol_subitems;
-	void update_sorted_icol_map(bool reset);
 
 	bool generating_tags = false;
 	
-	int totalwrites = 0; int totalupdates = 0;
+	int totalwrites = 0;
+	int totalupdates = 0;
 
 	bool cfg_preview_dialog_show_stats = false;
 
@@ -46,9 +44,11 @@ private:
 	size_t tw_index = 0;
 	size_t tw_skip = 0;
 
+	void reset_default_columns(HWND wndlist, bool breset);
+	void update_sorted_icol_map(bool reset);
+
 	bool init_count();
-	bool get_next_tag_writer();
-	void finished_tag_writers();
+
 
 	void update_window_title() {
 		pfc::string8 text;
@@ -98,8 +98,8 @@ public:
 	};
 
 	enum {
-		flag_tagmap_dlg_attached = 1 << 0,
-		flag_tagmap_dlg_is_open = 1 << 1,
+		FLG_TAGMAP_DLG_ATTACHED = 1 << 0,
+		FLG_TAGMAP_DLG_OPENED = 1 << 1,
 	};
 
 	virtual BOOL PreTranslateMessage(MSG* pMsg) override {
@@ -118,7 +118,6 @@ public:
 		COMMAND_ID_HANDLER(IDC_BACK_BUTTON, OnBack)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
-		COMMAND_ID_HANDLER(IDC_SKIP_BUTTON, OnMultiSkip)
 		COMMAND_ID_HANDLER(IDC_REPLACE_ANV_CHECK, OnCheckReplaceANVs)
 		COMMAND_ID_HANDLER(IDC_CHECK_PREV_DLG_SHOW_STATS, OnCheckPreviewShowStats)
 		COMMAND_ID_HANDLER(IDC_CHECK_PREV_DLG_SKIP_ARTWORK, OnCheckSkipArtwork)
@@ -135,6 +134,7 @@ public:
 		CHAIN_MSG_MAP(CDialogResize<CPreviewTagsDialog>)
 	MY_END_MSG_MAP()
 #pragma warning(pop)
+
 	BEGIN_DLGRESIZE_MAP(CPreviewTagsDialog)
 		DLGRESIZE_CONTROL(IDC_ALBUM_ART, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_OPTIONS_GROUP, DLSZ_MOVE_X)
@@ -170,29 +170,13 @@ public:
 
 		m_rec_icon = LoadDpiBitmapResource(Icon::Record);
 	}
-	CPreviewTagsDialog(HWND p_parent, pfc::array_t<TagWriter_ptr> tag_writers, bool use_update_tags)
-		: tag_writers(tag_writers), tag_results_list(NULL), use_update_tags(use_update_tags), multi_mode(true) {
 
-		g_discogs->preview_tags_dialog = this;
-		if (init_count()) {
-			CGdiPlusBitmapResource rec_image;
-			auto hInst = core_api::get_my_instance();
-			rec_image.Load(MAKEINTRESOURCE(IDB_PNG_REC_16), L"PNG", hInst);
-			Gdiplus::Status res_get = rec_image.m_pBitmap->GetHBITMAP(Gdiplus::Color(255, 255, 255)/*Color::Black*/, &m_rec_icon);
-			DeleteObject(rec_image);
-		}
-		else {
-			finished_tag_writers();
-			destroy();
-		}
-	}
 	~CPreviewTagsDialog();
 
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnMultiSkip(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnBack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCheckReplaceANVs(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCheckPreviewShowStats(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);

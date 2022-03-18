@@ -32,7 +32,6 @@ class get_artist_process_callback;
 class search_artist_process_callback;
 class edit_complete;
 
-
 class foo_discogs : public ErrorManager
 {
 public:
@@ -55,7 +54,6 @@ public:
 	CTagMappingDialog *tag_mappings_dialog = nullptr;
 	CTagCreditDialog *tag_credit_dialog = nullptr;
 	CConfigurationDialog *configuration_dialog = nullptr;
-	CUpdateTagsDialog *update_tags_dialog = nullptr;
 
 	size_t locked_operation = 0;
 

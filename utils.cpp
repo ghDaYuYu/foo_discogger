@@ -43,6 +43,12 @@ inline pfc::string8 rtrim(const pfc::string8 &str, const char *ch) {
 	return pfc::string8(dest.c_str());
 }
 
+bool is_number(const std::string& s)
+{
+	return !s.empty() && std::find_if(s.begin(),
+		s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
+}
+
 pfc::string8 lowercase(pfc::string8 str) {
 	std::string result((const char*)str);
 	std::transform(result.begin(), result.end(), result.begin(), ::tolower);
@@ -110,6 +116,16 @@ int tokenize_multi(const pfc::string8 &src, const pfc::array_t<pfc::string8> &de
 	}
 	tokens.append_single(tmp);
 	return (int)tokens.get_size();
+}
+
+bool tokenize_filter(pfc::string8 filter, pfc::array_t<pfc::string>& out_filter_words_lowercase) {
+	pfc::array_t<pfc::string8> filter_words;
+	tokenize(filter, " ", filter_words, true);
+
+	for (size_t i = 0; i < filter_words.get_size(); i++) {
+		out_filter_words_lowercase.append_single(pfc::string(filter_words[i].get_ptr()).toLower());
+	}
+	return out_filter_words_lowercase.get_count() > 0;
 }
 
 void makeFsCompliant(pfc::string8 &str) {

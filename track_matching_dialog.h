@@ -298,15 +298,12 @@ public:
 	LRESULT OnRemoveTrackButton(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnPreviewTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnMultiNext(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnMultiPrev(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnBack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnWriteArtwork(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnWriteArtworkKnownIds(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnCommand(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
-	LRESULT OnMultiSkip(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnDiscogListGetDispInfo(LPNMHDR lParam);
 	LRESULT DiscogTrackGetDispInfo(LPNMHDR lParam);
 	LRESULT DiscogArtGetDispInfo(LPNMHDR lParam);
@@ -318,8 +315,6 @@ public:
 
 	bool initialize_next_tag_writer();
 	void match_message_update(pfc::string8 local_msg = "");
-	bool get_next_tag_writer();
-	bool get_previous_tag_writer();
 
 	//serves credit preview
 	pfc::string8 get_discogs_release_id() { return m_tag_writer->release->id; };
@@ -353,7 +348,6 @@ private:
 	foo_conf m_conf;
 
 	bool use_update_tags = false;
-	bool multi_mode = false;
 	size_t multi_count = 0;
 
 	TagWriter_ptr m_tag_writer;

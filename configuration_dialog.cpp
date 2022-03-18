@@ -1,7 +1,10 @@
 #include "stdafx.h"
 
 #include "tag_mappings_dialog.h"
+#ifdef CAT_CRED
 #include "tag_mappings_credits_dlg.h"
+#endif // CAT_CRED
+
 #include "utils.h"
 #include "tasks.h"
 #include "db_utils.h"
@@ -66,7 +69,9 @@ void CConfigurationDialog::InitTabs() {
 }
 
 CConfigurationDialog::~CConfigurationDialog() {
+
 	g_discogs->configuration_dialog = nullptr;
+
 }
 
 //from libPPUI\CDialogResizeHelper.cpp
@@ -259,6 +264,7 @@ LRESULT CConfigurationDialog::OnCustomAnvChanged(UINT /*uMsg*/, WPARAM /*wParam*
 }
 
 LRESULT CConfigurationDialog::OnDestroy(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled) {
+
 	if (conf.last_conf_tab != g_current_tab) {
 		CONF.save_active_config_tab(g_current_tab);
 	}
@@ -425,23 +431,13 @@ void CConfigurationDialog::init_oauth_dialog(HWND wnd) {
 }
 
 void CConfigurationDialog::show_oauth_msg(pfc::string8 msg, bool iserror) {
+	
 	if (g_current_tab != CONF_OATH_TAB) {
 		HWND hWndTab = uGetDlgItem(IDC_TAB);
 		uSendMessage(hWndTab, TCM_SETCURSEL, CONF_OATH_TAB, 0);
 		show_tab(CONF_OATH_TAB);
 	}
 
-	HWND wndIconOk = ::uGetDlgItem(g_hWndCurrentTab, IDC_STATIC_OAUTH_ICO_OK);
-	HWND wndIconErr = ::uGetDlgItem(g_hWndCurrentTab, IDC_STATIC_OAUTH_ICO_ERROR);
-
-	if (msg.length() > 0) {
-		::ShowWindow(wndIconOk, iserror? SW_HIDE : SW_SHOW);
-		::ShowWindow(wndIconErr, iserror? SW_SHOW : SW_HIDE);
-	}
-	else {
-		::ShowWindow(wndIconOk, SW_HIDE);
-		::ShowWindow(wndIconOk, SW_HIDE);
-	}
 	uSetDlgItemText(g_hWndCurrentTab, IDC_STATIC_CONF_OAUTH_MSG, msg);
 }
 
@@ -798,6 +794,7 @@ BOOL CConfigurationDialog::on_tagging_dialog_message(HWND wnd, UINT msg, WPARAM 
 			}
 		}
 		else if (LOWORD(wp) == IDC_EDIT_CAT_CREDIT_BTN) {
+#ifdef CAT_CRED
 			if (!g_discogs->tag_credit_dialog) {
 				g_discogs->tag_credit_dialog = fb2k::newDialog<CTagCreditDialog>(core_api::get_main_window()/*, nullptr*/);
 			}
@@ -805,6 +802,7 @@ BOOL CConfigurationDialog::on_tagging_dialog_message(HWND wnd, UINT msg, WPARAM 
 				CDialogImpl* tmdlg = pfc::downcast_guarded<CDialogImpl*>(g_discogs->tag_credit_dialog);
 				::SetFocus(tmdlg->m_hWnd);
 			}
+#endif // CAT_CRED
 		}
 		else  {
 			if ((HIWORD(wp) == BN_CLICKED) || (HIWORD(wp) == EN_UPDATE)) {

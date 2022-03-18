@@ -19,7 +19,9 @@ const ExposedMap<MasterRelease> ExposedTags<MasterRelease>::exposed_tags = Maste
 const ExposedMap<Artist> ExposedTags<Artist>::exposed_tags = Artist::create_tags_map();
 const ExposedMap<ReleaseArtist> ExposedTags<ReleaseArtist>::exposed_tags = ReleaseArtist::create_tags_map();
 const ExposedMap<ReleaseCredit> ExposedTags<ReleaseCredit>::exposed_tags = ReleaseCredit::create_tags_map();
+#ifdef CAT_CRED
 const ExposedMap<ReleaseCatCredit> ExposedTags<ReleaseCatCredit>::exposed_tags = ReleaseCatCredit::create_tags_map();
+#endif // CAT_CRED
 const ExposedMap<ReleaseFormat> ExposedTags<ReleaseFormat>::exposed_tags = ReleaseFormat::create_tags_map();
 const ExposedMap<ReleaseDisc> ExposedTags<ReleaseDisc>::exposed_tags = ReleaseDisc::create_tags_map();
 const ExposedMap<ExpTagsImage> ExposedTags<ExpTagsImage>::exposed_tags = ExpTagsImage::create_tags_map();
@@ -80,6 +82,8 @@ string_encoded_array Discogs::ReleaseCredit::get_sub_data(pfc::string8 &tag_name
 	return result;
 }
 
+#ifdef CAT_CRED
+
 string_encoded_array Discogs::ReleaseCatCredit::get_sub_data(pfc::string8& tag_name, threaded_process_status& p_status, abort_callback& p_abort) {
 	pfc::string8 sub_tag_name;
 	string_encoded_array result;
@@ -96,6 +100,9 @@ string_encoded_array Discogs::ReleaseCatCredit::get_sub_data(pfc::string8& tag_n
 	result.encode();
 	return result;
 }
+
+#endif // CAT_CRED
+
 
 string_encoded_array Discogs::ReleaseTrack::get_sub_data(pfc::string8 &tag_name, threaded_process_status &p_status, abort_callback &p_abort) {
 	pfc::string8 sub_tag_name;
@@ -223,10 +230,10 @@ string_encoded_array Discogs::Release::get_sub_data(pfc::string8 &tag_name, thre
 	}
 	else if (STR_EQUALN(tag_name, "CAT_CREDITS_", 12)) {
 
-		credit_tag_nfo credit_nfo;
-		pfc::string8 init_tagname("RELEASE_");
-		init_tagname << tag_name;
-		credit_nfo.init(init_tagname);
+		pfc::string8 init_tagname;
+		init_tagname << "RELEASE_" << tag_name;
+		credit_tag_nfo credit_nfo(init_tagname);
+		
 		pfc::string8 inno;
 		credit_nfo.build_vwhere_cats(inno);
 

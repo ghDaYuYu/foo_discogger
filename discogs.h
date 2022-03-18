@@ -270,6 +270,8 @@ namespace Discogs
 	};
 	typedef std::shared_ptr<ReleaseCredit> ReleaseCredit_ptr;
 
+#ifdef CAT_CRED
+
 	class ReleaseCatCredit : public HasRoles, public HasArtists, public ExposedTags<ReleaseCatCredit>
 	{
 	public:
@@ -285,6 +287,8 @@ namespace Discogs
 		virtual string_encoded_array get_sub_data(pfc::string8& tag_name, threaded_process_status& p_status, abort_callback& p_abort) override;
 	};
 	typedef std::shared_ptr<ReleaseCatCredit> ReleaseCatCredit_ptr;
+
+#endif //CAT_CRED
 
 	class HasCredits
 	{

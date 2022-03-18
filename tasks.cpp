@@ -8,6 +8,10 @@
 #include "db_fetcher.h"
 #include "configuration_dialog.h"
 
+#ifdef CAT_UI
+#include "uui_element_dialog.h"
+#endif // CAT_UI
+
 #include "tasks.h"
 
 void foo_discogs_threaded_process_callback::run(threaded_process_status &p_status, abort_callback &p_abort) {
@@ -16,6 +20,11 @@ void foo_discogs_threaded_process_callback::run(threaded_process_status &p_statu
 	}
 	catch (foo_discogs_exception &e) {
 		add_error(e, true);
+	}
+	catch (...) {		
+		foo_discogs_exception ex;
+		ex << "Unknown error running task.";
+		add_error(ex, true);
 	}
 }
 
@@ -161,13 +170,6 @@ void generate_tags_task_multi::on_success(HWND p_wnd) {
 	}
 }
 
-void generate_tags_task_multi::on_abort(HWND p_wnd) {
-	on_error(p_wnd);
-}
-
-void generate_tags_task_multi::on_error(HWND p_wnd) {
-}
-
 
 void write_tags_task::start() {
 	threaded_process::g_run_modeless(
@@ -202,47 +204,6 @@ void write_tags_task::on_success(HWND p_wnd) {
 }
 
 
-void write_tags_task_multi::start() {
-	threaded_process::g_run_modeless(
-		this,
-		threaded_process::flag_show_abort |
-		threaded_process::flag_show_delayed |
-		threaded_process::flag_show_progress |
-		threaded_process::flag_show_item,
-		core_api::get_main_window(),
-		"Writing tags..."
-	);
-}
-
-void write_tags_task_multi::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
-	const size_t count = tag_writers.get_count();
-	for (size_t i = 0; i < count; i++) {
-		if (!tag_writers[i]->skip && tag_writers[i]->will_modify) {
-			tag_writers[i]->write_tags();
-		}
-	}
-}
-
-void write_tags_task_multi::on_success(HWND p_wnd) {
-	const size_t count = tag_writers.get_count();
-	file_info_manager_ptr super_manager = std::make_shared<file_info_manager>();
-	for (size_t i = 0; i < count; i++) {
-		if (!tag_writers[i]->skip && tag_writers[i]->will_modify) {
-			for (size_t j = 0; j < tag_writers[i]->finfo_manager->get_item_count(); j++) {
-				super_manager->copy_from(*(tag_writers[i]->finfo_manager), j);
-			}
-		}
-	}
-	super_manager->write_infos();
-}
-
-void write_tags_task_multi::on_abort(HWND p_wnd) {
-}
-
-void write_tags_task_multi::on_error(HWND p_wnd) {
-}
-
-
 update_art_task::update_art_task(metadb_handle_list items, bool save_album_art, bool save_artist_art) :
 		save_album_art(save_album_art), save_artist_art(save_artist_art), items(items), finfo_manager(items) {
 	finfo_manager.read_infos();
@@ -261,7 +222,6 @@ void update_art_task::start() {
 }
 
 void update_art_task::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
-	std::map<pfc::string8, bool> artist_processed;
 
 	const size_t item_count = finfo_manager.get_item_count();
 	pfc::string8 release_id, artist_id;
@@ -718,96 +678,6 @@ void find_releases_not_in_collection_task::finish() {
 }
 
 
-update_tags_task::update_tags_task(metadb_handle_list items, bool use_update_tags) :
-		use_update_tags(use_update_tags), finfo_manager(items) {
-	finfo_manager.read_infos();
-}
-
-void update_tags_task::start() {
-	threaded_process::g_run_modeless(
-		this,
-		threaded_process::flag_show_abort |
-		threaded_process::flag_show_delayed |
-		threaded_process::flag_show_progress |
-		threaded_process::flag_show_item,
-		core_api::get_main_window(),
-		"Preparing to update tags..."
-	);
-}
-
-void update_tags_task::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
-	const size_t total_items = finfo_manager.get_item_count();
-	std::map<pfc::string8, pfc::array_t<size_t>> metadb_lists;
-	pfc::array_t<pfc::string8> releases;
-
-	for (size_t i = 0; i < total_items; i++) {
-		metadb_handle_ptr item = finfo_manager.get_item_handle(i);
-		file_info &finfo = finfo_manager.get_item(i);
-		
-		const char *ex_release_id = finfo.meta_get(TAG_RELEASE_ID, 0);
-		if (ex_release_id == NULL) {
-			continue;
-		}
-
-		pfc::string8 release_id(ex_release_id);
-
-		auto it = metadb_lists.find(release_id);
-		if (it != metadb_lists.cend()) {
-			it->second.append_single(i);
-		}
-		else {
-			metadb_lists[release_id] = pfc::array_t<size_t>();
-			metadb_lists[release_id].append_single(i);
-			releases.append_single(release_id);
-		}
-	}
-
-	const size_t count = releases.get_count();
-	for (size_t n = 0; n < count; n++) {
-		const pfc::string8 &release_id = releases[n];
-		const pfc::array_t<size_t> &stuff = metadb_lists[release_id];
-		
-		pfc::string8 formatted_release_name;
-		metadb_handle_ptr item = finfo_manager.get_item_handle(stuff[0]);
-		item->format_title(nullptr, formatted_release_name, g_discogs->release_name_script, nullptr);
-		p_status.set_item(formatted_release_name.get_ptr());
-		p_status.set_progress(n + 1, count);
-
-		file_info_manager_ptr sub_manager = std::make_shared<file_info_manager>();
-		for (size_t i = 0; i < stuff.get_count(); i++) {
-			sub_manager->copy_from(finfo_manager, stuff[i]);
-		}
-
-		try {
-			TagWriter_ptr tag_writer = std::make_shared<TagWriter>(sub_manager, discogs_interface->get_release(release_id, p_status, p_abort, false, true));
-			tag_writer->match_tracks();
-			tag_writers.append_single(tag_writer);
-		}
-		catch (http_404_exception) {
-			pfc::string8 error;
-			error << "Skipping 404 release: " << release_id;
-			TagWriter_ptr tag_writer = std::make_shared<TagWriter>(sub_manager, error);
-			tag_writers.append_single(tag_writer);
-		}
-	}
-}
-
-void update_tags_task::on_success(HWND p_wnd) {
-	fb2k::newDialog<CTrackMatchingDialog>(core_api::get_main_window(), tag_writers, use_update_tags);
-	finish();
-}
-
-void update_tags_task::on_abort(HWND p_wnd) {
-}
-
-void update_tags_task::on_error(HWND p_wnd) {
-	finish();
-}
-
-void update_tags_task::finish() {
-}
-
-
 void get_artist_process_callback::start(HWND parent) {
 	pfc::string8 msg;
 	msg << "Loading artist id " << m_artist_id;
@@ -857,8 +727,29 @@ void search_artist_process_callback::start(HWND parent) {
 }
 
 void search_artist_process_callback::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
-	p_status.set_item("Fetching artist list...");
+	
+	pfc::string8 msg;
+
+#ifdef DB_DC
+
+	if (DBFlags(m_db_dc_flags).IsReady() && get_dbfetcher()) {
+		vppair results;
+		start_cancel_listener_thread(&p_abort);
+		msg << "Fetching artist list from local database...";
+		discogs_db_interface->search_artist(m_search, m_db_dc_flags, m_artist_exact_matches, m_artist_other_matches, p_status, p_abort, get_dbfetcher());
+		set_db_finished();
+	}
+	else
+	{
+		msg << "Fetching online artist list...";
+		discogs_interface->search_artist(m_search, m_artist_exact_matches, m_artist_other_matches, p_status, p_abort);
+	}
+#else
+	msg << "Fetching online artist list...";
 	discogs_interface->search_artist(m_search, m_artist_exact_matches, m_artist_other_matches, p_status, p_abort);
+#endif // DB_DC
+
+	p_status.set_item(msg);	
 }
 
 void search_artist_process_callback::on_success(HWND p_wnd) {
@@ -891,13 +782,31 @@ void expand_master_release_process_callback::start(HWND parent) {
 
 void expand_master_release_process_callback::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
 	p_status.set_item("Expanding master release...");
-	m_master_release->load_releases(p_status, p_abort);
-	CFindReleaseDialog* find_dlg = reinterpret_cast<CFindReleaseDialog*>(g_discogs->find_release_dialog);
+
+#ifdef DB_DC
+	if (DBFlags(CONF.db_dc_flag).IsReady() && get_dbfetcher())
+		start_cancel_listener_thread(&p_abort);
+
+	m_master_release->load_releases(p_status, p_abort, false, m_offlineArtist_id, get_dbfetcher());
+
+	if (DBFlags(CONF.db_dc_flag).IsReady() && get_dbfetcher())
+		set_db_finished();
+#else
+	m_master_release->load_releases(p_status, p_abort, false, m_offlineArtist_id, get_dbfetcher());
+#endif // DB_DC
+
+
+	CFindReleaseDialog* find_dlg = g_discogs->find_release_dialog;
 	find_dlg->on_expand_master_release_done(m_master_release, m_pos, p_status, p_abort);
 }
 
 void expand_master_release_process_callback::on_success(HWND p_wnd) {
-	CFindReleaseDialog* find_dlg = reinterpret_cast<CFindReleaseDialog*>(g_discogs->find_release_dialog);
+
+#ifdef DEBUG_TREE
+	log_msg(PFC_string_formatter() << " expand_master_release_process_callback::on_success");
+#endif
+
+	CFindReleaseDialog* find_dlg = g_discogs->find_release_dialog;
 	find_dlg->on_expand_master_release_complete();
 }
 
@@ -910,7 +819,6 @@ void expand_master_release_process_callback::on_error(HWND p_wnd) {
 	CFindReleaseDialog* find_dlg = reinterpret_cast<CFindReleaseDialog*>(g_discogs->find_release_dialog);
 	find_dlg->on_expand_master_release_complete();
 }
-
 
 
 process_release_callback::process_release_callback(CFindReleaseDialog *dialog, const pfc::string8 &release_id,

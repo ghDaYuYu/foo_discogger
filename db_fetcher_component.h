@@ -5,8 +5,6 @@
 #include "db_utils.h"
 #include "json_helpers.h"
 
-typedef std::vector < std::pair<std::pair<pfc::string8, pfc::string8>, std::pair<pfc::string8, pfc::string8>>> vtrack_artists;
-
 class foo_db_exception : public foo_discogs_exception
 {
 public:
@@ -32,9 +30,19 @@ public:
 class foo_db_cmd_open_exception : public foo_db_cmd_exception
 {
 public:
-	foo_db_cmd_open_exception() : foo_db_cmd_exception(404, "Couldn�t open database file") {}
+	foo_db_cmd_open_exception() : foo_db_cmd_exception(404, "Couldn't open database file") {}
 };
 
+#ifdef CAT_CRED
+struct nfo_parsed_credit_detail {
+	size_t credit_id;
+	size_t inc_parsed_credit_id;
+	size_t i;
+	size_t j;
+	pfc::string8 credit_spec;
+	pfc::string8 thisartists;
+};
+#endif // CAT_CRED
 
 class db_fetcher_component {
 
@@ -46,9 +54,12 @@ public:
 
 	// db ctag generation
 	bool lookup_credit_tk(sqldb* db, sqlite3_stmt* qry, pfc::string8& err_msg, /*Release_ptr release, size_t gx*/pfc::string8 thisrole, pfc::string8 thisfullrole, size_t& credit_id, pfc::string8& thisrole_spec);
-	int add_parsed_credit(sqldb* db, Release_ptr release, size_t gx);
+	bool lookup_parsed_credit_tk(sqldb* db, sqlite3_stmt* qry, pfc::string8& err_msg, pfc::string8 release_id, pfc::string8 subtype, size_t& parsed_credit_id);
+	int add_parsed_credit(sqldb* db, Release_ptr release, bool bycredit);
+	int add_parsed_credit_old(sqldb* db, Release_ptr release, bool bycredit);
+	unsigned long calc_parsed_credit(sqldb* db, Release_ptr release, bool bycredit, std::vector<nfo_parsed_credit_detail>& v_pcd, size_t& inc_parsed_credit_id, bool& matched);
 	size_t insert_parsed_credit_detail(sqldb* db, pfc::string8& err_msg, size_t credit_id, size_t inc_parsed_credit_id, size_t i, size_t j, pfc::string8 credit_spec, pfc::string8 thisartists);
-	vppair query_release_credit_categories(int gx, pfc::string8 non);
+	vppair query_release_credit_categories(pfc::string8 inparsedid, int gx, pfc::string8 innon);
 
 	// db ctag definitions
 	vppair load_db_def_credits();
@@ -56,11 +67,7 @@ public:
 	// dlg
 	vppair load_db_def_credits(vppair& vcats, vppair& vsubcats);
 	bool update_db_def_credits(vppair& vdefs);
-
-	// history
-	int add_history(sqldb* db, Artist_ptr artist, Release_ptr release,	pfc::string8 cmd_id, pfc::string8 cmd_text, rppair& out);
-	int read_history_tmp(sqldb* db, Artist_ptr artist, Release_ptr release,	pfc::string8 cmd_id, pfc::string8 cmd_text, vppair &vres);
-	int delete_history(sqldb* db, Artist_ptr artist, Release_ptr release, pfc::string8 cmd_id, pfc::string8 cmd_text, std::vector<vppair*>allout);
+#endif
 
 #ifdef DB_DC
 	// test

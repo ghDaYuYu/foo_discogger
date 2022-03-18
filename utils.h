@@ -85,6 +85,8 @@ extern inline pfc::string8 trim(const pfc::string8 &str, const char *ch = whites
 extern inline pfc::string8 ltrim(const pfc::string8 &str, const char *ch = whitespace);
 extern inline pfc::string8 rtrim(const pfc::string8 &str, const char *ch = whitespace);
 
+extern bool is_number(const std::string& s);
+
 // Make strings lowercase
 extern pfc::string8 lowercase(pfc::string8 str);
 
@@ -124,6 +126,8 @@ void erase(pfc::array_t<T> &ar, unsigned int index) {
 	}
 	ar.set_size_discard(count - 1);
 }
+
+extern bool tokenize_filter(pfc::string8 filter, pfc::array_t<pfc::string>& out_filter_words_lowercase);
 
 extern void CenterWindow(HWND hwnd, CRect rcCfg, HWND hwndCenter, LPARAM lefttop = 0);
 

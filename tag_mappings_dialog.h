@@ -12,14 +12,14 @@ static const char* TEXT_UPDATE = "update";
 static const char* TEXT_DISABLED = "disabled";
 static const char* TEXT_WRITE_UPDATE = "write + update";
 
-class CMyListControlOwnerData : public CListControlOwnerData {
+class CTagMappingListControlOwnerData : public CListControlOwnerData {
 
 public:
 
-	CMyListControlOwnerData(IListControlOwnerDataSource* h)
+	CTagMappingListControlOwnerData(IListControlOwnerDataSource* h)
 		: CListControlOwnerData(h) {}
 
-	~CMyListControlOwnerData() {
+	~CTagMappingListControlOwnerData() {
 		//
 	}
 
@@ -78,10 +78,13 @@ private:
 
 	foo_conf conf;
 	tag_mapping_list_type* m_ptag_mappings = nullptr;
-	vppair vdefs;
 
-	CMyListControlOwnerData m_tag_list;
-	CEditWithButtonsDim cewb_highlight;
+#ifdef CAT_CRED
+	vppair v_cat_defs;
+#endif // CAT_CRED
+
+	CTagMappingListControlOwnerData m_tag_list;
+	CMyEditWithButtons cewb_highlight;
 	CHyperLink help_link;
 
 	HWND remove_button;
@@ -93,8 +96,8 @@ private:
 
 	void show_context_menu(CPoint& pt, pfc::bit_array_bittable& selmask);
 	void update_list_width();
-	void update_tag(int pos, const tag_mapping_entry* entry);
-	void update_freezer(bool enable_write, bool enable_update);
+	bool update_tag(int pos, const tag_mapping_entry* entry);
+	bool update_freezer(int pos, bool enable_write, bool enable_update);
 
 	void applymappings();
 
@@ -198,6 +201,7 @@ private:
 			entry.formatting_script = val;
 		}
 		update_tag(item, &entry);
+		on_mapping_changed(check_mapping_changed());
 	}
 
 	//- Can edit
@@ -262,9 +266,11 @@ public:
 		MSG_ADD_NEW
 	};
 
+#ifdef CAT_CRED
 	void SetVDefs(vppair v) {
-		vdefs = v;
+		v_cat_defs = v;
 	}
+#endif // CAT_CRED
 
 	virtual BOOL PreTranslateMessage(MSG* pMsg) override {
 
@@ -350,9 +356,15 @@ public:
 	LRESULT OnExport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnAddTag(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnBtnRemoveTag(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+#ifdef CAT_CRED
 	LRESULT OnBtnCreditsClick(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnSplitDropDown(LPNMHDR lParam);
-	LRESULT OnAddNew(UINT, WPARAM, LPARAM);
+#endif // CAT_CRED
+
+	
+	//LRESULT OnSplitDropDown(LPNMHDR lParam);
+	LRESULT OnSplitDropDown(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnAddNewTag(UINT, WPARAM, LPARAM);
+	//LRESULT OnAddNew(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void enable(bool v) override {}
 };

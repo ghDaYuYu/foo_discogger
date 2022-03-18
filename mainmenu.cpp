@@ -115,7 +115,7 @@ public:
 
 		switch (p_index) {
 		case WriteTags:
-			g_discogs->find_release_dialog = fb2k::newDialog<CFindReleaseDialog>(core_api::get_main_window(), p_data, cfg_find_release_dialog_idtracker);
+			g_discogs->find_release_dialog = fb2k::newDialog<CFindReleaseDialog>(core_api::get_main_window(), p_data);
 			break;
 			
 		case DisplayReleasePage:

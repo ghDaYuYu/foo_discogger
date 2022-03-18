@@ -51,16 +51,16 @@ void foo_discogs_threaded_process_callback::on_done(HWND p_wnd, bool p_was_abort
 }
 
 generate_tags_task::generate_tags_task(CPreviewTagsDialog *preview_dialog, TagWriter_ptr tag_writer, bool use_update_tags) :
-		tag_writer(tag_writer), preview_dialog(preview_dialog), show_preview_dialog(NULL), alt_mappings(nullptr), use_update_tags(use_update_tags) {
+		m_tag_writer(tag_writer), m_preview_dialog(preview_dialog), m_show_preview_dialog(false), m_alt_mappings(nullptr), m_use_update_tags(use_update_tags) {
 	preview_dialog->enable(false, true);
 }
 
 generate_tags_task::generate_tags_task(CTrackMatchingDialog *track_matching_dialog, TagWriter_ptr tag_writer, bool show_preview_dialog, bool use_update_tags) :
-		tag_writer(tag_writer), track_matching_dialog(track_matching_dialog), show_preview_dialog(show_preview_dialog), alt_mappings(nullptr), use_update_tags(use_update_tags) {
+		m_tag_writer(tag_writer), m_track_matching_dialog(track_matching_dialog), m_show_preview_dialog(show_preview_dialog), m_alt_mappings(nullptr), m_use_update_tags(use_update_tags) {
 	track_matching_dialog->enable(false);
 }
 generate_tags_task::generate_tags_task(CTagCreditDialog* credits_dialog, TagWriter_ptr tag_writer, tag_mapping_list_type* alt_mappings) :
-		tag_writer(tag_writer), alt_mappings(alt_mappings), credits_dialog(credits_dialog), show_preview_dialog(false), use_update_tags(false) {
+		m_tag_writer(tag_writer), m_alt_mappings(alt_mappings), m_credits_dialog(credits_dialog), m_show_preview_dialog(false), m_use_update_tags(false) {
 }
 
 void generate_tags_task::start() {
@@ -76,29 +76,32 @@ void generate_tags_task::start() {
 }
 
 void generate_tags_task::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
-	tag_writer->generate_tags(use_update_tags, alt_mappings, p_status, p_abort);
+	m_tag_writer->generate_tags(m_use_update_tags, m_alt_mappings, p_status, p_abort);
 }
 
 void generate_tags_task::on_success(HWND p_wnd) {
-	if (preview_dialog) {
-		if (IsWindow(preview_dialog->m_hWnd)) {
-			preview_dialog->cb_generate_tags();
+	if (m_preview_dialog) {
+		if (IsWindow(m_preview_dialog->m_hWnd)) {
+			m_preview_dialog->cb_generate_tags();
 		}
 	}
-	else if (credits_dialog) {
-		if (IsWindow(credits_dialog->m_hWnd)) {
-			credits_dialog->cb_generate_tags();
+#ifdef CAT_CRED
+	else if (m_credits_dialog) {
+		if (IsWindow(m_credits_dialog->m_hWnd)) {
+			m_credits_dialog->cb_generate_tags();
 		}
 	}
-	else if (show_preview_dialog) {
-		track_matching_dialog->enable(true);
-		fb2k::newDialog <CPreviewTagsDialog>(core_api::get_main_window(), tag_writer, use_update_tags);
-		track_matching_dialog->hide();
+#endif // CAT_CRED
+
+	else if (m_show_preview_dialog) {
+		m_track_matching_dialog->enable(true);
+		fb2k::newDialog <CPreviewTagsDialog>(core_api::get_main_window(), m_tag_writer, m_use_update_tags);
+		m_track_matching_dialog->hide();
 	}
 	else {
 		CTrackMatchingDialog* dlg = reinterpret_cast<CTrackMatchingDialog*>(g_discogs->track_matching_dialog);
 		dlg->destroy_all();
-		service_ptr_t<write_tags_task> task = new service_impl_t<write_tags_task>(tag_writer);
+		service_ptr_t<write_tags_task> task = new service_impl_t<write_tags_task>(m_tag_writer);
 		task->start();
 	}
 }
@@ -108,55 +111,12 @@ void generate_tags_task::on_abort(HWND p_wnd) {
 }
 
 void generate_tags_task::on_error(HWND p_wnd) {
-	if (preview_dialog) {
-		preview_dialog->enable(true, true);
+	if (m_preview_dialog) {
+		m_preview_dialog->enable(true, true);
 	}
 	else {
-		track_matching_dialog->enable(true);
-		track_matching_dialog->show();
-	}
-}
-
-
-generate_tags_task_multi::generate_tags_task_multi(pfc::array_t<TagWriter_ptr> tag_writers, bool show_preview_dialog, bool use_update_tags) :
-		tag_writers(tag_writers), show_preview_dialog(show_preview_dialog), use_update_tags(use_update_tags) {}
-
-void generate_tags_task_multi::start() {
-	threaded_process::g_run_modeless(
-		this,
-		threaded_process::flag_show_abort |
-		threaded_process::flag_show_delayed |
-		threaded_process::flag_show_progress |
-		threaded_process::flag_show_item,
-		core_api::get_main_window(),
-		"Generating tags..."
-	);
-}
-
-void generate_tags_task_multi::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
-	const size_t count = tag_writers.get_count();
-	for (size_t i = 0; i < count; i++) {
-		p_abort.check(); 
-
-		if (!tag_writers[i]->skip) {
-			pfc::string8 formatted_release_name;
-			metadb_handle_ptr item = tag_writers[i]->finfo_manager->get_item_handle(0);
-			item->format_title(nullptr, formatted_release_name, g_discogs->release_name_script, nullptr);
-			p_status.set_item(formatted_release_name.get_ptr());
-			p_status.set_progress(i + 1, count);
-
-			try {
-				tag_writers[i]->generate_tags(use_update_tags, nullptr, p_status, p_abort);
-			}
-			catch (foo_discogs_exception &e) {
-				pfc::string8 error("release ");
-				error << tag_writers[i]->release->id;
-				add_error(error, e);
-			}
-		}
-		else if (!STR_EQUAL(tag_writers[i]->error, "")) {
-			add_error(tag_writers[i]->error);
-		}
+		m_track_matching_dialog->enable(true);
+		m_track_matching_dialog->show();
 	}
 }
 
@@ -184,12 +144,12 @@ void write_tags_task::start() {
 }
 
 void write_tags_task::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
-	tag_writer->write_tags();
+	m_tag_writer->write_tags();
 }
 
 void write_tags_task::on_success(HWND p_wnd) {
 
-	tag_writer->finfo_manager->write_infos();
+	m_tag_writer->finfo_manager->write_infos();
 
 	bool bskip_art = ((LOWORD(CONF.album_art_skip_default_cust) & ART_CUST_SKIP_DEF_FLAG) == ART_CUST_SKIP_DEF_FLAG)
 		|| ((HIWORD(CONF.album_art_skip_default_cust) & ART_CUST_SKIP_DEF_FLAG) == ART_CUST_SKIP_DEF_FLAG);
@@ -198,7 +158,7 @@ void write_tags_task::on_success(HWND p_wnd) {
 
 	if (!bskip_art && (bconf_art_save || bcustom_art_save)) {
 		service_ptr_t<download_art_task> task =
-			new service_impl_t<download_art_task>(tag_writer->release->id, tag_writer->finfo_manager->items);
+			new service_impl_t<download_art_task>(m_tag_writer->release->id, m_tag_writer->finfo_manager->items);
 		task->start();
 	}
 }
@@ -697,7 +657,28 @@ void get_artist_process_callback::start(HWND parent) {
 }
 
 void get_artist_process_callback::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
-	m_artist = discogs_interface->get_artist(m_artist_id, true, p_status, p_abort);
+
+	bool bload_releases = m_updsrc != updRelSrc::ArtistProfile;
+
+#ifdef DB_DC
+	//note: DBFlags::DB_DWN_ARTWORK checked inside artist.load()
+
+	if (DBFlags(CONF.db_dc_flag).IsReady() && get_dbfetcher()) {
+
+		start_cancel_listener_thread(&p_abort);
+
+		m_artist = discogs_db_interface->get_artist(m_artist_id, bload_releases, p_status, p_abort, false, true, get_dbfetcher() /*get_dbfetcher().get()*/);
+
+		set_db_finished();
+
+	}
+	else {
+		m_artist = discogs_interface->get_artist(m_artist_id, bload_releases, p_status, p_abort);
+	}
+#else
+	m_artist = discogs_interface->get_artist(m_artist_id, bload_releases, p_status, p_abort);
+#endif // DB_DC
+
 	p_status.set_item("Formatting artist releases...");
 }
 
@@ -715,6 +696,10 @@ void get_artist_process_callback::on_success(HWND p_wnd) {
 	}
 }
 
+
+search_artist_process_callback::search_artist_process_callback(const char* search, const int db_dc_flags) : m_search(search), m_db_dc_flags(db_dc_flags) {
+	//
+}
 
 void search_artist_process_callback::start(HWND parent) {
 	threaded_process::g_run_modeless(this,
@@ -767,7 +752,13 @@ void search_artist_process_callback::on_success(HWND p_wnd) {
 	find_dlg->on_search_artist_done(m_artist_exact_matches, m_artist_other_matches);
 }
 
+void search_artist_process_callback::on_abort(HWND p_wnd) {
+    //
+}
 
+void search_artist_process_callback::on_error(HWND p_wnd) {
+	//
+}
 
 void expand_master_release_process_callback::start(HWND parent) {
 	threaded_process::g_run_modeless(
@@ -824,11 +815,11 @@ void expand_master_release_process_callback::on_error(HWND p_wnd) {
 process_release_callback::process_release_callback(CFindReleaseDialog *dialog, const pfc::string8 &release_id,
 	const pfc::string8& offline_artist_id, pfc::string8 inno, const metadb_handle_list &items) :
 		m_dialog(dialog), m_release_id(release_id),
-		m_offline_artist_id(offline_artist_id), m_inno(inno), items(items)
+		m_offline_artist_id(offline_artist_id), m_inno(inno), m_items(items)
 {
 	m_dialog->enable(false);
-	finfo_manager = std::make_shared<file_info_manager>(items);
-	finfo_manager->read_infos();
+	m_finfo_manager = std::make_shared<file_info_manager>(items);
+	m_finfo_manager->read_infos();
 }
 
 void process_release_callback::start(HWND parent) {
@@ -878,8 +869,8 @@ void process_release_callback::safe_run(threaded_process_status &p_status, abort
 	m_dialog->enable(true);
 	m_dialog->hide();
 
-	tag_writer = std::make_shared<TagWriter>(finfo_manager, release);
-	tag_writer->match_tracks();
+	m_tag_writer = std::make_shared<TagWriter>(m_finfo_manager, p_release);
+	m_tag_writer->match_tracks();
 }
 
 void process_release_callback::on_success(HWND p_wnd) {

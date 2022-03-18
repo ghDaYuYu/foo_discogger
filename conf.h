@@ -555,7 +555,7 @@ public:
 	int match_file_artworks_art_style = static_cast<int>(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP);
 	int album_art_skip_default_cust = 0;
 	//v204 from 1.0.4
-	int edit_tags_dialog_flags = 0;
+	int edit_tags_dlg_flags = 0;
 	//v205 from 1.0.6
 	pfc::string8 db_dc_path = "";
 	int db_dc_flag = 0;

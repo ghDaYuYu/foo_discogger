@@ -495,7 +495,7 @@ namespace listview_helper {
 	}
 
 	unsigned insert_lvItem_tracer(HWND p_listview, unsigned p_index,
-		bool is_release_tracker, const char* p_name, LPARAM p_param, int icon_offline)
+		bool tracer_match, const char* p_name, LPARAM p_param, int icon_offline)
 	{
 		if (p_index == ~0) p_index = ListView_GetItemCount(p_listview);
 		LVITEM item = {};
@@ -506,7 +506,7 @@ namespace listview_helper {
 		item.iImage = icon_offline;
 		item.pszText = const_cast<TCHAR*>(os_string_temp.get_ptr());
 
-		if (is_release_tracker) {
+		if (tracer_match) {
 			item.mask |= LVIF_STATE;
 			item.state =  LVIS_GLOW;
 			item.stateMask = LVIS_GLOW;

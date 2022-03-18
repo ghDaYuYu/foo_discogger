@@ -612,7 +612,7 @@ int CConf::id_to_val_int(int id, CConf in_conf) {
 			return in_conf.album_art_skip_default_cust;
 		//v204
 		case CFG_EDIT_TAGS_DIALOG_FLAGS:
-			return in_conf.edit_tags_dialog_flags;
+			return in_conf.edit_tags_dlg_flags;
 		//v205
 		case CFG_DC_DB_FLAG:
 #ifdef DB_DC			
@@ -884,7 +884,7 @@ void CConf::save() {
 	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_FILE_ARTWORKS_STYLE, match_file_artworks_art_style));
 	cfg_int_entries.add_item(make_conf_entry(CFG_ALBUM_ART_SKIP_DEFAULT_CUST, album_art_skip_default_cust));
 	//v204 (from 1.0.4)
-	cfg_int_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_FLAGS, edit_tags_dialog_flags));
+	cfg_int_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_FLAGS, edit_tags_dlg_flags));
 	//v205 (from 1.0.6)
 #ifdef DB_DC
 	cfg_int_entries.add_item(make_conf_entry(CFG_DC_DB_FLAG, db_dc_flag));

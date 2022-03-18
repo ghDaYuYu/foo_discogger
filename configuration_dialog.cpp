@@ -337,7 +337,6 @@ void CConfigurationDialog::init_matching_dialog(HWND wnd) {
 	uButton_SetCheck(wnd, IDC_SKIP_BRAINZ_MIBS_FETCH, conf.skip_mng_flag & SkipMng::SKIP_BRAINZ_ID_FETCH);
 	uSetDlgItemText(wnd, IDC_DISCOGS_FORMATTING_EDIT, conf.release_discogs_format_string);
 	uSetDlgItemText(wnd, IDC_FILE_FORMATTING_EDIT, conf.release_file_format_string);
-	uSetDlgItemText(wnd, IDC_MASTER_SUB_FORMATTING_EDIT, conf.search_master_sub_format_string);
 }
 
 void CConfigurationDialog::init_tagging_dialog(HWND wnd) {
@@ -407,8 +406,8 @@ void CConfigurationDialog::init_art_dialog(HWND wnd) {
 }
 
 void CConfigurationDialog::init_ui_dialog(HWND wnd) {
-	uButton_SetCheck(wnd, IDC_CFG_UI_HISTORY_ENABLED, HIWORD(conf.history_max_items));
-	size_t imax = LOWORD(conf.history_max_items);
+	uButton_SetCheck(wnd, IDC_CFG_UI_HISTORY_ENABLED, HIWORD(conf.history_enabled_max));
+	size_t imax = LOWORD(conf.history_enabled_max);
 	uSetDlgItemText(wnd, IDC_UI_HISTORY_MAX_ITEMS, std::to_string(imax).c_str());
 	uButton_SetCheck(wnd, IDC_RELEASE_ENTER_KEY_OVR, conf.release_enter_key_override);	
 	InitComboRowStyle(wnd, IDC_CMB_CONFIG_LIST_STYLE, conf.list_style);
@@ -477,11 +476,11 @@ bool CConfigurationDialog::cfg_searching_has_changed() {
 
 	bres |= conf.release_enter_key_override != conf_dlg_edit.release_enter_key_override;
 
-	bcmp = !(stricmp_utf8(conf.search_release_format_string, conf_dlg_edit.search_release_format_string) == 0);
+	bcmp = stricmp_utf8(conf.search_release_format_string, conf_dlg_edit.search_release_format_string);
 	bres |= bcmp;
-	bcmp = !(stricmp_utf8(conf.search_master_format_string, conf_dlg_edit.search_master_format_string) == 0);
+	bcmp = stricmp_utf8(conf.search_master_format_string, conf_dlg_edit.search_master_format_string);
 	bres |= bcmp;
-	bcmp = !(stricmp_utf8(conf.search_master_sub_format_string, conf_dlg_edit.search_master_sub_format_string) == 0);
+	bcmp = stricmp_utf8(conf.search_master_sub_format_string, conf_dlg_edit.search_master_sub_format_string);
 	bres |= bcmp;
 
 	bres |= conf.list_style != conf_dlg_edit.list_style;
@@ -524,9 +523,9 @@ bool CConfigurationDialog::cfg_matching_has_changed() {
 	bres |= conf.assume_tracks_sorted != conf_dlg_edit.assume_tracks_sorted;
 	bres |= conf.skip_mng_flag != conf_dlg_edit.skip_mng_flag;
 
-	bcmp = !(stricmp_utf8(conf.release_discogs_format_string, conf_dlg_edit.release_discogs_format_string) == 0);
+	bcmp = stricmp_utf8(conf.release_discogs_format_string, conf_dlg_edit.release_discogs_format_string);
 	bres |= bcmp;
-	bcmp = !(stricmp_utf8(conf.release_file_format_string, conf_dlg_edit.release_file_format_string) == 0);
+	bcmp = stricmp_utf8(conf.release_file_format_string, conf_dlg_edit.release_file_format_string);
 	bres |= bcmp;
 	return bres;
 }
@@ -558,7 +557,7 @@ bool CConfigurationDialog::cfg_tagging_has_changed() {
 	bres |= conf.discard_numeric_suffix != conf_dlg_edit.discard_numeric_suffix;
 	bres |= conf.skip_mng_flag != conf_dlg_edit.skip_mng_flag;
 	bres |= conf.remove_other_tags != conf_dlg_edit.remove_other_tags;
-	bcmp = !(stricmp_utf8(conf.raw_remove_exclude_tags, conf_dlg_edit.raw_remove_exclude_tags) == 0);
+	bcmp = stricmp_utf8(conf.raw_remove_exclude_tags, conf_dlg_edit.raw_remove_exclude_tags);
 	bres |= bcmp;
 	return bres;
 }

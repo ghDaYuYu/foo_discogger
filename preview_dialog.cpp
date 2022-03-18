@@ -171,11 +171,11 @@ inline bool CPreviewTagsDialog::build_current_cfg() {
 	}
 
 	//attach edit mappings panel
-	size_t attach_flagged = IsDlgButtonChecked(IDC_EDIT_TAGS_DIALOG_ATTACH_FLAG) ? (flag_tagmap_dlg_attached) : 0;
-	size_t open_flagged = g_discogs->tag_mappings_dialog ? flag_tagmap_dlg_is_open : 0;
-	if ((CONF.edit_tags_dialog_flags & (flag_tagmap_dlg_attached | flag_tagmap_dlg_is_open)) != (attach_flagged | open_flagged)) {
-		conf.edit_tags_dialog_flags &= ~(flag_tagmap_dlg_attached | flag_tagmap_dlg_is_open);
-		conf.edit_tags_dialog_flags |= (attach_flagged | open_flagged);
+	size_t attach_flagged = IsDlgButtonChecked(IDC_EDIT_TAGS_DIALOG_ATTACH_FLAG) == BST_CHECKED ? (FLG_TAGMAP_DLG_ATTACHED) : 0;
+	size_t open_flagged = g_discogs->tag_mappings_dialog ? FLG_TAGMAP_DLG_OPENED : 0;
+	if ((CONF.edit_tags_dlg_flags & (FLG_TAGMAP_DLG_ATTACHED | FLG_TAGMAP_DLG_OPENED)) != (attach_flagged | open_flagged)) {
+		conf.edit_tags_dlg_flags &= ~(FLG_TAGMAP_DLG_ATTACHED | FLG_TAGMAP_DLG_OPENED);
+		conf.edit_tags_dlg_flags |= (attach_flagged | open_flagged);
 		bres |= true;
 	}
 
@@ -223,6 +223,7 @@ LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	::uSetWindowLong(hwndSmallPreview, GWL_STYLE, stl/*WS_CHILD | WS_VISIBLE | SS_GRAYFRAME*/);
 
 	DlgResize_Init(mygripp.enabled, true);
+	cfg_window_placement_preview_dlg.on_window_creation(m_hWnd, true);
 	load_size();
 	show();
 
@@ -233,9 +234,9 @@ LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 		OnCheckPreviewShowStats(0, 0, NULL, bdummy);
 	}
 
-	if (conf.edit_tags_dialog_flags & (flag_tagmap_dlg_attached)) {
+	if (conf.edit_tags_dlg_flags & FLG_TAGMAP_DLG_ATTACHED) {
 		uButton_SetCheck(m_hWnd, IDC_EDIT_TAGS_DIALOG_ATTACH_FLAG, true);
-		if (conf.edit_tags_dialog_flags & (flag_tagmap_dlg_is_open)) {
+		if (conf.edit_tags_dlg_flags & FLG_TAGMAP_DLG_OPENED) {
 			BOOL bdummy = false;
 			OnEditTagMappings(0, 0, NULL, bdummy);
 		}
@@ -293,11 +294,11 @@ bool CPreviewTagsDialog::initialize() {
 			m_tag_writer->release->id, art_src::alb, LVSIL_NORMAL, 0)[0];
 
 		extract_native_path(cache_path_small, cache_path_small);
-		pfc::stringcvt::string_wide_from_ansi tempf(cache_path_small);
+		pfc::stringcvt::string_wide_from_ansi wtemp(cache_path_small);
 		
-		Bitmap bm(tempf);
-		HBITMAP hBm;
-		if (bm.GetHBITMAP(Color::Black, &hBm) == Ok) {
+		Bitmap bm(wtemp);
+
+		if (HBITMAP hBm;  bm.GetHBITMAP(Color::Black, &hBm) == Ok) {
 			uSendDlgItemMessage(IDC_ALBUM_ART, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hBm);
 			DeleteObject(hBm);
 		}
@@ -509,7 +510,6 @@ void CPreviewTagsDialog::insert_tag_result(int pos, const tag_result_ptr &result
 		listview_helper::set_item_text(tag_results_list, pos, 4, v_stats.size() > 0 ? std::to_string(v_stats.at(pos).totalskips).c_str() : "n/a");
 		listview_helper::set_item_text(tag_results_list, pos, 5, v_stats.size() > 0 ? std::to_string(v_stats.at(pos).totalequal).c_str() : "n/a");
 	}
-
 }
 
 void CPreviewTagsDialog::tag_mappings_updated() {

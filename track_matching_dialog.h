@@ -10,10 +10,17 @@
 using namespace Discogs;
 
 struct musicbrainz_info {
-	pfc::string8 release_group;
-	pfc::string8 release;
-	pfc::string8 artist;
-	bool hascoverart;
+	pfc::string8 release_group = "";
+	pfc::string8 release = "";
+	pfc::string8 artist = "";
+	bool hascoverart = false;
+
+	bool empty() {
+		return (!release_group.get_length() &&
+			!release.get_length() &&
+			!artist.get_length() &&
+			hascoverart == false);
+	}
 };
 
 class CTrackMatchingDialog : public MyCDialogImpl<CTrackMatchingDialog>,
@@ -134,7 +141,6 @@ private:
 	}
 
 	bool init_count();
-	void finished_tag_writers();
 
 	void update_window_title() {
 		pfc::string8 text;
@@ -253,23 +259,6 @@ public:
 		m_rec_icon = LoadDpiBitmapResource(Icon::Record);
 	}
 	
-	CTrackMatchingDialog(HWND p_parent, pfc::array_t<TagWriter_ptr> tag_writers, bool use_update_tags = false) :
-		tag_writers(tag_writers), use_update_tags(use_update_tags), multi_mode(true), m_list_drop_handler(),
-		m_conf(CONF), m_coord(p_parent, CONF),
-		m_idc_list(this), m_ifile_list(this) {
-
-		g_discogs->track_matching_dialog = this;
-		m_tag_writer = nullptr;
-
-		if (init_count()) {
-			m_rec_icon = LoadDpiBitmapResource(Icon::Record);
-		}
-		else {
-			finished_tag_writers();
-			destroy();
-		}
-	}
-
 	~CTrackMatchingDialog() {
 		DeleteObject(m_rec_icon);
 		g_discogs->track_matching_dialog = nullptr;

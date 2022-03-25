@@ -71,7 +71,8 @@ static struct rzgripp {
 	bool enabled = USE_GRIPPERS;
 } mygripp;
 
-extern inline bool os_apt_grippers();
+extern inline bool check_os_win_eleven();
+extern inline bool check_os_wine();
 
 static const pfc::string8 match_failed("FAILED TO MATCH TRACK ORDER");
 static const pfc::string8 match_success("MATCHED TRACK ORDER");

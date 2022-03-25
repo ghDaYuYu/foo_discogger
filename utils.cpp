@@ -381,6 +381,33 @@ bool os_apt_grippers() {
 		return true;
 }
 
+bool check_os_wine() {
+
+#ifdef OS_IS_WINE
+	return TRUE;
+#endif
+
+	//static const char* (CDECL * pwine_get_version)(void);
+	HMODULE hntdll = GetModuleHandle(L"ntdll.dll");
+	if (!hntdll)
+	{
+		puts("Not running on NT.");
+		return false;
+	}
+
+	auto pwine_get_version = (void*)GetProcAddress(hntdll, "wine_get_version");
+	if (pwine_get_version)
+	{
+		//log_msg(PFC_string_formatter() << "Running on Wine... " << pwine_get_version());
+		log_msg("Wine detected.");
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
 void CenterWindow(HWND hwnd, CRect rcCfg, HWND hwndCenter, LPARAM lparamLeftTop)
 {
 	// Determine owner window to center against.

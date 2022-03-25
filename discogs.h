@@ -114,8 +114,10 @@ namespace Discogs
 		pfc::array_t<pfc::string8> members;
 		pfc::array_t<Release_ptr> releases;
 
+		bool loaded_preview = false;
 		bool loaded_releases = false;
 		bool loaded_releases_offline = false;
+		size_t search_role_list_pos = ~0;
 
 		string_encoded_array get_id() const {
 			return id;
@@ -732,6 +734,7 @@ namespace Discogs
 		pfc::string8 discogs_tracklist_count;
 		pfc::array_t<Release_ptr> sub_releases;
 
+		pfc::array_t<pfc::string8> search_roles;
 		pfc::string8 search_role;
 
 		bool loaded_preview = false;
@@ -777,6 +780,9 @@ namespace Discogs
 		string_encoded_array get_search_role() const {
 			return search_role;
 		}
+		string_encoded_array get_search_roles() const {
+			return search_roles;
+		}
 
 		static ExposedMap<MasterRelease> create_tags_map() {
 			ExposedMap<MasterRelease> m;
@@ -791,6 +797,7 @@ namespace Discogs
 			m["STYLES"] = { &MasterRelease::get_styles, &MasterRelease::load };
 			m["VIDEOS"] = { &MasterRelease::get_videos, &MasterRelease::load };
 			m["SEARCH_ROLE"] = { &MasterRelease::get_search_role, &MasterRelease::load_preview };
+			m["SEARCH_ROLES"] = { &MasterRelease::get_search_roles, &MasterRelease::load_preview };
 			return m;
 		}
 
@@ -828,6 +835,8 @@ namespace Discogs
 		pfc::string8 search_labels;
 		pfc::string8 search_catno;
 		pfc::string8 search_role;
+		pfc::array_t<pfc::string8> search_roles;
+
 		pfc::array_t<ReleaseSeries_ptr> series;
 		pfc::array_t<ReleaseFormat_ptr> formats;
 		pfc::array_t<pfc::string8> genres;
@@ -957,6 +966,10 @@ namespace Discogs
 			return search_role;
 		}
 
+		string_encoded_array get_search_roles() const {
+			return search_roles;
+		}
+
 		static ExposedMap<Release> create_tags_map() {
 			ExposedMap<Release> m;
 			m["ID"] = { &Release::get_id, nullptr };
@@ -989,7 +1002,8 @@ namespace Discogs
 			m["SEARCH_LABELS"] = { &Release::get_search_labels, &Release::load_preview };
 			m["SEARCH_CATNOS"] = { &Release::get_search_catno, &Release::load_preview };
 			//todo: pending local db sql role names revision
-			//m["SEARCH_ROLE"] = { &Release::get_search_role, &Release::load_preview };
+			m["SEARCH_ROLE"] = { &Release::get_search_role, &Release::load_preview };
+			m["SEARCH_ROLES"] = { &Release::get_search_roles, &Release::load_preview };
 			return m;
 		}
 

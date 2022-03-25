@@ -6,36 +6,41 @@
 
 namespace ol = Offline;
 
-Release_ptr DiscogsInterface::get_release(const pfc::string8 &release_id, bool bypass_is_cache, bool bypass) {
+Release_ptr DiscogsInterface::get_release(const unsigned long lkey, bool bypass_is_cache, bool bypass) {
+	pfc::string8 release_id = std::to_string(decode_mr(lkey).second).c_str();
 	assert_release_id_not_deleted(release_id);
-	Release_ptr release = bypass_is_cache && bypass ? nullptr : get_release_from_cache(release_id);
+	Release_ptr release = bypass_is_cache && bypass ? nullptr : get_release_from_cache(lkey);
 	if (!release) {
+		std::pair<int, unsigned long> dec = decode_mr(lkey);
 		release = std::make_shared<Release>(release_id);
 		if (!(bypass_is_cache && bypass)) {
-			add_release_to_cache(release);
+			add_release_to_cache(lkey, release);
 		}
 	}
-	//else {
-	//	int debug = 0;
-	//}
 	return release;
 }
 
-Release_ptr DiscogsInterface::get_release(const pfc::string8& release_id, threaded_process_status& p_status, abort_callback& p_abort, bool bypass_cache, bool throw_all) {
+Release_ptr DiscogsInterface::get_release(const unsigned long lkey, threaded_process_status& p_status, abort_callback& p_abort, bool bypass_cache, bool throw_all) {
 	//todo: depricate-candidates codes use this (ej. bulk updates), 
 	const pfc::string8 dummy_offline_artist_id;
-	return get_release(release_id, dummy_offline_artist_id, p_status, p_abort, bypass_cache, throw_all);
+	return get_release(lkey, dummy_offline_artist_id, p_status, p_abort, bypass_cache, throw_all);
 }
 
-Release_ptr DiscogsInterface::get_release(const pfc::string8 &release_id, const pfc::string8 &offline_artist_id, threaded_process_status &p_status, abort_callback &p_abort, bool bypass_cache, bool throw_all) {
+Release_ptr DiscogsInterface::get_release(const unsigned long lkey, const pfc::string8 &offline_artist_id, threaded_process_status &p_status, abort_callback &p_abort, bool bypass_cache, bool throw_all) {
+
+	pfc::string8 release_id = std::to_string(decode_mr(lkey).second).c_str();
+
 	assert_release_id_not_deleted(release_id);
-	Release_ptr release = bypass_cache ? nullptr : get_release_from_cache(release_id);
+
+	Release_ptr release = bypass_cache ? nullptr : get_release_from_cache(lkey);
+
 	if (!release) {
 		release = std::make_shared<Release>(release_id);
 		if (!bypass_cache) {
-			add_release_to_cache(release);
+			add_release_to_cache(lkey, release);
 		}
 	}
+	std::lock_guard<std::mutex> ul(cache_releases->modify_mutex);
 	if (!release->loaded) {
 		try {
 			release->load(p_status, p_abort, throw_all, offline_artist_id /*, nullptr*/);
@@ -48,44 +53,60 @@ Release_ptr DiscogsInterface::get_release(const pfc::string8 &release_id, const 
 	return release;
 }
 
-Release_ptr DiscogsInterface::get_release_DB(const pfc::string8& release_id, const pfc::string8& offline_artist_id, threaded_process_status& p_status, abort_callback& p_abort, bool bypass_cache, bool throw_all,/* std::shared_ptr<db_fetcher> shr_fetcher*/ db_fetcher* db_fetcher) {
-	assert_release_id_not_deleted(release_id);
-	Release_ptr release = bypass_cache ? nullptr : get_release_from_cache(release_id);
-	if (!release) {
-		release = std::make_shared<Release>(release_id);
+MasterRelease_ptr DiscogsInterface::get_master_release(const unsigned long lkey, bool bypass_cache) {
+
+	MasterRelease_ptr master = bypass_cache ? nullptr : get_master_release_from_cache(lkey/*master_id*/);
+	
+	if (!master) {
+		
+		auto decoded_mr = decode_mr(lkey);
+		pfc::string8 strlkey_master = std::to_string(decoded_mr.second).c_str();
+
+		master = std::make_shared<MasterRelease>(strlkey_master/*master_id*/);
 		if (!bypass_cache) {
-			add_release_to_cache(release);
+			add_master_release_to_cache(lkey, master);
 		}
 	}
-	if (!release->loaded) {
-		try {
-			release->load(p_status, p_abort, throw_all, offline_artist_id, db_fetcher/*shr_fetcher.get()*/);
-		}
-		catch (http_404_exception) {
-			add_deleted_release_id(release_id);
-			throw;
-		}
-	}
-	return release;
+	return master;
 }
 
-MasterRelease_ptr DiscogsInterface::get_master_release(const pfc::string8 &master_id, bool bypass_cache) {
-	MasterRelease_ptr master = bypass_cache ? nullptr : get_master_release_from_cache(master_id);
+MasterRelease_ptr DiscogsInterface::get_master_release(const pfc::string8& master_id, const pfc::string8& artist_id, bool bypass_cache) {
+
+	unsigned long lkey = encode_mr(atoi(artist_id), atoi(master_id));	
+	
+	MasterRelease_ptr master = bypass_cache ? nullptr : get_master_release_from_cache(lkey/*master_id*/);
 	if (!master) {
 		master = std::make_shared<MasterRelease>(master_id);
 		if (!bypass_cache) {
-			add_master_release_to_cache(master);
+			add_master_release_to_cache(lkey, master);
+		}
+	}
+	return master;
+}
+
+MasterRelease_ptr DiscogsInterface::get_master_release(const pfc::string8& master_id, bool bypass_cache) {
+
+	unsigned long lkey = encode_mr(0, atol(master_id));
+
+	MasterRelease_ptr master = bypass_cache ? nullptr : get_master_release_from_cache(lkey/*master_id*/);
+	if (!master) {
+		master = std::make_shared<MasterRelease>(master_id);
+		if (!bypass_cache) {
+			add_master_release_to_cache(lkey, master);
 		}
 	}
 	return master;
 }
 
 MasterRelease_ptr DiscogsInterface::get_master_release(const pfc::string8 &master_id, threaded_process_status &p_status, abort_callback &p_abort, bool bypass_cache, bool throw_all) {
-	MasterRelease_ptr master = bypass_cache ? nullptr : get_master_release_from_cache(master_id);
+	
+	unsigned long lkey = encode_mr(0, atol(master_id));
+	
+	MasterRelease_ptr master = bypass_cache ? nullptr : get_master_release_from_cache(lkey/*master_id*/);
 	if (!master) {
 		master = std::make_shared<MasterRelease>(master_id);
 		if (!bypass_cache) {
-			add_master_release_to_cache(master);
+			add_master_release_to_cache(lkey, master);
 		}
 	}
 	if (!master->loaded) {
@@ -505,10 +526,17 @@ bool DiscogsInterface::delete_artist_cache(const pfc::string8& artist_id) {
 	Artist_ptr artist = get_artist_from_cache(artist_id);
 	if (artist) {
 		cache_artists->remove(artist_id);
-		for (size_t walk = 0; walk < artist->master_releases.get_count(); walk++)
-			cache_master_releases->remove(artist->master_releases[walk]->id);
-		for (size_t walk = 0; walk < artist->releases.get_count(); walk++)
-			cache_releases->remove(artist->releases[walk]->id);
+		for (size_t walk = 0; walk < artist->master_releases.get_count(); walk++) {
+			unsigned long lkey = encode_mr(artist->search_role_list_pos, artist->master_releases[walk]->id);
+			cache_master_releases->remove(lkey/*artist->master_releases[walk]->id*/);
+		}
+
+		for (size_t walk = 0; walk < artist->releases.get_count(); walk++) {
+			unsigned long lkey = encode_mr(artist->search_role_list_pos, artist->releases[walk]->id);
+			cache_releases->remove(lkey);
+		}
+			
+
 		pfc::string8 ol_artist_path = Offline::GetOfflinePath(artist_id, true, Offline::GetFrom::Artist, "");
 		ol_artist_path.truncate(ol_artist_path.length() - pfc::string8("\\artist").length());
 		

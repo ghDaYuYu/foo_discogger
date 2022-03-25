@@ -190,7 +190,8 @@ void update_art_task::safe_run(threaded_process_status &p_status, abort_callback
 				g_discogs->file_info_get_tag(item, finfo, TAG_RELEASE_ID, release_id);
 
 				if (release_id.get_length()) {
-					release = discogs_interface->get_release(release_id.get_ptr(), p_status, p_abort);
+					unsigned long lkey_zero = encode_mr(0, release_id);
+					release = discogs_interface->get_release(lkey_zero, p_status, p_abort);
 					
 					art_download_attribs ada;
 					ada.write_it = save_artist_art;
@@ -288,7 +289,8 @@ void download_art_task::start() {
 }
 
 void download_art_task::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
-	Release_ptr release = discogs_interface->get_release(release_id.get_ptr(), p_status, p_abort);
+	unsigned long lkey = encode_mr(0, release_id);
+	Release_ptr release = discogs_interface->get_release(lkey, p_status, p_abort);
 
 	uartwork uartconf = uartwork(CONF);
 	bool bconf_album_save_or_embed = CONF.save_album_art || CONF.embed_album_art;
@@ -366,7 +368,8 @@ void download_art_paths_task::start() {
 }
 
 void download_art_paths_task::safe_run(threaded_process_status& p_status, abort_callback& p_abort) {
-	Release_ptr release = discogs_interface->get_release(m_release_id.get_ptr(), p_status, p_abort);
+	unsigned long lkey = encode_mr(0, m_release_id);
+	Release_ptr release = discogs_interface->get_release(lkey, p_status, p_abort);
 
 	bit_array_bittable saved_mask(m_album_art_ids.size());
 
@@ -514,7 +517,8 @@ void find_deleted_releases_task::safe_run(threaded_process_status &p_status, abo
 		finished_count++;
 
 		try {
-			discogs_interface->get_release(release_id, p_status, p_abort, true, true);
+			unsigned long lkey = encode_mr(0, release_id);
+			discogs_interface->get_release(lkey, p_status, p_abort, true, true);
 		}
 		catch (http_404_exception) {
 			deleted_items.add_item(item);

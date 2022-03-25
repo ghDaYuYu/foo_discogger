@@ -404,7 +404,10 @@ void foo_discogs::save_artist_art(Release_ptr &release, metadb_handle_ptr item,
 	release->load(p_status, p_abort);
 
 	// get artist IDs from titleformat string
-	MasterRelease_ptr master = discogs_interface->get_master_release(release->master_id);
+
+	unsigned long lkey = encode_mr(0, atol(release->master_id));
+
+	MasterRelease_ptr master = discogs_interface->get_master_release(lkey);
 	file_info_impl info;
 	item->get_info(info);
 	titleformat_hook_impl_multiformat hook(p_status, &master, &release);
@@ -475,7 +478,8 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, meta
 	// ensure artist is loaded
 	artist->load(p_status, p_abort);
 
-	MasterRelease_ptr master = discogs_interface->get_master_release(release->master_id);
+	unsigned long lkey = encode_mr(0, atol(release->master_id));
+	MasterRelease_ptr master = discogs_interface->get_master_release(lkey);
 
 	file_info_impl info;
 	titleformat_hook_impl_multiformat hook(p_status, &master, &release, &artist);

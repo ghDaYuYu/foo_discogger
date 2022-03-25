@@ -445,7 +445,10 @@ void TagWriter::generate_tags(bool use_update_tags, tag_mapping_list_type* alt_m
 		track_stores.append_single(persistent_store());
 	}
 	persistent_store prompt_store;
-	MasterRelease_ptr master = discogs_interface->get_master_release(release->master_id);
+
+	unsigned long lkey = encode_mr(0, atoi(release->master_id));
+
+	MasterRelease_ptr master = discogs_interface->get_master_release(lkey);
 
 	for (size_t wtags = 0; wtags < ptags->get_size(); wtags++) {
 		const tag_mapping_entry& entry = ptags->get_item_ref(wtags);

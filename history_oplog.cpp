@@ -13,8 +13,7 @@ bool history_oplog::init(bool enabled, size_t max_items) {
 	zap_vhistory();
 
 	sqldb db;
-	//std::vector<vppair*>out_history = { &m_vres_release_history, &m_vres_artist_history, &m_vres_filter_history };
-	
+
 	std::map<oplog_type, vppair*> out_history = {
 		{oplog_type::release, &m_vres_release_history},
 		{oplog_type::artist, &m_vres_artist_history},
@@ -41,7 +40,7 @@ bool history_oplog::add_history_row(oplog_type optype, rppair row) {
 
 	if (!get_row_key(optype, row).get_length()) return false;
 
-	vppair& vh = get_history(optype);
+	vppair vh =	get_history(optype);
 	vppair::iterator fit;
 
 	fit = std::find_if(vh.begin(), vh.end(),
@@ -94,7 +93,7 @@ bool history_oplog::do_history_menu(oplog_type optype, HWND hwndCtrlParent, pfc:
 	if (cmd) {
 
 		rppair row_h = vophistory.at(--cmd);
-		out = get_row_key(optype, row_h);
+		out = get_row_val(optype, row_h);
 		return out.get_length();
 	}
 	return false;

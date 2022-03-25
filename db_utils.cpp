@@ -206,3 +206,17 @@ bool sqldb::test_dc_database(pfc::string8 db_path, abort_callback& p_abort, thre
 }
 #endif
 
+size_t sqldb::insert_history(oplog_type optype, std::string cmd, rppair& out) {
+	
+	if (!CONF.history_enabled()) return pfc_infinite;
+
+	db_fetcher_component dbfetcher;
+	return dbfetcher.insert_history(this, optype, cmd, "", out);
+}
+
+bool sqldb::recharge_history(std::string delete_cmd, size_t top_rows, std::map<oplog_type, vppair*>allout) {
+	
+	db_fetcher_component dbfetcher;
+	//cmd ej. kcmdHistoryDeleteAll
+	return dbfetcher.recharge_history(this, delete_cmd, top_rows, allout);
+}

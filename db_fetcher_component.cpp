@@ -16,10 +16,10 @@ int db_fetcher_component::insert_history(sqldb* db, oplog_type optype, std::stri
 	
 	if (optype == oplog_type::artist || optype == oplog_type::release) {
 
-		artist_id = out.first.first;
-		artist_name = out.first.second;
-		release_id = out.second.first;
-		release_title = out.second.second;
+		release_id = out.first.first;
+		release_title = out.first.second;
+		artist_id = out.second.first;
+		artist_name = out.second.second;
 	}
 	else {
 		//filter is saved as cmd param
@@ -283,7 +283,7 @@ bool db_fetcher_component::recharge_history(sqldb* db, std::string delete_cmd, s
 
 					while (SQLITE_ROW == (ret = sqlite3_step(stmt_read)))
 					{
-						const char* tmp_val_1 = reinterpret_cast<const char*>(sqlite3_column_text(stmt_read, 0));	//release_id
+						const char* tmp_val_1 = reinterpret_cast<const char*>(sqlite3_column_text(stmt_read, 0));	//release_id or filter
 						const char* tmp_val_2 = reinterpret_cast<const char*>(sqlite3_column_text(stmt_read, 1));	//release_title
 
 						const char* tmp_val_3 = reinterpret_cast<const char*>(sqlite3_column_text(stmt_read, 2));	//history date

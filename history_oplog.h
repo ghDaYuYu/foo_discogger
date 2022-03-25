@@ -32,11 +32,18 @@ private:
 		if (optype == oplog_type::artist)		return m_vres_artist_history;
 		else if (optype == oplog_type::release)	return m_vres_release_history;
 		else if (optype == oplog_type::filter)	return m_vres_filter_history;
-		return vppair();
+		else return m_vres_filter_history;
 	}
 
 	pfc::string8 get_row_key(oplog_type optype, const rppair row) {
 		if (optype == oplog_type::artist)		return row.second.first;
+		else if (optype == oplog_type::release)	return row.first.first;
+		else if (optype == oplog_type::filter)	return row.first.first;
+		return "";
+	}
+
+	pfc::string8 get_row_val(oplog_type optype, const rppair row) {
+		if (optype == oplog_type::artist)		return row.second.second;
 		else if (optype == oplog_type::release)	return row.first.first;
 		else if (optype == oplog_type::filter)	return row.first.first;
 		return "";

@@ -65,7 +65,7 @@ bool prepare_config_db_and_cache(bool bimport = true) {
 			//prev db found, import definitions
 
 			sqldb db;
-			db.open(dst_dbpath);
+			db.open(dst_dbpath, SQLITE_OPEN_READWRITE);
 			sqlite3* pDb = db.db_handle();
 
 			char* zErrMsg = 0;
@@ -338,7 +338,7 @@ bool CConf::load() {
 				break;
 			//v204 (1.0.4)
 			case CFG_EDIT_TAGS_DIALOG_FLAGS:
-				edit_tags_dialog_flags = item.value;
+				edit_tags_dlg_flags = item.value;
 				break;
 			//v205
 			case CFG_DC_DB_FLAG:

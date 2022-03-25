@@ -176,7 +176,7 @@ LRESULT CConfigurationDialog::OnChangingTab(WORD /*wNotifyCode*/, LPNMHDR /*lPar
 	if (get_state() & preferences_state::changed) {
 		switch (AskApplyConfirmation(get_wnd())) {
 		case IDYES:
-			apply();
+			pushcfg(false);
 			OnChanged();
 			break;
 		case IDNO:
@@ -208,36 +208,76 @@ LRESULT CConfigurationDialog::OnChangeTab(WORD /*wNotifyCode*/, LPNMHDR /*lParam
 	return FALSE;
 }
 
-LRESULT CConfigurationDialog::OnOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	save_searching_dialog(g_hWndTabDialog[CONF_FIND_RELEASE_TAB], true);
-	save_caching_dialog(g_hWndTabDialog[CONF_CACHING_TAB], true);
-#ifdef DB_DC
-	save_db_dialog(g_hWndTabDialog[CONF_DB_TAB], true);
-#endif
-	save_matching_dialog(g_hWndTabDialog[CONF_MATCHING_TAB], true);
-	save_tagging_dialog(g_hWndTabDialog[CONF_TAGGING_TAB], true);
-	save_art_dialog(g_hWndTabDialog[CONF_ART_TAB], true);
-	save_ui_dialog(g_hWndTabDialog[CONF_UI_TAB], true);
-	save_oauth_dialog(g_hWndTabDialog[CONF_OATH_TAB], true);
-	conf = conf_dlg_edit;
-	CONF.save(CConf::cfgFilter::CONF, conf);
-	CONF.load();
+bool CConfigurationDialog::build_current_cfg(bool reset, bool bind) {
 
-	discogs_interface->fetcher->update_oauth(conf.oauth_token, conf.oauth_token_secret);
-	return TRUE;
+	bool bres = false;
+
+	if (reset || g_hWndCurrentTab == g_hWndTabDialog[CONF_FIND_RELEASE_TAB]) {
+		save_searching_dialog(g_hWndTabDialog[CONF_FIND_RELEASE_TAB], bind);		
+	}
+	if (reset || g_hWndCurrentTab == g_hWndTabDialog[CONF_MATCHING_TAB]) {
+		save_matching_dialog(g_hWndTabDialog[CONF_MATCHING_TAB], bind);
+	}
+	if (reset || g_hWndCurrentTab == g_hWndTabDialog[CONF_TAGGING_TAB]) {
+		save_tagging_dialog(g_hWndTabDialog[CONF_TAGGING_TAB], bind);
+	}
+	if (reset || g_hWndCurrentTab == g_hWndTabDialog[CONF_CACHING_TAB]) {
+		save_caching_dialog(g_hWndTabDialog[CONF_CACHING_TAB], bind);
+	}
+#ifdef DB_DC
+	if (reset || g_hWndCurrentTab == g_hWndTabDialog[CONF_DB_TAB]) {
+		save_db_dialog(g_hWndTabDialog[CONF_DB_TAB], bind);
+	}
+#endif
+	if (reset || g_hWndCurrentTab == g_hWndTabDialog[CONF_ART_TAB]) {
+		save_art_dialog(g_hWndTabDialog[CONF_ART_TAB], bind);
+	}
+	if (reset || g_hWndCurrentTab == g_hWndTabDialog[CONF_UI_TAB]) {
+		save_ui_dialog(g_hWndTabDialog[CONF_UI_TAB], bind);
+	}
+	if (reset || g_hWndCurrentTab == g_hWndTabDialog[CONF_OATH_TAB]) {
+		save_oauth_dialog(g_hWndTabDialog[CONF_OATH_TAB], bind);
+	}
+
+	bres = reset || HasChanged();
+
+	return bres;
+
 }
 
-LRESULT CConfigurationDialog::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	destroy();
-	return TRUE;
+void CConfigurationDialog::pushcfg(bool reset) {
+
+	bool bind = !reset;
+
+	bool has_changed = build_current_cfg(reset, bind);
+
+	if (has_changed) {
+		discogs_interface->fetcher->update_oauth(conf.oauth_token, conf.oauth_token_secret);
+		if (bind) conf = conf_dlg_edit;
+		CONF.save(CConf::cfgFilter::CONF, conf);
+		CONF.load();
+	}
+}
+
+
+void CConfigurationDialog::reset() {
+
+	BOOL bDummy;
+	OnDefaults(0, 0, NULL, bDummy);
 }
 
 LRESULT CConfigurationDialog::OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	if (uMessageBox(m_hWnd, "Reset component settings to default?", "Reset",
+
+	if (uMessageBox(m_hWnd, "Reset component settings to default?", "Reset Discogger",
 		MB_OKCANCEL | MB_ICONQUESTION | MB_DEFBUTTON2) == IDOK) {
+
+		//todo: pending reset/default history (db sqlite)
+
 		foo_conf temp;
+#ifdef DEBUG
 		temp.oauth_token = conf.oauth_token;
 		temp.oauth_token_secret = conf.oauth_token_secret;
+#endif
 		conf = temp;
 		conf_dlg_edit = temp;
 		init_searching_dialog(g_hWndTabDialog[CONF_FIND_RELEASE_TAB]);
@@ -250,6 +290,18 @@ LRESULT CConfigurationDialog::OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*
 		init_art_dialog(g_hWndTabDialog[CONF_ART_TAB]);
 		init_ui_dialog(g_hWndTabDialog[CONF_UI_TAB]);
 		init_oauth_dialog(g_hWndTabDialog[CONF_OATH_TAB]);
+
+		pushcfg(true);
+
+		conf = CONF;
+		conf_dlg_edit = CONF;
+
+		OnChanged();
+
+		//delete db history
+
+		on_delete_history(m_hWnd, 0, true);
+
 	}
 	return FALSE;
 }
@@ -703,11 +755,10 @@ void CConfigurationDialog::save_ui_dialog(HWND wnd, bool dlgbind) {
 
 	foo_conf* conf_ptr = dlgbind ? &conf_dlg_edit : &conf;
 
-	bool history_enabled; pfc::string8 h_items;
-	uGetDlgItemText(wnd, IDC_UI_HISTORY_MAX_ITEMS, h_items);
-	history_enabled = uButton_GetCheck(wnd, IDC_CFG_UI_HISTORY_ENABLED);
-	conf_ptr->history_max_items = MAKELPARAM(atoi(h_items), history_enabled ? 1 : 0);
+	bool history_enabled = uButton_GetCheck(wnd, IDC_CFG_UI_HISTORY_ENABLED);
+	size_t max_items = atoi(uGetDlgItemText(wnd, IDC_UI_HISTORY_MAX_ITEMS));
 
+	conf_ptr->history_enabled_max = MAKELPARAM(max_items, history_enabled ? 1 : 0);
 	conf_ptr->release_enter_key_override = uButton_GetCheck(wnd, IDC_RELEASE_ENTER_KEY_OVR);
 	conf_ptr->list_style = ::uSendDlgItemMessage(wnd, IDC_CMB_CONFIG_LIST_STYLE, CB_GETCURSEL, 0, 0);
 }
@@ -715,7 +766,7 @@ void CConfigurationDialog::save_ui_dialog(HWND wnd, bool dlgbind) {
 bool CConfigurationDialog::cfg_ui_has_changed() {
 
 	bool bres = false;
-	bres |= conf.history_max_items != conf_dlg_edit.history_max_items;	
+	bres |= conf.history_enabled_max != conf_dlg_edit.history_enabled_max;
 	bres |= conf.release_enter_key_override != conf_dlg_edit.release_enter_key_override;
 	bres |= conf.list_style != conf_dlg_edit.list_style;
 	return bres;
@@ -1095,7 +1146,7 @@ BOOL CConfigurationDialog::on_ui_dialog_message(HWND wnd, UINT msg, WPARAM wp, L
 			switch (wp) {
 				case IDC_BTN_UI_CLEAR_HISTORY:
 					if (g_discogs->find_release_dialog)
-						g_discogs->find_release_dialog->zap_vhistory();
+						g_discogs->find_release_dialog->get_oplogger()->zap_vhistory();
 					on_delete_history(wnd, 0, true);
 					break;
 				default:
@@ -1190,9 +1241,14 @@ void CConfigurationDialog::on_test_db(HWND wnd, pfc::string8 dbpath) {
 #endif // DB_DC
 
 void CConfigurationDialog::on_delete_history(HWND wnd, size_t max, bool zap) {
+
+	if (!g_discogs->find_release_dialog) {
+		g_discogs->find_release_dialog->get_oplogger()->zap_vhistory();
+	}
+
 	/* todo: service_ptr_t */
 	sqldb db;	
-	size_t inc = db.delete_history("delete all", "", { nullptr });
+	size_t inc = db.recharge_history(kcmdHistoryDeleteAll, ~0, {});
 	db.close();
 }
 
@@ -1238,20 +1294,8 @@ t_uint32 CConfigurationDialog::get_state() {
 	return state;
 }
 
-void CConfigurationDialog::reset() {
-	BOOL bdummy = FALSE;
-	OnDefaults(0, 0, NULL, bdummy);
-	apply();
-	
-	conf = CONF;
-	conf_dlg_edit = CONF;
-
-	OnChanged();
-}
-
 void CConfigurationDialog::apply() {
-	BOOL bdummy = FALSE;
-	OnOK(0, 0, NULL, bdummy);
+	pushcfg(false);
 }
 
 bool CConfigurationDialog::HasChanged() {

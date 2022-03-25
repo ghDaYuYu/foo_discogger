@@ -90,6 +90,7 @@ private:
 	bool original_skip_video = false;
 
 	bool setting_dlg = false;
+	bool cancel_dlg = true;
 
 	CHyperLink help_link;
 
@@ -131,6 +132,9 @@ private:
 	void init_ui_dialog(HWND wnd);
 	void init_oauth_dialog(HWND wnd);
 	void init_current_tab();
+
+	bool build_current_cfg(bool reset, bool bind);
+	void pushcfg(bool reset);
 
 	void save_searching_dialog(HWND wnd, bool dlgbind);
 	void save_caching_dialog(HWND wnd, bool dlgbind);
@@ -182,8 +186,6 @@ public:
 		NOTIFY_HANDLER(IDC_TAB, TCN_SELCHANGING, OnChangingTab)
 #pragma warning(suppress:26454)
 		NOTIFY_HANDLER(IDC_TAB, TCN_SELCHANGE, OnChangeTab)
-		COMMAND_ID_HANDLER(IDOK, OnOK)
-		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
 		COMMAND_ID_HANDLER(IDC_CONF_DEFAULTS_BUTTON, OnDefaults)
 		MESSAGE_HANDLER(WM_CUSTOM_ANV_CHANGED, OnCustomAnvChanged)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
@@ -203,8 +205,6 @@ public:
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnChangingTab(WORD /*wNotifyCode*/, LPNMHDR /*lParam*/, BOOL& /*bHandled*/); 
 	LRESULT OnChangeTab(WORD /*wNotifyCode*/, LPNMHDR /*lParam*/, BOOL& /*bHandled*/); 
-	LRESULT OnOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCustomAnvChanged(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnDestroy(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled);

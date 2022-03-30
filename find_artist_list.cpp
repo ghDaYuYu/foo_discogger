@@ -3,12 +3,29 @@
 #include "find_release_dialog.h"
 #include "find_artist_list.h"
 
+const size_t TRACER_IMAGE_NDX = 3;
+const size_t SHOWING_IMAGE_NDX = 1;
+const size_t LIMIT_ARTISTS = 63;
+
+size_t CFindArtistList::get_next_role_pos() {
+
+	if (m_last_role_pos > LIMIT_ARTISTS) m_last_role_pos = 0;
+	return ++m_last_role_pos;
+
+}
 
 void CFindArtistList::on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist) {
 
-	if (updsrc == updRelSrc::Undef) {
+	if (updsrc == updRelSrc::Undef || updsrc == updRelSrc::UndefFast) {
 
-		//..
+		//from on init
+
+		m_find_release_artist = artist;
+		m_artist_exact_matches.force_reset();
+		m_artist_other_matches.force_reset();
+		set_artists(true, artist, m_artist_exact_matches, m_artist_other_matches);
+		
+		return;
 
 	}
 	else if (updsrc == updRelSrc::ArtistProfile) {
@@ -16,7 +33,7 @@ void CFindArtistList::on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist) {
 		//update profile
 
 		{
-			std::lock_guard<std::mutex> guard(m_dlg->m_loading_selection_readwrite_mutex);
+			std::lock_guard<std::mutex> guard(m_dlg->m_loading_selection_rw_mutex);
 
 			if (m_dlg->m_loading_selection_id == atoi(artist->id)) {
 
@@ -36,33 +53,26 @@ void CFindArtistList::on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist) {
 	set_find_release_artist(artist);
 }
 
-void CFindArtistList::fill_artist_list(bool dlgexcact, bool force_exact, updRelSrc updsrc) {
+void CFindArtistList::fill_artist_list(bool dlgexact, bool force_exact, updRelSrc updsrc) {
 
 	if (updsrc == updRelSrc::ArtistSearch) {
 
-		// (search button callback)
+		// search button callback
 
-		pfc::array_t<Artist_ptr> artist_other_matches = m_artist_other_matches;
+		// both search artist name and by id
+
+		// set_artist(exact, artist, exactmatch, othermatch) already called
+
 		_idtracer_p->artist_reset();
-
-		// select 
-
-		size_t  artist_pos = _idtracer_p->artist_pos != ~0 ? _idtracer_p->artist_pos : 0;
-
-		if (get_size()) {
-
-			ListView_SetItemState(m_hwndArtists, artist_pos, LVIS_SELECTED, LVIS_SELECTED);
-		}
 	}
-
 	else if (updsrc == updRelSrc::ArtistListCheckExact) {
 
-		// (exact matches checkbox))
-		
-		set_exact_matches(dlgexcact);
+		// exact checkbox
+
+		switch_exact_matches(dlgexact);
 	}
 
-	else if (updsrc == updRelSrc::Undef) {
+	else if (updsrc == updRelSrc::Undef || updsrc == updRelSrc::UndefFast) {
 
 		//  on init dialog
 
@@ -71,77 +81,47 @@ void CFindArtistList::fill_artist_list(bool dlgexcact, bool force_exact, updRelS
 			set_artists(true, m_find_release_artist, m_artist_exact_matches, m_artist_other_matches);
 		}
 	}
+	//todo: rev
 	else if (updsrc == updRelSrc::ArtistList || updsrc != updRelSrc::ArtistProfile) {
 
 		// get artist callback:
 		// on change list selection with profile unavailable 
-		// on doubled click, on enter (ArtistList)
+		// on artist list doubled clicked on enter key
 
-		t_size pos = ListView_GetFirstSelection(m_hwndArtists);		
+		size_t prev_role_pos = m_find_release_artist ? m_find_release_artist->search_role_list_pos : ~0;
+		size_t prev_list_pos = ~0;
+		for (size_t w = 0; w < m_find_release_artists.get_count(); w++) {
+			if (m_find_release_artists[w]->search_role_list_pos == prev_role_pos) {
+				prev_list_pos = w;
+				break;
+			}
+		}
+
+		t_size pos = ListView_GetFirstSelection(m_hwndArtists);
+		
+		//..
+
 		m_find_release_artist = Get_Artists()[pos];
+
+		//..
+
+		//todo: misplaced
+		//refresh lv images
+
+		ListView_RedrawItems(m_hwndArtists, pos, pos);
+		if (prev_list_pos != ~0 && prev_list_pos != pos) {
+			//prev item
+			ListView_RedrawItems(m_hwndArtists, prev_list_pos, prev_list_pos);
+		}
 
 		_idtracer_p->artist_check(m_find_release_artist->id, 0);
 	}
 }
 
-bool CFindArtistList::OnDisplayCellImage(int item, int subitem, int & result) {
-
-	bool is_traced = (atoi(m_find_release_artists[item]->id) == _idtracer_p->get_artist_id());
-	result = is_traced ? 0 : -1;
-	return true;
-}
-
-
-bool CFindArtistList::OnDisplayCellString(int item, int subitem, pfc::string8 & result) {
-
-	result = m_find_release_artists[item]->name;
-	return true;
-}
-
-pfc::string8 CFindArtistList::get_artist_id(size_t pos) {
-
-	if (get_size() > pos)
-		return m_find_release_artists[pos]->id;
-	
-	if (m_find_release_artist)
-		return m_find_release_artist->id;
-
-	return "";
-}
-
-size_t CFindArtistList::get_size() {
-	return m_find_release_artists.get_count() ?
-		m_find_release_artists.get_count() : 0;
-}
-
-size_t CFindArtistList::get_artist_pos(size_t szartist_id) {
-
-	if (!get_size()) return ~0;
-
-	if (m_find_release_artist) {
-		
-		if (atoi(m_find_release_artist->id) == szartist_id) {
-			return m_find_release_artist->search_role_list_pos;
-		}
-	}
-	else if (m_find_release_artists.get_count()) {
-
-		Artist_ptr artist;
-		for (size_t walk = 0; walk < m_find_release_artists.get_count(); walk++) {
-			
-			if (atoi(m_find_release_artists[walk]->id) == szartist_id) {
-
-				return m_find_release_artists[walk]->search_role_list_pos;
-			}
-		}
-	}
-	return ~0;
-}
-
 void CFindArtistList::set_artists(bool bexact_matches, const Artist_ptr p_get_artist, const pfc::array_t<Artist_ptr>& p_artist_exact_matches,
 	const pfc::array_t<Artist_ptr>& p_artist_other_matches) {
-    
-    //0 exact, 1 single, 3 exact+other
+
+	//0 exact, 1 single, 3 exact+other
 
 	if (p_get_artist) {
 		switch_find_releases(1);
@@ -150,17 +130,17 @@ void CFindArtistList::set_artists(bool bexact_matches, const Artist_ptr p_get_ar
 
 		m_artist_exact_matches = p_artist_exact_matches;
 		m_artist_other_matches = p_artist_other_matches;
-		switch_find_releases(bexact_matches ? 0 : 3);
+		switch_exact_matches(bexact_matches);
 	}
 }
 
-void CFindArtistList::set_exact_matches(bool exact_matches) {
+void CFindArtistList::switch_exact_matches(bool exact_matches) {
 
 	if (exact_matches) {
 		switch_find_releases(0);
 	}
 	else {
-		switch_find_releases(3); 
+		switch_find_releases(3);
 	}
 }
 
@@ -183,14 +163,92 @@ void CFindArtistList::switch_find_releases(size_t op) {
 	}
 
 	//reset ndx artist id (ref. artist search role)
-	
+
 	for (size_t i = 0; i < m_find_release_artists.get_count(); i++) {
-		m_find_release_artists[i]->search_role_list_pos = i;
+		m_find_release_artists[i]->search_role_list_pos = get_next_role_pos();
 	}
 	ListView_SetItemCountEx(m_hwndArtists, m_find_release_artists.get_count(), 0);
-	
+	if (get_size())
+	{
+		ListView_SetItemState(m_hwndArtists, 0, 0, 0x000F);
+		ListView_SetItemState(m_hwndArtists, 0, LVIS_FOCUSED | LVIS_SELECTED, 0x000F);
+	}
+
 	m_lost_selection_id = pfc_infinite;
 }
+
+void CFindArtistList::set_image_list() {
+
+	m_hImageList.Create(IDB_BITMAP_TRACER, 16, ILC_COLOR4, RGB(255, 255, 255));
+	ListView_SetImageList(m_hwndArtists, m_hImageList, LVSIL_SMALL);
+}
+
+bool CFindArtistList::OnDisplayCellImage(int item, int subitem, int& result) {
+
+	int img_ndx = I_IMAGENONE;
+	bool is_traced = atoi(m_find_release_artists[item]->id) == _idtracer_p->get_artist_id();
+	if (is_traced) {
+		img_ndx = TRACER_IMAGE_NDX;
+	}
+	else {
+		size_t artist_pos_showing = m_dlg->get_tree_artist_list_pos();
+		size_t item_rol_pos = m_find_release_artists[item]->search_role_list_pos;
+		if (item_rol_pos == artist_pos_showing) {
+			img_ndx = SHOWING_IMAGE_NDX;
+		}
+	}
+
+	result = img_ndx;
+	return true;
+}
+
+
+bool CFindArtistList::OnDisplayCellString(int item, int subitem, pfc::string8& result) {
+
+	result = m_find_release_artists[item]->name;
+	return true;
+}
+
+pfc::string8 CFindArtistList::get_artist_id(size_t pos) {
+
+	if (get_size() > pos)
+		return m_find_release_artists[pos]->id;
+
+	if (m_find_release_artist)
+		return m_find_release_artist->id;
+
+	return "";
+}
+
+size_t CFindArtistList::get_size() {
+	return m_find_release_artists.get_count() ?
+		m_find_release_artists.get_count() : 0;
+}
+
+size_t CFindArtistList::get_artist_pos(size_t szartist_id) {
+
+	if (!get_size()) return ~0;
+
+	if (m_find_release_artist) {
+
+		if (atoi(m_find_release_artist->id) == szartist_id) {
+			return m_find_release_artist->search_role_list_pos;
+		}
+	}
+	else if (m_find_release_artists.get_count()) {
+
+		Artist_ptr artist;
+		for (size_t walk = 0; walk < m_find_release_artists.get_count(); walk++) {
+
+			if (atoi(m_find_release_artists[walk]->id) == szartist_id) {
+
+				return m_find_release_artists[walk]->search_role_list_pos;
+			}
+		}
+	}
+	return ~0;
+}
+
 
 //
 
@@ -200,19 +258,22 @@ void CFindArtistList::switch_find_releases(size_t op) {
 
 LRESULT CFindArtistList::OnGetInfo(WORD /*wNotifyCode*/, LPNMHDR hdr, BOOL& /*bHandled*/) {
 
+	NM_LISTVIEW* pNMListView = (NM_LISTVIEW*)hdr;
 	LV_DISPINFO* plvdi = (LV_DISPINFO*)hdr;
 
-	bool valid = m_find_release_artists.get_count() > plvdi->item.iItem;
+	bool req = m_find_release_artists.get_count() > plvdi->item.iItem;
 
-	if (!valid) { return FALSE;	}
-	
+	if (!req) return FALSE;
+
+
+
 	LV_ITEM* pItem = &(plvdi)->item;
 
 	if (pItem->mask & LVIF_TEXT)
 	{
 		if (pItem->iSubItem == 0) {
 
-			pfc::string8 nodetext(m_find_release_artists[i]->name);
+			pfc::string8 nodetext(m_find_release_artists[pItem->iItem]->name);
 
 			if (OnDisplayCellString(pItem->iItem, 0, nodetext)) {
 
@@ -231,23 +292,75 @@ LRESULT CFindArtistList::OnGetInfo(WORD /*wNotifyCode*/, LPNMHDR hdr, BOOL& /*bH
 	if (pItem->mask & LVIF_IMAGE)
 	{
 		if (pItem->iSubItem == 0) {
-		
-			// Request-Image
-			int img_ndx = -1;
+
+			int img_ndx;
+
+			// calc tracer image
+
 			if (OnDisplayCellImage(pItem->iItem, 0, img_ndx)) {
 
-				pItem->iImage = img_ndx;
+				pItem->iImage = img_ndx;				
 			}
-			else
+			else {
+
 				pItem->iImage = I_IMAGECALLBACK;
+			}
 		}
 	}
-	return FALSE;
+
+	//
+
+	// lost selection
+
+	//
+
+	if ((pNMListView->uChanged & LVIF_STATE) && (pNMListView->uOldState & LVNI_SELECTED) && !(pNMListView->uNewState & LVNI_SELECTED)) {
+
+		// lost selection
+
+		int pos = pNMListView->iItem;
+
+		if (pos == -1 || pos >= m_find_release_artists.get_count()) {
+
+			m_lost_selection_id = pfc_infinite;
+			return 0;
+		}
+
+		//todo: mutex unselect
+		if (m_find_release_artists.get_count()) {
+
+			m_lost_selection_id = atoi(m_find_release_artists[pNMListView->iItem]->id);
+		}
+		else {
+
+			m_lost_selection_id = atoi(m_find_release_artist->id);
+		}
+	}
+
+
+	//
+
+	// focus: convey profile
+
+	//
+
+	if ((pNMListView->uChanged & LVIF_STATE) && (!(pNMListView->uOldState & LVNI_FOCUSED)) && (pNMListView->uNewState & LVNI_FOCUSED)) {
+
+		// get focus, for example pressing search button an not selecting any items
+
+		if (pNMListView->iItem == -1) return 0;
+
+		// convey artist profile
+
+		m_dlg->convey_artist_list_selection(updRelSrc::ArtistProfile);
+	}
+
+	return TRUE;
 }
 
 //
 
-// artist item status changed
+// state changed
 
 //
 
@@ -257,7 +370,7 @@ LRESULT CFindArtistList::OnListSelChanged(int i, LPNMHDR hdr, BOOL& bHandled) {
 
 	NM_LISTVIEW* pNMListView = (NM_LISTVIEW*)hdr;
 
-	if ((pNMListView->uNewState & LVNI_SELECTED) && !((pNMListView->uOldState & LVNI_SELECTED) == LVNI_SELECTED)) {
+	if ((pNMListView->uChanged & LVIF_STATE) && (pNMListView->uNewState & LVNI_SELECTED) && !((pNMListView->uOldState & LVNI_SELECTED) == LVNI_SELECTED)) {
 
 		// becomes selected
 
@@ -267,33 +380,24 @@ LRESULT CFindArtistList::OnListSelChanged(int i, LPNMHDR hdr, BOOL& bHandled) {
 
 		// 
 
-		// ** artist SELECTED, may sp�wm. collects and displays
+		// ** artist selected, collect and display
 
-		//
+		// convey...
 
 		m_dlg->convey_artist_list_selection(updRelSrc::ArtistProfile);
 
-		return 0;
 	}
 
-	if ((pNMListView->uChanged & LVIF_STATE) && (pNMListView->uOldState & LVNI_SELECTED) && !(pNMListView->uNewState & LVNI_SELECTED)) {
+	return FALSE;
+}
 
-		// lost selection
+LRESULT CFindArtistList::OnListSelChanging(int i, LPNMHDR hdr, BOOL& bHandled) {
 
-		int pos = pNMListView->iItem;
+	//bHandled = true;
+	//NM_LISTVIEW* pNMListView = (NM_LISTVIEW*)hdr;
+	//if ((pNMListView->uNewState & LVNI_SELECTED) && !((pNMListView->uOldState & LVNI_SELECTED) == LVNI_SELECTED)) {}
 
-		if (pos == -1 || pos >= m_find_release_artists.get_count()) {
-			m_lost_selection_id = pfc_infinite;
-			return 0;
-		}
-
-		//todo: mutex unselect
-		if (m_find_release_artists.get_count())
-			m_lost_selection_id = atoi(m_find_release_artists[pNMListView->iItem]->id);
-		else
-			m_lost_selection_id = atoi(m_find_release_artist->id);
-	}
-	return 0;
+	return FALSE;
 }
 
 //
@@ -312,23 +416,11 @@ LRESULT CFindArtistList::OnListDoubleClick(int i, LPNMHDR hdr, BOOL& bHandled) {
 
 		if (pNMListView->iItem == -1) return 0;
 
-		size_t pos = pNMListView->iItem;
+		// artist default action (ArtistList)
 
-		Artist_ptr artist;
+		Default_Artist_Action();
 
-		if (m_find_release_artists.get_count() > 0) {
-			artist = m_find_release_artists[pos];
-		}
-		else if (m_find_release_artist != NULL) {
-			artist = m_find_release_artist;
-		}
-
-		updRelSrc updsrc = updRelSrc::ArtistList;
-
-		//convey_artist_list_selection(updsrc);
-		m_dlg->convey_artist_list_selection(updsrc);
-
-	    return 0;
+		//
 	}
 	return 0;
 }
@@ -341,22 +433,12 @@ LRESULT CFindArtistList::OnListDoubleClick(int i, LPNMHDR hdr, BOOL& bHandled) {
 
 LRESULT CFindArtistList::OnRClickRelease(int, LPNMHDR hdr, BOOL&) {
 
-	LVITEM* hhit = NULL;
+	NM_LISTVIEW* pNMListView = (NM_LISTVIEW*)hdr;
+	t_size list_index = pNMListView->iItem;
+
+	if (list_index == -1) return 0;
 
 	bool isArtistOffline = false;
-
-	t_size list_index = -1;
-	int lparam = -1;
-	mounted_param myparam(lparam);
-
-	POINT screen_cursor_position;
-	GetCursorPos(&screen_cursor_position);
-
-	LPNMITEMACTIVATE nmView = (LPNMITEMACTIVATE)hdr;
-	list_index = nmView->iItem;
-
-	if (list_index == pfc_infinite)
-		return FALSE;
 
 	if (m_find_release_artists.get_count() > 0)
 		isArtistOffline = m_find_release_artists[list_index]->loaded_releases_offline;
@@ -364,34 +446,25 @@ LRESULT CFindArtistList::OnRClickRelease(int, LPNMHDR hdr, BOOL&) {
 		if (m_find_release_artist != NULL)
 			isArtistOffline = m_find_release_artist->loaded_releases_offline;
 
-
-	lparam = myparam.lparam();
-
 	pfc::string8 sourcepage = "View artist page";
-	pfc::string8 copytitle = "Copy title to clipboard";
 	pfc::string8 copyrow = "Copy to clipboard";
 
 	try {
 
-		enum { ID_VIEW_PAGE = 1, ID_CLP_COPY_TITLE, ID_CLP_COPY_ROW, ID_ARTIST_DEL_CACHE, ID_ARTIST_PROFILE };
+		enum { ID_VIEW_PAGE = 1, ID_CLP_COPY_ROW, ID_ARTIST_DEL_CACHE, ID_ARTIST_PROFILE };
 		HMENU menu = CreatePopupMenu();
 
-		if (isArtist) {
-			uAppendMenu(menu, MF_STRING, ID_VIEW_PAGE, sourcepage);
-			uAppendMenu(menu, MF_STRING, ID_ARTIST_PROFILE, "Open profile panel");
+		uAppendMenu(menu, MF_STRING, ID_VIEW_PAGE, sourcepage);
+		uAppendMenu(menu, MF_STRING, ID_ARTIST_PROFILE, "Open profile panel");
+		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+		uAppendMenu(menu, MF_STRING, ID_CLP_COPY_ROW, copyrow);
+		if (isArtistOffline) {
 			uAppendMenu(menu, MF_SEPARATOR, 0, 0);
-			uAppendMenu(menu, MF_STRING, ID_CLP_COPY_ROW, copyrow);
-			if (isArtistOffline) {
-				uAppendMenu(menu, MF_SEPARATOR, 0, 0);
-				uAppendMenu(menu, MF_STRING, ID_ARTIST_DEL_CACHE, "Clear artist cache");
-			}
+			uAppendMenu(menu, MF_STRING, ID_ARTIST_DEL_CACHE, "Clear artist cache");
 		}
-		else {
-			uAppendMenu(menu, MF_STRING, ID_VIEW_PAGE, sourcepage);
-			uAppendMenu(menu, MF_SEPARATOR, 0, 0);
-			uAppendMenu(menu, MF_STRING, ID_CLP_COPY_TITLE, copytitle);
-			uAppendMenu(menu, MF_STRING, ID_CLP_COPY_ROW, copyrow);
-		}
+
+		POINT screen_cursor_position;
+		GetCursorPos(&screen_cursor_position);
 
 		int cmd = TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, screen_cursor_position.x, screen_cursor_position.y, 0, core_api::get_main_window(), 0);
 		DestroyMenu(menu);
@@ -409,15 +482,6 @@ LRESULT CFindArtistList::OnRClickRelease(int, LPNMHDR hdr, BOOL&) {
 
 			if (url.get_length())
 				display_url(url);
-
-			return true;
-		}
-		case ID_CLP_COPY_TITLE:
-		{
-			pfc::string8 buffer;
-			ClipboardHelper::OpenScope scope;
-			scope.Open(core_api::get_main_window());
-			ClipboardHelper::SetString(buffer);
 
 			return true;
 		}
@@ -454,19 +518,17 @@ LRESULT CFindArtistList::OnRClickRelease(int, LPNMHDR hdr, BOOL&) {
 			pfc::string8 utf_buffer;
 			TCHAR outBuffer[MAX_PATH + 1] = {};
 
-			//todo: rev getfirstselected and getnextselected
-
 			size_t cItems = ListView_GetItemCount(m_hwndArtists);
 			for (size_t walk_item = 0; walk_item < cItems; walk_item++) {
 				if (LVIS_SELECTED == ListView_GetItemState(m_hwndArtists, walk_item, LVIS_SELECTED)) {
 					Artist_ptr artist;
 					if (m_find_release_artists.get_count() > 0)
-					artist = m_find_release_artists[list_index];
+						artist = m_find_release_artists[list_index];
 					else
 						if (m_find_release_artist != NULL)
 							artist = m_find_release_artist;
-					if (artist) {
-						m_discogs_interface->delete_artist_cache(artist->id);
+					if (artist.get()) {
+						discogs_interface->delete_artist_cache(artist->id);
 						artist->loaded_releases_offline = false;
 					}
 				}
@@ -489,51 +551,23 @@ LRESULT CFindArtistList::OnRClickRelease(int, LPNMHDR hdr, BOOL&) {
 
 //
 
-// misc
+//default action for artist list item
 
 //
 
-size_t CFindArtistList::test_hit_artist() {
+void CFindArtistList::Default_Artist_Action() {
 
-	t_size pos = ListView_GetSingleSelection(m_hwndArtists);
-	pos = ListView_GetFirstSelection(m_hwndArtists);
+	size_t pos = ListView_GetFirstSelection(m_hwndArtists);
 
-	return pos;
+	if (pos == ~0) return;
+	
+	Artist_ptr artist = m_find_release_artists[pos];
 
-}
+	set_artist_tracer_fr(atoi(artist->id));
 
-//default action for artist list item
+	// convey artist-list
 
-void CFindArtistList::nVKReturn_Artists() {
-
-	size_t pos = test_hit_artist();
-
-	if (pos != ~0) {
-
-		Artist_ptr artist;
-
-		bool load_artist = false;
-		pfc::string8 name, profile;
-
-		if (m_find_release_artists.get_count() > 0) {
-			artist = m_find_release_artists[pos];
-		}
-		else if (m_find_release_artist != NULL) {
-			artist = m_find_release_artist;
-		}
-
-		if (artist) {
-			name = artist->name;
-			profile = artist->profile;
-			load_artist = !artist->loaded;
-		}
-
-		set_artist_tracer_fr(atoi(artist->id));
-
-		updRelSrc updsrc = updRelSrc::ArtistList;
-
-		m_dlg->convey_artist_list_selection(updsrc);
-	}
+	m_dlg->convey_artist_list_selection(updRelSrc::ArtistList);
 }
 
 //
@@ -542,13 +576,22 @@ void CFindArtistList::nVKReturn_Artists() {
 
 //
 
+void CFindArtistList::ShowArtistProfile() {
+	
+	//serves dlg bind panel checkbox
+
+	size_t pos = ListView_GetFirstSelection(m_hwndArtists);
+	open_artist_profile(pos);
+}
+
+
 void CFindArtistList::open_artist_profile(size_t list_index) {
 
 	if (!g_discogs->find_release_artist_dialog) {
-		g_discogs->find_release_artist_dialog = fb2k::newDialog<CFindReleaseArtistDialog>(core_api::get_main_window()/*, nullptr*/);
+		g_discogs->find_release_artist_dialog = fb2k::newDialog<CFindReleaseArtistDialog>(core_api::get_main_window(), SW_SHOW);
 	}
 
-	if (g_discogs->find_release_artist_dialog->m_hWnd != NULL) {
+	if (list_index != pfc_infinite) {
 
 		Artist_ptr artist;
 
@@ -565,7 +608,7 @@ void CFindArtistList::open_artist_profile(size_t list_index) {
 		else {
 			int debug = 1;
 		}
-
-		::SetFocus(g_discogs->find_release_artist_dialog->m_hWnd);
 	}
+
+	::SetFocus(g_discogs->find_release_artist_dialog->m_hWnd);
 }

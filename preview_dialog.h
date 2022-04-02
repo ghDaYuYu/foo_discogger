@@ -22,10 +22,12 @@ private:
 
 	HWND tag_results_list;
 	HBITMAP m_rec_icon;
+	HBITMAP m_preview_bitmap;
 
 	foo_conf conf;
 
 	bool use_update_tags = false;
+
 	size_t multi_count = 0;
 
 	std::vector<preview_stats> v_stats;
@@ -91,10 +93,12 @@ private:
 	}
 	bool delete_selection();
 
+	void set_image_list();
+
 public:
 	enum {
 		IDD = IDD_DIALOG_PREVIEW_TAGS,
-		MSG_EDIT = WM_APP
+		MSG_EDIT = WM_APP + 5000
 	};
 
 	enum {
@@ -115,7 +119,7 @@ public:
 	MY_BEGIN_MSG_MAP(CPreviewTagsDialog)
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
 		COMMAND_ID_HANDLER(IDC_WRITE_TAGS_BUTTON, OnWriteTags)
-		COMMAND_ID_HANDLER(IDC_BACK_BUTTON, OnBack)
+		COMMAND_ID_HANDLER(IDC_BACK_BUTTON, OnButtonBack)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
 		COMMAND_ID_HANDLER(IDC_REPLACE_ANV_CHECK, OnCheckReplaceANVs)
@@ -164,7 +168,7 @@ public:
 	}
 
 	CPreviewTagsDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags)
-		: m_tag_writer(tag_writer), tag_results_list(NULL), use_update_tags(use_update_tags) {
+		: m_tag_writer(tag_writer), tag_results_list(NULL), use_update_tags(use_update_tags), m_preview_bitmap(NULL) {
 
 		g_discogs->preview_tags_dialog = this;
 
@@ -177,7 +181,7 @@ public:
 	LRESULT OnWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnBack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnButtonBack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCheckReplaceANVs(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCheckPreviewShowStats(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCheckSkipArtwork(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);

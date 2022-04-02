@@ -51,24 +51,17 @@
 	//Moves the selected items up one level
 	void move_selected_items_up(HWND list)
 	{
-		t_size newfocus = pfc_infinite;
+		//created selection mask
+		pfc::bit_array_bittable selmask;
+		selmask.resize(ListView_GetItemCount(list));
+		
 		for (int i = 0; i < ListView_GetItemCount(list); i++)
 		{
 			if (ListView_IsItemSelected(list, i))
 			{
-				if (i == 0) return;
-				//swap with the top item(move up)
-				
-				if (i > 0 && !ListView_IsItemSelected(list, i - 1))
-				{
-					list_swap_items(list, i, i - 1);
-					if (newfocus == pfc_infinite) newfocus = i /*- 1*/;
-					ListView_SetItemState(list, i - 1, LVIS_SELECTED, 0x000F);
-				}
+				selmask.set(i, true);
 			}
 		}
-		if (newfocus != pfc_infinite)
-			ListView_SetItemState(list, newfocus, /*LVIS_SELECTED |*/ LVIS_FOCUSED, LVIS_FOCUSED);
 	}
 
 	//Moves the selected items up one level

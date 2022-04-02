@@ -1201,7 +1201,7 @@ void files_artwork_presenter::Add_template(GUID template_guid, size_t template_s
 		pfc::string8 tmpl_file_name = template_art_ids::name_of(template_guid);
 
 		if (walk_append)
-			tmpl_file_name << "_" << std::to_string(walk_append).c_str();
+			tmpl_file_name << "_" << walk_append;
 		tmpl_file_name << ".jpg";
 
 		result = ReadDimSizeFromFile(directory, tmpl_file_name);

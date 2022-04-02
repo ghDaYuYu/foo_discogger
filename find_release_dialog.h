@@ -18,8 +18,7 @@ class search_artist_process_callback;
 
 
 class CFindReleaseDialog : public MyCDialogImpl<CFindReleaseDialog>,
-	public CDialogResize<CFindReleaseDialog>,
-	public CMessageFilter {
+	public CDialogResize<CFindReleaseDialog> {
 
 private:
 
@@ -28,7 +27,7 @@ private:
 	id_tracer m_tracer;
 
 	CFindReleaseTree m_dctree;
-	CFindArtistList m_alist;
+	CArtistList m_alist;
 
 	rppair m_row_stats;
 
@@ -138,6 +137,10 @@ private:
 	void on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist);
 	void on_search_artist_done(const pfc::array_t<Artist_ptr>& p_artist_exact_matches, const pfc::array_t<Artist_ptr>& p_artist_other_matches);
 
+	// route artist search
+
+	DBFlags calc_dbdc_flag();
+
 	void route_artist_search(pfc::string8 artistname, bool dlgbutton, bool idded);
 
 	// release service callbacks
@@ -148,16 +151,13 @@ private:
 	
 	void convey_artist_list_selection(updRelSrc updsrc);
 
-
-	DBFlags calc_dbdc_flag();
-
 	//misc string formats
 
 	service_ptr_t<titleformat_object> m_album_name_script;
 	service_ptr_t<titleformat_object> m_artist_name_script;
 	service_ptr_t<titleformat_object> m_album_artist_script;
 
-	//write tags
+	// on write tags
 
 	void on_write_tags(const pfc::string8& release_id);
 
@@ -186,6 +186,7 @@ private:
 	BEGIN_MSG_MAP(CFindReleaseDialog)
 		MSG_WM_TIMER(OnTypeFilterTimer)
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
+		MESSAGE_HANDLER(WM_CONTEXTMENU, OnContextMenu)
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		COMMAND_ID_HANDLER(IDC_FILTER_EDIT, OnEditFilterText)
@@ -249,11 +250,9 @@ private:
 		return TRUE;
 	}
 
-	virtual BOOL PreTranslateMessage(MSG* pMsg) override {
-		return ::IsDialogMessage(m_hWnd, pMsg);
-	}
-
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+	LRESULT OnContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+	LRESULT OnGetDlgCode(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 
 	LRESULT OnEditFilterText(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
@@ -266,15 +265,19 @@ private:
 	LRESULT OnCheckboxOnlyExactMatches(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCheckboxFindReleaseFilterFlags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 
+	//..
+
 	void OnTypeFilterTimer(WPARAM id);
 	void apply_filter(pfc::string8 strFilter, bool force_redraw = false, bool force_rebuild = false);
- 
+
+	//todo: 
 	friend class expand_master_release_process_callback;
 	friend class get_artist_process_callback;
 	friend class search_artist_process_callback;
 
-	friend class CFindArtistList;
+	friend class CArtistList;
 	friend class CFindReleaseTree;
+	//..
 
 	void enable(bool is_enabled) override;
 	void setitems(metadb_handle_list track_matching_items) { items = track_matching_items; }
@@ -317,6 +320,8 @@ public:
 	bool add_history(oplog_type optype, std::string cmd, pfc::string8 ff, pfc::string8 fs, pfc::string8 sf, pfc::string8 ss);
 	bool add_history(oplog_type optype, std::string cmd, rppair row);
 
+	decltype(conf)const& config() const { return conf; }
+
 	//todo: rev
 	std::mutex m_loading_selection_rw_mutex;
 	size_t m_loading_selection_id = pfc_infinite;
@@ -346,7 +351,7 @@ static LRESULT CALLBACK EnterKeySubclassProc(
 		
 		case WM_KEYDOWN:
 		case WM_SYSKEYDOWN:
-		
+
 			switch (lpMsg->wParam) {
 			
 			case VK_RETURN: {
@@ -371,7 +376,7 @@ static LRESULT CALLBACK EnterKeySubclassProc(
 					| DLGC_WANTALLKEYS;
 
 			default:
-				;
+                ;
 			}
 		default:
 			;

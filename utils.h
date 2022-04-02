@@ -88,6 +88,10 @@ extern inline pfc::string8 rtrim(const pfc::string8 &str, const char *ch = white
 
 extern bool is_number(const std::string& s);
 
+unsigned long encode_mr(const int a, const unsigned long b);
+unsigned long encode_mr(const int a, pfc::string8& sb);
+std::pair<int, unsigned long> decode_mr(const unsigned long coded);
+
 // Make strings lowercase
 extern pfc::string8 lowercase(pfc::string8 str);
 

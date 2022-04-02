@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <atltypes.h>
 #include <windef.h>
 #include <gdiplus.h>
@@ -24,7 +24,7 @@ using namespace Discogs;
 class CFindReleaseDialog;
 class CFindReleaseTree;
 
-class CFindArtistList : public CMessageMap {
+class CArtistList : public CMessageMap {
 
 private:
 
@@ -42,7 +42,7 @@ private:
 
 	//app
 
-	foo_conf* m_conf_p = nullptr;
+	foo_conf m_conf;
 	history_oplog* m_oplogger_p;
 	id_tracer* _idtracer_p;
 
@@ -67,21 +67,21 @@ private:
 
 public:
 
-	CFindArtistList(CFindReleaseDialog* dlg, foo_conf* conf_p)
-		: m_dlg(dlg), m_conf_p(conf_p) {
+	CArtistList(CFindReleaseDialog* dlg)
+		: m_dlg(dlg) {
 
 		m_dispinfo_enabled = true;
 
 		m_hwndArtists = NULL;
 		m_edit_artist = NULL;
 
-		m_find_release_artist = nullptr;
+		m_find_release_artist;
 
 		m_lv_selected = NULL;
 		m_lv_hit = NULL;
 	}
 
-	~CFindArtistList() {
+	~CArtistList() {
 
 		DeleteObject(m_hImageList);
 
@@ -95,11 +95,15 @@ public:
 	//serves dlg
 	void ShowArtistProfile();
 
+	//
+
 	void on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist);
 	void fill_artist_list(bool dlgexcact, bool force_exact, updRelSrc updsrc);
 
-	pfc::string8 get_artist_id(size_t pos);
-	size_t get_artist_pos(size_t szartist_id);
+	//
+
+	size_t get_artist_id(size_t pos);
+	size_t get_artist_role_pos(size_t szartist_id);
 
 	void switch_exact_matches(bool exact_matches);
 
@@ -130,13 +134,15 @@ public:
 
 	void Default_Artist_Action();
 
+
 #pragma warning( push )
 #pragma warning( disable : 26454 )
 
-	BEGIN_MSG_MAP(CFindArtistList)
+	BEGIN_MSG_MAP(CArtistList)
 		NOTIFY_HANDLER(IDC_ARTIST_LIST, LVN_GETDISPINFO, OnGetInfo)
 		NOTIFY_HANDLER(IDC_ARTIST_LIST, LVN_ITEMCHANGED, OnListSelChanged)
 		NOTIFY_HANDLER(IDC_ARTIST_LIST, LVN_ITEMCHANGING, OnListSelChanging)
+		MESSAGE_HANDLER(WM_CONTEXTMENU, OnContextMenu)
 		NOTIFY_HANDLER(IDC_ARTIST_LIST, NM_RCLICK, OnRClickRelease)
 		//NOTIFY_HANDLER(IDC_ARTIST_LIST, NM_RETURN, OnListReturn) (parent hook)
 		NOTIFY_HANDLER(IDC_ARTIST_LIST, NM_DBLCLK, OnListDoubleClick)
@@ -147,6 +153,8 @@ public:
 private:
 
 	size_t get_size();
+	Artist_ptr get_artist_inlist(size_t list_index);
+	Artist_ptr get_selected_artist();
 
 	pfc::string8 get_search_string() { return uGetWindowText(m_edit_artist); }
 
@@ -162,10 +170,12 @@ private:
 	void switch_find_releases(size_t op);
 
 	void open_artist_profile(size_t list_index);
+	void context_menu(size_t list_index, POINT screen_pos);
 
 	LRESULT OnGetInfo(WORD /*wNotifyCode*/, LPNMHDR hdr, BOOL& /*bHandled*/);
 	LRESULT OnListSelChanged(int, LPNMHDR hdr, BOOL& bHandled);
 	LRESULT OnListSelChanging(int, LPNMHDR hdr, BOOL& bHandled);
+	LRESULT OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 	LRESULT OnRClickRelease(int, LPNMHDR hdr, BOOL&);
 	LRESULT OnListDoubleClick(int, LPNMHDR hdr, BOOL& bHandled);
 

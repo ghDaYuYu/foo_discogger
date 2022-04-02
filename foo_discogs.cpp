@@ -15,13 +15,14 @@
 
 #include "configuration_dialog.h"
 #include "find_release_dialog.h"
-
+#include "find_release_artist_dlg.h"
 #include "track_matching_utils.h"
 
 #include "foo_discogs.h"
 
 using namespace std;
 
+bool g_os_is_wine = false;
 foo_discogs *g_discogs = nullptr;
 DiscogsInterface *discogs_interface = nullptr;
 HICON g_icon = nullptr;
@@ -53,6 +54,7 @@ class initquit_discogs : public initquit
 #endif
 
 		g_discogs = new foo_discogs();
+		g_os_is_wine = check_os_wine();
 		load_dlls();
 	}
 	virtual void on_quit() override {
@@ -72,7 +74,7 @@ static initquit_factory_t<initquit_discogs> foo_initquit;
 
 foo_discogs::foo_discogs() {
 
-	icon = GdiplusLoadPNGIcon(IDB_PNG_DCSP_48, CSize(48,48));
+	icon = GdiplusLoadPNGIcon(IDB_PNG_DC_32C, CSize(32,32));
 
 	init_tag_mappings();
 	discogs_interface->fetcher->set_oauth(CONF.oauth_token, CONF.oauth_token_secret);

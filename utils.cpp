@@ -49,6 +49,28 @@ bool is_number(const std::string& s)
 		s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
 }
 
+unsigned long encode_mr(const int a, const unsigned long b) {
+	//search artists array ndx (last 6)
+	unsigned long enc_a = a << 26;
+	//marter id (first 26)	
+	unsigned long coded = enc_a | b;
+	return coded;
+}
+
+unsigned long encode_mr(const int a, pfc::string8& sb) {
+	return encode_mr(a, atoi(sb));
+}
+
+std::pair<int,unsigned long> decode_mr(const unsigned long coded) {
+	//search artists array ndx (last 6)
+	unsigned long dec_a = (coded >> 26) & ((1 << 6) - 1);
+	
+	//marter id (first 26)
+	unsigned long dec_b = coded & ((1 << 26) - 1);
+	
+	return std::pair(dec_a, dec_b);
+}
+
 pfc::string8 lowercase(pfc::string8 str) {
 	std::string result((const char*)str);
 	std::transform(result.begin(), result.end(), result.begin(), ::tolower);
@@ -68,8 +90,11 @@ pfc::string8 join(const pfc::array_t<pfc::string8> &in, const pfc::string8 &join
 }
 
 int tokenize(const pfc::string8 &src, const pfc::string8 &delim, pfc::array_t<pfc::string8> &tokens, bool remove_blanks) {
-	size_t pos;
+	
 	tokens.force_reset();
+	if (!src.get_length()) return 0;
+
+	size_t pos;
 	pfc::string8 tmp = src;
 	size_t dlength = delim.get_length();
 	while ((pos = tmp.find_first(delim)) != pfc::infinite_size) {
@@ -371,8 +396,7 @@ void ensure_directory_exists(const char* dir) {
 	}
 }
 
-//grippers on W11...
-bool os_apt_grippers() {
+bool check_os_win_eleven() {
 	OSVERSIONINFO ver = { sizeof(ver) };
 	WIN32_OP_D(GetVersionEx(&ver));
 	if (ver.dwMajorVersion == 10 && ver.dwBuildNumber >= 22000)

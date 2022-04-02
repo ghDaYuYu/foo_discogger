@@ -81,3 +81,4 @@ public:
 };
 
 extern foo_discogs *g_discogs;
+extern bool g_os_is_wine;

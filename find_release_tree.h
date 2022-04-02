@@ -43,18 +43,16 @@ private:
 	//filter (search_order_master)
 	std::vector<std::pair<int, int>> m_vec_filter;
 
-	//owner (messagemap)
+	foo_conf m_conf;
+
 	CFindReleaseTree* m_rt_manager;
-	foo_conf* m_conf_p;
 
 	HIMAGELIST hImageList = NULL;
 
 
 public:
 
-	//constructor
-
-	release_tree_cache(CFindReleaseTree* rt_manager, foo_conf* conf_p) : m_rt_manager(rt_manager), m_conf_p(conf_p) {
+	release_tree_cache(CFindReleaseTree* rt_manager) : m_rt_manager(rt_manager) {
 
 		m_cache_ptr = std::make_shared<filter_cache>();
 		m_vec_ptr = std::make_shared<vec_t>();
@@ -84,7 +82,7 @@ private:
 	void expand_releases(const pfc::string8& filter, t_size master_index, t_size master_list_pos, id_tracer* tracer_p);
 
 	std::pair<rppair_t, rppair_t> update_releases(const pfc::string8 & filter, updRelSrc updsrc,
-		bool init_expand, id_tracer* tracer_r, bool brolemain_filter, foo_conf* m_conf_p);
+		bool init_expand, id_tracer* tracer_r, bool brolemain_filter);
 
 	int get_src_param(updRelSrc updsrc, id_tracer* tracer_p);
 
@@ -105,7 +103,7 @@ class CFindReleaseTree : public CMessageMap {
 private:
 
 	CFindReleaseDialog* m_dlg = nullptr;
-	foo_conf* m_conf_p = nullptr;
+
 	history_oplog* m_oplogger_p;
 
 	id_tracer* _idtracer_p;
@@ -127,6 +125,7 @@ private:
 	pfc::array_t<Artist_ptr> m_find_release_artists;
 
 	bool m_dispinfo_enabled;
+	size_t m_post_selection_param;
 
 	pfc::string8 m_results_filter;
 	pfc::string8 m_init_master_title;
@@ -139,21 +138,24 @@ private:
 	int get_param_id_master(mounted_param myparam);
 
 	size_t test_getselected(TVITEM& out);
+	size_t test_getatcursor(CPoint screen_pos, TVITEM& out);
+	size_t get_autofill_release_id(mounted_param myparam, size_t master_id);
 
 	metadb_handle_list m_items;
 
 	playable_location_impl location;
 	file_info_impl* m_info_p;
-	titleformat_hook_impl_multiformat_ptr hook;
+	titleformat_hook_impl_multiformat_ptr m_hook;
 
 
 public:
 
-	CFindReleaseTree(CFindReleaseDialog* dlg, foo_conf* conf_p)
-		: m_dlg(dlg), m_conf_p(conf_p), m_rt_cache(this, conf_p) {
+	CFindReleaseTree(CFindReleaseDialog* dlg)
+		: m_dlg(dlg), m_rt_cache(this) {
 
 		m_dispinfo_enabled = true;
-		
+		m_post_selection_param = pfc_infinite;
+
 		m_hit = NULL;
 		m_tvi_selected = NULL;
 		m_hwndTreeView = NULL;
@@ -161,8 +163,8 @@ public:
 		m_edit_release = NULL;
 		m_edit_filter = NULL;
 
-		m_find_release_artist = nullptr;
-		
+		m_find_release_artist;
+
 		m_results_filter = "";
 		m_init_master_title = "";
 		m_init_release_title = "";
@@ -199,7 +201,7 @@ public:
 		stdf_on_release_selected_notifier = stdf_notifier;
 	}
 
-	titleformat_hook_impl_multiformat_ptr get_hook() { return hook; }
+	titleformat_hook_impl_multiformat_ptr get_hook() { return m_hook; }
 
 	size_t Get_Artist_List_Position();
 	size_t Get_Size();
@@ -247,6 +249,7 @@ public:
 		NOTIFY_HANDLER(IDC_RELEASE_TREE, TVN_SELCHANGING, OnReleaseTreeSelChanging)
 		NOTIFY_HANDLER(IDC_RELEASE_TREE, TVN_SELCHANGED, OnReleaseTreeSelChanged)
 		NOTIFY_HANDLER(IDC_RELEASE_TREE, NM_DBLCLK, OnReleaseTreeDoubleClickRelease)
+		MESSAGE_HANDLER(WM_CONTEXTMENU, OnContextMenu)
 		NOTIFY_HANDLER(IDC_RELEASE_TREE, NM_RCLICK, OnRClickRelease)
 	END_MSG_MAP()
 
@@ -279,25 +282,26 @@ private:
 	}
 	//..
 
-	void init_titles(Artist_ptr artist);
+	void init_titles(Artist_ptr artist, pfc::string8 & out_hint);
+
 	pfc::string8 get_edit_filter_string() { return uGetWindowText(m_edit_filter); }
 
 	void init_tracker_i(Artist_ptr artist, pfc::string8 filter_master, pfc::string8 filter_release, bool expanded, bool fast);
 	
 	void rebuild_treeview();
-
-	LRESULT OnRClickRelease(int, LPNMHDR hdr, BOOL&);
-	LRESULT OnClick(WORD /*wNotifyCode*/, LPNMHDR /*lParam*/, BOOL& /*bHandled*/);
-
-	LRESULT OnReleaseTreeDoubleClickRelease(int, LPNMHDR hdr, BOOL&);
+	void context_menu(size_t param_mr, POINT screen_pos);
 
 	LRESULT OnReleaseTreeGetInfo(WORD /*wNotifyCode*/, LPNMHDR hdr, BOOL& /*bHandled*/);
 	LRESULT OnReleaseTreeExpanding(int, LPNMHDR hdr, BOOL&);
 	LRESULT OnReleaseTreeSelChanging(int, LPNMHDR hdr, BOOL& bHandled);
 	LRESULT OnReleaseTreeSelChanged(int, LPNMHDR hdr, BOOL& bHandled);
+	LRESULT OnReleaseTreeDoubleClickRelease(int, LPNMHDR hdr, BOOL&);
+	LRESULT OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+	LRESULT OnRClickRelease(int, LPNMHDR hdr, BOOL&);
+	LRESULT OnClick(WORD /*wNotifyCode*/, LPNMHDR /*lParam*/, BOOL& /*bHandled*/);
 
 	void set_image_list();
-	bool OnTreeDisplayCellImage(size_t item, size_t subitem, size_t id, int& result);
+	bool OnTreeDisplayCellImage(size_t item, size_t subitem, size_t id, cache_iterator_t cache_it, int& result);
 
 	friend class release_tree_cache;
 };

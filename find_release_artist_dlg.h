@@ -17,7 +17,7 @@ public:
 		COMMAND_HANDLER_EX(IDCANCEL, BN_CLICKED, OnCancel)
 	END_MSG_MAP()
 
-	CFindReleaseArtistDialog(HWND p_parent);
+	CFindReleaseArtistDialog(HWND p_parent, size_t SW_FLAG);
 
 	~CFindReleaseArtistDialog() {
 		g_discogs->find_release_artist_dialog = nullptr;
@@ -27,9 +27,13 @@ public:
 		return ::IsDialogMessage(m_hWnd, pMsg);
 	}
 
-	void UpdateProfile(pfc::string8 name, pfc::string8 profile);
+	void UpdateProfile(Artist_ptr& artist);
 
 private:
+
+	size_t m_sw_flag;
+	size_t m_id = pfc_infinite;
+	bool m_loaded = false;
 
 	LRESULT OnInitDialog(HWND hWnd, LPARAM lParam);
 	void OnDestroy();

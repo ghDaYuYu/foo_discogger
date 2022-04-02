@@ -2,6 +2,8 @@
 #include "pfc/pfc.h"
 #include <CommCtrl.h>
 
+#include "foo_discogs.h"
+
 #ifndef MOUNTEDPARAM_H
 #define MOUNTEDPARAM_H
 
@@ -16,13 +18,13 @@ const struct mounted_param {
 	mounted_param()
 		: master_ndx(~0), release_ndx(~0), bmaster(false), brelease(false) {}
 
-	bool mounted_param::is_master() {
+	bool mounted_param::is_master() const {
 		return bmaster && !brelease;
 	}
-	bool mounted_param::is_release() {
+	bool mounted_param::is_release() const {
 		return bmaster && brelease;
 	}
-	bool mounted_param::is_nmrelease() {
+	bool mounted_param::is_nmrelease() const {
 		return !bmaster && brelease;
 	}
 
@@ -45,7 +47,7 @@ const struct mounted_param {
 		}
 	}
 
-	t_size lparam() {
+	t_size lparam() const {
 		t_size ires = ~0;
 		if (is_release()) {
 			ires = master_ndx << 16;
@@ -70,96 +72,190 @@ const struct mounted_param {
 
 struct id_tracer {
 
-	bool enabled = false;
-	bool amr = false;
+private:
+	size_t artist_id = pfc_infinite;
+	size_t artist_fr_id = pfc_infinite;
 
-	bool artist = false;
-	bool master = false;
-	bool release = false;
+public:
+	bool enabled = false;
+	bool artist_tag = false;
+	bool master_tag = false;
+	bool release_tag = false;
 
 	size_t artist_i = pfc_infinite;
 	size_t master_i = pfc_infinite;
-	size_t release_i = pfc_infinite;
+	mounted_param release_i = mounted_param(pfc_infinite, pfc_infinite, false, false);
 
-	size_t artist_index = pfc_infinite;
-	size_t master_index = pfc_infinite;
-	size_t release_index = pfc_infinite;
+	size_t artist_pos = pfc_infinite;
+	size_t master_pos = pfc_infinite;
+	size_t release_pos = pfc_infinite;
 
-	t_size artist_id = pfc_infinite;
-	int master_id = pfc_infinite;
-	int release_id = pfc_infinite;
+	size_t master_id = pfc_infinite;
+	size_t release_id = pfc_infinite;
 
-	bool id_tracer::artist_tracked() {
-		return (
-			enabled &&
-			artist &&
-			artist_id != pfc_infinite &&
-			artist_index == pfc_infinite);
+	size_t id_tracer::get_fr_artist_id() {
+		
+		return artist_fr_id ? artist_fr_id : artist_fr_id;
+
 	}
 
-	bool id_tracer::master_tracked() {
-		return (
-			enabled &&
-			master &&
-			master_id != pfc_infinite &&
-			master_index == pfc_infinite);
+	// artist_id related
+
+	size_t id_tracer::get_artist_id() const {
+		return artist_id;
+	}
+	size_t id_tracer::get_artist_fr_id() const {
+		return artist_fr_id;
+	}
+	size_t id_tracer::get_some_artist_id() const {
+		return artist_fr_id == pfc_infinite ? artist_id : artist_fr_id;
+	}
+	void id_tracer::set_artist_id(size_t id) {
+		artist_id = id;
+	}
+	void id_tracer::set_artist_fr_id(size_t id) {
+		artist_fr_id = id;
 	}
 
-	bool id_tracer::release_tracked() {
+	// has
+
+	bool id_tracer::has_artist() const {
+		//return artist_id != pfc_infinite;
+		return get_some_artist_id() != pfc_infinite;
+	}
+	bool id_tracer::has_master() const {
+		return master_id != pfc_infinite;
+	}
+	bool id_tracer::has_release() const {
+		return release_id != pfc_infinite;
+	}
+
+	bool id_tracer::need_artist() {
 		return (
 			enabled &&
-			release &&
-			release_id != pfc_infinite &&
-			release_index == pfc_infinite);
+			has_artist() &&
+			artist_pos == pfc_infinite);
 	}
+
+	bool id_tracer::need_master() {
+		return (
+			enabled &&
+			drop_check() &&
+			has_master() &&
+			master_pos == pfc_infinite && !release_i.is_nmrelease());
+	}
+
+	bool id_tracer::need_release() {
+		return 
+			enabled &&
+			drop_check() &&
+			has_release() &&
+			release_pos == pfc_infinite;
+	}
+
+
+	// reset 
 
 	void id_tracer::artist_reset() {
-		artist_index = pfc_infinite;
-		//artist_lv_set = false;
+		artist_pos = pfc_infinite;
 	}
 
 	void id_tracer::master_reset() {
-		master_index = pfc_infinite;
+		master_pos = pfc_infinite;
 	}
 
 	void id_tracer::release_reset() {
-		release_index = pfc_infinite;
+		release_pos = pfc_infinite;
 	}
 
 	bool id_tracer::artist_check(const pfc::string8 currentid, int currentndx) {
-		if (artist_tracked()) {
+		if (need_artist()) {
 			if (artist_id == std::atoi(currentid)) {
-				artist_index = 0;
+				artist_pos = currentndx;
 				return true;
 			}
 		}
 		return false;
 	}
 
-	bool id_tracer::release_check(const pfc::string8 currentid, int currentndx, bool ismaster, int masterndx, int masteri) {
-		if (ismaster) {
-			if (master_tracked()) {
+	bool id_tracer::release_check(const pfc::string8 currentid, int currentndx, const  mounted_param item, int masterndx, int masteri) {
+		if (item.is_master()) {
+			if (need_master()) {
 				if (master_id == std::atoi(currentid)) {
-					master_index = 0;
+					master_pos = 0;
 					return true;
 				}
 			}
 		}
 		else {
-			if (release_tracked()) {
-				if (release_id == std::atoi(currentid)) {
-					release_index = 0;
-					if (masteri != pfc_infinite) {
-						//TODO: continue
-						//master_i = masteri;
-						//master_index = masterndx;
-						//master = true;
+			if (item.is_release()) {
+				if (need_release()) {
+					if (release_id == std::atoi(currentid)) {
+						release_pos = 0;
+						if (masteri != pfc_infinite) {
+							//TODO: continue
+							//master_i = masteri;
+							//master_index = masterndx;
+							//master = true;
+						}
+						return true;
 					}
-					return true;
+				}			
+			}
+			else {
+				if (need_release()) {
+					if (release_id == std::atoi(currentid)) {
+						release_pos = 0;
+						release_i = item;
+						return true;
+					}
 				}
 			}
 		}
 		return false;
+	}
+
+	bool id_tracer::drop_check() {
+		if (has_artist()) {
+			if (!has_master() && !has_release()) return true;
+			else if (!has_master() && has_release()) return true;
+			else if (has_master() && !has_release()) return false;
+		}
+		else {
+			if (!has_master() && has_release()) return true;
+			else if (has_master()) return false;
+		}
+		return false;
+	}
+
+	bool id_tracer::has_amr() {
+		if (release_i.is_nmrelease()) 
+			return has_artist() && has_release();
+		else
+			return has_artist() && has_master() && has_release();
+	}
+
+	bool id_tracer::init_tracker_tags(metadb_handle_ptr item) {
+
+		file_info_impl finfo;
+		item->get_info(finfo);
+
+		pfc::string8 artist_id, master_id, release_id;
+
+		if (g_discogs->file_info_get_tag(item, finfo, TAG_ARTIST_ID, artist_id)) {
+			this->artist_id = atoi(artist_id);
+			artist_tag = true;
+		}
+		if (g_discogs->file_info_get_tag(item, finfo, TAG_MASTER_RELEASE_ID, master_id)) {
+			this->master_id = atoi(master_id);
+			master_tag = true;
+		}
+		if (g_discogs->file_info_get_tag(item, finfo, TAG_RELEASE_ID, release_id)) {
+			this->release_id = atoi(release_id);
+			release_tag = true;
+		}
+		
+		return has_amr();
 	}
 };
 

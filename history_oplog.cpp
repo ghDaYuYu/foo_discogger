@@ -66,7 +66,13 @@ bool history_oplog::do_history_menu(oplog_type optype, HWND hwndCtrlParent, pfc:
 	vppair& vophistory = get_history(optype);
 	if (!vophistory.size()) return false;
 
-	POINT pt= ::GetCursorPos();
+	CRect clientRect;
+	::GetWindowRect(hwndCtrl, &clientRect);
+	POINT pt;
+	pt.x = clientRect.left;
+	pt.y = clientRect.bottom;
+	
+
 
 	//build menu
 
@@ -85,7 +91,7 @@ bool history_oplog::do_history_menu(oplog_type optype, HWND hwndCtrlParent, pfc:
 
 	//display menu
 
-	int cmd = TrackPopupMenu(hMenu, TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RETURNCMD, pt.x, pt.y, 0, hwndCtrlParent, NULL);
+	int cmd = TrackPopupMenu(hMenu, TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RETURNCMD, pt.x, pt.y, 0, hwndCtrl, NULL);
 	DestroyMenu(hMenu);
 
 	//return value

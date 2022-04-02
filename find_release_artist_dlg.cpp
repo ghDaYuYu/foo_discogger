@@ -9,21 +9,67 @@ static cfg_window_placement cfg_window_placement_find_release_artist_dlg(guid_cf
 dialog_resize_helper::param CFindReleaseArtistDialog::m_resize_helper_table[] =
 {
 	{IDC_FIND_ARTIST_PROFILE_EDIT, dialog_resize_helper::XY_SIZE},
+	{IDC_FIND_ARTIST_PROFILE_STATIC_REALNAME, dialog_resize_helper::X_SIZE},
+	{IDC_FIND_ARTIST_PROFILE_STATIC_REALNAME, dialog_resize_helper::Y_MOVE},
 	{IDCANCEL,    dialog_resize_helper::XY_MOVE},
 };
 
-CFindReleaseArtistDialog::CFindReleaseArtistDialog(HWND p_parent) :
+CFindReleaseArtistDialog::CFindReleaseArtistDialog(HWND p_parent, size_t SW_FLAG) : m_sw_flag(SW_FLAG),
 	m_resize_helper(m_resize_helper_table, tabsize(m_resize_helper_table), 235, 94, 0, 0)
 {
     //
 }
 
-void CFindReleaseArtistDialog::UpdateProfile(pfc::string8 name, pfc::string8 profile)
+void CFindReleaseArtistDialog::UpdateProfile(Artist_ptr& artist)
 {
-	pfc::string8 caption;
-	caption << "Artist Profile - " << name;
-	uSetWindowText(m_hWnd, caption);
-	uSetDlgItemText(m_hWnd, IDC_FIND_ARTIST_PROFILE_EDIT, profile);
+
+	if (artist) {
+
+		size_t id = atoi(artist->id);
+		bool loaded = artist->loaded;
+
+		if (id != m_id || loaded != m_loaded) {
+
+			pfc::string8 name = artist->name;
+			pfc::string8 profile = artist->profile;
+			pfc::string8 realname = artist->realname;
+			pfc::string8 tmp;
+
+			//caption
+			tmp << "Artist Profile - " << name;
+			uSetWindowText(m_hWnd, tmp);
+			//profile
+			uSetDlgItemText(m_hWnd, IDC_FIND_ARTIST_PROFILE_EDIT, profile);
+			//realname
+
+			if (loaded) {
+				if (realname.get_length()) {
+					tmp = "Real name: ";
+					tmp << realname;					
+				}
+				else {
+					tmp = "";
+				}
+			}
+			else {
+				tmp = "Select artist to load profile.";
+			}
+
+			uSetDlgItemText(m_hWnd, IDC_FIND_ARTIST_PROFILE_STATIC_REALNAME, tmp);
+
+			m_id = id;
+			m_loaded = loaded;
+		}
+		
+	}
+	else {
+
+		uSetWindowText(m_hWnd, "Artist Profile");
+		uSetDlgItemText(m_hWnd, IDC_FIND_ARTIST_PROFILE_EDIT, "");
+		uSetDlgItemText(m_hWnd, IDC_FIND_ARTIST_PROFILE_STATIC_REALNAME, "");
+
+		m_id = pfc_infinite;
+	}
 }
 
 LRESULT CFindReleaseArtistDialog::OnInitDialog(HWND hWnd, LPARAM lParam)
@@ -33,7 +79,7 @@ LRESULT CFindReleaseArtistDialog::OnInitDialog(HWND hWnd, LPARAM lParam)
 	m_resize_helper.add_sizegrip();
 	cfg_window_placement_find_release_artist_dlg.on_window_creation(m_hWnd, true);
 
-	ShowWindow(SW_SHOW);
+	ShowWindow(m_sw_flag);
 	return TRUE;
 }
 

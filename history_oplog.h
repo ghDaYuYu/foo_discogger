@@ -7,7 +7,7 @@ class history_oplog {
 public:
 
 	bool init(bool enabled, size_t max_items);
-	bool do_history_menu(oplog_type optype, HWND hwndParent, pfc::string8& out);
+	bool do_history_menu(oplog_type optype, HWND hwndCtrl, pfc::string8& out);
 
 	//serves config dialog
 	void zap_vhistory();

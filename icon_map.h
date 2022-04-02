@@ -16,7 +16,7 @@ using IconMapping = std::unordered_map<Icon, std::map<int, UINT>>;
 
 // clang-format off
 const IconMapping ICON_RESOURCE_MAPPINGS_COLOR = {
-	{ Icon::Record, { ICON_SIZE_MAPPINGS(IDB_PNG_REC) } }
+	{ Icon::Record, { ICON_SIZE_MAPPINGS(IDB_PNG_RECC) } }
 };
 // clang-format on
 

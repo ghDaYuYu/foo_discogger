@@ -84,7 +84,7 @@ private:
 	pfc::string8 oauth_token_secret;
 	OAuth::Token *request_token;
 
-	bool m_throttling;
+	//bool m_throttling;
 	chrono::steady_clock::time_point m_last_fetch;
 	double m_fetch_wait_rolling_avg;
 	size_t m_ratelimit_max;
@@ -102,7 +102,7 @@ public:
 		access_token = nullptr;
 		request_token = nullptr;
 
-		m_throttling = true;
+		//m_throttling = true;
 		m_last_fetch = chrono::steady_clock::now();
 		m_fetch_wait_rolling_avg = 1;
 		m_ratelimit_max = 60;

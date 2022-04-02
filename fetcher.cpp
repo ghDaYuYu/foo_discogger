@@ -70,6 +70,8 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 	pfc::string8 clean_url(url);
 
 	bool isImageUrl = url.find_first("img.discogs.com") != ~0;
+	isImageUrl |= url.find_first("i.discogs.com") != ~0;
+
 	if (params.get_length()) clean_url << "?" << params;
 	bool use_api = url.find_first("api") != ~0;
 	use_oauth &= use_api;
@@ -78,7 +80,7 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 	log_msg(clean_url);
 	log_msg(use_oauth ? "Url OAuth enabled" : "Url OAuth disabled");
 
-	if (use_api && m_throttling) {
+	if (use_api /*&& m_throttling*/) {
 		chrono::steady_clock::time_point time_now = chrono::steady_clock::now();
 		chrono::duration<double> time_span = time_now - m_last_fetch;
 
@@ -89,7 +91,7 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 		m_last_fetch = time_now;
 
 		//log: average and last delta
-		msg_average << "Avg >= " << std::to_string(m_fetch_wait_rolling_avg).c_str();
+		msg_average << "Avg >= " << m_fetch_wait_rolling_avg;
 		if (time_span != chrono::steady_clock::duration::zero()) {
 			msg_average << ", Lapse: ";
 			//double microsecs = time_span.count();
@@ -107,7 +109,7 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 			msg_average << pfc::string8(human_read_time.str().c_str()) << msg_delta;
 		}
 
-		if (!isImageUrl && m_throttling)
+		if (!isImageUrl /*&& m_throttling*/)
 			log_msg(msg_average);
 
 		//reset when rate remaining reaches max m_value again
@@ -179,7 +181,7 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 				}
 
 				//log: throttle and rate limits
-				if (m_throttling) {
+				//if (m_throttling) {
 					if (m_throttle_delta) {
 						std::stringstream human_read_time;
 						human_read_time << std::setprecision(3) << m_throttle_delta;
@@ -188,7 +190,7 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 					else {
 						msg_ratelimits << (isImageUrl ? "Not throttling images (img.discogs.com)" : " (Throttle diseng.)");
 					}
-				}
+				//}
 
 				if (msg_ratelimits.length())
 					log_msg(msg_ratelimits);

@@ -254,6 +254,7 @@ void CConfigurationDialog::pushcfg(bool reset) {
 	if (has_changed) {
 		discogs_interface->fetcher->update_oauth(conf.oauth_token, conf.oauth_token_secret);
 		if (bind) conf = conf_dlg_edit;
+		conf_dlg_edit = conf;
 		CONF.save(CConf::cfgFilter::CONF, conf);
 		CONF.load();
 	}
@@ -461,8 +462,11 @@ void CConfigurationDialog::init_ui_dialog(HWND wnd) {
 	uButton_SetCheck(wnd, IDC_CFG_UI_HISTORY_ENABLED, HIWORD(conf.history_enabled_max));
 	size_t imax = LOWORD(conf.history_enabled_max);
 	uSetDlgItemText(wnd, IDC_UI_HISTORY_MAX_ITEMS, std::to_string(imax).c_str());
-	uButton_SetCheck(wnd, IDC_RELEASE_ENTER_KEY_OVR, conf.release_enter_key_override);	
+	uButton_SetCheck(wnd, IDC_RELEASE_ENTER_KEY_OVR, conf.release_enter_key_override);
+	uButton_SetCheck(wnd, IDC_CHK_FIND_RELEASE_STATS, conf.find_release_dlg_flags & FLG_SHOW_RELEASE_TREE_STATS);
 	InitComboRowStyle(wnd, IDC_CMB_CONFIG_LIST_STYLE, conf.list_style);
+	HWND cmb = ::uGetDlgItem(wnd, IDC_CMB_CONFIG_LIST_STYLE);
+	BOOL res = ::SendMessage(cmb, CB_SETMINVISIBLE, 10, 0L);
 }
 
 void CConfigurationDialog::init_oauth_dialog(HWND wnd) {
@@ -472,11 +476,6 @@ void CConfigurationDialog::init_oauth_dialog(HWND wnd) {
 
 	uSetWindowText(token_edit, conf.oauth_token);
 	uSetWindowText(secret_edit, conf.oauth_token_secret);
-
-	HWND wndIconOk = ::uGetDlgItem(g_hWndCurrentTab, IDC_STATIC_OAUTH_ICO_OK);
-	HWND wndIconErr = ::uGetDlgItem(g_hWndCurrentTab, IDC_STATIC_OAUTH_ICO_ERROR);
-	::ShowWindow(wndIconOk, SW_HIDE);
-	::ShowWindow(wndIconErr, SW_HIDE);
 
 	uSetWindowText(oauth_msg, "Click to test if OAuth is working.");
 }
@@ -497,8 +496,7 @@ void CConfigurationDialog::save_searching_dialog(HWND wnd, bool dlgbind) {
 	foo_conf* conf_ptr = dlgbind ? &conf_dlg_edit : &conf;
 
 	conf_ptr->enable_autosearch = uButton_GetCheck(wnd, IDC_ENABLE_AUTO_SEARCH_CHECK);
-	conf_ptr->release_enter_key_override = uButton_GetCheck(wnd, IDC_RELEASE_ENTER_KEY_OVR);
-
+	
 	if (uButton_GetCheck(wnd, IDC_SKIP_LOAD_RELEASES_IF_IDED_CHECK))
 		conf_ptr->skip_mng_flag |= SkipMng::SKIP_LOAD_RELEASES_TASK_IDED;
 	else
@@ -637,13 +635,10 @@ void CConfigurationDialog::save_caching_dialog(HWND wnd, bool dlgbind) {
 
 	pfc::string8 text;
 	uGetDlgItemText(wnd, IDC_CACHED_OBJECTS_EDIT, text);
-	const char *str = text.get_ptr();
-	for (size_t i = 0; i < strlen(str); i++) {
-		if (!isdigit(str[i])) {
-			return;
-		}
-	}
-	conf_ptr->cache_max_objects = atol(str);
+
+	if (!is_number(text.c_str())) return;
+
+	conf_ptr->cache_max_objects = atol(text);
 	discogs_interface->set_cache_size(conf_ptr->cache_max_objects);
 }
 
@@ -760,10 +755,19 @@ void CConfigurationDialog::save_ui_dialog(HWND wnd, bool dlgbind) {
 
 	conf_ptr->history_enabled_max = MAKELPARAM(max_items, history_enabled ? 1 : 0);
 	conf_ptr->release_enter_key_override = uButton_GetCheck(wnd, IDC_RELEASE_ENTER_KEY_OVR);
+	bool checked = uButton_GetCheck(wnd, IDC_CHK_FIND_RELEASE_STATS);
+
+	//calc & apply stat flag
+	conf_ptr->find_release_dlg_flags &= ~FLG_SHOW_RELEASE_TREE_STATS;
+	if (checked) {
+		conf_ptr->find_release_dlg_flags |= FLG_SHOW_RELEASE_TREE_STATS;
+	}
+
 	conf_ptr->list_style = ::uSendDlgItemMessage(wnd, IDC_CMB_CONFIG_LIST_STYLE, CB_GETCURSEL, 0, 0);
 }
 
 bool CConfigurationDialog::cfg_ui_has_changed() {
+
 
 	bool bres = false;
 	bres |= conf.history_enabled_max != conf_dlg_edit.history_enabled_max;
@@ -1295,7 +1299,9 @@ t_uint32 CConfigurationDialog::get_state() {
 }
 
 void CConfigurationDialog::apply() {
+
 	pushcfg(false);
+
 }
 
 bool CConfigurationDialog::HasChanged() {

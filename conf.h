@@ -221,8 +221,7 @@ FB2K_STREAM_WRITER_OVERLOAD(conf_int_entry) {
 }
 
 FB2K_STREAM_WRITER_OVERLOAD(conf_string_entry) {
-	//pfc::string8 v(value.value.get_ptr());
-	//stream << value.id << v;
+
 	stream << value.id << value.value;
 	return stream;
 }
@@ -299,11 +298,15 @@ public:
 		CAT_CREDIT,
 	};
 
-	static int id_to_val_int(int id, CConf in_conf);
-	static bool id_to_val_bool(int id, CConf in_conf);
-	static void id_to_val_str(int id, CConf in_conf, pfc::string8& out);
+	static bool id_to_val_int(int id, CConf in_conf, int &out, bool assert = true);
+	static bool id_to_val_bool(int id, CConf in_conf, bool &out, bool assert = true);
+	static bool id_to_val_str(int id, CConf in_conf, pfc::string8& out, bool assert = true);
 
 	bool load();
+	bool bool_load(const conf_bool_entry& item);
+	bool int_load(const conf_int_entry& item);
+	bool string_load(const conf_string_entry& item);
+
 	//save all
 	void save();
 	//save only active config tab
@@ -358,14 +361,15 @@ public:
 		{ asi(cfgFilter::CONF), CFG_PARSE_HIDDEN_AS_REGULAR},
 		{ asi(cfgFilter::CONF), CFG_SKIP_VIDEO_TRACKS},
 		{ asi(cfgFilter::CONF), CFG_CACHE_MAX_OBJECTS},
-		{ asi(cfgFilter::CONF), CFG_RELEASE_ENTER_KEY_OVR},
+		{ asi(cfgFilter::CONF), CFG_RELEASE_ENTER_KEY_OVR},			//sent to cfgFilter::FIND
 		{ asi(cfgFilter::CONF), CFG_CACHE_OFFLINE_CACHE_FLAG},
 		//v205 (1.0.6/1.1.0)
 		{ asi(cfgFilter::CONF), CFG_DC_DB_PATH},
 		{ asi(cfgFilter::CONF), CFG_DC_DB_FLAG},
 		{ asi(cfgFilter::CONF), CFG_SKIP_MNG_FLAG},
 		{ asi(cfgFilter::CONF), CFG_LIST_STYLE},
-		{ asi(cfgFilter::CONF), CFG_HISTORY_MAX_ITEMS},
+		{ asi(cfgFilter::CONF), CFG_HISTORY_MAX_ITEMS},				//sent to cfgFilter::FIND
+		{ asi(cfgFilter::CONF), CFG_FIND_RELEASE_DIALOG_FLAGS },	//partially sent in cfgFilter::FIND
 
 		//..
 
@@ -373,9 +377,12 @@ public:
 		{ asi(cfgFilter::FIND), CFG_DISPLAY_EXACT_MATCHES },
 		//v200
 		{ asi(cfgFilter::FIND), DEPRI_CFG_FIND_RELEASE_DIALOG_SHOW_ID },
+		{ asi(cfgFilter::FIND), CFG_RELEASE_ENTER_KEY_OVR},			//from cfgFilter::CONF
 		//v205
 		{ asi(cfgFilter::FIND), CFG_FIND_RELEASE_FILTER_FLAG },
-		{ asi(cfgFilter::FIND), CFG_FIND_RELEASE_DIALOG_FLAGS },
+		{ asi(cfgFilter::FIND), CFG_FIND_RELEASE_DIALOG_FLAGS },	//partially from cfgFilter::CONF
+		//v206
+		{ asi(cfgFilter::FIND), CFG_HISTORY_MAX_ITEMS},				//from cfgFilter::CONF
 		//..
 
 		//PREVIEW (preview_dialog)
@@ -565,7 +572,7 @@ public:
 	int find_release_filter_flag = 0;
 	int skip_mng_flag = 0;
 	int list_style = 2;
-	int history_enabled_max = MAKELPARAM(10, 1);
+	int history_enabled_max = MAKELPARAM(10, 1); //enabled-max20
 
 	int find_release_dlg_flags = 0;
 	//..

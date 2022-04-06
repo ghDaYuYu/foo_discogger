@@ -255,16 +255,9 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\..\libPPUI\IDI_SCROLL.ico" />
-    <Image Include="ico\150F.png" />
-    <Image Include="ico\48F.png" />
-    <Image Include="ico\alert-32_red.ico" />
-    <Image Include="ico\check-32_green.ico" />
-    <Image Include="ico\png_dc_48.png" />
-    <Image Include="ico\png_rec24.png" />
-    <Image Include="ico\png_rec_16.png" />
-    <Image Include="ico\png_rec_24.png" />
-    <Image Include="ico\png_rec_32.png" />
-    <Image Include="ico\png_rec_48.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

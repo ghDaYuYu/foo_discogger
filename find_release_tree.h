@@ -43,8 +43,6 @@ private:
 	//filter (search_order_master)
 	std::vector<std::pair<int, int>> m_vec_filter;
 
-	foo_conf m_conf;
-
 	CFindReleaseTree* m_rt_manager;
 
 	HIMAGELIST hImageList = NULL;
@@ -64,6 +62,8 @@ public:
 	}
 
 private:
+
+	const foo_conf* get_conf();
 
 	//stubs
 	std::shared_ptr<filter_cache>& get_bulk() { return m_cache_ptr; }

@@ -118,7 +118,7 @@ public:
 #pragma warning( disable : 26454 )
 	MY_BEGIN_MSG_MAP(CPreviewTagsDialog)
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
-		COMMAND_ID_HANDLER(IDC_WRITE_TAGS_BUTTON, OnWriteTags)
+		COMMAND_ID_HANDLER(IDC_WRITE_TAGS_BUTTON, OnButtonWriteTags)
 		COMMAND_ID_HANDLER(IDC_BACK_BUTTON, OnButtonBack)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
@@ -168,8 +168,10 @@ public:
 	}
 
 	CPreviewTagsDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags)
-		: m_tag_writer(tag_writer), tag_results_list(NULL), use_update_tags(use_update_tags), m_preview_bitmap(NULL) {
+		: m_tag_writer(tag_writer), tag_results_list(NULL), conf(CONF),
+		use_update_tags(use_update_tags), m_preview_bitmap(NULL) {
 
+		conf.SetName("PreviewDlg");
 		g_discogs->preview_tags_dialog = this;
 
 		m_rec_icon = LoadDpiBitmapResource(Icon::Record);
@@ -178,7 +180,7 @@ public:
 	~CPreviewTagsDialog();
 
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
-	LRESULT OnWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnButtonWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnButtonBack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);

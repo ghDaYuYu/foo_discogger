@@ -78,7 +78,6 @@ public:
 	presenter(coord_presenters* coord, foo_conf conf) : presenter() {
 
 		mm_hWnd = NULL;
-		m_conf = conf;
 		m_coord = coord;
 		//m_wlist = NULL;
 		m_listID = 0;
@@ -91,9 +90,12 @@ public:
 		m_conf_col_woa = {};
 		
 	}
-	presenter() : mm_hWnd(NULL), m_conf(CONF),
-		m_coord(), /*m_wlist(),*/ m_listID(0), m_loaded(false),
+	presenter() : mm_hWnd(NULL),
+		m_coord(), m_listID(0), m_loaded(false),
 		m_dwHeaderStyle(0L), m_row_height(false)  {
+
+		m_conf = CConf(CONF);
+		m_conf.SetName("Presenter");
 
 		m_tag_writer = nullptr;
 		m_release = nullptr;
@@ -114,7 +116,7 @@ public:
 	bool IsTile();
 	bool RowHeigth() { return m_row_height; }
 
-	void Init(HWND hwndDlg, TagWriter_ptr tag_writer, foo_conf& conf, UINT ID);
+	void Init(HWND hwndDlg, TagWriter_ptr tag_writer, UINT ID);
 	int listID() { return m_listID; }
 
 	HWND GetListView() { 
@@ -142,7 +144,7 @@ public:
 
   std::vector<pfc::string8>m_vtitles;
 
-	virtual void build_cfg_columns(foo_conf* m_conf = NULL) {};
+	virtual void build_cfg_columns() {};
 
 protected:
 
@@ -157,6 +159,7 @@ protected:
 
 	bool loaded() { return m_loaded; }
 
+	foo_conf& get_conf();
 	void set_lv_images_lists();
 
 	std::pair<CImageList*, CImageList*> get_imagelists() {
@@ -169,7 +172,7 @@ protected:
 	HWND mm_hWnd;
 	bool m_loaded;
 
-	foo_conf& m_conf;
+	foo_conf m_conf;
 	TagWriter_ptr m_tag_writer;
 	Release_ptr m_release;
 
@@ -187,7 +190,7 @@ class track_presenter : public presenter {
 
 public:
 
-	track_presenter(coord_presenters* coord, foo_conf conf) : m_ui_list(NULL), presenter(coord, conf) {
+	track_presenter(coord_presenters* coord) : m_ui_list(NULL), presenter(coord) {
 	}
 
 	track_presenter() : m_ui_list(NULL) {}
@@ -231,8 +234,8 @@ class discogs_track_libui_presenter : public track_presenter {
 
 public:
 
-	discogs_track_libui_presenter(coord_presenters* coord, foo_conf conf) :
-		track_presenter(coord, conf) {
+	discogs_track_libui_presenter(coord_presenters* coord) :
+		track_presenter(coord) {
 		m_vtracks = {};
 		m_lvtracks = {};
 		m_ui_list = NULL;
@@ -288,7 +291,7 @@ public:
 protected:
 
 	void define_columns() override;
-	void build_cfg_columns(foo_conf* out_conf) override;
+	void build_cfg_columns() override;
 
 private:
 
@@ -301,8 +304,8 @@ class file_track_libui_presenter : public track_presenter {
 
 public:
 
-	file_track_libui_presenter(coord_presenters* coord, foo_conf conf) :
-		track_presenter(coord, conf) {
+	file_track_libui_presenter(coord_presenters* coord) :
+		track_presenter(coord) {
 
 		m_ui_list = NULL;
 		m_vfiles = {};
@@ -354,7 +357,7 @@ public:
 protected:
 
 	void define_columns() override;
-	void build_cfg_columns(foo_conf* out_conf) override;
+	void build_cfg_columns() override;
 
 private:
 
@@ -367,8 +370,8 @@ class artwork_presenter : public presenter {
 
 public:
 
-	artwork_presenter(coord_presenters* coord, foo_conf conf) :
-		presenter(coord, conf) {
+	artwork_presenter(coord_presenters* coord) :
+		presenter(coord) {
 
 	}
 
@@ -419,13 +422,13 @@ class discogs_artwork_presenter : public artwork_presenter {
 
 public:
 
-	discogs_artwork_presenter(coord_presenters* coord, foo_conf conf) :
-		artwork_presenter(coord, conf) {
+	discogs_artwork_presenter(coord_presenters* coord) :
+		artwork_presenter(coord) {
 
 		m_vimages = {};
 		m_lvimages = {};
 
-		m_uart = uartwork(conf);
+		m_uart = uartwork(get_conf());
 	}
 
 	discogs_artwork_presenter() {}
@@ -484,7 +487,7 @@ protected:
 	void define_columns() override;
 	void update_list_width(bool initialize) override;
 	void display_columns() override;
-	void build_cfg_columns(foo_conf* out_conf) override;
+	void build_cfg_columns() override;
 
 	art_src get_vimages_src_type_at_pos(size_t pos);
 	size_t get_ndx_at_pos(size_t pos);
@@ -504,8 +507,8 @@ class files_artwork_presenter : public artwork_presenter {
 
 public:
 
-	files_artwork_presenter(coord_presenters* coord, foo_conf conf) :
-		artwork_presenter(coord, conf) {
+	files_artwork_presenter(coord_presenters* coord) :
+		artwork_presenter(coord) {
 
 		m_vimage_files = {};
 		m_lvimage_files = {};
@@ -581,7 +584,7 @@ protected:
 	void display_columns() override;
 	void update_list_width(bool initialize) override;
 
-	void build_cfg_columns(foo_conf* out_conf) override;
+	void build_cfg_columns() override;
 
 	void update_img_defs(size_t img_ndx, size_t img_ids);
 
@@ -597,18 +600,21 @@ class coord_presenters {
 
 public:
 	
-	coord_presenters(HWND hparent, const foo_conf discogs_conf) :
+	coord_presenters(HWND hparent, const foo_conf & discogs_conf) :
 
 		m_hWnd(hparent),
-		m_conf(discogs_conf),
-
-		m_discogs_track_libui_presenter(this, discogs_conf),
-		m_file_track_libui_presenter(this, discogs_conf),
-		m_discogs_art_presenter(this, discogs_conf),
-		m_file_art_presenter(this, discogs_conf),
+		m_discogs_track_libui_presenter(this),
+		m_file_track_libui_presenter(this),
+		m_discogs_art_presenter(this),
+		m_file_art_presenter(this),
 
 		m_cImageTileMode(0),
-		m_lsmode(lsmode::default) {}
+		m_lsmode(lsmode::default)
+	{
+
+		m_conf = CConf(discogs_conf);
+		m_conf.SetName("coord_pres");
+	}
 
 	~coord_presenters() {
 		for (auto bin : form_mode) {
@@ -620,13 +626,16 @@ public:
 	void swap_map_elements(HWND hwnd, const size_t key1, const size_t key2, lsmode mode = lsmode::default);
 	void reorder_map_elements(HWND hwnd, size_t const* order, size_t count, lsmode mode = lsmode::default);
 
-  void set_listview_mode() {}
+	//
+	void set_listview_mode() {}
 
 	void populate_track_ui_mode();
 	void populate_artwork_mode(size_t select = 0);
 	bool template_artwork_mode(GUID template_guid, size_t template_size, size_t lv_pos, bool check_reqs);
 
-  size_t GetTileMode() { return m_cImageTileMode; }
+	//
+	size_t GetTileMode() { return m_cImageTileMode; }
+	//
 	void SetTileMode(int mode) {}
 
 	void ListUserCmd(HWND hwnd, lsmode mode, int cmd, bit_array_bittable cmdmask, bit_array_bittable are_albums, bool cmdmod = false);
@@ -695,7 +704,7 @@ public:
 	void SetTagWriter(TagWriter_ptr tag_writer);
 	TagWriter_ptr GetTagWriter() { return m_tag_writer; }
 
-	void Initialize(HWND hparent, const foo_conf* dcconf);
+	void Initialize(HWND hparent, const foo_conf & dcconf);
 	void SetMode(lsmode mode);
 	void Show(bool showleft = true, bool showright = true);
 
@@ -714,10 +723,13 @@ public:
 	bool show_file_artwork_preview(size_t image_ndx, art_src art_source, std::pair<HBITMAP, HBITMAP> callback_mb,
 		std::pair<pfc::string8, pfc::string8> temp_file_names);
 
-	foo_conf* cfgRef();
+	const foo_conf& Get_Conf();
+	void Set_Conf(foo_conf cfg);
+
 
 private:
 
+	foo_conf& get_conf() { return m_conf; }
 	void ShowFormMode(lsmode mode, bool showleft, bool showright /*, bool populate*/);
 
 private:
@@ -746,13 +758,5 @@ private:
 
 	foo_conf m_conf;
 	
+	friend class presenter;
 };
-
-/*
-#define LV_VIEW_ICON            0x0000
-#define LV_VIEW_DETAILS         0x0001
-#define LV_VIEW_SMALLICON       0x0002
-#define LV_VIEW_LIST            0x0003
-#define LV_VIEW_TILE            0x0004
-#define LV_VIEW_MAX             0x0004
-*/

@@ -88,9 +88,7 @@ static BOOL GetChildWindowRect(HWND wnd, UINT id, RECT* child)
 //
 
 LRESULT CConfigurationDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
-	conf = CONF;
-	conf_dlg_edit = CONF;
-	
+
 	InitTabs();
 	HWND hWndTab = uGetDlgItem(IDC_TAB);
 
@@ -182,7 +180,7 @@ LRESULT CConfigurationDialog::OnChangingTab(WORD /*wNotifyCode*/, LPNMHDR /*lPar
 		case IDNO:
 			setting_dlg = true;
 			init_current_tab();
-			conf_dlg_edit = conf;
+			conf_edit = conf;
 			setting_dlg = false;
 			OnChanged();
 			break;
@@ -253,8 +251,9 @@ void CConfigurationDialog::pushcfg(bool reset) {
 
 	if (has_changed) {
 		discogs_interface->fetcher->update_oauth(conf.oauth_token, conf.oauth_token_secret);
-		if (bind) conf = conf_dlg_edit;
-		conf_dlg_edit = conf;
+		if (bind) conf = conf_edit;
+		conf_edit = foo_conf(conf);
+		conf_edit.SetName("CfgEdit");
 		CONF.save(CConf::cfgFilter::CONF, conf);
 		CONF.load();
 	}
@@ -280,7 +279,7 @@ LRESULT CConfigurationDialog::OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*
 		temp.oauth_token_secret = conf.oauth_token_secret;
 #endif
 		conf = temp;
-		conf_dlg_edit = temp;
+		conf_edit = temp;
 		init_searching_dialog(g_hWndTabDialog[CONF_FIND_RELEASE_TAB]);
 		init_caching_dialog(g_hWndTabDialog[CONF_CACHING_TAB]);
 #ifdef DB_DC
@@ -295,7 +294,7 @@ LRESULT CConfigurationDialog::OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*
 		pushcfg(true);
 
 		conf = CONF;
-		conf_dlg_edit = CONF;
+		conf_edit = CONF;
 
 		OnChanged();
 
@@ -466,18 +465,20 @@ void CConfigurationDialog::init_ui_dialog(HWND wnd) {
 	uButton_SetCheck(wnd, IDC_CHK_FIND_RELEASE_STATS, conf.find_release_dlg_flags & FLG_SHOW_RELEASE_TREE_STATS);
 	InitComboRowStyle(wnd, IDC_CMB_CONFIG_LIST_STYLE, conf.list_style);
 	HWND cmb = ::uGetDlgItem(wnd, IDC_CMB_CONFIG_LIST_STYLE);
+
 	BOOL res = ::SendMessage(cmb, CB_SETMINVISIBLE, 10, 0L);
+
 }
 
 void CConfigurationDialog::init_oauth_dialog(HWND wnd) {
-	token_edit = ::uGetDlgItem(wnd, IDC_OAUTH_TOKEN_EDIT);
-	secret_edit = ::uGetDlgItem(wnd, IDC_OAUTH_SECRET_EDIT);
-	oauth_msg = ::uGetDlgItem(wnd, IDC_STATIC_CONF_OAUTH_MSG);
+	m_hwndTokenEdit = ::uGetDlgItem(wnd, IDC_OAUTH_TOKEN_EDIT);
+	m_hwndSecretEdit = ::uGetDlgItem(wnd, IDC_OAUTH_SECRET_EDIT);
+	m_hwndOAuthMsg = ::uGetDlgItem(wnd, IDC_STATIC_CONF_OAUTH_MSG);
 
-	uSetWindowText(token_edit, conf.oauth_token);
-	uSetWindowText(secret_edit, conf.oauth_token_secret);
+	uSetWindowText(m_hwndTokenEdit, conf.oauth_token);
+	uSetWindowText(m_hwndSecretEdit, conf.oauth_token_secret);
 
-	uSetWindowText(oauth_msg, "Click to test if OAuth is working.");
+	uSetWindowText(m_hwndOAuthMsg, "Click to test if OAuth is working.");
 }
 
 void CConfigurationDialog::show_oauth_msg(pfc::string8 msg, bool iserror) {
@@ -493,7 +494,7 @@ void CConfigurationDialog::show_oauth_msg(pfc::string8 msg, bool iserror) {
 
 void CConfigurationDialog::save_searching_dialog(HWND wnd, bool dlgbind) {
 
-	foo_conf* conf_ptr = dlgbind ? &conf_dlg_edit : &conf;
+	foo_conf* conf_ptr = dlgbind ? &conf_edit : &conf;
 
 	conf_ptr->enable_autosearch = uButton_GetCheck(wnd, IDC_ENABLE_AUTO_SEARCH_CHECK);
 	
@@ -521,26 +522,26 @@ bool CConfigurationDialog::cfg_searching_has_changed() {
 	bool bres = false;
 	bool bcmp = false;
 
-	bres |= conf.enable_autosearch != conf_dlg_edit.enable_autosearch;
-	bres |= conf.skip_mng_flag != conf_dlg_edit.skip_mng_flag;
+	bres |= conf.enable_autosearch != conf_edit.enable_autosearch;
+	bres |= conf.skip_mng_flag != conf_edit.skip_mng_flag;
 
-	bres |= conf.release_enter_key_override != conf_dlg_edit.release_enter_key_override;
+	bres |= conf.release_enter_key_override != conf_edit.release_enter_key_override;
 
-	bcmp = stricmp_utf8(conf.search_release_format_string, conf_dlg_edit.search_release_format_string);
+	bcmp = stricmp_utf8(conf.search_release_format_string, conf_edit.search_release_format_string);
 	bres |= bcmp;
-	bcmp = stricmp_utf8(conf.search_master_format_string, conf_dlg_edit.search_master_format_string);
+	bcmp = stricmp_utf8(conf.search_master_format_string, conf_edit.search_master_format_string);
 	bres |= bcmp;
-	bcmp = stricmp_utf8(conf.search_master_sub_format_string, conf_dlg_edit.search_master_sub_format_string);
+	bcmp = stricmp_utf8(conf.search_master_sub_format_string, conf_edit.search_master_sub_format_string);
 	bres |= bcmp;
 
-	bres |= conf.list_style != conf_dlg_edit.list_style;
+	bres |= conf.list_style != conf_edit.list_style;
 
 	return bres;
 }
 
 void CConfigurationDialog::save_matching_dialog(HWND wnd, bool dlgbind) {
 
-	foo_conf* conf_ptr = dlgbind ? &conf_dlg_edit : &conf;
+	foo_conf* conf_ptr = dlgbind ? &conf_edit : &conf;
 
 	conf_ptr->match_tracks_using_duration = uButton_GetCheck(wnd, IDC_MATCH_USING_DURATIONS);
 	conf_ptr->match_tracks_using_number = uButton_GetCheck(wnd, IDC_MATCH_USING_NUMBERS);
@@ -568,21 +569,21 @@ bool CConfigurationDialog::cfg_matching_has_changed() {
 	bool bres = false;
 	bool bcmp = false;
 
-	bres |= conf.match_tracks_using_duration != conf_dlg_edit.match_tracks_using_duration;
-	bres |= conf.match_tracks_using_number != conf_dlg_edit.match_tracks_using_number;
-	bres |= conf.assume_tracks_sorted != conf_dlg_edit.assume_tracks_sorted;
-	bres |= conf.skip_mng_flag != conf_dlg_edit.skip_mng_flag;
+	bres |= conf.match_tracks_using_duration != conf_edit.match_tracks_using_duration;
+	bres |= conf.match_tracks_using_number != conf_edit.match_tracks_using_number;
+	bres |= conf.assume_tracks_sorted != conf_edit.assume_tracks_sorted;
+	bres |= conf.skip_mng_flag != conf_edit.skip_mng_flag;
 
-	bcmp = stricmp_utf8(conf.release_discogs_format_string, conf_dlg_edit.release_discogs_format_string);
+	bcmp = stricmp_utf8(conf.release_discogs_format_string, conf_edit.release_discogs_format_string);
 	bres |= bcmp;
-	bcmp = stricmp_utf8(conf.release_file_format_string, conf_dlg_edit.release_file_format_string);
+	bcmp = stricmp_utf8(conf.release_file_format_string, conf_edit.release_file_format_string);
 	bres |= bcmp;
 	return bres;
 }
 
 void CConfigurationDialog::save_tagging_dialog(HWND wnd, bool dlgbind) {
 
-	foo_conf* conf_ptr = dlgbind ? &conf_dlg_edit : &conf;
+	foo_conf* conf_ptr = dlgbind ? &conf_edit : &conf;
 
 	conf_ptr->replace_ANVs = uButton_GetCheck(wnd, IDC_ENABLE_ANV_CHECK);
 	conf_ptr->move_the_at_beginning = uButton_GetCheck(wnd, IDC_MOVE_THE_AT_BEGINNING_CHECK);
@@ -602,19 +603,19 @@ void CConfigurationDialog::save_tagging_dialog(HWND wnd, bool dlgbind) {
 bool CConfigurationDialog::cfg_tagging_has_changed() {
 	bool bres = false;
 	bool bcmp = false;
-	bres |= conf.replace_ANVs != conf_dlg_edit.replace_ANVs;
-	bres |= conf.move_the_at_beginning != conf_dlg_edit.move_the_at_beginning;
-	bres |= conf.discard_numeric_suffix != conf_dlg_edit.discard_numeric_suffix;
-	bres |= conf.skip_mng_flag != conf_dlg_edit.skip_mng_flag;
-	bres |= conf.remove_other_tags != conf_dlg_edit.remove_other_tags;
-	bcmp = stricmp_utf8(conf.raw_remove_exclude_tags, conf_dlg_edit.raw_remove_exclude_tags);
+	bres |= conf.replace_ANVs != conf_edit.replace_ANVs;
+	bres |= conf.move_the_at_beginning != conf_edit.move_the_at_beginning;
+	bres |= conf.discard_numeric_suffix != conf_edit.discard_numeric_suffix;
+	bres |= conf.skip_mng_flag != conf_edit.skip_mng_flag;
+	bres |= conf.remove_other_tags != conf_edit.remove_other_tags;
+	bcmp = stricmp_utf8(conf.raw_remove_exclude_tags, conf_edit.raw_remove_exclude_tags);
 	bres |= bcmp;
 	return bres;
 }
 
 void CConfigurationDialog::save_caching_dialog(HWND wnd, bool dlgbind) {
 
-	foo_conf* conf_ptr = dlgbind ? &conf_dlg_edit : &conf;
+	foo_conf* conf_ptr = dlgbind ? &conf_edit : &conf;
 
 	conf_ptr->parse_hidden_as_regular = uButton_GetCheck(wnd, IDC_HIDDEN_AS_REGULAR_CHECK);
 	conf_ptr->skip_video_tracks = uButton_GetCheck(wnd, IDC_SKIP_VIDEO_TRACKS);
@@ -644,16 +645,16 @@ void CConfigurationDialog::save_caching_dialog(HWND wnd, bool dlgbind) {
 
 bool CConfigurationDialog::cfg_caching_has_changed() {
 	bool bres = false;
-	bres |= conf.parse_hidden_as_regular != conf_dlg_edit.parse_hidden_as_regular;
-	bres |= conf.skip_video_tracks != conf_dlg_edit.skip_video_tracks;
-	bres |= conf.cache_max_objects != conf_dlg_edit.cache_max_objects;
-	bres |= conf.cache_offline_cache_flag != conf_dlg_edit.cache_offline_cache_flag;
+	bres |= conf.parse_hidden_as_regular != conf_edit.parse_hidden_as_regular;
+	bres |= conf.skip_video_tracks != conf_edit.skip_video_tracks;
+	bres |= conf.cache_max_objects != conf_edit.cache_max_objects;
+	bres |= conf.cache_offline_cache_flag != conf_edit.cache_offline_cache_flag;
 	return bres;
 }
 
 void CConfigurationDialog::save_db_dialog(HWND wnd, bool dlgbind) {
 	
-	foo_conf* conf_ptr = dlgbind ? &conf_dlg_edit : &conf;
+	foo_conf* conf_ptr = dlgbind ? &conf_edit : &conf;
 	
 	pfc::string8 str;
 	uGetDlgItemText(wnd, IDC_DB_DC_PATH, str);
@@ -683,15 +684,15 @@ void CConfigurationDialog::save_db_dialog(HWND wnd, bool dlgbind) {
 bool CConfigurationDialog::cfg_db_has_changed() {
 	bool bres = false;
 
-	bres |= conf.db_dc_flag != conf_dlg_edit.db_dc_flag;
-	bres |= stricmp_utf8(conf.db_dc_path, conf_dlg_edit.db_dc_path) != 0;
+	bres |= conf.db_dc_flag != conf_edit.db_dc_flag;
+	bres |= stricmp_utf8(conf.db_dc_path, conf_edit.db_dc_path) != 0;
 
 	return bres;
 }
 
 void CConfigurationDialog::save_art_dialog(HWND wnd, bool dlgbind) {
 	pfc::string8 temp;
-	foo_conf* conf_ptr = dlgbind? &conf_dlg_edit : &conf;
+	foo_conf* conf_ptr = dlgbind? &conf_edit : &conf;
 
 	conf_ptr->save_album_art = uButton_GetCheck(wnd, IDC_SAVE_ALBUM_ART_CHECK);
 	conf_ptr->album_art_fetch_all = uButton_GetCheck(wnd, IDC_ALBUM_ART_FETCH_ALL_CHECK);
@@ -718,67 +719,70 @@ bool CConfigurationDialog::cfg_art_has_changed() {
 	bool bres = false;
 	bool bcmp = false;
 
-	bres |= conf.save_album_art != conf_dlg_edit.save_album_art;
-	bres |= conf.album_art_fetch_all != conf_dlg_edit.album_art_fetch_all;
-	bres |= conf.embed_album_art != conf_dlg_edit.embed_album_art;
+	bres |= conf.save_album_art != conf_edit.save_album_art;
+	bres |= conf.album_art_fetch_all != conf_edit.album_art_fetch_all;
+	bres |= conf.embed_album_art != conf_edit.embed_album_art;
 	
-	bcmp = !(stricmp_utf8(conf.album_art_directory_string, conf_dlg_edit.album_art_directory_string) == 0);
+	bcmp = stricmp_utf8(conf.album_art_directory_string, conf_edit.album_art_directory_string);
 	bres |= bcmp;
-	bcmp = !(stricmp_utf8(conf.album_art_filename_string, conf_dlg_edit.album_art_filename_string) == 0);
+	bcmp = stricmp_utf8(conf.album_art_filename_string, conf_edit.album_art_filename_string);
 	bres |= bcmp;
 
-	bres |= conf.album_art_overwrite != conf_dlg_edit.album_art_overwrite;
-	bres |= conf.save_artist_art != conf_dlg_edit.save_artist_art;
-	bres |= conf.artist_art_fetch_all != conf_dlg_edit.artist_art_fetch_all;
+	bres |= conf.album_art_overwrite != conf_edit.album_art_overwrite;
+	bres |= conf.save_artist_art != conf_edit.save_artist_art;
+	bres |= conf.artist_art_fetch_all != conf_edit.artist_art_fetch_all;
 
-	bcmp = !(stricmp_utf8(conf.artist_art_id_format_string, conf_dlg_edit.artist_art_id_format_string) == 0);
+	bcmp = stricmp_utf8(conf.artist_art_id_format_string, conf_edit.artist_art_id_format_string);
 	bres |= bcmp;
 	
-	bres |= conf.embed_artist_art != conf_dlg_edit.embed_artist_art;
+	bres |= conf.embed_artist_art != conf_edit.embed_artist_art;
 	
-	bcmp = !(stricmp_utf8(conf.artist_art_directory_string, conf_dlg_edit.artist_art_directory_string) == 0);
+	bcmp = stricmp_utf8(conf.artist_art_directory_string, conf_edit.artist_art_directory_string);
 	bres |= bcmp;
 
-	bcmp = !(stricmp_utf8(conf.artist_art_filename_string, conf_dlg_edit.artist_art_filename_string) == 0);
+	bcmp = stricmp_utf8(conf.artist_art_filename_string, conf_edit.artist_art_filename_string);
 	bres |= bcmp;
 
-	bres |= conf.artist_art_overwrite != conf_dlg_edit.artist_art_overwrite;
+	bres |= conf.artist_art_overwrite != conf_edit.artist_art_overwrite;
 	return bres;
 }
 
 void CConfigurationDialog::save_ui_dialog(HWND wnd, bool dlgbind) {
 
-	foo_conf* conf_ptr = dlgbind ? &conf_dlg_edit : &conf;
+	foo_conf* conf_ptr = dlgbind ? &conf_edit : &conf;
 
 	bool history_enabled = uButton_GetCheck(wnd, IDC_CFG_UI_HISTORY_ENABLED);
 	size_t max_items = atoi(uGetDlgItemText(wnd, IDC_UI_HISTORY_MAX_ITEMS));
 
 	conf_ptr->history_enabled_max = MAKELPARAM(max_items, history_enabled ? 1 : 0);
 	conf_ptr->release_enter_key_override = uButton_GetCheck(wnd, IDC_RELEASE_ENTER_KEY_OVR);
-	bool checked = uButton_GetCheck(wnd, IDC_CHK_FIND_RELEASE_STATS);
+	
+	FlgMng fv_stats;
+	conf_ptr->GetFlagVar(CFG_FIND_RELEASE_DIALOG_FLAG, fv_stats);
+	bool val = fv_stats.SetFlag(wnd, IDC_CHK_FIND_RELEASE_STATS, FLG_SHOW_RELEASE_TREE_STATS);
 
-	//calc & apply stat flag
-	conf_ptr->find_release_dlg_flags &= ~FLG_SHOW_RELEASE_TREE_STATS;
-	if (checked) {
-		conf_ptr->find_release_dlg_flags |= FLG_SHOW_RELEASE_TREE_STATS;
+	//todo: move this to on apply
+	if (g_discogs->find_release_dialog) {
+		g_discogs->find_release_dialog->Set_Config_Flag(fv_stats.id(), FLG_SHOW_RELEASE_TREE_STATS, val);
 	}
-
 	conf_ptr->list_style = ::uSendDlgItemMessage(wnd, IDC_CMB_CONFIG_LIST_STYLE, CB_GETCURSEL, 0, 0);
 }
 
 bool CConfigurationDialog::cfg_ui_has_changed() {
 
-
 	bool bres = false;
-	bres |= conf.history_enabled_max != conf_dlg_edit.history_enabled_max;
-	bres |= conf.release_enter_key_override != conf_dlg_edit.release_enter_key_override;
-	bres |= conf.list_style != conf_dlg_edit.list_style;
+	bres |= conf.history_enabled_max != conf_edit.history_enabled_max;
+	bres |= conf.release_enter_key_override != conf_edit.release_enter_key_override;
+	bres |= conf.list_style != conf_edit.list_style;
+
+	bres |= (conf.find_release_dlg_flags & FLG_SHOW_RELEASE_TREE_STATS) != (conf_edit.find_release_dlg_flags & FLG_SHOW_RELEASE_TREE_STATS);
+
 	return bres;
 }
 
 void CConfigurationDialog::save_oauth_dialog(HWND wnd, bool dlgbind) {
 
-	foo_conf* conf_ptr = dlgbind ? &conf_dlg_edit : &conf;
+	foo_conf* conf_ptr = dlgbind ? &conf_edit : &conf;
 
 	pfc::string8 text;
 	uGetDlgItemText(wnd, IDC_OAUTH_TOKEN_EDIT, text);
@@ -792,9 +796,9 @@ bool CConfigurationDialog::cfg_oauth_has_changed() {
 	bool bres = false;
 	bool bcmp = false;
 
-	bcmp = !(stricmp_utf8(conf.oauth_token, conf_dlg_edit.oauth_token) == 0);
+	bcmp = stricmp_utf8(conf.oauth_token, conf_edit.oauth_token);
 	bres |= bcmp;
-	bcmp = !(stricmp_utf8(conf.oauth_token_secret, conf_dlg_edit.oauth_token_secret) == 0);
+	bcmp = stricmp_utf8(conf.oauth_token_secret, conf_edit.oauth_token_secret);
 	bres |= bcmp;
 
 	return bres;
@@ -1036,23 +1040,16 @@ BOOL CConfigurationDialog::on_searching_dialog_message(HWND wnd, UINT msg, WPARA
 			setting_dlg = false;
 			return TRUE;
 		case WM_COMMAND: {
-			if ((HIWORD(wp) == BN_CLICKED) || (HIWORD(wp) == EN_UPDATE)) {
-				if (!setting_dlg) {
-					save_searching_dialog(wnd, true);
-					OnChanged();
-				}
-			}
-			else if (HIWORD(wp) == CBN_SELCHANGE) {
-				switch (LOWORD(wp)) {
-				case IDC_CMB_CONFIG_LIST_STYLE: {
-					int s = ::uSendDlgItemMessage(wnd, IDC_CMB_CONFIG_LIST_STYLE, CB_GETCURSEL, 0, 0);
-					int data = ::uSendDlgItemMessage(wnd, IDC_CMB_CONFIG_LIST_STYLE, CB_GETITEMDATA, s, 0);
-					if (s != CB_ERR) {
-						conf_dlg_edit.list_style = s;
+			switch (wp) {
+			case (IDC_BTN_CONF_LOAD_FORMATTING):
+				on_load_search_formatting(wnd);
+				break;
+			default:
+				if ((HIWORD(wp) == BN_CLICKED) || (HIWORD(wp) == EN_UPDATE)) {
+					if (!setting_dlg) {
+						save_searching_dialog(wnd, true);
+						OnChanged();
 					}
-					OnChanged();
-					break;
-				}
 				}
 			}
 			break;
@@ -1160,19 +1157,6 @@ BOOL CConfigurationDialog::on_ui_dialog_message(HWND wnd, UINT msg, WPARAM wp, L
 							OnChanged();
 						}
 					}
-					else if (HIWORD(wp) == CBN_SELCHANGE) {
-						switch (LOWORD(wp)) {
-							case IDC_CMB_CONFIG_LIST_STYLE: {
-								int s = ::uSendDlgItemMessage(wnd, IDC_CMB_CONFIG_LIST_STYLE, CB_GETCURSEL, 0, 0);
-								int data = ::uSendDlgItemMessage(wnd, IDC_CMB_CONFIG_LIST_STYLE, CB_GETITEMDATA, s, 0);
-								if (s != CB_ERR) {
-									conf_dlg_edit.list_style = s;
-								}
-								OnChanged();
-								break;
-							}
-						}
-					}
 					break;
 			}
 			break;
@@ -1244,13 +1228,74 @@ void CConfigurationDialog::on_test_db(HWND wnd, pfc::string8 dbpath) {
 }
 #endif // DB_DC
 
+void CConfigurationDialog::on_load_search_formatting(HWND wnd) {
+
+	CRect rcButton;
+	HWND hwndCtrl = ::GetDlgItem(wnd, IDC_BTN_CONF_LOAD_FORMATTING);
+	::GetWindowRect(hwndCtrl, rcButton);
+
+	POINT pt;
+	pt.x = rcButton.left;
+	pt.y = rcButton.bottom;
+
+	enum { MENU_1 = 1, MENU_2, MENU_3, MENU_4, MENU_5 };
+	HMENU hSplitMenu = CreatePopupMenu();
+
+	AppendMenu(hSplitMenu, MF_STRING, MENU_1, L"Default &Release formatting");
+	AppendMenu(hSplitMenu, MF_STRING, MENU_2, L"Default &Master formatting");
+	AppendMenu(hSplitMenu, MF_STRING, MENU_3, L"Default Master &Sub-release formatting");
+	AppendMenu(hSplitMenu, MF_SEPARATOR, 0, 0);
+	AppendMenu(hSplitMenu, MF_STRING, MENU_4, L"Default R&elease with artist role");
+	AppendMenu(hSplitMenu, MF_STRING, MENU_5, L"Default M&aster with artist role");
+
+	int cmd = TrackPopupMenu(hSplitMenu, TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RETURNCMD, pt.x, pt.y, 0, m_hWnd, NULL);
+	DestroyMenu(hSplitMenu);
+
+	if (!cmd) return;
+
+	CConf tmpcfg;
+	UINT uid = 0;
+	pfc::string8 frm_string = "";
+
+	switch (cmd)
+	{
+	case MENU_1:
+		uid = IDC_RELEASE_FORMATTING_EDIT;
+		frm_string << tmpcfg.search_release_format_string;
+		break;
+	case MENU_2:
+		uid = IDC_MASTER_FORMATTING_EDIT;
+		frm_string << tmpcfg.search_master_format_string;
+		break;
+	case MENU_3:
+		uid = IDC_MASTER_SUB_FORMATTING_EDIT;
+		frm_string << tmpcfg.search_master_sub_format_string;
+		break;
+
+	case MENU_4:
+		uid = IDC_RELEASE_FORMATTING_EDIT;
+		frm_string << "\'[\'%RELEASE_SEARCH_ROLES%\']\' $join($append(%RELEASE_TITLE%,%RELEASE_SEARCH_LABELS%,%RELEASE_SEARCH_MAJOR_FORMATS%,%RELEASE_SEARCH_FORMATS%,%RELEASE_YEAR%,%RELEASE_SEARCH_CATNOS%))";
+		break;
+	case MENU_5:
+		uid = IDC_MASTER_FORMATTING_EDIT;
+		frm_string << "\'[T]\' \'[\'%MASTER_RELEASE_SEARCH_ROLES%\']\' $join($append(%MASTER_RELEASE_TITLE%,%MASTER_RELEASE_YEAR%))";
+		break;
+	defualt:
+		return; //quit
+	}
+
+	uSetDlgItemText(wnd, uid, frm_string);
+	save_searching_dialog(g_hWndTabDialog[CONF_FIND_RELEASE_TAB], true);
+	OnChanged();
+
+}
 void CConfigurationDialog::on_delete_history(HWND wnd, size_t max, bool zap) {
 
 	if (!g_discogs->find_release_dialog) {
 		g_discogs->find_release_dialog->get_oplogger()->zap_vhistory();
 	}
 
-	/* todo: service_ptr_t */
+	/* todo: service */
 	sqldb db;	
 	size_t inc = db.recharge_history(kcmdHistoryDeleteAll, ~0, {});
 	db.close();
@@ -1267,7 +1312,7 @@ void CConfigurationDialog::on_test_oauth(HWND wnd) {
 	service_ptr_t<test_oauth_process_callback> task = new service_impl_t<test_oauth_process_callback>(token, token_secret);
 
 	m_tp.get()->run_modeless(task,
-		threaded_process::flag_show_item | threaded_process::flag_show_progress_dual |
+		threaded_process::flag_show_item |
 		threaded_process::flag_show_abort,
 		m_hWnd,
 		"Testing Discogs OAuth support..."

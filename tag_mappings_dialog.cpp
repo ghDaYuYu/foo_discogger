@@ -175,7 +175,7 @@ void CTagMappingDialog::applymappings() {
 	}
 }
 
-LRESULT CTagMappingDialog::OnOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+LRESULT CTagMappingDialog::OnButtonNext(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	applymappings();
 	destroy();
 	return TRUE;
@@ -202,7 +202,7 @@ LRESULT CTagMappingDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*
 
 LRESULT CTagMappingDialog::OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	pfc::string8 msg;
-	msg << "Confirm apply defaults?";
+	msg << "Reset to default configuration?";
 	if (uMessageBox(m_hWnd, msg, "Default Tag Mappings", MB_OKCANCEL | MB_ICONINFORMATION) == IDOK) {
 		if (m_ptag_mappings != nullptr) {
 			delete m_ptag_mappings;

@@ -5,7 +5,7 @@
 #include "conf.h"
 #include "db_utils.h"
 
-CConf CONF;
+CConf CONF("Global");
 
 static const GUID guid_cfg_bool_values =
 { 0x22c5b65e, 0x84e8, 0x4d73, { 0xb3, 0xff, 0x34, 0x95, 0x1d, 0x2c, 0x8a, 0x65 } };
@@ -39,7 +39,47 @@ conf_string_entry make_conf_entry(int i, const pfc::string8 &v) {
 	return result;
 }
 
-bool prepare_config_db_and_cache(bool bimport = true) {
+bool copy_dbf_file(pfc::string8 src_dbpath, pfc::string8 dst_dbpath) {
+
+	try {
+
+		//copy dbf...
+		char converted[MAX_PATH - 1];
+		pfc::stringcvt::string_os_from_utf8 cvt(src_dbpath);
+		wcstombs(converted, cvt.get_ptr(), MAX_PATH - 1);
+
+		//source file
+		std::filesystem::path fs_src_path = converted;
+
+		cvt = dst_dbpath.c_str();
+		wcstombs(converted, cvt.get_ptr(), MAX_PATH - 1);
+
+		//destination file
+		std::filesystem::path fs_dst_path = converted;
+
+
+		try {
+
+			std::filesystem::copy_file(fs_src_path, fs_dst_path);
+			std::filesystem::remove(fs_src_path);
+
+			return true;
+		}
+		catch (const std::filesystem::filesystem_error& e)
+		{
+			//..
+		}
+
+	}
+	catch (const std::filesystem::filesystem_error& e)
+	{
+		//..
+	}
+
+	return false;
+}
+
+bool prepare_dbf_and_cache(bool bimport = true) {
 
 	bool bres = true;
 
@@ -50,6 +90,8 @@ bool prepare_config_db_and_cache(bool bimport = true) {
 	pfc::string8 dst_dbpath;
 	dst_dbpath << core_api::pathInProfile("configuration\\") << dll_db_name();
 	extract_native_path(dst_dbpath, dst_dbpath);
+
+	extract_native_path(src_dbpath, src_dbpath);
 
 	auto fsLocal = filesystem::get(dst_dbpath);
 
@@ -62,6 +104,7 @@ bool prepare_config_db_and_cache(bool bimport = true) {
 			file::ptr fLocal = fsLocal->openRead(dst_dbpath, dummy_abort, timeoutVal);
 			fLocal.release();
 
+			//todo: rev not fully tested
 			//prev db found, import definitions
 
 			sqldb db;
@@ -76,41 +119,29 @@ bool prepare_config_db_and_cache(bool bimport = true) {
 			ret = sqlite3_exec(pDb, sqlcmd, NULL, NULL, &zErrMsg);
 			db.close();		
 		}
+		else {
+
+			// fresh install 
+
+			bres = copy_dbf_file(src_dbpath, dst_dbpath);
+
+		}
 	}
 	catch (exception_io_not_found) {
 
-		//prev db not found
+		// failed dbf update
 
-		char converted[MAX_PATH - 1];
-		extract_native_path(src_dbpath, src_dbpath);
+		bres = copy_dbf_file(src_dbpath, dst_dbpath);;
 
-		pfc::stringcvt::string_os_from_utf8 cvt;
-
-		cvt = src_dbpath.c_str();
-		wcstombs(converted, cvt.get_ptr(), MAX_PATH - 1);
-		std::filesystem::path srcpath = converted;
-
-		cvt = dst_dbpath.c_str();
-		wcstombs(converted, cvt.get_ptr(), MAX_PATH - 1);
-		std::filesystem::path dstpath = converted;
-
-		try {
-			std::filesystem::copy_file(srcpath, dstpath);
-			std::filesystem::remove(srcpath);
-			bres |= true;
-		}
-		catch (const std::filesystem::filesystem_error& e)
-		{
-			return false;
-		}
 	}
 	catch (...) { return false; }
 
-	//init cache folder
+	//create foo_discogger-cache folder
 
 	try {
+
 		fsLocal->make_directory(core_api::pathInProfile("foo_discogger-cache"), dummy_abort);
-		bres |= true;
+		bres &= true;
 	}
 	catch (...) { return false; }
 
@@ -136,7 +167,7 @@ bool CConf::load() {
 	if (vLoad == v000) {
 		//fresh install
 		save();
-		return prepare_config_db_and_cache(false);
+		return prepare_dbf_and_cache(false);
 	}
 	else {
 		if (vLoad > *vlast || vLoad < v204) {
@@ -149,22 +180,23 @@ bool CConf::load() {
 			uMessageBox(core_api::get_main_window(), msg, title, MB_APPLMODAL | MB_ICONASTERISK);
 
 			save();
-			return prepare_config_db_and_cache(false);
+
+			return prepare_dbf_and_cache(false);
 		}
 	}
 
 	//upgrade-import
 	for (unsigned int i = 0; i < cfg_bool_entries.get_count(); i++) {
-		bool res = bool_load(cfg_bool_entries[i]);
+		bres &= bool_load(cfg_bool_entries[i]);
 	}
 
 	for (unsigned int i = 0; i < cfg_int_entries.get_count(); i++) {
-		bool res = int_load(cfg_int_entries[i]);
+		bres &= int_load(cfg_int_entries[i]);
 	}
 
 	if (vLoad == v204) {
 
-		bres = prepare_config_db_and_cache(false);
+		bres &= prepare_dbf_and_cache(false);
 		
 		std::vector<int> vdel = { 
 			DEPRI_CFG_PREVIEW_DIALOG_SIZE,
@@ -223,13 +255,13 @@ bool CConf::load() {
 		cfg_int_entries.add_item(make_conf_entry(CFG_LIST_STYLE, list_style));
 		cfg_int_entries.add_item(make_conf_entry(CFG_HISTORY_MAX_ITEMS, history_enabled_max));
 
-		cfg_int_entries.add_item(make_conf_entry(CFG_FIND_RELEASE_DIALOG_FLAGS, find_release_dlg_flags));
+		cfg_int_entries.add_item(make_conf_entry(CFG_FIND_RELEASE_DIALOG_FLAG, find_release_dlg_flags));
 	}
 	//..
 
 	for (unsigned int i = 0; i < cfg_string_entries.get_count(); i++) {
 
-		bool bres = string_load(cfg_string_entries[i]);
+		bres &= string_load(cfg_string_entries[i]);
 	}
 
 	if (vLoad == v204) {
@@ -445,7 +477,7 @@ bool CConf::int_load(const conf_int_entry& item) {
 		history_enabled_max = item.value;
 		break;
 
-	case CFG_FIND_RELEASE_DIALOG_FLAGS:
+	case CFG_FIND_RELEASE_DIALOG_FLAG:
 		find_release_dlg_flags = item.value;
 		break;
 	default:
@@ -517,82 +549,98 @@ bool CConf::string_load(const conf_string_entry& item) {
 	return true;
 }
 
-bool CConf::id_to_val_bool(int id, CConf in_conf, bool &out, bool assert) {
+void CConf::SetName(pfc::string8 name) {
+	thisname.append((PFC_string_formatter() << " > " <<  name).c_str());
+}
+
+bool CConf::GetFlagVar(int ID, FlgMng& flgmng) {
 	
+	auto fit = std::find(vflags.begin(), vflags.end(), ID);
+
+	if (fit != vflags.end()) {
+
+		flgmng = FlgMng(this, ID);
+		return true;
+	}
+	return false;
+}
+
+bool CConf::id_to_val_bool(int id, const CConf& in_conf, bool& out, bool assert) {
+
 	switch (id) {
-		case CFG_REPLACE_ANVS:
-			out = in_conf.replace_ANVs;
-			break;
-		case CFG_MOVE_THE_AT_BEGINNING:
-			out = in_conf.move_the_at_beginning;
-			break;
-		case CFG_DISCARD_NUMERIC_SUFFIX:
-			out = in_conf.discard_numeric_suffix;
-			break;
-		case CFG_MATCH_TRACKS_USING_DURATION:
-			out = in_conf.match_tracks_using_duration;
-			break;
-		case CFG_MATCH_TRACKS_USING_NUMBER:
-			out = in_conf.match_tracks_using_number;
-			break;
-		case CFG_ASSUME_TRACKS_SORTED:
-			out = in_conf.assume_tracks_sorted;
-			break;
-		case CFG_SAVE_ALBUM_ART:
-			out = in_conf.save_album_art;
-			break;
-		case CFG_SAVE_ARTIST_ART:
-			out = in_conf.save_artist_art;
-			break;
-		case CFG_ALBUM_ART_EMBED:
-			out = in_conf.embed_album_art;
-			break;
-		case CFG_ARTIST_ART_EMBED:
-			out = in_conf.embed_artist_art;
-			break;
-		case CFG_ALBUM_ART_FETCH_ALL:
-			out = in_conf.album_art_fetch_all;
-			break;
-		case CFG_ALBUM_ART_OVERWRITE:
-			out = in_conf.album_art_overwrite;
-			break;
-		case CFG_ARTIST_ART_FETCH_ALL:
-			out = in_conf.artist_art_fetch_all;
-			break;
-		case CFG_ARTIST_ART_OVERWRITE:
-			out = in_conf.artist_art_overwrite;
-			break;
-		case CFG_DISPLAY_EXACT_MATCHES:
-			out = in_conf.display_exact_matches;
-			break;
-		case CFG_ENABLE_AUTOSEARCH:
-			out = in_conf.enable_autosearch;
-			break;
-		case CFG_DISPLAY_ANVS:
-			out = in_conf.display_ANVs;
-			break;
-		case CFG_REMOVE_OTHER_TAGS:
-			out = in_conf.remove_other_tags;
-			break;
-		case CFG_UPDATE_PREVIEW_CHANGES:
-			out = in_conf.update_tags_preview_changes;
-			break;
-		case CFG_UPDATE_TAGS_MANUALLY_PROMPT:
-			out = in_conf.update_tags_manually_match;
-			break;
-		case CFG_PARSE_HIDDEN_AS_REGULAR:
-			out = in_conf.parse_hidden_as_regular;
-			break;
-		case CFG_SKIP_VIDEO_TRACKS:
-			out = in_conf.skip_video_tracks;
-			break;
+	case CFG_REPLACE_ANVS:
+		out = in_conf.replace_ANVs;
+		break;
+	case CFG_MOVE_THE_AT_BEGINNING:
+		out = in_conf.move_the_at_beginning;
+		break;
+	case CFG_DISCARD_NUMERIC_SUFFIX:
+		out = in_conf.discard_numeric_suffix;
+		break;
+	case CFG_MATCH_TRACKS_USING_DURATION:
+		out = in_conf.match_tracks_using_duration;
+		break;
+	case CFG_MATCH_TRACKS_USING_NUMBER:
+		out = in_conf.match_tracks_using_number;
+		break;
+	case CFG_ASSUME_TRACKS_SORTED:
+		out = in_conf.assume_tracks_sorted;
+		break;
+	case CFG_SAVE_ALBUM_ART:
+		out = in_conf.save_album_art;
+		break;
+	case CFG_SAVE_ARTIST_ART:
+		out = in_conf.save_artist_art;
+		break;
+	case CFG_ALBUM_ART_EMBED:
+		out = in_conf.embed_album_art;
+		break;
+	case CFG_ARTIST_ART_EMBED:
+		out = in_conf.embed_artist_art;
+		break;
+	case CFG_ALBUM_ART_FETCH_ALL:
+		out = in_conf.album_art_fetch_all;
+		break;
+	case CFG_ALBUM_ART_OVERWRITE:
+		out = in_conf.album_art_overwrite;
+		break;
+	case CFG_ARTIST_ART_FETCH_ALL:
+		out = in_conf.artist_art_fetch_all;
+		break;
+	case CFG_ARTIST_ART_OVERWRITE:
+		out = in_conf.artist_art_overwrite;
+		break;
+	case CFG_DISPLAY_EXACT_MATCHES:
+		out = in_conf.display_exact_matches;
+		break;
+	case CFG_ENABLE_AUTOSEARCH:
+		out = in_conf.enable_autosearch;
+		break;
+	case CFG_DISPLAY_ANVS:
+		out = in_conf.display_ANVs;
+		break;
+	case CFG_REMOVE_OTHER_TAGS:
+		out = in_conf.remove_other_tags;
+		break;
+	case CFG_UPDATE_PREVIEW_CHANGES:
+		out = in_conf.update_tags_preview_changes;
+		break;
+	case CFG_UPDATE_TAGS_MANUALLY_PROMPT:
+		out = in_conf.update_tags_manually_match;
+		break;
+	case CFG_PARSE_HIDDEN_AS_REGULAR:
+		out = in_conf.parse_hidden_as_regular;
+		break;
+	case CFG_SKIP_VIDEO_TRACKS:
+		out = in_conf.skip_video_tracks;
+		break;
 		//v200
-		case CFG_EDIT_TAGS_DIALOG_SHOW_TM_STATS:
-			out = in_conf.edit_tags_dlg_show_tm_stats;
-			break;
-		case CFG_RELEASE_ENTER_KEY_OVR:
-			out = in_conf.release_enter_key_override;
-			break;
+	case CFG_EDIT_TAGS_DIALOG_SHOW_TM_STATS:
+		out = in_conf.edit_tags_dlg_show_tm_stats;
+		break;
+	case CFG_RELEASE_ENTER_KEY_OVR:
+		out = in_conf.release_enter_key_override;
+		break;
 
 
 		//..
@@ -600,16 +648,32 @@ bool CConf::id_to_val_bool(int id, CConf in_conf, bool &out, bool assert) {
 
 		//..
 
-		default:
-			if (assert)
-				PFC_ASSERT(false);
-			return false;
-		
+	default:
+		if (assert)
+			PFC_ASSERT(false);
+		return false;
+
 	}
 	return true;
 }
 
-bool CConf::id_to_val_int(int id, CConf in_conf, int &out, bool assert) {
+int* CConf::id_to_ref_int(int ID, bool assert) {
+
+	switch (ID) {
+	case CFG_FIND_RELEASE_DIALOG_FLAG:
+
+		return &find_release_dlg_flags;
+
+	default:
+		if (assert)
+			PFC_ASSERT(false);
+		return nullptr;
+	}
+
+	return nullptr;
+}
+
+bool CConf::id_to_val_int(int id, const CConf & in_conf, int &out, bool assert) {
 
 	switch (id) {
 		case CFG_UPDATE_ART_FLAGS:
@@ -734,7 +798,7 @@ bool CConf::id_to_val_int(int id, CConf in_conf, int &out, bool assert) {
 			out = in_conf.history_enabled_max;
 			break;
 
-		case CFG_FIND_RELEASE_DIALOG_FLAGS:
+		case CFG_FIND_RELEASE_DIALOG_FLAG:
 			out = in_conf.find_release_dlg_flags;
 			break;
 		//..
@@ -748,7 +812,7 @@ bool CConf::id_to_val_int(int id, CConf in_conf, int &out, bool assert) {
 	return true;
 }
 
-bool CConf::id_to_val_str(int id, CConf in_conf, pfc::string8& out, bool assert) {
+bool CConf::id_to_val_str(int id, const CConf & in_conf, pfc::string8& out, bool assert) {
 	
 	switch (id) {
 		case CFG_ALBUM_ART_DIRECTORY_STRING: {
@@ -855,7 +919,7 @@ bool CConf::id_to_val_str(int id, CConf in_conf, pfc::string8& out, bool assert)
 	return true;
 }
 
-void CConf::save(cfgFilter cfgfilter, CConf in_conf) {
+void CConf::save(cfgFilter cfgfilter, const CConf & in_conf) {
 
 	for (unsigned int i = 0; i < cfg_bool_entries.get_count(); i++) {
 		const conf_bool_entry& item = cfg_bool_entries[i];
@@ -906,7 +970,7 @@ void CConf::save(cfgFilter cfgfilter, CConf in_conf) {
 	}
 }
 
-void CConf::save(cfgFilter cfgfilter, CConf in_conf, int id) {
+void CConf::save(cfgFilter cfgfilter, const CConf & in_conf, int id) {
 	
 	auto filterok =
 		std::find_if(idarray.begin(), idarray.end(), [&](const std::pair<int, int>& e) {
@@ -1023,7 +1087,7 @@ void CConf::save() {
 	cfg_int_entries.add_item(make_conf_entry(CFG_LIST_STYLE, list_style));
 	cfg_int_entries.add_item(make_conf_entry(CFG_HISTORY_MAX_ITEMS, history_enabled_max));
 
-	cfg_int_entries.add_item(make_conf_entry(CFG_FIND_RELEASE_DIALOG_FLAGS, find_release_dlg_flags));
+	cfg_int_entries.add_item(make_conf_entry(CFG_FIND_RELEASE_DIALOG_FLAG, find_release_dlg_flags));
 	//..
 
 	cfg_string_entries.remove_all();

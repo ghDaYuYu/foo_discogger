@@ -14,10 +14,10 @@ using namespace Gdiplus;
 //
 ///////////////////////////////////////////////
 
-void coord_presenters::Initialize(HWND hparent, const foo_conf* dlgconf) {
+void coord_presenters::Initialize(HWND hparent, const foo_conf& dlgconf) {
 
 	m_hWnd = hparent;
-	m_conf = *dlgconf;
+	m_conf = dlgconf;
 
 	binomials.emplace_back(m_discogs_track_libui_presenter, m_file_track_libui_presenter);
 	binomials.emplace_back(m_discogs_art_presenter, m_file_art_presenter);
@@ -30,8 +30,8 @@ void coord_presenters::Initialize(HWND hparent, const foo_conf* dlgconf) {
 }
 
 void coord_presenters::InitFormMode(lsmode mode, UINT id_lvleft, UINT id_lvright) {
-	form_mode[mode]->first.Init(m_hWnd, m_tag_writer, m_conf, id_lvleft);
-	form_mode[mode]->second.Init(m_hWnd, m_tag_writer, m_conf, id_lvright);
+	form_mode[mode]->first.Init(m_hWnd, m_tag_writer, id_lvleft);
+	form_mode[mode]->second.Init(m_hWnd, m_tag_writer, id_lvright);
 }
 
 //todo: tidy up
@@ -48,9 +48,13 @@ void coord_presenters::SetTagWriter(TagWriter_ptr tag_writer) {
 	m_file_art_presenter.SetRelease(m_tag_writer_release);
 }
 
-foo_conf* coord_presenters::cfgRef() {
+const foo_conf & coord_presenters::Get_Conf() {
 
-	return &m_conf;
+	return m_conf;
+}
+
+void coord_presenters::Set_Conf(foo_conf cfg) {
+	m_conf = std::move(cfg);
 }
 
 std::vector<pfc::string8> coord_presenters::Get_Titles(lsmode mode, bool tracks) {
@@ -348,15 +352,16 @@ void coord_presenters::reorder_map_elements(HWND hwnd, size_t const* order, size
 
 void coord_presenters::PullConf(lsmode mode, bool tracks, foo_conf* out_conf) {
 
+	m_conf = CConf(*out_conf);
+
 	PFC_ASSERT(/*mode == lsmode::tracks || */mode == lsmode::tracks_ui || mode == lsmode::art);
 
-	presenter* pres;
-	
 	if (tracks)
-		form_mode[mode]->first.build_cfg_columns(out_conf);
+		form_mode[mode]->first.build_cfg_columns();
 	else
-		form_mode[mode]->second.build_cfg_columns(out_conf);
+		form_mode[mode]->second.build_cfg_columns();
 
+	*out_conf = CConf(m_conf);
 }
 
 ///////////////////////////////////////////////
@@ -364,6 +369,11 @@ void coord_presenters::PullConf(lsmode mode, bool tracks, foo_conf* out_conf) {
 //	PRESENTER
 //
 ///////////////////////////////////////////////
+
+foo_conf & presenter::get_conf() {
+
+	return	m_coord->get_conf();
+}
 
 void presenter::Load() {
 	if (!m_loaded) {
@@ -391,12 +401,12 @@ void presenter::set_lv_images_lists() {
 
 }
 
-void presenter::Init(HWND hDlg, TagWriter_ptr tag_writer, foo_conf& conf, UINT ID) {
+void presenter::Init(HWND hDlg, TagWriter_ptr tag_writer, UINT ID) {
 
 	mm_hWnd = hDlg;
 	m_tag_writer = tag_writer;
 	m_release = tag_writer->release;
-	m_conf = conf;
+
 	m_listID = ID;
 	//presenter derived override
 	define_columns();
@@ -495,18 +505,18 @@ void discogs_track_libui_presenter::define_columns() {
 	//track_presenter::define_columns();
 }
 
-void discogs_track_libui_presenter::build_cfg_columns(foo_conf* out_conf) {
+void discogs_track_libui_presenter::build_cfg_columns() {
 
-	foo_conf* config = out_conf == nullptr ? &m_conf : out_conf;
+	foo_conf & conf = get_conf();
 
 	if (IsLoaded())	m_conf_col_woa = build_woas_libppui(m_ui_list);
 
 	if (m_conf_col_woa.size()) {
 
-		config->match_tracks_discogs_col1_width = m_conf_col_woa.at(0);
-		config->match_tracks_discogs_col2_width = m_conf_col_woa.at(1);
+		conf.match_tracks_discogs_col1_width = m_conf_col_woa.at(0);
+		conf.match_tracks_discogs_col2_width = m_conf_col_woa.at(1);
 		size_t icomp = get_extended_style(GetListView());
-		config->match_tracks_discogs_style = icomp;
+		conf.match_tracks_discogs_style = icomp;
 	}
 }
 
@@ -552,20 +562,20 @@ void file_track_libui_presenter::define_columns() {
 	//track_presenter::define_columns();
 }
 
-void file_track_libui_presenter::build_cfg_columns(foo_conf* out_conf) {
+void file_track_libui_presenter::build_cfg_columns() {
 
-	foo_conf* config = out_conf == nullptr ? &m_conf : out_conf;
+	foo_conf& conf = get_conf();
 
 	if (IsLoaded())	m_conf_col_woa = build_woas_libppui(m_ui_list);
 
 	if (m_conf_col_woa.size()) {
 
-		config->match_tracks_files_col1_width = m_conf_col_woa.at(0);
-		config->match_tracks_files_col2_width = m_conf_col_woa.at(1);
+		conf.match_tracks_files_col1_width = m_conf_col_woa.at(0);
+		conf.match_tracks_files_col2_width = m_conf_col_woa.at(1);
 
 	}
 	size_t icomp = get_extended_style(GetListView());
-	config->match_tracks_files_style = icomp;
+	conf.match_tracks_files_style = icomp;
 
 }
 
@@ -989,24 +999,24 @@ void discogs_artwork_presenter::define_columns() {
 
 }
 
-void discogs_artwork_presenter::build_cfg_columns(foo_conf* out_conf) {
+void discogs_artwork_presenter::build_cfg_columns() {
 
-	foo_conf* config = out_conf == nullptr ? &m_conf : out_conf;
+	foo_conf & conf = get_conf();
 
 	if (IsLoaded())	m_conf_col_woa = build_woas(GetListView());
 
 	if (m_conf_col_woa.size()) {
 
-		config->match_discogs_artwork_ra_width = m_conf_col_woa.at(0);
-		config->match_discogs_artwork_type_width = m_conf_col_woa.at(1);
-		config->match_discogs_artwork_dim_width = m_conf_col_woa.at(2);
-		config->match_discogs_artwork_save_width = m_conf_col_woa.at(3);
-		config->match_discogs_artwork_ovr_width = m_conf_col_woa.at(4);
-		config->match_discogs_artwork_embed_width = m_conf_col_woa.at(5);
+		conf.match_discogs_artwork_ra_width = m_conf_col_woa.at(0);
+		conf.match_discogs_artwork_type_width = m_conf_col_woa.at(1);
+		conf.match_discogs_artwork_dim_width = m_conf_col_woa.at(2);
+		conf.match_discogs_artwork_save_width = m_conf_col_woa.at(3);
+		conf.match_discogs_artwork_ovr_width = m_conf_col_woa.at(4);
+		conf.match_discogs_artwork_embed_width = m_conf_col_woa.at(5);
 
 	}
 	size_t icomp = get_extended_style(GetListView());
-	config->match_discogs_artwork_art_style = icomp;
+	conf.match_discogs_artwork_art_style = icomp;
 
 }
 
@@ -1063,21 +1073,21 @@ void files_artwork_presenter::define_columns() {
 	artwork_presenter::define_columns();
 }
 
-void files_artwork_presenter::build_cfg_columns(foo_conf* out_conf) {
+void files_artwork_presenter::build_cfg_columns() {
 
-	foo_conf* config = out_conf == nullptr ? &m_conf : out_conf;
+	foo_conf& conf = get_conf();
 
 	if (IsLoaded())	m_conf_col_woa = build_woas(GetListView());
 
 	if (m_conf_col_woa.size()) {
 
-		config->match_file_artwork_name_width = m_conf_col_woa.at(0);
-		config->match_file_artwork_dim_width = m_conf_col_woa.at(1);
-		config->match_file_artwork_size_width = m_conf_col_woa.at(2);
+		conf.match_file_artwork_name_width = m_conf_col_woa.at(0);
+		conf.match_file_artwork_dim_width = m_conf_col_woa.at(1);
+		conf.match_file_artwork_size_width = m_conf_col_woa.at(2);
 
 	}
 	size_t icomp = get_extended_style(GetListView());
-	config->match_file_artworks_art_style = icomp;
+	conf.match_file_artworks_art_style = icomp;
 
 }
 
@@ -1583,6 +1593,7 @@ void discogs_artwork_presenter::PopulateConfArtWork(/*uartwork uartt*/) {
 
 	}
 
+	m_uart.populated = true;
 	CONFARTWORK = m_uart;
 	//set lines in details count, set with image + details
 	tl::tv_tileview_line_count(GetListView(), 5);

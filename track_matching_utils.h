@@ -96,6 +96,8 @@ const struct uartwork {
 	t_uint32 ucfg_art_save_all;
 	t_uint32 ucfg_art_ovr;
 
+	bool populated;
+
 	t_uint32 setbitflag(t_uint32& key, size_t pos, bool val) {
 		t_uint32 bitmask = 1 << pos;
 		if (val) key |= bitmask;
@@ -169,6 +171,8 @@ const struct uartwork {
 		bool cfg_art_save_all,
 		bool cfg_art_ovr
 	) {
+
+		populated = false;
 		ucfg_album_embed = 0;
 		ucfg_album_save_to_dir = 0;
 		ucfg_album_save_all = 0;
@@ -210,7 +214,7 @@ const struct uartwork {
 			ucfg_art_ovr == rhs.ucfg_art_ovr);
 	}
 
-	uartwork(CConf conf) {
+	uartwork(const CConf & conf) {
 
 		*this = uartwork(
 			conf.embed_album_art,

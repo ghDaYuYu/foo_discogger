@@ -7,6 +7,7 @@
 #include "tasks.h"
 #include "tag_mappings_dialog.h"
 #include "track_matching_dialog.h"
+#include "configuration_dialog.h"
 #include "preview_dialog.h"
 
 static const GUID guid_cfg_window_placement_preview_dlg = { 0xcb1debbd, 0x1b0a, 0x4046, { 0x8c, 0x6f, 0x74, 0xee, 0x9d, 0x74, 0x7f, 0x83 } };
@@ -171,7 +172,7 @@ inline bool CPreviewTagsDialog::build_current_cfg() {
 		bres |= true;
 	}
 
-	size_t attach_flagged = (IsDlgButtonChecked(IDC_EDIT_TAGS_DIALOG_ATTACH_FLAG) == BST_CHECKED) ? FLG_TAGMAP_DLG_ATTACHED : 0;	
+	size_t attach_flagged = (IsDlgButtonChecked(IDC_EDIT_TAGS_DLG_BIND_FLAG) == BST_CHECKED) ? FLG_TAGMAP_DLG_ATTACHED : 0;	
 	size_t open_flagged = g_discogs->tag_mappings_dialog ? FLG_TAGMAP_DLG_OPENED : 0;
 
 	conf.edit_tags_dlg_flags &= ~(FLG_TAGMAP_DLG_ATTACHED | FLG_TAGMAP_DLG_OPENED);
@@ -190,7 +191,9 @@ CPreviewTagsDialog::~CPreviewTagsDialog() {
 
 LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
 	SetIcon(g_discogs->icon);
-	conf = CONF;
+
+	conf = CConf(CONF);
+	conf.SetName("PreviewDlg");
 	
 	defaultCfgCols(cfg_lv);
 	cfg_lv.colmap.at(2).width = static_cast<float>(conf.preview_tags_dialog_w_width);
@@ -236,15 +239,12 @@ LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	}
 
 	if (conf.edit_tags_dlg_flags & FLG_TAGMAP_DLG_ATTACHED) {
-		uButton_SetCheck(m_hWnd, IDC_EDIT_TAGS_DIALOG_ATTACH_FLAG, true);
+		uButton_SetCheck(m_hWnd, IDC_EDIT_TAGS_DLG_BIND_FLAG, true);
 		if (conf.edit_tags_dlg_flags & FLG_TAGMAP_DLG_OPENED) {
 			BOOL bdummy = false;
 			OnEditTagMappings(0, 0, NULL, bdummy);
 		}
 	}
-
-	// todo: unify with enable(bool, bool)
-	// note: might be called from generate_tags_task::on_success(HWND p_wnd)
 
 	bool managed_artwork = !(CONFARTWORK == uartwork(CONF));
 	LPARAM lpskip = conf.album_art_skip_default_cust;
@@ -503,9 +503,7 @@ void CPreviewTagsDialog::tag_mappings_updated() {
 void CPreviewTagsDialog::GlobalReplace_ANV(bool state) {
 	CONF.replace_ANVs = state;
 	if (g_discogs->configuration_dialog) {
-		CDialogImpl* cfgdlg = pfc::downcast_guarded<CDialogImpl*>(g_discogs->configuration_dialog);
-		SendMessage(cfgdlg->m_hWnd, 
-			WM_CUSTOM_ANV_CHANGED, 0, state);
+		SendMessage(g_discogs->configuration_dialog->m_hWnd, WM_CUSTOM_ANV_CHANGED, 0, state);
 	}
 }
 
@@ -538,7 +536,7 @@ LRESULT CPreviewTagsDialog::OnCheckSkipArtwork(WORD /*wNotifyCode*/, WORD wID, H
 
 LRESULT CPreviewTagsDialog::OnCheckAttachMappingPanel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 
-	bool state = IsDlgButtonChecked(IDC_EDIT_TAGS_DIALOG_ATTACH_FLAG);
+	bool state = IsDlgButtonChecked(IDC_EDIT_TAGS_DLG_BIND_FLAG);
 	conf.edit_tags_dlg_flags = state ?
 		conf.edit_tags_dlg_flags | (FLG_TAGMAP_DLG_ATTACHED)
 		: conf.edit_tags_dlg_flags & ~(FLG_TAGMAP_DLG_ATTACHED);
@@ -591,11 +589,14 @@ LRESULT CPreviewTagsDialog::OnChangePreviewMode(WORD /*wNotifyCode*/, WORD wID, 
 	return FALSE;
 }
 
-LRESULT CPreviewTagsDialog::OnWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+LRESULT CPreviewTagsDialog::OnButtonWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 
-		service_ptr_t<write_tags_task> task = new service_impl_t<write_tags_task>(m_tag_writer);
-		task->start();
-		destroy_all();
+	build_current_cfg();
+	pushcfg();
+
+	service_ptr_t<write_tags_task> task = new service_impl_t<write_tags_task>(m_tag_writer);
+	task->start();
+	destroy_all();
 
 	return TRUE;
 }
@@ -957,7 +958,8 @@ void CPreviewTagsDialog::go_back() {
 
 	destroy();
 	if (g_discogs->track_matching_dialog) {
-		CTrackMatchingDialog* dlg = reinterpret_cast<CTrackMatchingDialog*>(g_discogs->track_matching_dialog);
+
+		CTrackMatchingDialog* dlg = g_discogs->track_matching_dialog;
 		dlg->show();
 	}
 }

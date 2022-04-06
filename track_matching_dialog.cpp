@@ -78,6 +78,7 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 	if (m_tag_writer) {
 
 		CONFARTWORK = uartwork(m_conf);
+		m_last_run_uart = CONFARTWORK;
 
 		match_message_update();
 
@@ -89,7 +90,7 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 		m_ifile_list.InitializeHeaderCtrl(HDS_DRAGDROP);
 		m_ifile_list.SetRowStyle(m_conf.list_style);
 
-		m_coord.Initialize(m_hWnd, &m_conf);
+		m_coord.Initialize(m_hWnd, m_conf);
 		m_coord.SetTagWriter(m_tag_writer);
 
 		m_coord.InitFormMode(lsmode::tracks_ui, IDC_UI_LIST_DISCOGS, IDC_UI_LIST_FILES);
@@ -111,8 +112,9 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 		::ShowWindow(uGetDlgItem(IDC_UI_LIST_DISCOGS), SW_SHOW);
 		::ShowWindow(uGetDlgItem(IDC_UI_LIST_FILES), SW_SHOW);
 
-		bool managed_artwork = !(CONFARTWORK == uartwork(CONF));
-		LPARAM lpskip = m_conf.album_art_skip_default_cust;
+		//CONFARTWORK__ = uartwork(m_conf);
+		CONFARTWORK = CONFARTWORK;
+		init_track_matching_dialog();
 
 		bool skip_artwork = ((LOWORD(lpskip) & ART_CUST_SKIP_DEF_FLAG) == ART_CUST_SKIP_DEF_FLAG
 			|| (HIWORD(lpskip) & ART_CUST_SKIP_DEF_FLAG) == ART_CUST_SKIP_DEF_FLAG);
@@ -184,7 +186,7 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 		{
 			std::lock_guard<std::mutex> lg(m_mx_pending_previews_mod);
 
-			for (auto w : m_vpreview_jobs) {
+			for (const auto& w : m_vpreview_jobs) {
 				if (w.isfile) {
 					request_file_preview(w.index_art, w.artist_art);
 				}

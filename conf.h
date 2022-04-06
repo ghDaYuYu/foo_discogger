@@ -1,8 +1,10 @@
 #pragma once
-
+#include "conf_flag_mng.h"
 #include "formatting_script.h"
 
-#define ART_CUST_SKIP_DEF_FLAG 1 << 3
+//match tristate checkbox flags BST_UNCHECKED 0x0000, BST_CHECKED 0x0001, BST_INDETERMINATE  0x0002
+#define ARTSAVE_SKIP_CUST_FLAG 1 << 1
+#define ARTSAVE_SKIP_USER_FLAG 1 << 0
 
 #define CFG_REPLACE_ANVS					1
 #define CFG_MOVE_THE_AT_BEGINNING			2
@@ -134,7 +136,7 @@
 #define DEPRI_CFG_EDIT_CAT_CREDIT_DIALOG_POS	2131
 #define CFG_LIST_STYLE							2132
 #define CFG_HISTORY_MAX_ITEMS					2133
-#define CFG_FIND_RELEASE_DIALOG_FLAGS			2134
+#define CFG_FIND_RELEASE_DIALOG_FLAG			2134
 
 // STRINGS -------------------------------------
 
@@ -287,6 +289,21 @@ private:
 	
 public:
 
+	CConf(std::string name = "") : thisname(name) {
+	}
+	// shallow copy
+	CConf::CConf(CConf const& other) {
+#ifdef DEBUG		
+		std::string srcname(other.thisname);
+		*this = other;
+		this->thisname = "sCopy of ";
+		this->thisname.append(srcname);
+#endif
+	}
+
+	void SetName(pfc::string8 name);
+	bool GetFlagVar(int ID, FlgMng& flgmng);
+
 	enum class cfgFilter :uint8_t {
 		CONF = 0,
 		FIND,
@@ -298,9 +315,11 @@ public:
 		CAT_CREDIT,
 	};
 
-	static bool id_to_val_int(int id, CConf in_conf, int &out, bool assert = true);
-	static bool id_to_val_bool(int id, CConf in_conf, bool &out, bool assert = true);
-	static bool id_to_val_str(int id, CConf in_conf, pfc::string8& out, bool assert = true);
+	int* id_to_ref_int(int id, bool assert = true);
+
+	static bool id_to_val_int(int id, const CConf & in_conf, int &out, bool assert = true);
+	static bool id_to_val_bool(int id, const CConf & in_conf, bool &out, bool assert = true);
+	static bool id_to_val_str(int id, const CConf & in_conf, pfc::string8& out, bool assert = true);
 
 	bool load();
 	bool bool_load(const conf_bool_entry& item);
@@ -309,7 +328,7 @@ public:
 
 	//save all
 	void save();
-	//save only active config tab
+	//save only active config tab#
 	void save_active_config_tab(int newtab);
 
 	template <typename Enumeration>
@@ -361,7 +380,7 @@ public:
 		{ asi(cfgFilter::CONF), CFG_PARSE_HIDDEN_AS_REGULAR},
 		{ asi(cfgFilter::CONF), CFG_SKIP_VIDEO_TRACKS},
 		{ asi(cfgFilter::CONF), CFG_CACHE_MAX_OBJECTS},
-		{ asi(cfgFilter::CONF), CFG_RELEASE_ENTER_KEY_OVR},			//sent to cfgFilter::FIND
+		{ asi(cfgFilter::CONF), CFG_RELEASE_ENTER_KEY_OVR},
 		{ asi(cfgFilter::CONF), CFG_CACHE_OFFLINE_CACHE_FLAG},
 		//v205 (1.0.6/1.1.0)
 		{ asi(cfgFilter::CONF), CFG_DC_DB_PATH},
@@ -369,7 +388,7 @@ public:
 		{ asi(cfgFilter::CONF), CFG_SKIP_MNG_FLAG},
 		{ asi(cfgFilter::CONF), CFG_LIST_STYLE},
 		{ asi(cfgFilter::CONF), CFG_HISTORY_MAX_ITEMS},				//sent to cfgFilter::FIND
-		{ asi(cfgFilter::CONF), CFG_FIND_RELEASE_DIALOG_FLAGS },	//partially sent in cfgFilter::FIND
+		{ asi(cfgFilter::CONF), CFG_FIND_RELEASE_DIALOG_FLAG },
 
 		//..
 
@@ -377,12 +396,12 @@ public:
 		{ asi(cfgFilter::FIND), CFG_DISPLAY_EXACT_MATCHES },
 		//v200
 		{ asi(cfgFilter::FIND), DEPRI_CFG_FIND_RELEASE_DIALOG_SHOW_ID },
-		{ asi(cfgFilter::FIND), CFG_RELEASE_ENTER_KEY_OVR},			//from cfgFilter::CONF
+
 		//v205
 		{ asi(cfgFilter::FIND), CFG_FIND_RELEASE_FILTER_FLAG },
-		{ asi(cfgFilter::FIND), CFG_FIND_RELEASE_DIALOG_FLAGS },	//partially from cfgFilter::CONF
+		{ asi(cfgFilter::FIND), CFG_FIND_RELEASE_DIALOG_FLAG },
 		//v206
-		{ asi(cfgFilter::FIND), CFG_HISTORY_MAX_ITEMS},				//from cfgFilter::CONF
+
 		//..
 
 		//PREVIEW (preview_dialog)
@@ -448,8 +467,8 @@ public:
 		//..
 	};
 
-	void save(cfgFilter cfgfilter, CConf in_conf);
-	void save(cfgFilter cfgfilter, CConf in_conf, int id);
+	void save(cfgFilter cfgfilter, const CConf & in_conf);
+	void save(cfgFilter cfgfilter, const CConf & in_conf, int id);
 
 	bool history_enabled();
 	bool history_max();
@@ -570,7 +589,7 @@ public:
 	pfc::string8 db_dc_path = "";
 	int db_dc_flag = 0;
 	int find_release_filter_flag = 0;
-	int skip_mng_flag = 0;
+	int skip_mng_flag = 1 << 5; //skip mbids
 	int list_style = 2;
 	int history_enabled_max = MAKELPARAM(10, 1); //enabled-max20
 

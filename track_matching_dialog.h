@@ -52,7 +52,6 @@ private:
 		return uGetDlgItem(ID);		
 	}
 
-
 	//.. Dlg lists
 
 	bool init_count();
@@ -61,8 +60,6 @@ private:
 		return uButton_GetCheck(m_hWnd, IDC_TRACK_MATCH_ALBUM_ART) == TRUE ?
 			lsmode::art : lsmode::default;
 	}
-
-	//void finished_tag_writers();
 
 	void update_window_title() {
 		pfc::string8 text;

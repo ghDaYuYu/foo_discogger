@@ -84,7 +84,7 @@ private:
 
 	pfc::array_t<tab_entry> tab_table;
 	foo_conf conf;
-	foo_conf conf_dlg_edit;
+	foo_conf conf_edit;
 
 	bool original_parsing = false;
 	bool original_skip_video = false;
@@ -154,8 +154,9 @@ private:
 	bool cfg_ui_has_changed();
 	bool cfg_oauth_has_changed();
 
-	void on_test_oauth(HWND wnd);
+	void on_load_search_formatting(HWND wnd);
 	void on_delete_history(HWND wnd, size_t max, bool zap);
+	void on_test_oauth(HWND wnd);
 	void on_authorize_oauth(HWND wnd);
 	void on_generate_oauth(HWND wnd);
 
@@ -180,23 +181,29 @@ public:
 		return ::IsDialogMessage(m_hWnd, pMsg);
 	}
 
+#pragma warning(suppress:26454)
 	MY_BEGIN_MSG_MAP(CConfigurationDialog)
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
-#pragma warning(suppress:26454)
 		NOTIFY_HANDLER(IDC_TAB, TCN_SELCHANGING, OnChangingTab)
-#pragma warning(suppress:26454)
 		NOTIFY_HANDLER(IDC_TAB, TCN_SELCHANGE, OnChangeTab)
 		COMMAND_ID_HANDLER(IDC_CONF_DEFAULTS_BUTTON, OnDefaults)
 		MESSAGE_HANDLER(WM_CUSTOM_ANV_CHANGED, OnCustomAnvChanged)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 	MY_END_MSG_MAP()
-	
-	CConfigurationDialog(preferences_page_callback::ptr callback) : m_callback(callback) {
-		token_edit = nullptr;
-		secret_edit = nullptr;
-		oauth_msg = nullptr;
+#pragma warning(suppress:26454)
+
+	// constructor
+
+	CConfigurationDialog(preferences_page_callback::ptr callback) :	m_callback(callback) {
+
+		m_hwndTokenEdit = nullptr;
+		m_hwndSecretEdit = nullptr;
+		m_hwndOAuthMsg = nullptr;
 
 		g_discogs->configuration_dialog = this;
+
+		conf = CConf(CONF); conf.SetName("Cfg");
+		conf_edit = CConf(CONF); conf.SetName("CfgEdit");		
 	}
 
 	~CConfigurationDialog();
@@ -209,9 +216,9 @@ public:
 	LRESULT OnCustomAnvChanged(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnDestroy(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled);
 
-	HWND token_edit;
-	HWND secret_edit;
-	HWND oauth_msg;
+	HWND m_hwndTokenEdit;
+	HWND m_hwndSecretEdit;
+	HWND m_hwndOAuthMsg;
 
 	void show_tab(unsigned int itab);
 	void show_oauth_msg(pfc::string8 msg, bool iserror);

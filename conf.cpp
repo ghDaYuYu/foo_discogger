@@ -41,39 +41,36 @@ conf_string_entry make_conf_entry(int i, const pfc::string8 &v) {
 
 bool copy_dbf_file(pfc::string8 src_dbpath, pfc::string8 dst_dbpath) {
 
+
+	char os_src[MAX_PATH - 1];
+	char os_dst[MAX_PATH - 1];
+
 	try {
 
 		//copy dbf...
-		char converted[MAX_PATH - 1];
-		pfc::stringcvt::string_os_from_utf8 cvt(src_dbpath);
-		wcstombs(converted, cvt.get_ptr(), MAX_PATH - 1);
-
-		//source file
-		std::filesystem::path fs_src_path = converted;
-
+		
+		pfc::stringcvt::string_os_from_utf8 cvt;
+		cvt = src_dbpath.c_str();
+		wcstombs(os_src, cvt.get_ptr(), MAX_PATH - 1);
 		cvt = dst_dbpath.c_str();
-		wcstombs(converted, cvt.get_ptr(), MAX_PATH - 1);
+		wcstombs(os_dst, cvt.get_ptr(), MAX_PATH - 1);
 
-		//destination file
-		std::filesystem::path fs_dst_path = converted;
-
-
-		try {
-
-			std::filesystem::copy_file(fs_src_path, fs_dst_path);
-			std::filesystem::remove(fs_src_path);
-
+		if (std::filesystem::exists(os_dst)) {
+			//undetermined... prev installation attempt failed?
+			log_msg("a previous foo_discogger.cfg.db file version was found");
 			return true;
 		}
-		catch (const std::filesystem::filesystem_error& e)
-		{
-			//..
-		}
-
+	
+		//todo: migration test (db file from 1.05 to 1.06, importing)
+		
+		return std::filesystem::copy_file(os_src, os_dst);
 	}
 	catch (const std::filesystem::filesystem_error& e)
 	{
-		//..
+		pfc::string8 msg = "failed to install foo_discogger.cfg.db file";
+		msg << (!std::filesystem::exists(os_src) ? " (missing db source file)" : "");
+		log_msg(msg);
+		return false;
 	}
 
 	return false;
@@ -83,72 +80,76 @@ bool prepare_dbf_and_cache(bool bimport = true) {
 
 	bool bres = true;
 
-	pfc::string8 src_dbpath;
-	src_dbpath << (core_api::pathInProfile("user-components\\") << core_api::get_my_file_name());
-	src_dbpath << "\\" << dll_db_name();
+	pfc::string8 src_path;
+	pfc::string8 dst_path;
+	src_path << (core_api::pathInProfile("user-components\\") << core_api::get_my_file_name());
+	src_path << "\\" << dll_db_name();
+	dst_path << core_api::pathInProfile("configuration\\") << dll_db_name();
 
-	pfc::string8 dst_dbpath;
-	dst_dbpath << core_api::pathInProfile("configuration\\") << dll_db_name();
-	extract_native_path(dst_dbpath, dst_dbpath);
+	extract_native_path(dst_path, dst_path);
+	extract_native_path(src_path, src_path);
 
-	extract_native_path(src_dbpath, src_dbpath);
-
-	auto fsLocal = filesystem::get(dst_dbpath);
-
+	auto fsLocal = filesystem::get(dst_path);
 	abort_callback_dummy dummy_abort;
 
 	try {
-		if (bimport) {
 
-			const double timeoutVal = 5;
-			file::ptr fLocal = fsLocal->openRead(dst_dbpath, dummy_abort, timeoutVal);
-			fLocal.release();
+		char os_dst[MAX_PATH - 1];
+		pfc::stringcvt::string_os_from_utf8 cvt(dst_path);		
+		wcstombs(os_dst, cvt.get_ptr(), MAX_PATH - 1);
 
-			//todo: rev not fully tested
-			//prev db found, import definitions
+		bool b_dst_exists = std::filesystem::exists(os_dst);
+
+		if (b_dst_exists && bimport) {
+
+			//todo: test import definitions
 
 			sqldb db;
-			db.open(dst_dbpath, SQLITE_OPEN_READWRITE);
+			db.open(dst_path, SQLITE_OPEN_READWRITE);
 			sqlite3* pDb = db.db_handle();
 
 			char* zErrMsg = 0;
 			pfc::string8 sqlcmd;
-			sqlcmd << "ATTACH DATABASE \'" << src_dbpath << "\' AS trg";
+			sqlcmd << "ATTACH DATABASE \'" << src_path << "\' AS trg";
 			size_t ret = sqlite3_exec(pDb, sqlcmd, NULL, NULL, &zErrMsg);
 			sqlcmd = "INSERT INTO trg.def_credit (name, tagtype, desc, titleformat) SELECT name, tagtype, desc, titleformat FROM def_credit WHERE tagtype IS NULL;";
 			ret = sqlite3_exec(pDb, sqlcmd, NULL, NULL, &zErrMsg);
-			db.close();		
+			db.close();
 		}
 		else {
 
-			// fresh install 
+			if (bimport)
+				log_msg("failed to import former foo_discogger.cfg.db values, recreating...");
 
-			bres = copy_dbf_file(src_dbpath, dst_dbpath);
+			// copy database
+
+			bres = copy_dbf_file(src_path, dst_path);
 
 		}
 	}
-	catch (exception_io_not_found) {
-
-		// failed dbf update
-
-		bres = copy_dbf_file(src_dbpath, dst_dbpath);;
-
+	catch (...) {
+		
+		log_msg("unexpected exception installing configuration files");
+		return false;
+	
 	}
-	catch (...) { return false; }
-
-	//create foo_discogger-cache folder
 
 	try {
 
 		fsLocal->make_directory(core_api::pathInProfile("foo_discogger-cache"), dummy_abort);
 		bres &= true;
 	}
-	catch (...) { return false; }
+	catch (...) {
+
+		log_msg("unexpected exception creating cache folder");
+		return false;
+	}
 
 	return bres;
 }
 
 bool CConf::load() {
+	
 	//vspec vxxx { specs vector, boolvals, intvals, stringvals };
 	bool bres = true;	
 	vspec v000 { &vec_specs, 0, 0, 0 };
@@ -157,15 +158,15 @@ bool CConf::load() {
 	//vspec v201 { &vec_specs, 28, 28, 14 };
 	//vspec v202 { &vec_specs, 28, 29, 14 };
 	//vspec v203 { &vec_specs, 28, 41, 14 };
-	vspec v204 { &vec_specs, 28, 42, 14 }; // 1.0.4
-	vspec v205 { &vec_specs, 24, 39, 15 }; // 1.0.6
+	vspec v204{ &vec_specs, 28, 42, 14 }; // 1.0.4
+	vspec v205{ &vec_specs, 24, 39, 15 }; // 1.0.6 + sqlite db
 
-	vspec* vlast = &vec_specs.at(vec_specs.size()-1);
+	vspec* vlast = &vec_specs.at(vec_specs.size() - 1);
 	vspec vLoad = { nullptr,
 		cfg_bool_entries.get_count(), cfg_int_entries.get_count(), cfg_string_entries.get_count() };
 
 	if (vLoad == v000) {
-		//fresh install
+
 		save();
 		return prepare_dbf_and_cache(false);
 	}
@@ -185,20 +186,21 @@ bool CConf::load() {
 		}
 	}
 
-	//upgrade-import
+	//ignore bres, update after loop
 	for (unsigned int i = 0; i < cfg_bool_entries.get_count(); i++) {
-		bres &= bool_load(cfg_bool_entries[i]);
+		/*bres &=*/ bool_load(cfg_bool_entries[i]);
 	}
 
+	//ignore bres, update after loop
 	for (unsigned int i = 0; i < cfg_int_entries.get_count(); i++) {
-		bres &= int_load(cfg_int_entries[i]);
+		/*bres &=*/ int_load(cfg_int_entries[i]);
 	}
 
 	if (vLoad == v204) {
 
 		bres &= prepare_dbf_and_cache(false);
-		
-		std::vector<int> vdel = { 
+
+		std::vector<int> vdel = {
 			DEPRI_CFG_PREVIEW_DIALOG_SIZE,
 			DEPRI_CFG_PREVIEW_DIALOG_POSITION,
 			DEPRI_CFG_FIND_RELEASE_DIALOG_SIZE,
@@ -214,7 +216,7 @@ bool CConf::load() {
 				if (item.id == walk_delete) {
 					cfg_int_entries.remove_item(item);
 					break;
-				}			
+				}
 			}
 		}
 
@@ -259,9 +261,9 @@ bool CConf::load() {
 	}
 	//..
 
+	//ignore bres, update after loop
 	for (unsigned int i = 0; i < cfg_string_entries.get_count(); i++) {
-
-		bres &= string_load(cfg_string_entries[i]);
+		/*bres &=*/ string_load(cfg_string_entries[i]);
 	}
 
 	if (vLoad == v204) {

@@ -56,8 +56,12 @@ public:
 		if (do_hlight)
 			RenderHLBackground(p_dc, p_itemRect, item, bkColor, strItem, m_hl_string, false);
 		else {
-			if (bfreeze)
-				RenderHLBackground(p_dc, p_itemRect, item, bkColor, strItem, m_hl_string, true);
+			if (bfreeze) {
+				pfc::bit_array_bittable selmask = GetSelectionMask();
+				bool selected = selmask.get(item);
+				if (!selected)
+					RenderHLBackground(p_dc, p_itemRect, item, bkColor, strItem, m_hl_string, true);
+			}
 		}
 	}
 
@@ -165,7 +169,17 @@ private:
 	//- Remove
 
 	bool listRemoveItems(ctx_t ctx, pfc::bit_array const& mask) override {
-		m_ptag_mappings->remove_mask(mask);
+		//remove not freezed masked
+		size_t walk = 0;
+		size_t deleted = 0;
+		while (walk = mask.find_next(true, walk, m_ptag_mappings->get_count())) {
+			if (walk >= m_ptag_mappings->get_count()) break;
+			auto entry = m_ptag_mappings->get_item(walk - deleted);
+			if (!entry.freeze_tag_name) {
+				m_ptag_mappings->remove_by_idx(walk - deleted);
+				++deleted;
+			}
+		}
 		on_mapping_changed(check_mapping_changed());
 		return true;
 	}
@@ -292,27 +306,32 @@ public:
 	bool check_mapping_changed();
 	void on_mapping_changed(bool changed);
 
+#pragma warning( push )
+#pragma warning( disable : 26454 )
+
 	MY_BEGIN_MSG_MAP(CTagMappingDialog)
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
-		COMMAND_ID_HANDLER(IDOK, OnOK)
+		COMMAND_ID_HANDLER(IDOK, OnButtonNext)
 		COMMAND_ID_HANDLER(IDC_APPLY, OnApply)
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		COMMAND_ID_HANDLER(IDC_EDIT_TAG_MATCH_HL, OnEditHLText)
-		COMMAND_ID_HANDLER(IDC_SPLIT_BTN_TAG_FILE_DEF, OnDefaults)
-		COMMAND_ID_HANDLER(IDC_IMPORT_TAGS, OnImport)
-		COMMAND_ID_HANDLER(IDC_EXPORT_TAGS, OnExport)
-		COMMAND_ID_HANDLER(IDC_SPLIT_BTN_TAG_ADD_NEW, OnAddTag)
+		COMMAND_ID_HANDLER(IDC_SPLIT_BTN_TAG_ADD_NEW, OnSplitDropDown)
+		COMMAND_ID_HANDLER(IDC_SPLIT_BTN_TAG_CAT_CREDIT, OnSplitDropDown)
+		COMMAND_ID_HANDLER(IDC_SPLIT_BTN_TAG_FILE_DEF, OnSplitDropDown)
 		COMMAND_ID_HANDLER(IDC_REMOVE_TAG, OnBtnRemoveTag)
+
+#ifdef CAT_CRED
 		COMMAND_ID_HANDLER(IDC_SPLIT_BTN_TAG_CAT_CREDIT, OnBtnCreditsClick)
-		NOTIFY_HANDLER_EX(IDC_SPLIT_BTN_TAG_FILE_DEF, BCN_DROPDOWN, OnSplitDropDown)
-		NOTIFY_HANDLER_EX(IDC_SPLIT_BTN_TAG_ADD_NEW, BCN_DROPDOWN, OnSplitDropDown)
-		NOTIFY_HANDLER_EX(IDC_SPLIT_BTN_TAG_CAT_CREDIT, BCN_DROPDOWN, OnSplitDropDown)
-		MESSAGE_HANDLER_EX(MSG_ADD_NEW, OnAddNew)
+#endif // CAT_CRED
+
+		MESSAGE_HANDLER_EX(MSG_ADD_NEW, OnAddNewTag)
 		MESSAGE_HANDLER_EX(WM_CONTEXTMENU, OnContextMenu)
 
 		CHAIN_MSG_MAP(CDialogResize<CTagMappingDialog>)
-		MY_END_MSG_MAP()
+	MY_END_MSG_MAP()
+
+#pragma warning( pop )
 
 	BEGIN_DLGRESIZE_MAP(CTagMappingDialog)
 		DLGRESIZE_CONTROL(IDC_SPLIT_BTN_TAG_FILE_DEF, DLSZ_MOVE_Y)
@@ -331,7 +350,7 @@ public:
 	}
 
 	CTagMappingDialog::CTagMappingDialog(HWND p_parent, UINT default_button = IDOK)
-		: default_button(default_button), cewb_highlight(L" Highlight Tag"), m_tag_list(this), remove_button(nullptr) {
+		: default_button(default_button), cewb_highlight(), m_tag_list(this), remove_button(nullptr) {
 
 		set_tag_mapping(copy_tag_mappings());
 	}
@@ -346,7 +365,7 @@ public:
 	}
 
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
-	LRESULT OnOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnButtonNext(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnApply(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);

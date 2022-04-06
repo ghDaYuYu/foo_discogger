@@ -27,7 +27,7 @@ VALUE "CompanyName", "dayuyu"
 VALUE "FileDescription", "Plugin for foobar2000 to access Discogs database"
 VALUE "FileVersion", DLL_VERSION_STRING "\0"
 VALUE "InternalName", COMPONENT_NAME
-VALUE "LegalCopyright", "GNU Lesser General Public License (LGPL) 2021"
+VALUE "LegalCopyright", "GNU Lesser General Public License (LGPL) " COMPONENT_YEAR "\0"
 VALUE "OriginalFilename", "foo_discogger.dll\0"
 VALUE "ProductName", COMPONENT_NAME "\0"
 VALUE "ProductVersion", DLL_VERSION_STRING "\0"

@@ -167,6 +167,27 @@ inline bool CPreviewTagsDialog::build_current_cfg() {
 	}
 
 	//skip artwork
+	
+	
+	int hi, lo;
+	hi = HIWORD(CONF.album_art_skip_default_cust); //<-- user skips artwork
+	lo = LOWORD(CONF.album_art_skip_default_cust);
+
+	const int skip_tristate = ::IsDlgButtonChecked(m_hWnd, IDC_CHECK_SKIP_ARTWORK);
+
+	switch (skip_tristate) {
+	case (BST_CHECKED):
+		hi |= ARTSAVE_SKIP_USER_FLAG;
+		break;
+	case (BST_INDETERMINATE):		
+	case (BST_UNCHECKED):
+		hi &= ~ARTSAVE_SKIP_USER_FLAG;
+		break;
+	default:
+		;
+	}
+	conf.album_art_skip_default_cust = MAKELPARAM(lo, hi);	
+
 	if (CONF.album_art_skip_default_cust != conf.album_art_skip_default_cust) {
 
 		bres |= true;
@@ -249,12 +270,31 @@ LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	bool managed_artwork = !(CONFARTWORK == uartwork(CONF));
 	LPARAM lpskip = conf.album_art_skip_default_cust;
 
-	bool lo_skip_global_defs = (LOWORD(lpskip) & ART_CUST_SKIP_DEF_FLAG) == ART_CUST_SKIP_DEF_FLAG;
-	bool hi_skip_global_defs = (HIWORD(lpskip) & ART_CUST_SKIP_DEF_FLAG) == ART_CUST_SKIP_DEF_FLAG;
+	bool user_wants_skip_artwork = HIWORD(lpskip) & ARTSAVE_SKIP_USER_FLAG;
+	if (user_wants_skip_artwork) {
+		::CheckDlgButton(m_hWnd, IDC_CHECK_SKIP_ARTWORK, BST_CHECKED);;
+	}
+	else {
 	
-	bool skip_artwork = lo_skip_global_defs | hi_skip_global_defs;
+		if (cust_wants_skip_artwork) {
+			::CheckDlgButton(m_hWnd, IDC_CHECK_SKIP_ARTWORK, BST_INDETERMINATE);;
+		}
+		else {
+			::CheckDlgButton(m_hWnd, IDC_CHECK_SKIP_ARTWORK, BST_UNCHECKED);;
+		}
+	}
 
-	uButton_SetCheck(m_hWnd, IDC_CHECK_PREV_DLG_SKIP_ARTWORK, managed_artwork || skip_artwork);
+	//..REMOVE TRI-STATE
+	SendMessage(GetDlgItem(IDC_CHECK_SKIP_ARTWORK)
+		, BM_SETSTYLE
+		, (WPARAM)0
+		, (LPARAM)0);
+
+	SendMessage(GetDlgItem(IDC_CHECK_SKIP_ARTWORK)
+		, BM_SETSTYLE
+		, (WPARAM)BS_CHECKBOX | BS_AUTOCHECKBOX
+		, (LPARAM)0);
+	//..REMOVE TRI-STATE
 
 	bool write_button_enabled = check_write_tags_status();
 	::EnableWindow(GetDlgItem(IDC_WRITE_TAGS_BUTTON), write_button_enabled);
@@ -520,16 +560,16 @@ LRESULT CPreviewTagsDialog::OnCheckReplaceANVs(WORD /*wNotifyCode*/, WORD wID, H
 
 LRESULT CPreviewTagsDialog::OnCheckSkipArtwork(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 
-	LPARAM param = conf.album_art_skip_default_cust;
-	unsigned lo = LOWORD(param);
-	unsigned hi = HIWORD(param);
+	// remove tristate style
 
-	if (IsDlgButtonChecked(IDC_CHECK_PREV_DLG_SKIP_ARTWORK))
-		lo |= ART_CUST_SKIP_DEF_FLAG;
-	else
-		lo &= ~ART_CUST_SKIP_DEF_FLAG;
-	
-	conf.album_art_skip_default_cust = MAKELPARAM(lo, hi);
+	SendMessage(GetDlgItem(IDC_CHECK_SKIP_ARTWORK)
+		, BM_SETSTYLE
+		, (WPARAM)0
+		, (LPARAM)0);
+	SendMessage(GetDlgItem(IDC_CHECK_SKIP_ARTWORK)
+		, BM_SETSTYLE
+		, (WPARAM)BS_CHECKBOX | BS_AUTOCHECKBOX
+		, (LPARAM)0);
 
 	return FALSE;
 }

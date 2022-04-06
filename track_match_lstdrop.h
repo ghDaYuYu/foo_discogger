@@ -53,9 +53,13 @@ public:
 		m_colors[2] = m_color_highlight;
 	}
 
-	void SetNotifier(std::function<bool(HWND)>update_notifier) {
+    //todo: rev proper imp
+	void SetNotifier(std::function<bool(HWND, size_t)>update_notifier) {
 		stdf_change_notifier = update_notifier;
 	}
+
+#pragma warning( push )
+#pragma warning( disable : 26454 )
 
 	BEGIN_MSG_MAP(CMatchListMdrvImpl)
 		
@@ -68,6 +72,8 @@ public:
 		NOTIFY_HANDLER(IDC_DISCOGS_TRACK_LIST, NM_CUSTOMDRAW, OnCustomDraw)
 		NOTIFY_HANDLER(IDC_FILE_LIST, NM_CUSTOMDRAW, OnCustomDraw)
 		END_MSG_MAP()
+
+#pragma warning( pop )
 
 protected:
 
@@ -192,112 +198,8 @@ protected:
                     {	// OK
                         
                         std::vector<size_t> vorder(ListView_GetItemCount(wndlist));
+						stdf_change_notifier(wndlist, lvhti.iItem);
 
-                        size_t c = 0;
-                        for (auto & walk : vorder) {
-                        	walk = c; c++;
-                        }
-                        
-                        // Rearrange the items
-                        int iPos = ListView_GetNextItem(wndlist, -1, LVNI_SELECTED);
-                        int cSel = ListView_GetSelectedCount(wndlist);
-                        TCHAR szbuf[1024];
-                        size_t lastPos = ~0; size_t moveForwards = 0; size_t deletions = 0;
-                        bool fwd = iPos < m_itemTarget;
-                        while (iPos != -1) {
-                            // First, copy one item
-                            lvi.iItem = iPos;
-                            lvi.iSubItem = 0;
-                            lvi.cchTextMax = 1024;
-                            lvi.pszText = szbuf;
-                            lvi.stateMask = ~LVIS_SELECTED;
-                            lvi.mask = LVIF_STATE | LVIF_IMAGE
-                                | LVIF_INDENT | LVIF_PARAM | LVIF_TEXT;
-                            ListView_GetItem(wndlist, &lvi);
-                            lvi.iItem = bPastLast ? lcount : lvhti.iItem;
-                            // Insert the main item
-                            int iRet = ListView_InsertItem(wndlist, &lvi);
-
-                            vorder.insert(vorder.begin() + (iRet), vorder[iPos]); // .insert(vorder.begin() + bPastLast ? lcount : lvhti.iItem, 3);
-    
-                            if (lvi.iItem < iPos)
-                                lvhti.iItem++;
-                            if (iRet <= iPos)
-                                iPos++;
-
-                            // Set subitem text
-                            int JOB_WIN_COLUMN_NUM = 2;
-                            
-                            /*for (int i = 1; i < JOB_WIN_COLUMN_NUM; i++) {
-                                ListView_GetItemText(wndlist, iPos,
-                                    i, szbuf, 1024);
-                                ListView_SetItemText(wndlist, iRet, i, szbuf);
-                            }*/
-                            
-                            // Delete from original position
-                            ListView_DeleteItem(wndlist, iPos);
-
-                            vorder.erase(vorder.begin() + iPos);
-                            deletions++;
-                            iPos = ListView_GetNextItem(wndlist, -1, LVNI_SELECTED);
-                        }
-
-                        pfc::array_t<size_t> order;
-                        order.resize(vorder.size());
-
-                        for (size_t i = 0; i < order.size(); i++) {
-                            order[i] = vorder[i];
-                        }
-
-                        t_size preorderfocus = ListView_GetFocusItem(wndlist);
-
-                        m_coord->reorder_map_elements(wndlist, &order[0], order.size(), lsmode::art);
-
-                        //bit_array_bittable done; done.resize(order.size());
-                        //size_t ifocus = ~0;
-
-                        for (size_t walk = 0; walk < order.size(); walk++) {
-                        //	//LV_ITEM lvitem = {};
-                        //	if (order[walk] != walk && !done[order[walk]]) {
-                        //		done.set(walk, true);
-                        //		//lvitem.iItem = walk; // order[walk];
-                        //		m_coord->swap_map_elements(wndlist, walk, order[walk], lsmode::art);
-                        //		//lvitem.state |= (LVIS_SELECTED | (ifocus == ~0 ? LVIS_FOCUSED : 0));
-                        //		//ifocus = walk;
-                        //	}
-                        //	//else {
-                        //	//	lvitem.iItem = walk;
-                        //	//	lvitem.state &= ~(LVIS_SELECTED | LVIS_FOCUSED);
-                        //	//}
-                        //	//lvitem.mask = LVIF_STATE;
-                        //	//ListView_SetItem(wndlist, &lvitem);
-
-                            ListView_SetItemState(wndlist, walk,
-                                ~(LVNI_SELECTED | LVNI_FOCUSED),
-                                LVIS_SELECTED | LVIS_FOCUSED);
-                        }
-
-                        //ListView_DeleteAllItems(wndlist);
-                        ListView_RedrawItems(wndlist, 0, ListView_GetItemCount(wndlist));
-                        
-                        //b_drag_res = TRUE;
-
-                        //Reselect and focus
-                        if (m_itemTarget != -1) {
-
-                            size_t postorderfocus = order[preorderfocus];
-
-                            for (int walk = 0; walk < cSel; walk++) {
-                                ListView_SetItemState(wndlist, m_itemTarget + walk,
-                                    //LVNI_SELECTED | (walk == postorderfocus ? LVNI_FOCUSED : 0),									
-                                    //LVIS_SELECTED | (walk == postorderfocus ? LVIS_FOCUSED : 0));
-                                    LVNI_SELECTED | (!walk ? LVNI_FOCUSED : 0),
-                                    LVIS_SELECTED | (!walk ? LVIS_FOCUSED : 0));
-                            }
-
-                            //update_match_message_display(match_manual);
-                            stdf_change_notifier(wndlist);
-                        }
                     }
                 }
             }

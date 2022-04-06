@@ -86,23 +86,6 @@ LRESULT CTagMappingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM
 	SetIcon(g_discogs->icon);
 	conf = CONF;
 
-	INITCOMMONCONTROLSEX icex;
-	icex.dwSize = sizeof(icex);
-	icex.dwICC = ICC_LISTVIEW_CLASSES;
-	InitCommonControlsEx(&icex);
-
-	HWND tag_split_default = GetDlgItem(IDC_SPLIT_BTN_TAG_FILE_DEF);
-	BUTTON_SPLITINFO MyInfo;
-	MyInfo.mask = BCSIF_STYLE;
-	MyInfo.uSplitStyle = BCSS_STRETCH;
-	Button_SetSplitInfo(tag_split_default, &MyInfo); // Send the BCM_SETSPLITINFO message to the control.
-
-	HWND tag_split_add_new = GetDlgItem(IDC_SPLIT_BTN_TAG_ADD_NEW);
-	Button_SetSplitInfo(tag_split_add_new, &MyInfo); // Send the BCM_SETSPLITINFO message to the control.
-
-	HWND tag_split_cat_credits = GetDlgItem(IDC_SPLIT_BTN_TAG_CAT_CREDIT);
-	Button_SetSplitInfo(tag_split_cat_credits, &MyInfo); // Send the BCM_SETSPLITINFO message to the control.
-
 	db_fetcher_component db;
 
 #ifdef CAT_CRED
@@ -140,11 +123,53 @@ LRESULT CTagMappingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM
 	return FALSE;
 }
 
-void CTagMappingDialog::update_tag(int pos, const tag_mapping_entry *entry) {
-	tag_mapping_entry& dbgentry = (*m_ptag_mappings)[pos];
-	m_ptag_mappings->replace_item(pos, *entry);
-	m_tag_list.InvalidateRect(m_tag_list.GetItemRect(pos), true);
-	on_mapping_changed(check_mapping_changed());
+bool CTagMappingDialog::update_tag(int pos, const tag_mapping_entry *entry) {
+	if (!(*m_ptag_mappings)[pos].equals(*entry)) {
+		m_ptag_mappings->replace_item(pos, *entry);
+		m_tag_list.InvalidateRect(m_tag_list.GetItemRect(pos), true);
+		return true;
+	}
+	return false;
+}
+
+bool CTagMappingDialog::update_freezer(int pos, bool enable_write, bool enable_update) {
+
+	bool bchanged = false;
+	tag_mapping_entry& entry = (*m_ptag_mappings)[pos];
+
+	if (!STR_EQUAL(TAG_RELEASE_ID, entry.tag_name.get_ptr())) {
+		if (!(entry.enable_write == enable_write) &&
+			!(entry.enable_update == enable_update)) {
+			entry.enable_write = enable_write;
+			entry.enable_update = enable_update;
+			update_tag(pos, &entry);
+			return true;
+		}
+		return false;
+	}
+
+	for (size_t walk = 0; walk < m_ptag_mappings->get_count(); walk++) {
+		tag_mapping_entry& entry = (*m_ptag_mappings)[walk];
+		bool bwalk_update = false;
+		if (entry.freeze_tag_name) {
+			if (STR_EQUAL(TAG_RELEASE_ID, entry.tag_name.get_ptr())) {
+				if (!enable_write)
+					break;
+			}
+			bwalk_update = entry.enable_write != enable_write;
+			bwalk_update |= entry.enable_update != enable_update;
+
+			if (bwalk_update) {				
+				entry.enable_write = enable_write;
+				entry.enable_update = enable_update;
+			}
+		}
+		if (bwalk_update) {
+			m_tag_list.InvalidateRect(m_tag_list.GetItemRect(walk), true);
+			bchanged |= bwalk_update;
+		}
+	}
+	return bchanged;
 }
 
 void CTagMappingDialog::update_list_width() {
@@ -324,7 +349,7 @@ LRESULT CTagMappingDialog::OnAddTag(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndC
 	return FALSE;
 }
 
-LRESULT CTagMappingDialog::OnAddNew(UINT, WPARAM wparam, LPARAM) {
+LRESULT CTagMappingDialog::OnAddNewTag(UINT, WPARAM wparam, LPARAM) {
 
 	tag_mapping_entry * entry;
 
@@ -354,41 +379,6 @@ LRESULT CTagMappingDialog::OnAddNew(UINT, WPARAM wparam, LPARAM) {
 	on_mapping_changed(check_mapping_changed());
 	return FALSE;
 }
-
-void CTagMappingDialog::update_freezer(bool enable_write, bool enable_update) {
-
-	for (size_t walk = 0; walk < m_ptag_mappings->get_count(); walk++) {
-		tag_mapping_entry& entry = (*m_ptag_mappings)[walk];
-
-		bool bupdate = false;
-		if (STR_EQUAL(TAG_RELEASE_ID, entry.tag_name.get_ptr())) {
-			entry.enable_write = enable_write;
-			entry.enable_update = enable_update;
-			bupdate = true;
-		}
-		else if (STR_EQUAL(TAG_MASTER_RELEASE_ID, entry.tag_name.get_ptr())) {
-
-			entry.enable_write = enable_write;
-			entry.enable_update = enable_update;
-			bupdate = true;
-		}
-		else if (STR_EQUAL(TAG_ARTIST_ID, entry.tag_name.get_ptr())) {
-
-			entry.enable_write = enable_write;
-			entry.enable_update = enable_update;
-			bupdate = true;
-		}
-		else if (STR_EQUAL(TAG_LABEL_ID, entry.tag_name.get_ptr())) {
-
-			entry.enable_write = enable_write;
-			entry.enable_update = enable_update;
-			bupdate = true;
-
-		}
-	}
-}
-
-//#define DISABLED_RGB	RGB(150, 150, 150)
 
 LRESULT CTagMappingDialog::OnEditHLText(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& /*bHandled*/) {
 	
@@ -439,7 +429,8 @@ void CTagMappingDialog::show_context_menu(CPoint& pt, pfc::bit_array_bittable& s
 		WIN32_OP(menu.CreatePopupMenu());
 		enum
 		{
-			ID_WRITE = 1,
+			ID_SEL_COUNT = 1,
+			ID_WRITE,
 			ID_UPDATE,
 			ID_UPDATE_AND_WRITE,
 			ID_DISABLE,
@@ -447,36 +438,56 @@ void CTagMappingDialog::show_context_menu(CPoint& pt, pfc::bit_array_bittable& s
 		};
 
 		size_t csel = m_tag_list.GetSelectedCount();
-		if (csel >= 0) {
-			bool single_sel = (csel == 1);
-			size_t isel = selmask.find_first(true, 0, m_tag_list.GetItemCount());
-			tag_mapping_entry entry = m_ptag_mappings->get_item(isel);
+		size_t isel = selmask.find_first(true, 0, m_tag_list.GetItemCount());
+		if (isel >= m_tag_list.GetItemCount()) return;
+		bool ball_freezed = [this, selmask]()->bool
+		{
+			size_t sel = selmask.find_first(true, 0, m_tag_list.GetItemCount());
+			do {
+				tag_mapping_entry tmp_entry = m_ptag_mappings->get_item(sel);
+				if (!tmp_entry.freeze_tag_name) {
+					return false;					
+				}
+				sel = selmask.find_next(true, sel, m_tag_list.GetItemCount());
+			} while (sel < m_tag_list.GetItemCount());
+			return true;
+		}();
 
+		if (csel >= 0 && isel < m_ptag_mappings->get_count()) {
+			bool single_sel = (csel == 1);
+			tag_mapping_entry entry = m_ptag_mappings->get_item(isel);
+			
+			//checkmarks (only single item selections)
 			bool sop_w, sop_u, sop_wu, sop_nwu;
-			sop_w = sop_u = sop_wu = sop_nwu = single_sel;
+			sop_w = sop_u = sop_wu = sop_nwu = single_sel; 
 			sop_w &= entry.enable_write && !entry.enable_update;
 			sop_u &= !entry.enable_write && entry.enable_update;
 			sop_wu &= entry.enable_write && entry.enable_update;
 			sop_nwu &= !entry.enable_write && !entry.enable_update;
 
+			bool release_id_mod = single_sel && STR_EQUAL(TAG_RELEASE_ID, entry.tag_name.get_ptr());
+			bool frozen_mod = single_sel && entry.freeze_tag_name;
 			bool nfsop_w, nfsop_u, nfsop_wu, nfsop_nwu;
-			nfsop_w = nfsop_u = nfsop_wu = nfsop_nwu = single_sel;
-			nfsop_w &= (!bshift && entry.freeze_tag_name);//&& entry.freeze_write;
-			nfsop_u &= (!bshift && entry.freeze_tag_name);//&& entry.freeze_update;
-			nfsop_wu &= (!bshift && entry.freeze_tag_name);//&& entry.freeze_update&& entry.freeze_write;
-			nfsop_nwu &= (entry.freeze_tag_name); //&& entry.freeze_update&& entry.freeze_write;
-
-			menu.AppendMenu(MF_STRING | (sop_w ? MF_CHECKED : 0) | (nfsop_w ? MF_DISABLED : 0), ID_WRITE, TEXT("&Write\tW"));
-			menu.AppendMenu(MF_STRING | (sop_u ? MF_CHECKED : 0) | (nfsop_u ? MF_DISABLED : 0), ID_UPDATE, TEXT("&Update\tU"));
-			menu.AppendMenu(MF_STRING | (sop_wu ? MF_CHECKED : 0) |	(nfsop_wu ? MF_DISABLED : 0), ID_UPDATE_AND_WRITE, TEXT("Write and upd&ate\tA"));
-			menu.AppendMenu(MF_STRING | (sop_nwu ? MF_CHECKED : 0) | (nfsop_nwu ? MF_DISABLED : 0), ID_DISABLE, TEXT("&Disable\tD"));
+			nfsop_w = nfsop_u = nfsop_wu = nfsop_nwu = !bshift && (release_id_mod || frozen_mod);
+			nfsop_u |= release_id_mod;
+			nfsop_nwu |= release_id_mod;
+			
+			if (csel > 1) {
+				const pfc::stringcvt::string_os_from_utf8 lbl(PFC_string_formatter() << csel << " items selected");
+				menu.AppendMenu(MF_STRING | MF_DISABLED | MF_GRAYED, ID_SEL_COUNT, lbl);
+				menu.AppendMenu(MF_SEPARATOR);
+			}
+			menu.AppendMenu(MF_STRING | (sop_w ? MF_CHECKED : 0) | (nfsop_w ? MF_DISABLED | MF_GRAYED : 0), ID_WRITE, TEXT("&Write\tW"));
+			menu.AppendMenu(MF_STRING | (sop_u ? MF_CHECKED : 0) | (nfsop_u ? MF_DISABLED | MF_GRAYED : 0), ID_UPDATE, TEXT("&Update\tU"));
+			menu.AppendMenu(MF_STRING | (sop_wu ? MF_CHECKED : 0) |	(nfsop_wu ? MF_DISABLED | MF_GRAYED : 0), ID_UPDATE_AND_WRITE, TEXT("Write and upd&ate\tA"));
+			menu.AppendMenu(MF_STRING | (sop_nwu ? MF_CHECKED : 0) | (nfsop_nwu ? MF_DISABLED | MF_GRAYED : 0), ID_DISABLE, TEXT("&Disable\tD"));
 			
 			//restore item default titleformat menu option
 			if (single_sel && !entry.freeze_tag_name) {
 				pfc::string8 default_value = get_default_tag(entry.tag_name);
 				if (default_value.get_length()) {
 					menu.AppendMenu(MF_SEPARATOR);
-					menu.AppendMenu(MF_STRING | (STR_EQUAL(default_value, entry.formatting_script) ? MF_DISABLED : 0),
+					menu.AppendMenu(MF_STRING | ((csel == 1) && (STR_EQUAL(default_value, entry.formatting_script))  ? MF_DISABLED | MF_GRAYED : 0),
 						ID_RESTORE, TEXT("&Restore default item script\tR"));
 				}
 			}
@@ -488,8 +499,9 @@ void CTagMappingDialog::show_context_menu(CPoint& pt, pfc::bit_array_bittable& s
 			receiver.Set(ID_UPDATE_AND_WRITE, "Write and update tag.");
 			receiver.Set(ID_DISABLE, "Do not write or update tag.");
 
-			cmd = menu.TrackPopupMenu(TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, pt.x, pt.y, receiver);
+			cmd = menu.TrackPopupMenu(TPM_LEFTBUTTON | TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, pt.x, pt.y, receiver);
 
+			bool bchanged = false;
 			bool bloop, bl_write, bl_update;
 			bloop = bl_write = bl_update = false;
 
@@ -500,8 +512,7 @@ void CTagMappingDialog::show_context_menu(CPoint& pt, pfc::bit_array_bittable& s
 					pfc::string8 default_value = get_default_tag(entry.tag_name);
 					if (default_value.get_length()) {
 						entry.formatting_script = default_value;
-						update_tag(isel, &entry);
-						//refresh_item(selection);
+						bchanged = update_tag(isel, &entry);
 					}					
 				}
 				break;
@@ -527,23 +538,27 @@ void CTagMappingDialog::show_context_menu(CPoint& pt, pfc::bit_array_bittable& s
 				break;
 			}
 
-			if (bloop) {
+			if (bloop && !(cmd == ID_RESTORE && (csel >= 1))) {
 				do {
 					entry = m_ptag_mappings->get_item(isel);
-
-					if (STR_EQUAL(TAG_RELEASE_ID, entry.tag_name)) {
-						if (bshift && (bl_write || bl_update))
-							update_freezer(bl_write, bl_update);
-					}
-					else {
+					release_id_mod = STR_EQUAL(TAG_RELEASE_ID, entry.tag_name.get_ptr()) && !bl_write;
+					if ((entry.freeze_tag_name && bshift && !release_id_mod) || !entry.freeze_tag_name) {
 						entry.enable_write = bl_write;
 						entry.enable_update = bl_update;
+						bchanged |= update_tag(isel, &entry);
 					}
-					update_tag(isel, &entry);
+					else {
+						if (bshift && release_id_mod) {
+							entry.enable_write = true;
+							entry.enable_update = false;
+							bchanged |= update_tag(isel, &entry);
+						}
+					}
 					isel = selmask.find_next(true, isel, m_tag_list.GetItemCount());
-
 				} while (isel < m_tag_list.GetItemCount());
 			}
+			
+			if (bchanged) on_mapping_changed(check_mapping_changed());
 		}
 	}
 	catch (std::exception const& e) {
@@ -551,20 +566,21 @@ void CTagMappingDialog::show_context_menu(CPoint& pt, pfc::bit_array_bittable& s
 	}
 }
 
-LRESULT CTagMappingDialog::OnSplitDropDown(LPNMHDR lParam) {
-	NMBCDROPDOWN* pDropDown = (NMBCDROPDOWN*)lParam;
+LRESULT CTagMappingDialog::OnSplitDropDown(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& /*bHandled*/) {
 
-	//default/import/export split button
-	if (pDropDown->hdr.hwndFrom == GetDlgItem(IDC_SPLIT_BTN_TAG_FILE_DEF))
+	CRect rcButton;
+	::GetWindowRect(hWndCtl, rcButton);
+
+	if (wID == IDC_SPLIT_BTN_TAG_FILE_DEF)
 	{
 		POINT pt;
-		pt.x = pDropDown->rcButton.left;
-		pt.y = pDropDown->rcButton.bottom;
-		::ClientToScreen(pDropDown->hdr.hwndFrom, &pt);
+		pt.x = rcButton.left;
+		pt.y = rcButton.bottom;
 
-		enum { MENU_EXPORT = 1, MENU_IMPORT, MENU_SUB_A = 100, MENU_SUB_B = 200 };
+		enum { MENU_DEFAULT = 1, MENU_EXPORT , MENU_IMPORT };
 		HMENU hSplitMenu = CreatePopupMenu();
 
+		AppendMenu(hSplitMenu, MF_STRING, MENU_DEFAULT, L"Restore defaults");
 		AppendMenu(hSplitMenu, MF_STRING, MENU_EXPORT, L"Export...");
 		AppendMenu(hSplitMenu, MF_STRING, MENU_IMPORT, L"Import...");
 
@@ -573,7 +589,10 @@ LRESULT CTagMappingDialog::OnSplitDropDown(LPNMHDR lParam) {
 
 		switch (cmd)
 		{
-			BOOL bDummy;
+		BOOL bDummy;
+		case MENU_DEFAULT:
+			OnDefaults(0, 0, NULL, bDummy);
+			break;
 		case MENU_IMPORT:
 			OnImport(0, 0, NULL, bDummy);
 			break;
@@ -582,14 +601,14 @@ LRESULT CTagMappingDialog::OnSplitDropDown(LPNMHDR lParam) {
 			break;
 		}
 	}
-	//add new tag split button
-	else if (pDropDown->hdr.hwndFrom == GetDlgItem(IDC_SPLIT_BTN_TAG_ADD_NEW)) {
+	else if (wID == IDC_SPLIT_BTN_TAG_ADD_NEW) {
+
 		POINT pt;
-		pt.x = pDropDown->rcButton.left;
-		pt.y = pDropDown->rcButton.bottom;
-		::ClientToScreen(pDropDown->hdr.hwndFrom, &pt);
+		pt.x = rcButton.left;
+		pt.y = rcButton.bottom;
 
 		enum {
+			MENU_ADD_NEW = 1,
 			MENU_SUB_A = 100, MENU_SUB_B = 200,
 			MENU_SUB_C = 300, MENU_SUB_D = 400,
 			MENU_SUB_E = 500, MENU_SUB_F = 600,
@@ -597,7 +616,7 @@ LRESULT CTagMappingDialog::OnSplitDropDown(LPNMHDR lParam) {
 		};
 
 		HMENU hSplitMenu = CreatePopupMenu();
-
+		AppendMenu(hSplitMenu, MF_STRING, MENU_ADD_NEW, L"<Add new>");
 		size_t csubmenus = 8;
 		LPWSTR submenus_data[8] = {
 			_T("Basic"), _T("Label"),
@@ -694,6 +713,7 @@ LRESULT CTagMappingDialog::OnSplitDropDown(LPNMHDR lParam) {
 
 		int cmd = TrackPopupMenu(hSplitMenu, TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RETURNCMD, pt.x, pt.y, 0, m_hWnd, NULL);
 		DestroyMenu(hSplitMenu);
+		
 		if (cmd) {
 
 			//convert cmd to message param

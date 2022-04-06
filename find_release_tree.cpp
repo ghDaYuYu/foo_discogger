@@ -488,7 +488,7 @@ std::pair<rppair_t, rppair_t> CFindReleaseTree::update_releases(const pfc::strin
 		Artist_ptr artist = get_artist();
 
 		rppair rp = rppair(std::pair(std::to_string(res.second.first.first).c_str(), std::to_string(res.second.first.second).c_str()),
-			std::pair(artist->name, ""));
+			std::pair(artist->name, artist->id));
 
 		//root stats
 		if (artist->loaded_releases)
@@ -727,9 +727,8 @@ rppair_t release_tree_cache::init_filter(const Artist_ptr artist, pfc::string8 f
 
 	titleformat_hook_impl_multiformat_ptr hook = m_rt_manager->get_hook();
 
-	foo_conf cfg = m_rt_manager->m_dlg->config();
-	bool bversions_filter = cfg.find_release_filter_flag & FilterFlag::Versions;
-	bool brolemain_filter = cfg.find_release_filter_flag & FilterFlag::RoleMain;
+	bool bversions_filter = get_conf()->find_release_filter_flag & FilterFlag::Versions;
+	bool brolemain_filter = get_conf()->find_release_filter_flag & FilterFlag::RoleMain;
 
 	std::pair<t_size, t_size> reserve = std::pair(0, 0);
 	if (no_alloc) {
@@ -2162,10 +2161,23 @@ void CFindReleaseTree::context_menu(size_t param_mr, POINT screen_pos) {
 		enum { ID_VIEW_PAGE = 1, ID_CLP_COPY_TITLE, ID_CLP_COPY_ROW, ID_DLG_CLEAR_FILTER, ID_DLG_FILTER_TOGGLE,  ID_DLG_MAIN_ROLE_TOGGLE };
 		HMENU menu = CreatePopupMenu();
 
+		foo_conf cfg = m_dlg->config();
+		bool enabled_versions = cfg.find_release_filter_flag & FilterFlag::Versions;
+		bool enabled_rolemain = cfg.find_release_filter_flag & FilterFlag::RoleMain;
+		bool enabled_filter = uGetDlgItemText(m_dlg->m_hWnd, IDC_FILTER_EDIT).get_length();
+
 		if (!empty_sel) {
-		
+
 			uAppendMenu(menu, MF_STRING, ID_VIEW_PAGE, sourcepage);
 			uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+		}
+
+		uAppendMenu(menu, MF_STRING | (enabled_versions ? MF_CHECKED: 0), ID_DLG_FILTER_TOGGLE, filterversions);
+		uAppendMenu(menu, MF_STRING | (enabled_rolemain ? MF_CHECKED : 0), ID_DLG_MAIN_ROLE_TOGGLE, mainrole);
+		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+
+		if (!empty_sel) {
+
 			uAppendMenu(menu, MF_STRING, ID_CLP_COPY_TITLE, copytitle);
 			uAppendMenu(menu, MF_STRING, ID_CLP_COPY_ROW, copyrow);
 		}
@@ -2175,16 +2187,7 @@ void CFindReleaseTree::context_menu(size_t param_mr, POINT screen_pos) {
 
 		}
 
-		foo_conf cfg = m_dlg->config();
-		bool enabled_versions = cfg.find_release_filter_flag & FilterFlag::Versions;
-		bool enabled_rolemain = cfg.find_release_filter_flag & FilterFlag::RoleMain;
-		bool enabled_filter = uGetDlgItemText(m_dlg->m_hWnd, IDC_FILTER_EDIT).get_length();
-
 		uAppendMenu(menu, MF_STRING | (enabled_filter ? 0 : MF_DISABLED | MF_GRAYED), ID_DLG_CLEAR_FILTER, clearfilter);
-		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
-		uAppendMenu(menu, MF_STRING | (enabled_versions ? MF_CHECKED: 0), ID_DLG_FILTER_TOGGLE, filterversions);
-		uAppendMenu(menu, MF_STRING | (enabled_rolemain ? MF_CHECKED : 0), ID_DLG_MAIN_ROLE_TOGGLE, mainrole);
-
 
 		int cmd = TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD,
 			screen_pos.x, screen_pos.y, 0, core_api::get_main_window(), 0);

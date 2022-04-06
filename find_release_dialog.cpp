@@ -153,7 +153,8 @@ void CFindReleaseDialog::init_cfged_dialog_controls() {
 	else {
 		
 		pfc::string8 artist_name = m_alist.Get_Artist() ? m_alist.Get_Artist()->name : "";
-		rppair row_stats{ std::pair("",""), std::pair(artist_name,"") };
+		pfc::string8 artist_id = m_alist.Get_Artist() ? m_alist.Get_Artist()->id : "";
+		rppair row_stats{ std::pair("",""), std::pair(artist_name, artist_id) };
 		//do not overwrite
 		print_root_stats(row_stats, /*overwrite*/ !m_row_stats.second.first.get_length());
 	}
@@ -247,6 +248,8 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	cewb_release_filter.SetEnterEscHandlers();
 	cewb_artist_search.SetEnterEscHandlers();
 	cewb_release_url.SetEnterEscHandlers();
+
+	artist_link.SubclassWindow(GetDlgItem(IDC_STATIC_FIND_REL_STATS));
 
 	// init cfged
 
@@ -932,21 +935,31 @@ void CFindReleaseDialog::print_root_stats(rppair root_stats, bool save) {
 
 	pfc::string8 stat_msg = "";
 
-	if (root_stats.second.first.get_length()) {
-		stat_msg << "showing: ";
-		stat_msg << EscapeWin(root_stats.second.first);
 
-		if (conf.find_release_dlg_flags & FLG_SHOW_RELEASE_TREE_STATS) {
-			int tot = atoi(root_stats.first.first) + atoi(root_stats.first.second);
-			stat_msg << ", root size: " << + tot;
-			stat_msg << " - masters: " << root_stats.first.first;
-		}
+	if (conf.find_release_dlg_flags & FLG_SHOW_RELEASE_TREE_STATS) {
+
+		//in-dlg
+		int tot = atoi(root_stats.first.first) + atoi(root_stats.first.second);
+		stat_msg << "Found: " << + tot;
+		stat_msg << "- Masters: " << root_stats.first.first;
+	}
+
+	if (root_stats.second.first.get_length()) {
+
+		pfc::string8 url("https://www.discogs.com/artist/");
+		url << root_stats.second.second;
+		pfc::stringcvt::string_wide_from_utf8 wtext(url.get_ptr());
+		artist_link.SetHyperLink((LPCTSTR)const_cast<wchar_t*>(wtext.get_ptr()));
+		wtext.convert(root_stats.second.first);
+		artist_link.SetLabel(wtext.get_ptr());
+		CRect rc; ::GetWindowRect(artist_link, &rc);
+		artist_link.RedrawWindow(0, 0, RDW_INVALIDATE);
 	}
 	else {
-		stat_msg = "Enter key or double click on artists to load releases.";
+		stat_msg = "";
 	}
 
-	uSetDlgItemText(m_hWnd, IDC_STATIC_FIND_REL_STATS, stat_msg);
+	uSetDlgItemText(m_hWnd, IDC_STATIC_FIND_REL_STATS_EXT, stat_msg);
 
 	if (save)
 		m_row_stats = root_stats;
@@ -985,4 +998,13 @@ bool CFindReleaseDialog::add_history(oplog_type optype, std::string cmd, pfc::st
 
 bool CFindReleaseDialog::add_history(oplog_type optype, std::string cmd, rppair row) {
 	return add_history(optype, cmd, row.first.first, row.first.second, row.second.first, row.second.second);
+}
+
+bool CFindReleaseDialog::Set_Config_Flag(int ID, int flag, bool flagvalue) {
+	
+	FlgMng fv_stats;
+	conf.GetFlagVar(ID, fv_stats);
+	
+	fv_stats.SetFlag(FLG_SHOW_RELEASE_TREE_STATS, flagvalue);
+	return true;
 }

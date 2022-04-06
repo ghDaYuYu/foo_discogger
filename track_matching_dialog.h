@@ -78,7 +78,7 @@ private:
 	void update_list_width(HWND list, bool initialize=false);
 	bool track_context_menu(HWND wnd, LPARAM coords);
 	bool track_url_context_menu(HWND wnd, LPARAM coords);
-	bool switch_context_menu(HWND wnd, POINT point, bool isfiles, int cmd, bit_array_bittable selmask, CListControlOwnerData* ilist);
+	bool switch_context_menu(HWND wnd, POINT point, bool isfiles, int cmd, bit_array_bittable selmask, pfc::array_t<t_size> order, CListControlOwnerData* ilist);
 	void attrib_menu_command(HWND wnd, af afalbum, af afart, UINT IDATT, lsmode mode);
 	bool append_art_context_menu(HWND wnd, HMENU* menu);
 
@@ -88,10 +88,16 @@ protected:
 
 public:
 
-	std::function<bool(HWND wndlist)>stdf_change_notifier =
+	std::function<bool(HWND wndlist, size_t item)>stdf_change_notifier =
 		//todo: revise, modded after cross referenced credit tag mapping
-		[this](HWND x) -> bool {
-		match_message_update();
+		[this](HWND x, size_t i) -> bool {
+
+
+		NMLVKEYDOWN info;
+		info.wVKey = 0x9F; //todo: remove hack, do proper imp
+		info.flags = i;
+		list_key_down(x, (LPNMHDR)&info);
+
 		return true; };
 
 	virtual BOOL PreTranslateMessage(MSG* pMsg) override {
@@ -107,7 +113,7 @@ public:
 		MESSAGE_HANDLER(WM_CTLCOLORSTATIC, OnColorStatic)
 		MESSAGE_HANDLER(WM_RBUTTONUP, OnRButtonUp)
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
-		COMMAND_ID_HANDLER(IDC_CHECK_PREV_DLG_SKIP_ARTWORK, OnCheckSkipArtwork)
+		COMMAND_ID_HANDLER(IDC_CHECK_SKIP_ARTWORK, OnCheckSkipArtwork)
 		NOTIFY_HANDLER_EX(IDC_FILE_LIST, NM_RCLICK, OnListRClick)
 		NOTIFY_HANDLER_EX(IDC_FILE_LIST, NM_DBLCLK, OnListDBLClick)
 		NOTIFY_HANDLER_EX(IDC_DISCOGS_TRACK_LIST, NM_DBLCLK, OnListDBLClick)
@@ -118,12 +124,13 @@ public:
 		NOTIFY_HANDLER_EX(IDC_DISCOGS_TRACK_LIST, LVN_KEYDOWN, OnListKeyDown)
 		NOTIFY_HANDLER_EX(IDC_DISCOGS_TRACK_LIST, LVN_GETDISPINFO, OnDiscogListGetDispInfo)
 		NOTIFY_HANDLER_EX(IDC_FILE_LIST, LVN_GETDISPINFO, OnDiscogListGetDispInfo)
-		COMMAND_ID_HANDLER(IDC_PREVIEW_TAGS_BUTTON, OnPreviewTags)
-		COMMAND_ID_HANDLER(IDC_WRITE_TAGS_BUTTON, OnWriteTags)
+		COMMAND_ID_HANDLER(IDC_PREVIEW_TAGS_BUTTON, OnButtonPreviewTags)
+		COMMAND_ID_HANDLER(IDC_WRITE_TAGS_BUTTON, OnButtonWriteTags)
 		COMMAND_ID_HANDLER(IDC_BACK_BUTTON, OnButtonBack)
-		COMMAND_ID_HANDLER(IDC_BTN_TRACK_MATCH_WRITE_ARTWORK, OnWriteArtwork)
+		COMMAND_ID_HANDLER(IDC_BTN_TRACK_MATCH_WRITE_ARTWORK, OnButtonWriteArtwork)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		MESSAGE_HANDLER(WM_COMMAND, OnCommand)
+		CHAIN_MSG_MAP_MEMBER(m_list_drop_handler)
 		CHAIN_MSG_MAP(CDialogResize<CTrackMatchingDialog>)
 	MY_END_MSG_MAP()
 
@@ -134,22 +141,15 @@ public:
 		DLGRESIZE_CONTROL(IDC_FILE_LIST, DLSZ_SIZE_Y)
 		DLGRESIZE_CONTROL(IDC_STATIC_MATCH_TRACKING_REL_NAME, DLSZ_MOVE_Y)
 		BEGIN_DLGRESIZE_GROUP()
-		DLGRESIZE_CONTROL(IDC_STATIC_FILE_LST_TITLE, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_DISCOGS_TRACK_LIST, DLSZ_SIZE_X)
 		DLGRESIZE_CONTROL(IDC_FILE_LIST, DLSZ_SIZE_X)
 		END_DLGRESIZE_GROUP()
 		DLGRESIZE_CONTROL(IDC_STATIC_MATCH_TRACKING_REL_NAME, DLSZ_SIZE_X)
 		DLGRESIZE_CONTROL(IDC_MATCH_TRACKS_MSG, DLSZ_MOVE_X | DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDC_BTN_TRACK_MATCH_WRITE_ARTWORK, DLSZ_MOVE_X | DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDC_BACK_BUTTON, DLSZ_MOVE_X | DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDC_PREVIEW_TAGS_BUTTON, DLSZ_MOVE_X | DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDC_WRITE_TAGS_BUTTON, DLSZ_MOVE_X | DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDC_PREVIOUS_BUTTON, DLSZ_MOVE_X | DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDC_NEXT_BUTTON, DLSZ_MOVE_X | DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDCANCEL, DLSZ_MOVE_X | DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDC_SKIP_BUTTON, DLSZ_MOVE_X | DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDC_CHECK_PREV_DLG_SKIP_ARTWORK, DLSZ_MOVE_X)
-		DLGRESIZE_CONTROL(IDC_TRACK_MATCH_ALBUM_ART, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_BTN_TRACK_MATCH_WRITE_ARTWORK, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_PREVIEW_TAGS_BUTTON, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_WRITE_TAGS_BUTTON, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_BACK_BUTTON, DLSZ_MOVE_X)
 	END_DLGRESIZE_MAP()
 
 	void DlgResize_UpdateLayout(int cxWidth, int cyHeight) {
@@ -172,8 +172,11 @@ public:
 			rc_fileList.Width(), rc_fileList.Height(), SWP_NOACTIVATE | SWP_SHOWWINDOW);
 	}
 
+
+	// constructor
+
 	CTrackMatchingDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags = false) : ILODsrc(&this->m_coord, &this->m_idc_list, &this->m_ifile_list),
-		m_tag_writer(tag_writer), use_update_tags(use_update_tags)/*, m_list_drop_handler()*/,
+		m_tag_writer(tag_writer), use_update_tags(use_update_tags), m_list_drop_handler(),
 		m_conf(CONF), m_coord(p_parent, CONF),
 		m_idc_list(this), m_ifile_list(this)
 	{
@@ -209,12 +212,12 @@ public:
 	LRESULT OnColorStatic(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
 	LRESULT OnMoveTrackUp(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnMoveTrackDown(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnRemoveTrackButton(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnPreviewTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnButtonPreviewTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnButtonWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+
 	LRESULT OnButtonBack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCheckSkipArtwork(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnWriteArtwork(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnButtonWriteArtwork(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnWriteArtworkKnownIds(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
@@ -236,6 +239,10 @@ public:
 	void enable(bool v) override;
 	void destroy_all();
 	void go_back();
+
+	void init_track_matching_dialog();
+	void show() override;
+	void hide() override;
 
 	size_t get_art_perm_selection(HWND list, bool flagselected, const size_t max_items, pfc::array_t<t_uint8>& selmask, bit_array_bittable& selalbum);
 	void request_preview(size_t img_ndx, bool artist_art, bool onlycache, bool get_mibs = false);
@@ -286,7 +293,7 @@ private:
 	playable_location_impl location;
 	titleformat_hook_impl_multiformat hook;
 
-	//MatchListDropHandler m_list_drop_handler;
+	MatchListDropHandler m_list_drop_handler;
 
 	CListControlOwnerData m_idc_list;
 	CListControlOwnerData m_ifile_list;

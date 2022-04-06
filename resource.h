@@ -25,13 +25,11 @@
 #define IDD_DIALOG_TAG_MAPPINGS_CREDITS 142
 #define IDB_PNG48F                      157
 #define IDB_PNG150F                     158
-#define IDB_PNG_REC_16                  159
-#define IDB_PNG_REC_24                  160
-#define IDB_PNG_REC_32                  161
 #define IDD_CONFIG_NAME                 162
-#define IDB_PNG_REC_48                  163
-#define IDB_PNG_DC_48                   164
-#define IDB_PNG_DCSP_48                 169
+#define IDB_BITMAP_TRACER               192
+#define IDB_PNG_DC_32C                  196
+#define IDB_BITMAP_REC                  197
+#define IDB_BITMAP_TRACER_EXT           202
 #define IDC_STATIC_CREDIT_FILTER        900
 #define IDC_STATIC_CREDIT_GROUP         901
 #define IDC_DISCOGS_LIST                1003
@@ -45,10 +43,13 @@
 #define IDC_STATIC_MATCH_TRACKING_REL_NAME 1012
 #define IDC_STATIC_FIND_REL_STATS       1015
 #define IDC_CHECK_PREV_DLG_DIFF_TRACKS  1016
-#define IDC_CHECK_PREV_DLG_SKIP_ARTWORK 1016
+#define IDC_CHECK_SKIP_ARTWORK          1016
 #define IDC_CHECK_FIND_RELEASE_FILTER_SUBRELEASES 1016
+#define IDC_STATIC_FIND_REL_STATS2      1016
 #define IDC_STATIC_FIND_REL_SEARCH_STATS 1016
 #define IDC_EDIT_TAG_MATCH_HL           1017
+#define IDC_STATIC_FIND_REL_STATS3      1017
+#define IDC_STATIC_FIND_REL_STATS_EXT   1017
 #define IDC_STATIC_PREV_DLG_STATS_TAG_UPD 1018
 #define IDC_CHECK_PREV_DLG_SHOW_STATS   1019
 #define IDC_HEADER                      1020
@@ -64,7 +65,7 @@
 #define IDC_BTN_TRACK_MATCH_WRITE_ARTWORK 1030
 #define IDC_CHECK_CONF_THROTTLING       1030
 #define IDC_EDIT_CAT_CREDIT_BTN         1030
-#define IDC_EDIT_TAGS_DIALOG_ATTACH_FLAG 1031
+#define IDC_EDIT_TAGS_DLG_BIND_FLAG     1031
 #define IDC_STATIC_DB_GROUP             1032
 #define IDC_DB_DC_PATH                  1033
 #define IDC_CFG_DB_DC_OPEN_PATH         1034
@@ -147,6 +148,7 @@
 #define IDC_FIND_ARTIST_PROFILE_STATIC_REALNAME 1084
 #define IDC_FIND_ARTIST_PROFILE_EDIT    1085
 #define IDC_UPD_TAGS_REPLACE_ANV_CHECK  1087
+#define IDC_BTN_CONF_LOAD_FORMATTING    1087
 #define IDC_MOVE_THE_AT_BEGINNING_CHECK 1088
 #define IDC_MATCH_ASSUME_SORTED         1089
 #define IDC_SKIP_BRAINZ_MIBS_FETCH      1090
@@ -243,6 +245,7 @@
 #define IDC_EXPORT_TAGS                 1202
 #define IDC_IMPORT_TAGS                 1203
 #define IDC_SYNTAX_HELP                 1204
+#define IDC_UI_LIST                     1205
 
 // Next default values for new objects
 // 
@@ -250,7 +253,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        203
 #define _APS_NEXT_COMMAND_VALUE         1208
-#define _APS_NEXT_CONTROL_VALUE         1087
+#define _APS_NEXT_CONTROL_VALUE         1088
 #define _APS_NEXT_SYMED_VALUE           140
 #endif
 #endif

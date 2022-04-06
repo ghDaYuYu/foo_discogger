@@ -74,6 +74,9 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 	//add write tags icon
 	HWND write_btn = GetDlgItem(IDC_WRITE_TAGS_BUTTON);
 	::SendMessageW(write_btn, BM_SETIMAGE, IMAGE_BITMAP, (LPARAM)m_rec_icon);
+	//todo: clean non owner data leftovers
+	m_list_drop_handler.Initialize(m_hWnd, discogs_track_list, file_list, &m_coord);
+	m_list_drop_handler.SetNotifier(stdf_change_notifier);
 
 	if (m_tag_writer) {
 
@@ -779,8 +782,20 @@ inline bool CTrackMatchingDialog::build_current_cfg() {
 	}
 
 	//skip artwork
+
+	auto checkstate = SendDlgItemMessage(IDC_CHECK_SKIP_ARTWORK, BM_GETSTATE, (WPARAM)0, (LPARAM)0);
+	if (checkstate == BST_INDETERMINATE) {
+		m_conf.album_art_skip_default_cust = MAKELPARAM(ARTSAVE_SKIP_CUST_FLAG, ARTSAVE_SKIP_CUST_FLAG);
+	}
+	else if (checkstate == BST_CHECKED) {
+		m_conf.album_art_skip_default_cust = MAKELPARAM(ARTSAVE_SKIP_USER_FLAG, ARTSAVE_SKIP_USER_FLAG);
+	}		
+	else {
+		m_conf.album_art_skip_default_cust = MAKELPARAM(0, 0);
+	}
+
 	if (CONF.album_art_skip_default_cust != m_conf.album_art_skip_default_cust) {
-		//todo: persist?
+
 		bres |= true;
 	}
 
@@ -1771,6 +1786,41 @@ bool CTrackMatchingDialog::track_context_menu(HWND wnd, LPARAM lParamCoords) {
 		uAppendMenu(menu, MF_STRING
 			| (citems? 0 : MF_DISABLED | MF_GRAYED), ID_ART_TOOGLE_TRACK_ART_MODES,
 			get_mode() == lsmode::default? "View Artwork\tCtrl+T" : "View Tracks\tCtrl+T");
+
+		if (get_mode() == lsmode::art) {
+			if (!is_files) {
+				if (csel)
+				{
+					uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+					uAppendMenu(menu, MF_STRING /*| (get_mode() == lsmode::art && csel ? 0 : MF_DISABLED | MF_GRAYED)*/, ID_ART_PREVIEW, "Preview\tCtrl+P");
+					bool check_template_requirement = m_coord.template_artwork_mode(template_art_ids::inlay_card, 0, ListView_GetFirstSelection(wnd), true);
+					if (csel && check_template_requirement) {
+						uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+						// display submenu
+						for (size_t walk_ids = 0; walk_ids < template_art_ids::num_types(); walk_ids++) {
+							uAppendMenu(_childmenuTemplate, MF_STRING, ID_ART_TEMPLATE1 + walk_ids, template_art_ids::query_capitalized_name(walk_ids));
+						}
+						InsertMenuItem(menu, ID_SUBMENU_SELECTOR_TEMPLATES, true, &mi_template);
+					}
+				}
+				//image update attribs...
+				append_art_context_menu(wnd, &menu);
+			}
+			else {
+				//image viewer req >= 1.6.2
+				bool b_ver_ok = core_version_info_v2::get()->test_version(1, 6, 2, 0);
+				if (b_ver_ok) {
+					uAppendMenu(menu, MF_STRING | (get_mode() == lsmode::art ? 0 : MF_DISABLED | MF_GRAYED), ID_ART_IMAGE_VIEWER, "Image Viewer\tDouble Click");
+				}
+			}
+		}
+
+
+
+
+
+
+
 		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 		uAppendMenu(menu, MF_STRING | (citems? 0 : MF_DISABLED | MF_GRAYED), ID_SELECT_ALL, "Select all\tCtrl+A");
 		uAppendMenu(menu, MF_STRING | (csel? 0 : MF_DISABLED | MF_GRAYED), ID_INVERT_SELECTION, "Invert selection\tCtrl+Shift+A");
@@ -1791,44 +1841,16 @@ bool CTrackMatchingDialog::track_context_menu(HWND wnd, LPARAM lParamCoords) {
 		
 		}
 
-		if (get_mode() == lsmode::art) {
-			if (!is_files) {
-				bool check_template_requirement = m_coord.template_artwork_mode(template_art_ids::inlay_card, 0, ListView_GetFirstSelection(wnd), true);
-				if (check_template_requirement) {
-					uAppendMenu(menu, MF_SEPARATOR, 0, 0);
-					// display submenu
-					for (size_t walk_ids = 0; walk_ids < template_art_ids::num_types(); walk_ids++) {
-						uAppendMenu(_childmenuTemplate, MF_STRING, ID_ART_TEMPLATE1 + walk_ids, template_art_ids::query_capitalized_name(walk_ids));			
-					}
-					InsertMenuItem(menu, ID_SUBMENU_SELECTOR_TEMPLATES, true, &mi_template);
-				}
-				//image update attribs...
-				append_art_context_menu(wnd, &menu);
-				uAppendMenu(menu, MF_SEPARATOR, 0, 0);
-				uAppendMenu(menu, MF_STRING | (/*count_sel == 1 &&*/ get_mode() == lsmode::art ? 0 : MF_DISABLED | MF_GRAYED), ID_ART_PREVIEW, "Preview\tCtrl+P");
-			}
-			else {				
-				//image viewer req >= 1.6.2
-				bool b_ver_ok = core_version_info_v2::get()->test_version(1, 6, 2, 0);
-				if (b_ver_ok) {
-					uAppendMenu(menu, MF_SEPARATOR, 0, 0);
-					uAppendMenu(menu, MF_STRING | (get_mode() == lsmode::art ? 0 : MF_DISABLED | MF_GRAYED), ID_ART_IMAGE_VIEWER, "Image Viewer\tDouble Click");
-				}
-			}
-		}
-
-		//uAppendMenu(menu, MF_STRING | (citems ? 0 : MF_DISABLED), ID_ART_RESET, "Reset");
-
 		int cmd = TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, 0, wnd, 0);
 		DestroyMenu(menu);
 
-		switch_context_menu(wnd, point, is_files, cmd, selmask, ilist);
+		switch_context_menu(wnd, point, is_files, cmd, selmask, pfc::array_t<t_size>(), ilist);
 	}
 	catch (...) {}
 	return false;
 }
 
-bool CTrackMatchingDialog::switch_context_menu(HWND wnd, POINT point, bool is_files, int cmd, bit_array_bittable selmask, CListControlOwnerData* ilist) {
+bool CTrackMatchingDialog::switch_context_menu(HWND wnd, POINT point, bool is_files, int cmd, bit_array_bittable selmask, pfc::array_t<t_size> order, CListControlOwnerData* ilist) {
 
 	UINT att_id = 0;
 	af att_album;
@@ -2235,6 +2257,65 @@ pfc::string8 file_info_get_artist_name(file_info_impl finfo, metadb_handle_ptr i
 	else if (!artist.get_length())
 		g_discogs->file_info_get_tag(item, finfo, "DISCOGS_ALBUM_ARTISTS", artist);
 	return artist;
+}
+
+void CTrackMatchingDialog::init_track_matching_dialog() {
+    //todo: rev
+	// on user interacion control becomes bi-state
+	bool managed_artwork = !(CONFARTWORK == m_last_run_uart /*uartwork(CONF)*/);
+	bool user_wants_skip = HIWORD(m_conf.album_art_skip_default_cust) & ARTSAVE_SKIP_USER_FLAG;
+	if (user_wants_skip) {
+	    //nothing to do
+	}
+	else {
+		if (managed_artwork) {
+			::CheckDlgButton(m_hWnd, IDC_CHECK_SKIP_ARTWORK, BST_INDETERMINATE);
+			// enable tristate
+			SendMessage(GetDlgItem(IDC_CHECK_SKIP_ARTWORK)
+			    , BM_SETSTYLE
+			    , (WPARAM)0
+			    , (LPARAM)0);
+
+			endMessage(GetDlgItem(IDC_CHECK_SKIP_ARTWORK)
+			    , BM_SETSTYLE
+			    , (WPARAM)BS_AUTO3STATE | BS_CHECKBOX | BS_FLAT
+			    , (LPARAM)0);
+
+			::CheckDlgButton(m_hWnd, IDC_CHECK_SKIP_ARTWORK, BST_INDETERMINATE);
+		}
+		else {
+    		::CheckDlgButton(m_hWnd, IDC_CHECK_SKIP_ARTWORK, BST_UNCHECKED);
+			// disable tristate
+			SendMessage(GetDlgItem(IDC_CHECK_SKIP_ARTWORK)
+				, BM_SETSTYLE
+				, (WPARAM)0/*BS_CHECKBOX| BS_FLAT BS_3STATE | BS_CHECKBOX*/
+				, (LPARAM)0);//true redraws button
+
+			SendMessage(GetDlgItem(IDC_CHECK_SKIP_ARTWORK)
+				, BM_SETSTYLE
+				, (WPARAM)BS_CHECKBOX | BS_AUTOCHECKBOX
+				, (LPARAM)0);//true redraws button
+		}
+
+	}
+	return;
+}
+
+//override
+void CTrackMatchingDialog::show() {
+	
+	m_conf = CConf(CONF);
+	m_conf.SetName("TrackMatch");
+
+	init_track_matching_dialog();
+	MyCDialogImpl::show();
+}
+
+//override
+void CTrackMatchingDialog::hide() {
+
+	MyCDialogImpl::hide();
+
 }
 
 void CTrackMatchingDialog::go_back() {

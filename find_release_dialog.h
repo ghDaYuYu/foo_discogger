@@ -39,6 +39,8 @@ private:
 	CMyEditWithButtons cewb_release_filter;
 	CMyEditWithButtons cewb_release_url;
 
+	CHyperLink artist_link;
+
 	enum {
 		KTypeFilterTimerID = 0xd21e0907,
 		KTypeFilterTimeOut = 500
@@ -209,6 +211,7 @@ private:
 
 		DLGRESIZE_CONTROL(IDC_LABEL_RELEASE_ID, DLSZ_MOVE_X | DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_RELEASE_URL_TEXT, DLSZ_MOVE_X | DLSZ_MOVE_Y)
+		DLGRESIZE_CONTROL(IDC_STATIC_FIND_REL_STATS_EXT, DLSZ_MOVE_X | DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_FILTER_EDIT, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_ARTIST_LIST, DLSZ_SIZE_Y)
 		DLGRESIZE_CONTROL(IDC_RELEASE_TREE, DLSZ_SIZE_Y)
@@ -230,8 +233,7 @@ private:
 		DLGRESIZE_CONTROL(IDC_CHECK_FIND_RELEASE_SHOW_PROFILE, DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_CONFIGURE_BUTTON, DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_STATIC_FIND_REL_STATS, DLSZ_MOVE_Y | DLSZ_SIZE_X)
-		DLGRESIZE_CONTROL(IDC_PROCESS_RELEASE_BUTTON, DLSZ_MOVE_X | DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDCANCEL, DLSZ_MOVE_X | DLSZ_MOVE_Y)
+		DLGRESIZE_CONTROL(IDC_PROCESS_RELEASE_BUTTON, DLSZ_MOVE_X)
 
 	END_DLGRESIZE_MAP()
 
@@ -252,7 +254,6 @@ private:
 
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
-	LRESULT OnGetDlgCode(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 
 	LRESULT OnEditFilterText(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
@@ -319,6 +320,8 @@ public:
 
 	bool add_history(oplog_type optype, std::string cmd, pfc::string8 ff, pfc::string8 fs, pfc::string8 sf, pfc::string8 ss);
 	bool add_history(oplog_type optype, std::string cmd, rppair row);
+
+	bool Set_Config_Flag(int ID, int flag, bool flagvalue);
 
 	decltype(conf)const& config() const { return conf; }
 

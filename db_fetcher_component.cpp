@@ -123,12 +123,13 @@ bool db_fetcher_component::recharge_history(sqldb* db, std::string delete_cmd, s
 
 	//
 
-	task_map.emplace(oplog_type::artist, kHistoryGetArtist);
+	task_map.emplace(oplog_type::artist, kHistorySearchArtist);
 	task_map.emplace(oplog_type::release, kHistoryProccessRelease);
 	task_map.emplace(oplog_type::filter, kHistoryFilterButton);
 
 	//todo: tidy up
-	std::string artist_sec_task = kHistorySearchArtist;
+
+	std::string artist_sec_task = kHistoryGetArtist;
 
 	pfc::string8 keep_top_artist =
 	"DELETE FROM history_releases WHERE (cmd_id = @cmd_id OR cmd_id = @cmd_id_sec) AND id NOT IN ("
@@ -170,7 +171,7 @@ bool db_fetcher_component::recharge_history(sqldb* db, std::string delete_cmd, s
 		"FROM history_releases WHERE cmd_id = @cmd_id "
 		"GROUP BY artist_id ORDER BY date DESC LIMIT @param_pop_tops;"*/
 		"SELECT artist_id, artist_name, date, cmd_id, cmd_text, artist_id, artist_name "
-		"FROM history_releases WHERE (cmd_id = @cmd_id OR cmd_id = @cmd_id_sec) "
+		"FROM history_releases WHERE cmd_id == ? OR cmd_id == ? "
 		"GROUP BY artist_id ORDER BY date DESC LIMIT @param_pop_tops;";
 
 	std::string query_release =

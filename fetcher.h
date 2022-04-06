@@ -122,6 +122,7 @@ public:
 				throw ex;
 			}
 		}
+		log_msg("http_client service ready");
 	}
 	
 	~Fetcher() {

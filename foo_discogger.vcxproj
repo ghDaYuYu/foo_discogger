@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -90,10 +90,14 @@
       <TargetMachine>MachineX86</TargetMachine>
       <AdditionalDependencies>../shared/shared.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;$(SolutionDir)$(Configuration)\jansson.lib;$(SolutionDir)$(Configuration)\oauthcpp.lib;..\discogger libs\sqlite-amal-336\$(Configuration)\sqlite3.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PostBuildEvent>
       <Command>mkdir "$(FOO_USR)\$(FOO_COMPONENT_NAME)" &amp; copy "$(TargetPath)" "$(FOO_USR)$(FOO_USR_FILE)"</Command>
     </PostBuildEvent>
+    <Bscmake>
+      <PreserveSbr>true</PreserveSbr>
+    </Bscmake>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -141,6 +145,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="art_download_attribs.cpp" />
+    <ClCompile Include="find_artist_list.cpp" />
+    <ClCompile Include="history_oplog.cpp" />
+    <ClCompile Include="track_matching_ILOsrc_uilists.cpp" />
     <ClCompile Include="conf.cpp" />
     <ClCompile Include="configuration_dialog.cpp" />
     <ClCompile Include="db_fetcher.cpp" />
@@ -167,6 +174,7 @@
     </ClCompile>
     <ClCompile Include="preview_dialog.cpp" />
     <ClCompile Include="prompt_dialog.cpp" />
+    <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="string_encoded_array.cpp" />
     <ClCompile Include="tags.cpp" />
     <ClCompile Include="tag_mappings_credits_dlg.cpp" />
@@ -184,7 +192,10 @@
   <ItemGroup>
     <ClInclude Include="art_download_attribs.h" />
     <ClInclude Include="cache.h" />
-    <ClInclude Include="ceditwithbuttonsdim.h" />
+    <ClInclude Include="find_artist_list.h" />
+    <ClInclude Include="history_oplog.h" />
+    <ClInclude Include="track_matching_ILOsrc_uilists.h" />
+    <ClInclude Include="myeditwithbuttons.h" />
     <ClInclude Include="CGdiPlusBitmap.h" />
     <ClInclude Include="conf.h" />
     <ClInclude Include="configuration_dialog.h" />
@@ -235,6 +246,7 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="foo_discogger.rc" />
+    <ResourceCompile Include="foo_discogger_ver.rc" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\libPPUI\libPPUI.vcxproj">
@@ -254,10 +266,17 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\libPPUI\IDI_SCROLL.ico" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="ico" />
+    <Image Include="ico\150F.png" />
+    <Image Include="ico\48F.png" />
+    <Image Include="ico\bitmap_r.bmp" />
+    <Image Include="ico\bitmap_s.bmp" />
+    <Image Include="ico\bitmap_tracer.bmp" />
+    <Image Include="ico\bitmap_tracer_ext.bmp" />
+    <Image Include="ico\png_dc_32_c.png" />
+    <Image Include="ico\png_rec_16c.png" />
+    <Image Include="ico\png_rec_24c.png" />
+    <Image Include="ico\png_rec_32c.png" />
+    <Image Include="ico\png_rec_48c.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

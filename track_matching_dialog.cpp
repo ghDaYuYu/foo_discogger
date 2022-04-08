@@ -186,6 +186,12 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 
 		m_pending_previews = m_vpreview_jobs.size();
 
+        if (!m_pending_previews) {
+            //no pending jobs, show this dialog
+            ShowWindow(SW_SHOW);
+            return FALSE;
+        }
+
 		{
 			std::lock_guard<std::mutex> lg(m_mx_pending_previews_mod);
 

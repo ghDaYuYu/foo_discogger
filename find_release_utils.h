@@ -82,6 +82,8 @@ public:
 	bool master_tag = false;
 	bool release_tag = false;
 
+	bool multi_artist = false;
+
 	size_t artist_i = pfc_infinite;
 	size_t master_i = pfc_infinite;
 	mounted_param release_i = mounted_param(pfc_infinite, pfc_infinite, false, false);
@@ -235,9 +237,38 @@ public:
 			return has_artist() && has_master() && has_release();
 	}
 
-	bool id_tracer::init_tracker_tags(metadb_handle_ptr item) {
+	bool id_tracer::init_tracker_tags(metadb_handle_list items) {
+
+		pfc::string8 artist_id, master_id, release_id;
 
 		file_info_impl finfo;
+
+		pfc::string8 iartist_id;
+		for (auto i = 0; i < items.get_count(); i++) {
+			items[i]->get_info(finfo);
+			g_discogs->file_info_get_tag(items[i], finfo, TAG_ARTIST_ID, artist_id);
+			for (auto i = 0; i < items.get_count(); i++) {
+                items[i]->get_info(finfo);
+                g_discogs->file_info_get_tag(items[i], finfo, TAG_ARTIST_ID, artist_id);
+                if (artist_id.get_length()) {
+                    if (!iartist_id.get_length()) {
+                        iartist_id = artist_id;
+                    }
+                    else
+                    {
+                        if (artist_idstricmp_utf8(artist_id, iartist_id)) {
+                            artist_id = iartist_id; //keep first for offline cache
+                            //
+                            multi_artist = true;
+                            //
+                            break;
+                        }
+                    }
+                }
+            }
+		}
+
+		metadb_handle_ptr item = items[0];
 		item->get_info(finfo);
 
 		pfc::string8 artist_id, master_id, release_id;

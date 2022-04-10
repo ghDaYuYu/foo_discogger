@@ -206,7 +206,7 @@ void CArtistList::set_image_list() {
 bool CArtistList::OnDisplayCellImage(int item, int subitem, int& result) {
 
 	int img_ndx = I_IMAGENONE;
-	bool is_traced = atoi(m_find_release_artists[item]->id) == _idtracer_p->get_artist_id();
+	bool is_traced = !_idtracer_p->multi_artist && atoi(m_find_release_artists[item]->id) == _idtracer_p->get_artist_id();
 	if (is_traced) {
 		img_ndx = TRACER_IMG_NDX;
 	}

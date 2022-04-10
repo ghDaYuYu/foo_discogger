@@ -285,8 +285,8 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	item->format_title(nullptr, frm_artist, m_artist_name_script, nullptr);			//ARTIST
 	item->format_title(nullptr, frm_album_artist, m_album_artist_script, nullptr);	//ALBUM ARTIST
 
-	const char* artist = frm_artist.get_length() ? frm_artist.get_ptr() :
-		frm_album_artist.get_length() ? frm_album_artist.get_ptr() : "";
+	const char* artist = frm_album_artist.get_length() ? frm_album_artist.get_ptr() :
+		frm_artist.get_length() ? frm_artist.get_ptr() : "";
 
 	//init artist search/release id textboxes
 
@@ -307,7 +307,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 
 	// end controls
 
-	m_tracer.init_tracker_tags(items[0]);
+	m_tracer.init_tracker_tags(items);
 
 	bool bvisible_dlg;
 
@@ -322,7 +322,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 		if (!(bskip_ided && brelease_ided)) {
 
 			//route
-			route_artist_search(artist, false, m_tracer.artist_tag);
+			route_artist_search(artist, false, !m_tracer.multi_artist && m_tracer.artist_tag);
 			bvisible_dlg = true;
 		}
 		else 
@@ -340,7 +340,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 
 	block_filter_box_events(true);
 
-	if (!m_tracer.has_amr() || !conf.enable_autosearch) {
+	if (m_tracer.multi_artist || !m_tracer.has_amr() || !conf.enable_autosearch) {
 		uSetWindowText(m_edit_filter, frm_album);
 	}
 

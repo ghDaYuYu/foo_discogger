@@ -164,63 +164,71 @@ namespace Offline {
 	}
 
 	bool static MarkDownload(pfc::string8 fcontent, pfc::string8 path, bool done) {
+		
 		bool bok = false;
+		
 		if (!done) {
-			//delete prev RegTask file if exists
-			std::filesystem::path fspath;
-			char converted[MAX_PATH - 1];
+			
+			//delete prev RegTask
 			pfc::string8 taskreg_path;
 			taskreg_path << path << "\\" << MARK_CHECK_NAME;
-			pfc::stringcvt::string_os_from_utf8 cvt(taskreg_path);
-			wcstombs(converted, cvt.get_ptr(), MAX_PATH - 1);		
 
+			std::filesystem::path os_path = std::filesystem::u8path(path.c_str());
+			
 			try {
-				std::filesystem::remove_all(converted);
+				std::filesystem::remove_all(os_path);
 			}
 			catch (...) {
 				return false;
 			}
 			//..
 
-			FILE* f = fopen(path << "\\" << MARK_LOADING_NAME, "ab+");
-			if (f) {
-				bok = (fwrite(fcontent.get_ptr(), fcontent.get_length(), 1, f) == 1);					
-			}
+			os_path = std::filesystem::u8path((PFC_string_formatter() << path << "\\" << MARK_LOADING_NAME).c_str());
+            
+            FILE* f = fopen(os_path.string().c_str(), "ab+");
+            if (f) {
+                bok = (fwrite(fcontent.get_ptr(), fcontent.get_length(), 1, f) == 1);					
+            }
 
-			bok &= (f && (fclose(f) == 0));
-		}
-		else {
-			pfc::string8 oldname(path); oldname << "\\" << MARK_LOADING_NAME;
-			pfc::string8 newname(path); newname << "\\" << MARK_CHECK_NAME;
-			bok = (rename(oldname, newname) == 0);
-		}
+            bok &= (f && (fclose(f) == 0));
+        }
+        else {
+            pfc::string8 oldname(path); oldname << "\\" << MARK_LOADING_NAME;
+            pfc::string8 newname(path); newname << "\\" << MARK_CHECK_NAME;
+            std::filesystem::path os_old = std::filesystem::u8path(oldname.c_str());
+            std::filesystem::path os_new = std::filesystem::u8path(newname.c_str());
+            std::error_code ec;
+            std::filesystem::rename(os_old, os_new, ec);
+            bok = !ec.value();
+        }
 
-		return bok;
+            return bok;
 	}
 
 	bool static CheckDownload(pfc::string8 path) {
 		
-		pfc::string8 path_taskreg;
 		pfc::string8 path_loading;
-		path_taskreg << path << "\\" << MARK_CHECK_NAME;
+		pfc::string8 path_taskreg;
 		path_loading << path << "\\" << MARK_LOADING_NAME;
+		path_taskreg << path << "\\" << MARK_CHECK_NAME;
 
-		//check codepage
-		char converted[MAX_PATH - 1];
-		pfc::stringcvt::string_os_from_utf8 cvt(path_taskreg);
-		wcstombs(converted, cvt.get_ptr(), MAX_PATH - 1);
+		bool stat_result_loading = false;
+		bool stat_result_checked = false;
+		int src_length_loading = -1;
+		int src_length_checked = -1;
 
-		struct stat stat_buf;
-		int stat_result = stat(converted, &stat_buf);
-		int src_length = stat_buf.st_size;
-
-		cvt = path_loading.get_ptr();
-		wcstombs(converted, cvt.get_ptr(), MAX_PATH - 1);
-
-		int stat_result_loading = stat(converted, &stat_buf);
-		int src_length_loading = stat_buf.st_size;
-
-		return (stat_result == 0 || src_length == 0) && (stat_result_loading == -1);
+		std::filesystem::path p_loading = std::filesystem::u8path(path_loading.get_ptr());
+		if (std::filesystem::exists(p_loading)) {
+			stat_result_loading = true;
+			src_length_loading = std::filesystem::file_size(p_loading);
+		}
+		
+		std::filesystem::path p_taskreg = std::filesystem::u8path(path_taskreg.get_ptr());
+		if (std::filesystem::exists(p_taskreg)) {
+			stat_result_checked = true;
+			src_length_checked = std::filesystem::file_size(p_taskreg);
+		}
+		return (stat_result_checked || src_length_checked == 0) && (!stat_result_loading);
 	}
 
 	static bool is_data_avail(pfc::string8 id, pfc::string8 secid, GetFrom gfFrom, pfc::string8& out_relative_path) {
@@ -234,6 +242,7 @@ namespace Offline {
 		PFC_ASSERT(getFrom != GetFrom::Versions || (!STR_EQUAL(id, secid) && secid.get_length()));
 
 		pfc::string8 rel_path;
+
 		if (subpage == pfc_infinite) {		
 			if (!thumbs)
 				rel_path = GetOfflinePath(id, true, getFrom, secid);
@@ -242,22 +251,18 @@ namespace Offline {
 				extract_native_path(rel_path, rel_path);
 			}
 		}
-		else
+		else {
 			rel_path = GetOfflinePagesPath(id, subpage, true, getFrom, secid);
-
-		pfc::stringcvt::string_wide_from_utf8 wpath;
-		std::filesystem::path fspath;
-		wpath = rel_path.get_ptr();
-		fspath = wpath.get_ptr();
-
+		}
+		
+		std::filesystem::path os_path = std::filesystem::u8path(rel_path.c_str());
+		
 		try {
-			std::filesystem::create_directories(fspath);
+			return std::filesystem::create_directories(os_path);
 		}
 		catch (...) {
 			return false;
 		}
-
-		return true;
 	}
 
 	bool static CreateFS_Offline_IdPath(pfc::string8 id, GetFrom getFrom, pfc::string8 secid = "") {
@@ -265,21 +270,16 @@ namespace Offline {
 		PFC_ASSERT(getFrom == GetFrom::Artist || getFrom == GetFrom::Release);
 		PFC_ASSERT(getFrom != GetFrom::Release || (!STR_EQUAL(id, secid) && secid.get_length()));
 
-		pfc::string8 rel_path;
-		rel_path = GetOfflinePath(id, true, getFrom, secid);
-		pfc::stringcvt::string_wide_from_utf8 wpath;
-		std::filesystem::path fspath;
-		wpath = rel_path.get_ptr();
-		fspath = wpath.get_ptr();
+		pfc::string8 rel_path = GetOfflinePath(id, true, getFrom, secid);
 
+		std::filesystem::path os_path = std::filesystem::u8path(rel_path.c_str());
+		
 		try {
-			std::filesystem::create_directories(fspath);
+			return std::filesystem::create_directories(os_path);
 		}
 		catch (...) {
 			return false;
 		}
-
-		return true;
 	}
 
 	template<typename key_t, typename value_t>
@@ -294,51 +294,54 @@ namespace Offline {
 		}
 
 		json_t* FReadAll(const char* offlinepath = nullptr) const {
-			//check file size
-			struct stat stat_buf;
-			pfc::string8 path = offlinepath == nullptr ? m_offlinepath : offlinepath;
-			log_msg(pfc::string8("reading offline cache page:") << path);
-			
-			int rc_stat = stat(path.get_ptr(), &stat_buf);
-			int srclen = stat_buf.st_size;
+        
+            pfc::string8 path = offlinepath == nullptr ? m_offlinepath : offlinepath;
+            log_msg(pfc::string8("reading offline:") << path);
+            
+            std::filesystem::path os_ol = std::filesystem::u8path(path.c_str());
+    
+            int srclen = -1;
+            if (std::filesystem::exists(os_ol))
+                srclen = std::filesystem::file_size(os_ol);
 
-			//load or reset array
-			json_t* root = json_array();
-			FILE* fOut;
+            //load or reset array
+            json_t* root = json_array();
+            FILE* fOut;
 
-			if (rc_stat != -1) {
-				if (srclen > 0) {
-					fOut = fopen(path.get_ptr(), "r");
-					json_error_t error = {};
-					root = json_loadf(fOut, 0, &error);
-					fclose(fOut); fOut = NULL;
-					if (strlen(error.text)) {
+            if (srclen > 0) {
+                fOut = fopen(os_ol.string().c_str(), "r");
+                json_error_t error = {};
+                root = json_loadf(fOut, 0, &error);
+                fclose(fOut); fOut = NULL;
+                if (strlen(error.text)) {
 
-						log_msg(PFC_string_formatter() << "deleting invalid offline cache file: " << path);
-						std::filesystem::path fspath = path.get_ptr();
-						try {
-							pfc::string8 debug;
-							debug << fspath.remove_filename().c_str();
-							std::filesystem::remove_all(fspath.remove_filename());
-						}
-						catch (...) {
-							//
-						}
-					}
-				}
-			}
-			return root;
-		}
+                    log_msg(PFC_string_formatter() << "deleting invalid offline cache file: " << path);
+                    
+                    try {
+                        pfc::string8 debug;
+                        debug << os_ol.remove_filename().c_str();
+                        std::filesystem::remove_all(os_ol.remove_filename());
+                    }
+                    catch (...) {
+                        //
+                    }
+                }
+            }
+            return root;
+        }
 
-		bool FDumpToFolder(pfc::string8 path, json_t* root) {
-			int flags = 0; // JSON_ENCODE_ANY | JSON_INDENT(1);
-			FILE* fOut = fopen(path.get_ptr(), "ab+");
-			if (!fOut)
-				return false;
+        bool FDumpToFolder(pfc::string8 path, json_t* root) {
+    
+            std::filesystem::path os_path = std::filesystem::u8path(path.c_str());
+    
+            int flags = 0; // JSON_ENCODE_ANY | JSON_INDENT(1);
+            FILE* fOut = fopen(os_path.string().c_str(), "ab+");
+            if (!fOut)
+                return false;
 
-			int result = json_dumpf(root, fOut, flags);
-			return (fclose(fOut) == 0 && result == 0);
-		}
+            int result = json_dumpf(root, fOut, flags);
+            return (fclose(fOut) == 0 && result == 0);
+        }
 
 	private:
 		std::list<key_value_pair_t> _cache_items_list;

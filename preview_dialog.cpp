@@ -339,11 +339,12 @@ bool CPreviewTagsDialog::initialize() {
 			m_tag_writer->release->id, art_src::alb, LVSIL_NORMAL, 0)[0];
 
 		extract_native_path(cache_path_small, cache_path_small);
-		pfc::stringcvt::string_wide_from_ansi wtemp(cache_path_small);
-		
-		Bitmap bm(wtemp);
 
-		if (bm.GetHBITMAP(Color::Black, &m_preview_bitmap) == Ok) {
+		std::filesystem::path os_path_small = std::filesystem::u8path(cache_path_small.c_str());
+
+		Bitmap bm(os_path_small.wstring().c_str());
+
+		if (/*HBITMAP hBm;*/  bm.GetHBITMAP(Color::Black, &m_preview_bitmap) == Ok) {
 			uSendDlgItemMessage(IDC_ALBUM_ART, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)m_preview_bitmap);
 		}
 		else {

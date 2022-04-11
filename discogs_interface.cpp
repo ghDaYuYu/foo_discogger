@@ -40,6 +40,7 @@ Release_ptr DiscogsInterface::get_release(const unsigned long lkey, const pfc::s
 			add_release_to_cache(lkey, release);
 		}
 	}
+
 	std::lock_guard<std::mutex> ul(cache_releases->modify_mutex);
 	if (!release->loaded) {
 		try {
@@ -178,7 +179,7 @@ void DiscogsInterface::search_artist(const pfc::string8 &query, pfc::array_t<Art
 	pfc::string8 lowercase_query = lowercase(query);
 	pfc::string8 stripped_query = strip_artist_name(query);
 
-	for (size_t i = 0; i < matches.get_size(); i++) {
+	for (size_t i = 0; i < matches.get_size() && i < MAX_ARTISTS; i++) {
 		Artist_ptr &artist = matches[i];
 		pfc::string8 lowercase_name = lowercase(artist->name);
 		pfc::string8 stripped_name = strip_artist_name(artist->name);
@@ -456,9 +457,12 @@ bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release, bool isArti
 	if (!isArtist) {
 		id = release->id;
 		if (!release->images.get_size() || (!release->images[img_ndx]->url150.get_length())) {
-			foo_discogs_exception ex;
-			ex << "Image URLs unavailable - Is OAuth working?";
-			throw ex;
+#ifdef DEBUG		
+			pfc::string8 msg = "Unable to read thumbnail from cache (no artist);
+			//msg << release->images[img_ndx]->url150;
+			log_msg(msg);
+#endif			
+			return false;
 		}
 		else {
 			images = &release->images;
@@ -468,9 +472,12 @@ bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release, bool isArti
 		id = release->artists[0]->full_artist->id;
 		if (!release->artists.get_size() || !release->artists[0]->full_artist->images.get_size() ||
 			(!release->artists[0]->full_artist->images[img_ndx]->url150.get_length())) {
-			foo_discogs_exception ex;
-			ex << "Image URLs unavailable - Is OAuth working?";
-			throw ex;
+#ifdef DEBUG
+			pfc::string8 msg = "Unable to read thumbnail from cache (artist)";
+			//msg << release->images[img_ndx]->url150;
+			log_msg(msg);
+#endif			
+			return false;
 		}
 		else {
 			images = &release->artists[0]->full_artist->images;
@@ -482,26 +489,28 @@ bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release, bool isArti
 		LVSIL_NORMAL, img_ndx/* + artist_offset*/);
 
 	if (thumb_cache.get_count()) {
+
 		p_status.set_item("Fetching artwork preview small album art from cache ...");
+
 		try {
+
 			bool bexists = true;
+
 			pfc::string8 file_name = thumb_cache[0];
 			extract_native_path(file_name, file_name);
-			pfc::stringcvt::string_wide_from_utf8 wpath(file_name);
-			char converted[MAX_PATH - 1];
-			wcstombs(converted, wpath.get_ptr(), MAX_PATH - 1);
-
-			//get stats
-			struct stat stat_buf;
-			int stat_result = stat(converted, &stat_buf);
-			//return -1 or size
-			int src_length = stat_buf.st_size;
-			int filesize = (stat_result == -1 ? -1 : src_length);
-			if (filesize == -1)
+		
+			std::filesystem::path os_file_name = std::filesystem::u8path(file_name.get_ptr());
+			
+			int filesize = -1;
+			if (std::filesystem::exists(os_file_name)) {
+				filesize = std::filesystem::file_size(os_file_name);
+			}
+			else {
 				return false;
+			}
 
 			FILE* fd = nullptr;
-			if (fopen_s(&fd, converted, "rb") != 0) {
+			if (fopen_s(&fd, os_file_name.string().c_str(), "rb") != 0) {
 				pfc::string8 msg("can't open ");
 				msg << file_name;
 				log_msg(msg);
@@ -540,12 +549,7 @@ bool DiscogsInterface::delete_artist_cache(const pfc::string8& artist_id) {
 		pfc::string8 ol_artist_path = Offline::GetOfflinePath(artist_id, true, Offline::GetFrom::Artist, "");
 		ol_artist_path.truncate(ol_artist_path.length() - pfc::string8("\\artist").length());
 		
-		char converted[MAX_PATH - 1];
-		pfc::stringcvt::string_os_from_utf8 cvt(ol_artist_path);
-		wcstombs(converted, cvt.get_ptr(), MAX_PATH - 1);
-
-		std::filesystem::path fspath;
-		fspath = converted;
+		std::filesystem::path fspath = std::filesystem::u8path(ol_artist_path.c_str());
 
 		try {
 			std::filesystem::remove_all(fspath);

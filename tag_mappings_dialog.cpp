@@ -266,11 +266,13 @@ LRESULT CTagMappingDialog::OnImport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndC
 
 	pfc::stringcvt::string_utf8_from_codepage cvt_utf8(0, ofn.lpstrFile);
 
+	std::filesystem::path os_file = std::filesystem::u8path(cvt_utf8.get_ptr());
+
 	service_ptr_t<file> f;
 	abort_callback_impl p_abort;
 	tag_mapping_entry *buf = new tag_mapping_entry();
 	try {
-		filesystem::g_open(f, cvt_utf8, foobar2000_io::filesystem::open_mode_read, p_abort);
+		filesystem::g_open(f, os_file.string().c_str(), foobar2000_io::filesystem::open_mode_read, p_abort);
 		stream_reader_formatter<false> srf(*f.get_ptr(), p_abort);
 		m_ptag_mappings->remove_all();
 		while (!f->is_eof(p_abort)) {
@@ -323,11 +325,13 @@ LRESULT CTagMappingDialog::OnExport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndC
 	}
 
 	pfc::stringcvt::string_utf8_from_codepage cvt_utf8(0, strFinalName);
+
+	std::filesystem::path os_file = std::filesystem::u8path(cvt_utf8.get_ptr());
 	
 	service_ptr_t<file> f;
 	abort_callback_impl p_abort;
 	try {
-		filesystem::g_open(f, cvt_utf8, foobar2000_io::filesystem::open_mode_write_new, p_abort);
+		filesystem::g_open(f, os_file.string().c_str(), foobar2000_io::filesystem::open_mode_write_new, p_abort);
 		stream_writer_formatter<false> swf(*f.get_ptr(), p_abort);
 		for (size_t i = 0; i < m_ptag_mappings->get_count(); i++) {
 			const tag_mapping_entry &e = m_ptag_mappings->get_item(i);

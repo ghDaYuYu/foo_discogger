@@ -23,6 +23,8 @@ size_t sqldb::open(pfc::string8 dbname, size_t openmode) {
 	
 	extract_native_path(dbpath, dbpath);
 
+	std::filesystem::path os_dbpath = std::filesystem::u8path(dbpath.c_str());
+
 	if (NULL != m_query) {
 		m_error_msg << "query not null opening sqldb";
 		close();
@@ -42,7 +44,7 @@ size_t sqldb::open(pfc::string8 dbname, size_t openmode) {
 
 		{
 			std::lock_guard<std::mutex> guard(open_readwrite_mutex);
-			if (SQLITE_OK != (m_ret = sqlite3_open_v2(dbpath, &m_pDb, openmode, NULL)))
+			if (SQLITE_OK != (m_ret = sqlite3_open_v2(os_dbpath.string().c_str(), &m_pDb, openmode, NULL)))
 			{
 				m_error_msg << "Failed to open DB connection: " << m_ret << ". ";
 				m_error_msg << sqlite3_errmsg(m_pDb);
@@ -126,7 +128,7 @@ bool sqldb::debug_sql_return(int ret, pfc::string8 op, pfc::string8 msg_subject,
 
 			if (SQLITE_OK != ret && SQLITE_ROW != ret)
 			{
-				out_msg << msg_subject << "(" << std::to_string(top).c_str() << ") " << sqlite3_errmsg(m_pDb);
+				out_msg << msg_subject << "(" << top << ") " << sqlite3_errmsg(m_pDb);
 #ifdef _DEBUG               
 				log_msg(out_msg);
 #endif					
@@ -139,7 +141,7 @@ bool sqldb::debug_sql_return(int ret, pfc::string8 op, pfc::string8 msg_subject,
 
 			if (SQLITE_DONE != ret)
 			{
-				out_msg << msg_subject << "(" << std::to_string(top).c_str() << ") " << sqlite3_errmsg(m_pDb);
+				out_msg << msg_subject << "(" << top << ") " << sqlite3_errmsg(m_pDb);
 #ifdef _DEBUG               
 				log_msg(out_msg);
 #endif					
@@ -162,7 +164,7 @@ bool sqldb::debug_sql_return(int ret, pfc::string8 op, pfc::string8 msg_subject,
 			else {
 				if (SQLITE_OK != ret && SQLITE_ROW != ret)
 				{
-					out_msg << msg_subject << "(" << std::to_string(top).c_str() << ") " << sqlite3_errmsg(m_pDb);
+					out_msg << msg_subject << "(" << top << ") " << sqlite3_errmsg(m_pDb);
 #ifdef _DEBUG               
 					log_msg(out_msg);
 #endif					

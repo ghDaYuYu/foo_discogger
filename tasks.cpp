@@ -1079,27 +1079,18 @@ void process_file_artwork_preview_callback::safe_run(threaded_process_status& p_
 			pfc::string8 full_path(directory);
 			full_path << "\\" << file_name;
 
-			char converted[MAX_PATH - 1];	
 			pfc::stringcvt::string_os_from_utf8 cvt(full_path);
 #pragma warning(suppress:4996)
-			wcstombs(converted, cvt.get_ptr(), MAX_PATH - 1);
 
-			FILE* fd = nullptr;
-			if (fopen_s(&fd, converted, "rb") != 0) {
-				pfc::string8 msg("can't open ");
-				msg << full_path;
-				log_msg(msg);
+			std::filesystem::path p= std::filesystem::u8path(full_path.get_ptr());
+			int filesize = -1;
+			if (std::filesystem::exists(p)) {
+				filesize = std::filesystem::file_size(p);
+			}
+			else {
 				return;
 			}
-			fclose(fd);
-
-			struct stat stat_buf;
-			int stat_result = stat(converted, &stat_buf);
-			//returns -1 or size
-			int filesize = (stat_result == -1 ? -1 : stat_buf.st_size);
-			if (filesize == -1)
-				return;
-
+			
 			pfc::stringcvt::string_os_from_utf8 cvt_bitmap(full_path);
 			Gdiplus::Bitmap local_bitmap(cvt_bitmap.get_ptr(), false);
 			m_small_art = GenerateTmpBitmapsFromRealSize(m_release->id, m_img_ndx, full_path, m_temp_file_names);

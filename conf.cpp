@@ -41,28 +41,21 @@ conf_string_entry make_conf_entry(int i, const pfc::string8 &v) {
 
 bool copy_dbf_file(pfc::string8 src_dbpath, pfc::string8 dst_dbpath) {
 
-
-	char os_src[MAX_PATH - 1];
-	char os_dst[MAX_PATH - 1];
+	
+	std::filesystem::path os_src = std::filesystem::u8path(src_dbpath.c_str());
+	std::filesystem::path os_dst = std::filesystem::u8path(dst_dbpath.c_str());
 
 	try {
 
 		//copy dbf...
 		
-		pfc::stringcvt::string_os_from_utf8 cvt;
-		cvt = src_dbpath.c_str();
-		wcstombs(os_src, cvt.get_ptr(), MAX_PATH - 1);
-		cvt = dst_dbpath.c_str();
-		wcstombs(os_dst, cvt.get_ptr(), MAX_PATH - 1);
-
 		if (std::filesystem::exists(os_dst)) {
-			//undetermined... prev installation attempt failed?
+			//undertermined... a previous installation attempt failed?
 			log_msg("a previous foo_discogger.cfg.db file version was found");
 			return true;
 		}
 	
-		//todo: migration test (db file from 1.05 to 1.06, importing)
-		
+		//todo: migration test (attach db from 1.06 to 1.07)
 		return std::filesystem::copy_file(os_src, os_dst);
 	}
 	catch (const std::filesystem::filesystem_error& e)
@@ -89,14 +82,13 @@ bool prepare_dbf_and_cache(bool bimport = true) {
 	extract_native_path(dst_path, dst_path);
 	extract_native_path(src_path, src_path);
 
-	auto fsLocal = filesystem::get(dst_path);
-	abort_callback_dummy dummy_abort;
+	std::filesystem::path os_dst_path = std::filesystem::u8path(dst_path.c_str());
+	os_dst_path = os_dst_path.parent_path();
 
 	try {
 
-		char os_dst[MAX_PATH - 1];
-		pfc::stringcvt::string_os_from_utf8 cvt(dst_path);		
-		wcstombs(os_dst, cvt.get_ptr(), MAX_PATH - 1);
+		std::filesystem::path os_src = std::filesystem::u8path(src_path.c_str());
+		std::filesystem::path os_dst = std::filesystem::u8path(dst_path.c_str());
 
 		bool b_dst_exists = std::filesystem::exists(os_dst);
 
@@ -105,12 +97,12 @@ bool prepare_dbf_and_cache(bool bimport = true) {
 			//todo: test import definitions
 
 			sqldb db;
-			db.open(dst_path, SQLITE_OPEN_READWRITE);
+			db.open(os_dst.string().c_str(), SQLITE_OPEN_READWRITE);
 			sqlite3* pDb = db.db_handle();
 
 			char* zErrMsg = 0;
 			pfc::string8 sqlcmd;
-			sqlcmd << "ATTACH DATABASE \'" << src_path << "\' AS trg";
+			sqlcmd << "ATTACH DATABASE \'" << os_src.string().c_str() << "\' AS trg";
 			size_t ret = sqlite3_exec(pDb, sqlcmd, NULL, NULL, &zErrMsg);
 			sqlcmd = "INSERT INTO trg.def_credit (name, tagtype, desc, titleformat) SELECT name, tagtype, desc, titleformat FROM def_credit WHERE tagtype IS NULL;";
 			ret = sqlite3_exec(pDb, sqlcmd, NULL, NULL, &zErrMsg);
@@ -123,7 +115,7 @@ bool prepare_dbf_and_cache(bool bimport = true) {
 
 			// copy database
 
-			bres = copy_dbf_file(src_path, dst_path);
+			bres = copy_dbf_file(os_src.string().c_str(), os_src.string().c_str());
 
 		}
 	}
@@ -135,8 +127,7 @@ bool prepare_dbf_and_cache(bool bimport = true) {
 	}
 
 	try {
-
-		fsLocal->make_directory(core_api::pathInProfile("foo_discogger-cache"), dummy_abort);
+		std::filesystem::create_directories(os_dst_path);
 		bres &= true;
 	}
 	catch (...) {

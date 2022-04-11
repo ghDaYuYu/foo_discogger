@@ -247,33 +247,27 @@ public:
 		for (auto i = 0; i < items.get_count(); i++) {
 			items[i]->get_info(finfo);
 			g_discogs->file_info_get_tag(items[i], finfo, TAG_ARTIST_ID, artist_id);
-			for (auto i = 0; i < items.get_count(); i++) {
-                items[i]->get_info(finfo);
-                g_discogs->file_info_get_tag(items[i], finfo, TAG_ARTIST_ID, artist_id);
-                if (artist_id.get_length()) {
-                    if (!iartist_id.get_length()) {
-                        iartist_id = artist_id;
-                    }
-                    else
-                    {
-                        if (artist_idstricmp_utf8(artist_id, iartist_id)) {
-                            artist_id = iartist_id; //keep first for offline cache
-                            //
-                            multi_artist = true;
-                            //
-                            break;
-                        }
-                    }
-                }
-            }
+			if (artist_id.get_length()) {
+				if (!iartist_id.get_length()) {
+					iartist_id = artist_id;
+				}
+				else
+				{
+					if (stricmp_utf8(artist_id, iartist_id)) {
+						artist_id = iartist_id; //keep first for offline cache
+						//
+						multi_artist = true;
+						//
+						break;
+					}
+				}
+			}
 		}
 
 		metadb_handle_ptr item = items[0];
 		item->get_info(finfo);
 
-		pfc::string8 artist_id, master_id, release_id;
-
-		if (g_discogs->file_info_get_tag(item, finfo, TAG_ARTIST_ID, artist_id)) {
+		if (artist_id.get_length()) {
 			this->artist_id = atoi(artist_id);
 			artist_tag = true;
 		}

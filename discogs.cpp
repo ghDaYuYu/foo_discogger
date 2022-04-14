@@ -1561,34 +1561,46 @@ void Discogs::Artist::load(threaded_process_status &p_status, abort_callback &p_
 			throw ex;
 		}
 
-		bool bCacheSaved = true;
+
+		// parse json and artist
+
 		JSONParser jp(json);
 		parseArtist(this, jp.root);
+
+		//..
+
 		loaded = true;
+		bool bCacheSaved;
 
 		if (btransient && offline_can_write) {
 			try {
+
 				//create page-n folder
-				ol::CreateFS_Offline_IdPath(id, ol::GetFrom::Artist);
-				ol::MarkDownload("", rel_path, false);
+				ol::CreateOfflinePath_ID(id, ol::GetFrom::Artist);
+
+				//PENDING
+				bool bmark_loading = ol::MarkDownload("", rel_path, false/*done*/);
+
 				pfc::string8 page_path = ol::GetOfflinePath(id, true, ol::GetFrom::Artist, "");
 				page_path << "\\root.json";
-				bCacheSaved &= discogs_interface->offline_cache_save(page_path, jp.root);
+
+				bCacheSaved = bmark_loading && discogs_interface->offline_cache_save(page_path, jp.root);
 			}
 			catch (...) {
-				//todo:
-				//failed to create folder
+				//todo: error writting to disk
 			}
 		}
 
 		if (btransient && offline_can_write) {
-			try {
-				//mark as done...
-				if (bCacheSaved)
-					ol::MarkDownload("", rel_path, true);
-			}
-			catch (...) {
-				//todo: failed to created file
+			if (bCacheSaved) {
+				try {
+
+					//DONE
+					bool bmark_done = ol::MarkDownload("", rel_path, true/*done*/);
+				}
+				catch (...) {
+					//todo: failed to created file
+				}
 			}
 		}
 	}
@@ -1596,6 +1608,7 @@ void Discogs::Artist::load(threaded_process_status &p_status, abort_callback &p_
 		if (throw_all) {
 			throw;
 		}
+
 		pfc::string8 error("Error loading artist ");
 		error << id << ": " << e.what();
 		throw foo_discogs_exception(error);
@@ -1684,34 +1697,47 @@ void Discogs::Release::load(threaded_process_status &p_status, abort_callback &p
 			offline_can_write = false;
 		}
 
-		bool bCacheSaved = false;
+#ifdef DEBUG
+		log_msg(json);
+#endif
+
+		//parse json and release
+
 		JSONParser jp(json);
 		parseRelease(this, jp.root);
+
+		//..
+
 		loaded = true;
 
+		bool bCacheSaved;
 		if (btransient && offline_can_write) {
 			try {
 				//create page-n folder
-				ol::CreateFS_Offline_IdPath(artists[0]->id, ol::GetFrom::Release, id);
-				ol::MarkDownload("", rel_path, false);
+				ol::CreateOfflinePath_ID(artists[0]->id, ol::GetFrom::Release, id);
+				//PENDING
+				bool bmark_loading = ol::MarkDownload("", rel_path, false/*done*/);
+
 				pfc::string8 page_path = ol::GetOfflinePath(artists[0]->id, true, ol::GetFrom::Release, id);
 				page_path << "\\root.json";
-				bCacheSaved = discogs_interface->offline_cache_save(page_path, jp.root);
+
+				bCacheSaved = bmark_loading && discogs_interface->offline_cache_save(page_path, jp.root);
 			}
 			catch (...) {
-				//todo:
-				//failed to create folder
+				//todo: error writting to disk				
 			}
 		}
 
 		if (btransient && offline_can_write) {
-			try {
-				//mark as done...
-				if (bCacheSaved)
-					ol::MarkDownload("", rel_path, true);
-			}
-			catch (...) {
-				//todo: failed to create mark file
+
+			if (bCacheSaved) {
+				try {
+					//DONE
+					bool bmark_done = ol::MarkDownload("", rel_path, true/*done*/);
+				}
+				catch (...) {
+					//todo: error writting to disk
+				}
 			}
 		}
 	}
@@ -1789,6 +1815,7 @@ void Discogs::Artist::load_releases(threaded_process_status &p_status, abort_cal
 	bool offline_can_write = ol::can_write();
 	bool offline_can_overwrite = ol::can_ovr();
 	bool offline_avail_data = ol::is_data_avail(id, "", ol::GetFrom::ArtistReleases, rel_path);
+
 	bool btransient = !(offline_can_read && offline_avail_data) || offline_can_overwrite;
 	
 	bool db_ready = DBFlags(CONF.db_dc_flag).IsReady();
@@ -1820,26 +1847,54 @@ void Discogs::Artist::load_releases(threaded_process_status &p_status, abort_cal
 		loaded_releases_offline = !btransient;
 
 		const size_t count = pages.get_count();
+
 		bool bCacheSaved = true;
+		bool bmark_pending = false;
+
 		for (size_t i = 0; i < count; i++) {
+
+			//parse artist releases
+
 			parseArtistReleases(pages[i]->root, this);
+
+			//..
+
 			if (btransient && offline_can_write) {
+
 				try {
+
 					if (i == 0) {
-						//create release folder, mark as pending
-						ol::CreateOfflinePagesPath(id, art_src::unknown, pfc_infinite, ol::GetFrom::ArtistReleases, "");
-						pfc::string8 markcontent = JSONString(json_object_get(pages[i]->root, "items"));
-						ol::MarkDownload(markcontent, rel_path, false);
+						//create release folder
+						bool bfolder_ready = ol::CreateOfflinePath_PAGES(id, art_src::unknown, pfc_infinite, ol::GetFrom::ArtistReleases, "");
+
+						if (bfolder_ready) {
+						
+							pfc::string8 markcontent = JSONString(json_object_get(pages[i]->root, "items"));
+
+							//mark pending job
+							bmark_pending = ol::MarkDownload(markcontent, rel_path, false/*done*/);
+						}
 					}
+					
 					//create page-n folder
-					ol::CreateOfflinePagesPath(id, art_src::unknown, i, ol::GetFrom::ArtistReleases, "");
-					pfc::string8 page_path = ol::GetOfflinePagesPath(id, i, true, ol::GetFrom::ArtistReleases, "");
-					page_path << "\\root.json";
-					bCacheSaved &= discogs_interface->offline_cache_save(page_path, pages[i]->root);
+					if (bmark_pending) {
+					
+						bool bfolder_ready = ol::CreateOfflinePath_PAGES(id, art_src::unknown, i, ol::GetFrom::ArtistReleases, "");
+
+						if (bfolder_ready) {
+						
+							pfc::string8 page_path = ol::GetOfflinePagesPath(id, i, true, ol::GetFrom::ArtistReleases, "");
+							page_path << "\\root.json";
+					
+							bCacheSaved &= discogs_interface->offline_cache_save(page_path, pages[i]->root);
+						}					
+					}
+					else {
+						bCacheSaved = false;
+					}
 				}
 				catch (...) {
-					//todo:
-					//failed to create folder
+					//todo: error writting to disk
 				}
 			}
             
@@ -1857,15 +1912,19 @@ void Discogs::Artist::load_releases(threaded_process_status &p_status, abort_cal
 			//		}
 			//	}
 			//}
-				
+			
+			//todo: move to prev condition block
+
 			if (btransient && offline_can_write) {
+
 				if ((i == count - 1) && (bCacheSaved)) {
+					
 					try {
-						//mark as done...
-						ol::MarkDownload("", rel_path, true);
+
+						bool bmark_done = ol::MarkDownload("", rel_path, true/*done*/);
 					}
 					catch (...) {
-						//todo: failed to created file
+						//todo: error writting to disk
 					}
 				}
 			}
@@ -1889,6 +1948,7 @@ void Discogs::Artist::load_releases(threaded_process_status &p_status, abort_cal
 }
 
 void Discogs::MasterRelease::load_releases(threaded_process_status &p_status, abort_callback &p_abort, bool throw_all, pfc::string8 offlineArtistId, db_fetcher* dbfetcher) {
+	
 	if (loaded_releases || !id.get_length()) {
 		return;
 	}
@@ -1910,8 +1970,10 @@ void Discogs::MasterRelease::load_releases(threaded_process_status &p_status, ab
 	btransient &= !db_isready;
 
 	try {
+
 		pfc::string8 url;
 		pfc::array_t<JSONParser_ptr> pages;
+
 		if (btransient) {
 			url << "https://api.discogs.com/masters/" << id << "/versions";
 			pages = discogs_interface->get_all_pages(url, "", p_abort, "Fetching master release versions...", p_status);
@@ -1929,33 +1991,59 @@ void Discogs::MasterRelease::load_releases(threaded_process_status &p_status, ab
 		}
 
 		const size_t cPages = pages.get_count();
+
 		bool bCacheSaved = true;
+		bool bmark_pending = false;
+
 		for (size_t i = 0; i < cPages; i++) {
+
+			//parse master versions
+
 			parseMasterVersions(pages[i]->root, this);
 
+			//..
+
 			if (btransient && offline_can_write) {
+
 				try {
+
 					if (i == 0) {
-						//create release folder, mark as pending
-						ol::CreateOfflinePagesPath(artist_id, art_src::unknown, pfc_infinite, gfVersions, master_id);
-						pfc::string8 markcontent = JSONString(json_object_get(pages[i]->root, "items"));
-						ol::MarkDownload(markcontent, rel_path, false);
+						//create release folder
+						bool bfolder_ready = ol::CreateOfflinePath_PAGES(artist_id, art_src::unknown, pfc_infinite, gfVersions, master_id);
+
+						if (bfolder_ready) {
+						
+							pfc::string8 markcontent = JSONString(json_object_get(pages[i]->root, "items"));
+
+							//mark as pending
+							bmark_pending = ol::MarkDownload(markcontent, rel_path, false);
+						}
 					}
-					//create page-n folder
-					ol::CreateOfflinePagesPath(artist_id, art_src::unknown, i, gfVersions, master_id);
-					pfc::string8 page_path = ol::GetOfflinePagesPath(artist_id, i, true, gfVersions, master_id);
-					page_path << "\\root.json";
-					bCacheSaved &= discogs_interface->offline_cache_save(page_path, pages[i]->root);
+
+					if (bmark_pending) {
+
+						//create page-n folder
+						bool bfolder_ready = ol::CreateOfflinePath_PAGES(artist_id, art_src::unknown, i, gfVersions, master_id);
+
+						if (bfolder_ready) {
+						
+							pfc::string8 page_path = ol::GetOfflinePagesPath(artist_id, i, true, gfVersions, master_id);
+							page_path << "\\root.json";
+					
+							bCacheSaved &= discogs_interface->offline_cache_save(page_path, pages[i]->root);
+						}
+					}
 				}
 				catch (...) {
-					//todo:
-					//failed to create folder
+					//todo: error writting to disk
 				}
+
 				if (btransient && offline_can_write) {
 					if ((i == cPages - 1) && (bCacheSaved)) {
 						try {
+
 							//mark as done...
-							ol::MarkDownload("", rel_path, true);
+							bool bmark_done = ol::MarkDownload("", rel_path, true);
 						}
 						catch (...) {
 							//todo: failed to created file

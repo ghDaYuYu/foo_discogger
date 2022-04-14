@@ -275,8 +275,12 @@ std::pair<HBITMAP, HBITMAP> MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::
 	pfc::string8 temp_file_mini(cache_path.second);
 	extract_native_path(temp_file_mini, temp_file_mini);
 
+	std::filesystem::path os_file_small = std::filesystem::u8path(temp_file_small.c_str());
+	std::filesystem::path os_file_mini = std::filesystem::u8path(temp_file_mini.c_str());
+
+
 	FILE* fd = nullptr;
-	if (fopen_s(&fd, temp_file_small, "wb") != 0) {
+	if (fopen_s(&fd, os_file_small.string().c_str(), "wb") != 0) {
 		pfc::string8 msg("can't open ");
 		msg << temp_file_small;
 		log_msg(msg);
@@ -290,11 +294,11 @@ std::pair<HBITMAP, HBITMAP> MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::
 			log_msg(msg);
 		}
 	}
-	if (fd != nullptr)
+	if (fd != nullptr) {
 		fclose(fd);
+	}
 
-	pfc::stringcvt::string_wide_from_ansi tempf(temp_file_small);
-	Bitmap bmSmall(tempf);
+	Bitmap bmSmall(os_file_small.wstring().c_str());
 
 	HBITMAP hBmSmall, hBmMini;
 
@@ -346,7 +350,7 @@ std::pair<HBITMAP, HBITMAP> MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::
 		PFC_ASSERT(gdi_res == Gdiplus::Ok);
 
 		FILE* fd = nullptr;
-		if (fopen_s(&fd, temp_file_mini.get_ptr(), "wb") != 0) {
+		if (fopen_s(&fd, os_file_mini.string().c_str(), "wb") != 0) {
 			pfc::string8 msg("can't open ");
 			msg << temp_file_mini;
 			log_msg(msg);
@@ -366,12 +370,10 @@ std::pair<HBITMAP, HBITMAP> MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::
 		CLSID pngClsid;
 		HRESULT hres = CLSIDFromString(L"{557cf406-1a04-11d3-9a73-0000f81ef32e}", &pngClsid);
 
-		tempf = pfc::stringcvt::string_wide_from_ansi(temp_file_mini);
-
 		//write mini thumb
-		imgMini.Save(tempf.get_ptr(), &pngClsid, NULL);
+		imgMini.Save(os_file_mini.wstring().c_str(), &pngClsid, NULL);
 
-		Bitmap bmMini(tempf);
+		Bitmap bmMini(os_file_mini.wstring().c_str());
 
 		//Get hBmMini (48x48)
 		if (bmMini.GetHBITMAP(Color(255, 255, 255)/*Color::Black*/, &hBmMini) != Gdiplus::Ok) {
@@ -389,12 +391,9 @@ std::pair<HBITMAP, HBITMAP> MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::
 std::pair<HBITMAP, HBITMAP> GenerateTmpBitmapsFromRealSize(pfc::string8 release_id, size_t pos,
 	pfc::string8 source_full_path, std::pair<pfc::string8, pfc::string8>& temp_file_names) {
 
-	char converted[MAX_PATH - 1];
-	pfc::stringcvt::string_os_from_utf8 wfull_path(source_full_path);
-	wcstombs(converted, wfull_path.get_ptr(), MAX_PATH - 1);
-	pfc::stringcvt::string_wide_from_ansi tempf(converted);
+	std::filesystem::path os_src_full_path = std::filesystem::u8path(source_full_path.c_str());
 
-	Bitmap bmRealSize(tempf);
+	Bitmap bmRealSize(os_src_full_path.wstring().c_str());
 
 	int inWidth = bmRealSize.GetWidth();
 	int inHeight = bmRealSize.GetHeight();
@@ -433,8 +432,7 @@ std::pair<HBITMAP, HBITMAP> GenerateTmpBitmapsFromRealSize(pfc::string8 release_
 	uGetTempPath(temp_path);
 	uGetTempFileName(temp_path, "fb2k", 0, temp_file_name_small);
 
-	//extract_native_path(temp_file_name_small, temp_file_name_small);
-	tempf = pfc::stringcvt::string_wide_from_ansi (temp_file_name_small);
+	std::filesystem::path os_tmp = std::filesystem::u8path(temp_file_name_small.c_str());
 
 	/*
 	bmp: {557cf400-1a04-11d3-9a73-0000f81ef32e}
@@ -448,9 +446,9 @@ std::pair<HBITMAP, HBITMAP> GenerateTmpBitmapsFromRealSize(pfc::string8 release_
 	HRESULT hres = CLSIDFromString(L"{557cf406-1a04-11d3-9a73-0000f81ef32e}", &pngClsid);
 
 	//save small
-	imgSmall.Save(tempf.get_ptr(), &pngClsid, NULL);
+	imgSmall.Save(os_tmp.wstring().c_str(), &pngClsid, NULL);
 
-	Bitmap bmSmall(tempf);
+	Bitmap bmSmall(os_tmp.wstring().c_str());
 
 	HBITMAP hBmSmall, hBmMini;
 
@@ -502,26 +500,23 @@ std::pair<HBITMAP, HBITMAP> GenerateTmpBitmapsFromRealSize(pfc::string8 release_
 		uGetTempPath(temp_path);
 		uGetTempFileName(temp_path, "fb2k", 0, temp_file_name_mini);
 		
-		FILE* fd = nullptr;
-		if (fopen_s(&fd, temp_file_name_mini.get_ptr(), "wb") != 0) {
-			pfc::string8 msg("can't open ");
-			msg << temp_file_name_mini;
-			log_msg(msg);
+
+		std::filesystem::path tmp_file_min = std::filesystem::u8path(temp_file_name_mini.c_str());
+
+		if (!std::filesystem::exists(tmp_file_min)) {
+		
 			return std::pair(nullptr, nullptr);
 		}
-		if (fd != nullptr)
-			fclose(fd);
 
-		extract_native_path(temp_file_name_mini, temp_file_name_mini);
-		tempf = pfc::stringcvt::string_wide_from_ansi(temp_file_name_mini);
+		std::filesystem::path os_tmp_mini = std::filesystem::u8path(temp_file_name_mini.c_str());
 
 		CLSID pngClsid;
 		hres = CLSIDFromString(L"{557cf406-1a04-11d3-9a73-0000f81ef32e}", &pngClsid);
 
 		//save mini
-		imgMini.Save(tempf.get_ptr(), &pngClsid, NULL);
+		imgMini.Save(os_tmp_mini.wstring().c_str(), &pngClsid, NULL);
 
-		Bitmap bmMini(tempf);
+		Bitmap bmMini(os_tmp_mini.wstring().c_str());
 
 		//Get hBmMini (48x48)
 		//temp file to be deleted on hbitmap cleanup
@@ -589,40 +584,33 @@ MemoryBlock MemoryBlockToPngIcon(MemoryBlock buffer) {
 }
 
 int static ReadSizeFromFile(pfc::string8 full_path) {
-	
-	//prepare codepaged file name
-	char converted[MAX_PATH -1];
-	pfc::stringcvt::string_os_from_utf8 cvt(full_path);
-	wcstombs(converted, cvt.get_ptr(), MAX_PATH - 1);
 
-	//get stats
-	struct stat stat_buf;
-	int stat_result = stat(converted, &stat_buf);
+	std::filesystem::path p = std::filesystem::u8path(full_path.get_ptr());
 	
-	//return -1 or size
-	int src_length = stat_buf.st_size;
-	return (stat_result == -1 ? -1 : src_length);
+	return std::filesystem::exists(p) ? std::filesystem::file_size(p) : -1;
 }
 
 std::pair<pfc::string8, pfc::string8> ReadDimSizeFromFile(pfc::string8 path, pfc::string8 file_name) {
 
 	pfc::string8 full_path(path << "\\" << file_name);
 
-	int filesize = ReadSizeFromFile(full_path);
+	if (int filesize = ReadSizeFromFile(full_path); filesize != -1) {
 
-	if (filesize == -1)
+		pfc::string8 dims, size;
+		size = round_file_size_units(filesize);
+		pfc::stringcvt::string_os_from_utf8 cvt(full_path);
+
+		Bitmap local_bitmap(cvt.get_ptr(), false);
+
+		UINT w = local_bitmap.GetWidth();
+		UINT h = local_bitmap.GetHeight();
+
+		dims << std::to_string(w).c_str() << "x" << std::to_string(h).c_str();
+
+		return std::pair(dims, size);
+	
+	}
+	else {
 		return std::pair("", "");
-
-	pfc::string8 dims, size;
-
-	size = round_file_size_units(filesize);
-
-	pfc::stringcvt::string_os_from_utf8 cvt(full_path);
-	Bitmap local_bitmap(cvt.get_ptr(), false);
-	UINT w = local_bitmap.GetWidth();
-	UINT h = local_bitmap.GetHeight();
-
-	dims << std::to_string(w).c_str() << "x" << std::to_string(h).c_str();
-
-	return std::pair(dims, size);
+	}
 }

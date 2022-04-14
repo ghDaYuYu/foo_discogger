@@ -43,6 +43,8 @@ private:
 	TagWriter_ptr m_tag_writer;
 	pfc::array_t<TagWriter_ptr> tag_writers;
 
+	service_ptr_t<titleformat_object> m_track_desc_script;
+	
 	size_t tw_index = 0;
 	size_t tw_skip = 0;
 
@@ -59,7 +61,7 @@ private:
 		SetWindowText((LPCTSTR)const_cast<wchar_t*>(wtext.get_ptr()));
 	}
 
-	void insert_tag_result(int pos, const tag_result_ptr &result);
+	void insert_tag_result(int pos, const tag_result_ptr &result, int preview_mode);
 
 	void compute_stats(tag_results_list_type tag_results);
 	void compute_stats_track_map(tag_results_list_type tag_results);
@@ -95,10 +97,19 @@ private:
 
 	void set_image_list();
 
+	bool context_menu_show(HWND wnd, size_t isel, LPARAM lParamCoords);
+	bool context_menu_switch(HWND wnd, POINT point, bool is_results, int cmd, bit_array_bittable selmask);
+
+
 public:
 	enum {
 		IDD = IDD_DIALOG_PREVIEW_TAGS,
 		MSG_EDIT = WM_APP + 5000
+	};
+
+	enum {
+		ID_PREVIEW_CMD_BACK = 1, ID_PREVIEW_CMD_EDIT_RESULT_TAG, ID_PREVIEW_CMD_COPY, 
+		ID_PREVIEW_CMD_WRITE_TAGS
 	};
 
 	enum {
@@ -118,6 +129,7 @@ public:
 #pragma warning( disable : 26454 )
 	MY_BEGIN_MSG_MAP(CPreviewTagsDialog)
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
+		MESSAGE_HANDLER(WM_CONTEXTMENU, OnContextMenu)
 		COMMAND_ID_HANDLER(IDC_WRITE_TAGS_BUTTON, OnButtonWriteTags)
 		COMMAND_ID_HANDLER(IDC_BACK_BUTTON, OnButtonBack)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
@@ -168,11 +180,15 @@ public:
 		g_discogs->preview_tags_dialog = this;
 
 		m_rec_icon = LoadDpiBitmapResource(Icon::Record);
+
+		static_api_ptr_t<titleformat_compiler>()->compile_force(m_track_desc_script, "[%discnumber%].[%tracknumber%] %album artist% - %title%[ '//' %track artist%]");
+
 	}
 
 	~CPreviewTagsDialog();
 
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+	LRESULT OnContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnButtonWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);

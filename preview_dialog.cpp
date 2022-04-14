@@ -8,6 +8,7 @@
 #include "tag_mappings_dialog.h"
 #include "track_matching_dialog.h"
 #include "configuration_dialog.h"
+#include "preview_modal_tag_dialog.h"
 #include "preview_dialog.h"
 
 static const GUID guid_cfg_window_placement_preview_dlg = { 0xcb1debbd, 0x1b0a, 0x4046, { 0x8c, 0x6f, 0x74, 0xee, 0x9d, 0x74, 0x7f, 0x83 } };
@@ -311,6 +312,178 @@ LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	return FALSE;
 }
 
+LRESULT CPreviewTagsDialog::OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) {
+
+	HWND hwndCtrl = (HWND)wParam;
+	size_t iItem = ListView_GetFirstSelection(tag_results_list);
+
+	context_menu_show(hwndCtrl, iItem, lParam /*Coords*/);
+
+	return FALSE;
+}
+
+
+bool CPreviewTagsDialog::context_menu_show(HWND wnd, size_t isel, LPARAM lParamCoords) {
+
+	bool bvk_apps = lParamCoords == -1;
+	bool bselection = isel != ~0;
+
+	POINT point;
+
+	if (bvk_apps) {
+		CRect rect;
+		CWindow(wnd).GetWindowRect(&rect);
+		point = rect.CenterPoint();
+	}
+	else {
+		point.x = GET_X_LPARAM(lParamCoords);
+		point.y = GET_Y_LPARAM(lParamCoords);
+	}
+
+	try {
+
+		HMENU menu = CreatePopupMenu();
+
+		int csel = 0;
+		size_t citems = 0;
+		bit_array_bittable selmask(0);
+
+		bool is_results = wnd == uGetDlgItem(IDC_PREVIEW_LIST);
+		
+		if (is_results) {
+
+			is_results = true;
+			csel = ListView_GetSelectedCount(wnd);
+			citems = ListView_GetItemCount(wnd);
+			selmask.resize(citems);
+			size_t n = ListView_GetFirstSelection(wnd) == -1 ? pfc_infinite : ListView_GetFirstSelection(wnd);
+			for (size_t i = n; i < citems; i++) {
+				selmask.set(i, ListView_IsItemSelected(wnd, i));				
+			}
+		}
+
+        //..
+        
+        
+        //..
+        
+
+		// add menu options
+
+		if (is_results) {
+
+			if (bselection) {
+
+				//uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+				uAppendMenu(menu, MF_STRING, ID_PREVIEW_CMD_EDIT_RESULT_TAG, "&Edit");
+				//uAppendMenu(menu, MF_STRING MF_DISABLED | MF_GRAYED, ID_PREVIEW_CMD_EDIT_RESULT_TAG, "&Edit (in-place)");
+				uAppendMenu(menu, MF_STRING, ID_PREVIEW_CMD_COPY, "Copy\tCtrl+C");
+                uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+			}	
+		}
+
+        //TODO:
+        /*
+		uAppendMenu(menu, MF_STRING | MF_DISABLED | MF_GRAYED, ID_PREVIEW_CMD_BACK, "&Back");
+		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+		uAppendMenu(menu, MF_STRING | MF_DISABLED | MF_GRAYED, ID_PREVIEW_CMD_BACK, "&Skip artwork");
+		uAppendMenu(menu, MF_STRING | MF_DISABLED | MF_GRAYED, ID_PREVIEW_CMD_BACK, "S&how stats");
+		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+		uAppendMenu(menu, MF_STRING | MF_DISABLED | MF_GRAYED, ID_ART_IMAGE_VIEWER, "Results view");
+		uAppendMenu(menu, MF_STRING | MF_DISABLED | MF_GRAYED, ID_ART_IMAGE_VIEWER, "Difference view");
+		uAppendMenu(menu, MF_STRING | MF_DISABLED | MF_GRAYED, ID_ART_IMAGE_VIEWER, "Original view");
+		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+		uAppendMenu(menu, MF_STRING | (true ? MF_DISABLED | MF_GRAYED : 0), ID_SELECT_ALL, "Select all\tCtrl+A");
+		uAppendMenu(menu, MF_STRING | (true ? MF_DISABLED | MF_GRAYED : 0), ID_INVERT_SELECTION, "Invert selection\tCtrl+Shift+A");
+		uAppendMenu(menu, MF_STRING | (true ? MF_DISABLED | MF_GRAYED : 0), ID_REMOVE, "Remove\tDel");
+		uAppendMenu(menu, MF_STRING | (true ? MF_DISABLED | MF_GRAYED : 0), ID_CROP, "Crop\tCtrl+C");
+		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+		uAppendMenu(menu, MF_STRING | (true ? MF_DISABLED | MF_GRAYED : 0), ID_PREVIEW_CMD_WRITE_TAGS, "&Write tags");
+		//uAppendMenu(menu, MF_STRING | (citems ? 0 : MF_DISABLED), ID_ART_RESET, "Reset");
+        */
+        
+		int cmd = TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, 0, wnd, 0);
+		DestroyMenu(menu);
+
+		context_menu_switch(wnd, point, is_results, cmd, selmask /*, ilist */);
+	}
+	catch (...) {}
+	return false;
+}
+
+bool CPreviewTagsDialog::context_menu_switch(HWND wnd, POINT point, bool is_results, int cmd, bit_array_bittable selmask) {
+
+	switch (cmd)
+	{
+	case ID_PREVIEW_CMD_BACK: {
+        //TODO:
+		return true;
+	}
+	case ID_PREVIEW_CMD_EDIT_RESULT_TAG: {
+
+		size_t isel = selmask.find_first(true, 0, selmask.size());
+		
+		//open selected tag dlg
+
+		if (isel != ~0) {
+
+			tag_result_ptr item_result = m_tag_writer->tag_results[isel];
+			track_mappings_list_type track_mappings = m_tag_writer->track_mappings;
+
+			std::vector<pfc::string8> vtracks_desc;
+			for (size_t i = 0; i < track_mappings.get_count(); i++) {
+
+				pfc::string8 track_desc;
+				metadb_handle_ptr item = finfo_manager->items[i];
+				item->format_title(nullptr, track_desc, m_track_desc_script, nullptr);	//TRACK DESCRIPTION
+				vtracks_desc.emplace_back(track_desc);
+			}
+
+			fb2k::newDialog <CPreviewModalTagDialog>(core_api::get_main_window(), item_result, vtracks_desc, get_preview_mode());
+		}
+
+		return true;
+	}
+	case ID_PREVIEW_CMD_COPY: {
+
+		HWND hwndList = uGetDlgItem(IDC_PREVIEW_LIST);
+
+		size_t isel = ListView_GetFirstSelection(hwndList);
+		
+		pfc::string8 utf_buffer;
+		TCHAR outBuffer[MAX_PATH + 1] = {};
+
+		if (isel != -1) {
+			LVITEM lvi;
+			TCHAR outBuffer[MAX_PATH + 1] = {};
+			lvi.pszText = outBuffer;
+			lvi.cchTextMax = MAX_PATH;
+			lvi.mask = LVIF_TEXT;
+			lvi.stateMask = (UINT)-1;
+			lvi.iItem = isel;
+			lvi.iSubItem = 1;
+
+			BOOL result = ListView_GetItem(hwndList, &lvi);
+			utf_buffer << pfc::stringcvt::string_utf8_from_os(outBuffer).get_ptr();
+		}
+
+		if (utf_buffer.get_length()) {
+
+			ClipboardHelper::OpenScope scope; scope.Open(core_api::get_main_window());
+			ClipboardHelper::SetString(utf_buffer);
+
+		}
+
+		return true;
+	}
+	default: {
+
+		return false;
+	}
+	}
+	return false;
+}
+
 bool CPreviewTagsDialog::check_write_tags_status() {
 	bool bres;
 	bres = m_tag_writer->will_modify;
@@ -372,7 +545,8 @@ void CPreviewTagsDialog::insert_tag_results(bool computestat) {
 
 	const size_t count = m_tag_writer->tag_results.get_count();
 	for (unsigned int i = 0; i < count; i++) {
-		insert_tag_result(i, m_tag_writer->tag_results[i]);
+		int preview_mode = get_preview_mode();
+		insert_tag_result(i, m_tag_writer->tag_results[i], preview_mode);
 	}
 }
 
@@ -404,6 +578,8 @@ void CPreviewTagsDialog::TableEdit_SetField(size_t item, size_t subItem, const c
 	}
 }
 
+// print debug
+
 pfc::string8 print_stenar(const pfc::array_t<string_encoded_array> &input) {
 	pfc::string8 result = "";
 	if (input.get_size() == 1) {
@@ -429,6 +605,8 @@ pfc::string8 print_stenar(const pfc::array_t<string_encoded_array> &input) {
 	}
 	return result;
 }
+
+// print normal (original: input oldvalue, results: input value)
 
 pfc::string8 print_normal(const pfc::array_t<string_encoded_array> &input) {
 	pfc::string8 result = "";
@@ -459,6 +637,8 @@ pfc::string8 print_normal(const pfc::array_t<string_encoded_array> &input) {
 	}
 	return result;
 }
+
+// print difference
 
 pfc::string8 print_difference(const pfc::array_t<string_encoded_array> &input, const pfc::array_t<string_encoded_array> &old_input) {
 	const size_t count = input.get_count();
@@ -512,20 +692,33 @@ pfc::string8 print_difference(const pfc::array_t<string_encoded_array> &input, c
 	return result;
 }
 
-void CPreviewTagsDialog::insert_tag_result(int pos, const tag_result_ptr &result) {
-	int preview_mode = get_preview_mode();
+// print result with mode param
+
+pfc::string8 print_result_in_mode(const tag_result_ptr& result, int preview_mode) {
+
+	pfc::string8 mode_result;
+
 	if (preview_mode == PREVIEW_NORMAL) {
-		listview_helper::insert_item2(tag_results_list, pos, result->tag_entry->tag_name, print_normal(GetPreviewValue(result)), 0);
+		mode_result = print_normal(GetPreviewValue(result));
 	}
 	else if (preview_mode == PREVIEW_DIFFERENCE) {
 		listview_helper::insert_item2(tag_results_list, pos, result->tag_entry->tag_name, print_difference(result->value, result->old_value), 0);
 	}
 	else if (preview_mode == PREVIEW_ORIGINAL) {
-		listview_helper::insert_item2(tag_results_list, pos, result->tag_entry->tag_name, print_normal(result->old_value), 0);
+		mode_result = print_normal(result->old_value);
 	}
 	else {
-		listview_helper::insert_item2(tag_results_list, pos, result->tag_entry->tag_name, print_stenar(result->value), 0);
+		mode_result = print_stenar(result->value);
 	}
+
+	return mode_result;
+}
+
+void CPreviewTagsDialog::insert_tag_result(int pos, const tag_result_ptr &result, int preview_mode) {
+	
+	pfc::string8 mode_result = print_result_in_mode(result, preview_mode).c_str();
+	
+	listview_helper::insert_item2(tag_results_list, pos, result->tag_entry->tag_name, mode_result, 0);
 	
 	if (cfg_preview_dialog_show_stats) {
 		listview_helper::set_item_text(tag_results_list, pos, 2, v_stats.size() > 0 ? std::to_string(v_stats.at(pos).totalwrites).c_str() : "n/a");

@@ -670,6 +670,13 @@ void CFindReleaseDialog::on_write_tags(const pfc::string8& release_id) {
 	//note: offline_artist_id is mem cache denormalization
 	//todo: v2.23 - TODO: PREPARE NEW FOLDER FOR TRACKS MISSING A VALID DISCOGS_ARTIST_ID
 	
+	if (std::atoi(release_id) == 0) {
+		//todo: bug trace	
+		uMessageBox(m_hWnd, "Release Id non-valid Release Id, unable to continue.", "foo_discogger: Error", MB_APPLMODAL | MB_ICONASTERISK);
+		return;
+
+	}
+
 	pfc::string8 offline_artist_id;
 	bool bskip_idded_release_dlg = conf.skip_mng_flag & SkipMng::SKIP_FIND_RELEASE_DLG_IDED;
 

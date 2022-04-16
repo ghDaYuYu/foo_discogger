@@ -401,18 +401,7 @@ void CConfigurationDialog::init_tagging_dialog(HWND wnd) {
 	uSetDlgItemText(wnd, IDC_REMOVE_EXCLUDING_TAGS, conf.raw_remove_exclude_tags);
 }
 
-void CConfigurationDialog::init_caching_dialog(HWND wnd) {
-	uButton_SetCheck(wnd, IDC_HIDDEN_AS_REGULAR_CHECK, conf.parse_hidden_as_regular);
-	uButton_SetCheck(wnd, IDC_SKIP_VIDEO_TRACKS, conf.skip_video_tracks);
-	uButton_SetCheck(wnd, IDC_CFG_CACHE_USE_OFFLINE_CACHE, conf.cache_offline_cache_flag & ol::CacheFlags::OC_READ);
-	uButton_SetCheck(wnd, IDC_CFG_CACHE_WRITE_OFFLINE_CACHE, conf.cache_offline_cache_flag & ol::CacheFlags::OC_WRITE);
-	original_parsing = conf.parse_hidden_as_regular;
-	original_skip_video = conf.skip_video_tracks;
-
-	pfc::string8 num;
-	num << conf.cache_max_objects;
-	uSetDlgItemText(wnd, IDC_CACHED_OBJECTS_EDIT, num);
-
+void CConfigurationDialog::init_memory_cache_buttons(HWND wnd) {
 	pfc::string8 text;
 	text << "Releases (" << discogs_interface->release_cache_size() << ")";
 	set_window_text(wnd, IDC_CLEAR_CACHE_RELEASES, text);
@@ -430,6 +419,30 @@ void CConfigurationDialog::init_caching_dialog(HWND wnd) {
 	::EnableWindow(::uGetDlgItem(wnd, IDC_CLEAR_CACHE_MASTERS), discogs_interface->master_release_cache_size() ? TRUE : FALSE);
 	::EnableWindow(::uGetDlgItem(wnd, IDC_CLEAR_CACHE_ARTISTS), discogs_interface->artist_cache_size() ? TRUE : FALSE);
 	::EnableWindow(::uGetDlgItem(wnd, IDC_CLEAR_CACHE_COLLECTION), discogs_interface->collection_cache_size() ? TRUE : FALSE);
+}
+
+void CConfigurationDialog::init_caching_dialog(HWND wnd) {
+	//hidden regular & skip videp
+	uButton_SetCheck(wnd, IDC_HIDDEN_AS_REGULAR_CHECK, conf.parse_hidden_as_regular);
+	uButton_SetCheck(wnd, IDC_SKIP_VIDEO_TRACKS, conf.skip_video_tracks);
+	//offline cache
+	FlgMng fv_offline_cache;
+	conf.GetFlagVar(CFG_CACHE_OFFLINE_CACHE_FLAG, fv_offline_cache);
+	bool bread = fv_offline_cache.GetFlat(ol::CacheFlags::OC_READ);
+	bool bwrite = fv_offline_cache.GetFlat(ol::CacheFlags::OC_WRITE);
+
+	uButton_SetCheck(wnd, IDC_CFG_CACHE_USE_OFFLINE_CACHE, bread);
+	uButton_SetCheck(wnd, IDC_CFG_CACHE_WRITE_OFFLINE_CACHE, bwrite);
+
+	//memory cache
+	original_parsing = conf.parse_hidden_as_regular;
+	original_skip_video = conf.skip_video_tracks;
+
+	pfc::string8 num;
+	num << conf.cache_max_objects;
+	uSetDlgItemText(wnd, IDC_CACHED_OBJECTS_EDIT, num);
+
+	init_memory_cache_buttons(wnd);
 }
 
 void CConfigurationDialog::init_db_dialog(HWND wnd) {
@@ -910,21 +923,22 @@ BOOL CConfigurationDialog::on_caching_dialog_message(HWND wnd, UINT msg, WPARAM 
 			setting_dlg = false;
 			return TRUE;
 		case WM_COMMAND:
+			bool brefresh_mem_cache_buttons = false;
 			if (LOWORD(wp) == IDC_CLEAR_CACHE_RELEASES) {
 				discogs_interface->reset_release_cache();
-				::EnableWindow(::uGetDlgItem(wnd, IDC_CLEAR_CACHE_RELEASES), FALSE);
+				brefresh_mem_cache_buttons = true;
 			}
 			else if (LOWORD(wp) == IDC_CLEAR_CACHE_MASTERS) {
 				discogs_interface->reset_master_release_cache();
-				::EnableWindow(::uGetDlgItem(wnd, IDC_CLEAR_CACHE_MASTERS), FALSE);
+				brefresh_mem_cache_buttons = true;
 			}
 			else if (LOWORD(wp) == IDC_CLEAR_CACHE_ARTISTS) {
 				discogs_interface->reset_artist_cache();
-				::EnableWindow(::uGetDlgItem(wnd, IDC_CLEAR_CACHE_ARTISTS), FALSE);
+				brefresh_mem_cache_buttons = true;
 			}
 			else if (LOWORD(wp) == IDC_CLEAR_CACHE_COLLECTION) {
 				discogs_interface->reset_collection_cache();
-				::EnableWindow(::uGetDlgItem(wnd, IDC_CLEAR_CACHE_COLLECTION), FALSE);
+				brefresh_mem_cache_buttons = true;
 			}
 			else {
 				if ((HIWORD(wp) == BN_CLICKED) || (HIWORD(wp) == EN_UPDATE)) {
@@ -933,6 +947,9 @@ BOOL CConfigurationDialog::on_caching_dialog_message(HWND wnd, UINT msg, WPARAM 
 						OnChanged();
 					}
 				}
+			}
+			if (brefresh_mem_cache_buttons) {
+				init_memory_cache_buttons(wnd);
 			}
 			return FALSE;
 		}

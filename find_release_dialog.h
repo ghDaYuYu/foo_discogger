@@ -274,6 +274,7 @@ private:
 	//todo: 
 	friend class expand_master_release_process_callback;
 	friend class get_artist_process_callback;
+	friend class get_various_artists_process_callback;
 	friend class search_artist_process_callback;
 
 	friend class CArtistList;

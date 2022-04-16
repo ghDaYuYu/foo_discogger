@@ -200,16 +200,14 @@ bool CFindReleaseDialog::ForwardVKReturn()
 	return false;
 }
 
-bool OAuthCheck(foo_conf conf) {
-	if (!g_discogs->gave_oauth_warning &&
-		(!conf.oauth_token.get_length() || !conf.oauth_token_secret.get_length())) {
+bool OAuthCheck(const foo_conf& conf) {
+	if (!g_discogs->gave_oauth_warning && (!conf.oauth_token.get_length() || !conf.oauth_token_secret.get_length())) {
 		g_discogs->gave_oauth_warning = true;
 		if (!g_discogs->configuration_dialog) {
 			static_api_ptr_t<ui_control>()->show_preferences(guid_pref_page);
 		}
-		CConfigurationDialog* dlg = reinterpret_cast<CConfigurationDialog*>(g_discogs->configuration_dialog);
 
-		if (dlg) {
+		if (CConfigurationDialog* dlg = g_discogs->configuration_dialog) {
 			dlg->show_oauth_msg("Please configure OAuth.", true);
 			::SetFocus(dlg->m_hWnd);
 		}
@@ -316,13 +314,14 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 
 	{
 		bool brelease_ided = m_tracer.release_tag && m_tracer.release_id != pfc_infinite;
-		bool bskip_ided = conf.skip_mng_flag & SkipMng::SKIP_FIND_RELEASE_DLG_IDED;
+		bool bskip_ided = conf.skip_mng_flag & SkipMng::SKIP_RELEASE_DLG_IDED;
 
 		bool cfg_always_load_artist_ided_preview = true;
+
 		if (!(bskip_ided && brelease_ided)) {
 
 			//route
-			route_artist_search(artist, false, !m_tracer.multi_artist && m_tracer.artist_tag);
+			route_artist_search(artist, false, m_tracer.artist_tag);
 			bvisible_dlg = true;
 		}
 		else 
@@ -340,7 +339,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 
 	block_filter_box_events(true);
 
-	if (m_tracer.multi_artist || !m_tracer.has_amr() || !conf.enable_autosearch) {
+	if (m_tracer.is_multi_artist() || !m_tracer.has_amr() || !conf.enable_autosearch) {
 		uSetWindowText(m_edit_filter, frm_album);
 	}
 
@@ -360,7 +359,10 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	if (OAuthCheck(conf) || (db_ready_to_search)) {
 
 		bool brelease_ided = m_tracer.release_tag && m_tracer.release_id != pfc_infinite;
-		bool bskip_ided = conf.skip_mng_flag & SkipMng::SKIP_FIND_RELEASE_DLG_IDED;
+		bool bskip_ided = conf.skip_mng_flag & SkipMng::SKIP_RELEASE_DLG_IDED;
+
+		//autofill release id
+		uSetWindowText(m_edit_release, brelease_ided ? std::to_string(m_tracer.release_id).c_str() : "");
 
 		if (bskip_ided && brelease_ided) {
 
@@ -374,14 +376,6 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 		}
 		else {
 
-			//.. Find Release dialog
-
-			if (brelease_ided) {
-
-				//autofill release id
-				uSetWindowText(m_edit_release, std::to_string(m_tracer.release_id).c_str());
-			}
-			
 			show();
 
 			//default buttons

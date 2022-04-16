@@ -58,12 +58,13 @@ public:
 	void start();
 
 private:
-	CPreviewTagsDialog *preview_dialog = nullptr;
-	CTrackMatchingDialog *track_matching_dialog = nullptr;
-	bool show_preview_dialog;
+	CPreviewTagsDialog *m_preview_dialog = nullptr;
+	CTrackMatchingDialog *m_track_matching_dialog = nullptr;
+	bool m_show_preview_dialog;
 	
-	TagWriter_ptr tag_writer;
-	bool use_update_tags;
+	TagWriter_ptr m_tag_writer;
+	tag_mapping_list_type* m_alt_mappings;
+	bool m_use_update_tags;
 
 	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
@@ -75,25 +76,11 @@ private:
 class write_tags_task : public foo_discogs_threaded_process_callback
 {
 public:
-	write_tags_task(TagWriter_ptr tag_writer) : tag_writer(tag_writer) {}
+	write_tags_task(TagWriter_ptr tag_writer) : m_tag_writer(tag_writer) {}
 	void start();
 
 private:
-	TagWriter_ptr tag_writer;
-
-	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
-	void on_success(HWND p_wnd) override;
-};
-
-
-class write_tags_task_multi : public foo_discogs_threaded_process_callback
-{
-public:
-	write_tags_task_multi(pfc::array_t<TagWriter_ptr> tag_writers) : tag_writers(tag_writers) {}
-	void start();
-
-private:
-	pfc::array_t<TagWriter_ptr> tag_writers;
+	TagWriter_ptr m_tag_writer;
 
 	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
@@ -142,7 +129,7 @@ private:
 	pfc::array_t<GUID> m_album_art_ids;
 	pfc::string8 m_release_id;
 	metadb_handle_list m_items;
-	bool m_to_path_only; //write art simulation
+	bool m_to_path_only; //debug sim
 
 	std::vector<std::pair<pfc::string8, bit_array_bittable>> m_vres;
 	void safe_run(threaded_process_status& p_status, abort_callback& p_abort) override;
@@ -209,6 +196,26 @@ private:
 
 	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
+	void on_error(HWND p_wnd) override;
+};
+
+// various
+
+class get_various_artists_process_callback : public foo_discogs_threaded_process_callback
+{
+public:
+	get_various_artists_process_callback(updRelSrc updsrc, const std::vector<size_t> & artist_ids)
+		: m_updsrc(updsrc), m_artist_ids(artist_ids) {}
+	void start(HWND parent);
+
+private:
+	const std::vector<size_t> & m_artist_ids;
+	pfc::array_t<Artist_ptr> m_artists;
+	updRelSrc m_updsrc;
+
+	void safe_run(threaded_process_status& p_status, abort_callback& p_abort) override;
+	void on_success(HWND p_wnd) override;
+	void on_error(HWND p_wnd) override;
 };
 
 #ifdef DB_DC
@@ -259,16 +266,17 @@ class process_release_callback : public foo_discogs_threaded_process_callback
 #endif // DB_DC
 {
 public:
-	process_release_callback(CFindReleaseDialog *dialog, const pfc::string8 &release_id, const metadb_handle_list &items);
+	process_release_callback(CFindReleaseDialog *dialog, const pfc::string8 &release_id, const pfc::string8& offline_artist_id, const metadb_handle_list &items);
 	void start(HWND parent);
 
 private:
-	TagWriter_ptr tag_writer;
-	file_info_manager_ptr finfo_manager;
-	metadb_handle_list items;
+	TagWriter_ptr m_tag_writer;
+	file_info_manager_ptr m_finfo_manager;
+	metadb_handle_list m_items;
 
 	CFindReleaseDialog *m_dialog;
 	pfc::string8 m_release_id;
+	pfc::string8 m_offline_artist_id;
 	Release_ptr m_release;
 
 	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
@@ -334,7 +342,7 @@ private:
 class process_artwork_preview_callback : public foo_discogs_threaded_process_callback
 {
 public:
-	process_artwork_preview_callback(CTrackMatchingDialog*dialog, const Release_ptr &release, const size_t img_ndx, const bool bartist, const bool onlycache);
+	process_artwork_preview_callback(CTrackMatchingDialog*dialog, const Release_ptr &release, const size_t img_ndx, const bool bartist, const bool onlycache, const bool get_mibs = false);
 	void start(HWND parent);
 
 private:
@@ -344,6 +352,7 @@ private:
 	size_t m_img_ndx;
 	bool m_bartist;
 	bool m_onlycache;
+	bool m_get_mibs;
 
 	musicbrainz_info m_musicbrainz_mibs;
 

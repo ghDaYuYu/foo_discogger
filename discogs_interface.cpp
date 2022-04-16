@@ -132,7 +132,8 @@ Artist_ptr DiscogsInterface::get_artist(const pfc::string8 &artist_id, bool bypa
 	return artist;
 }
 
-Artist_ptr DiscogsInterface::get_artist(const pfc::string8 &artist_id, bool _load_releases, threaded_process_status &p_status, abort_callback &p_abort, bool bypass_cache, bool throw_all) {
+Artist_ptr DiscogsInterface::get_artist(const pfc::string8 &artist_id, bool _load_releases, threaded_process_status &p_status, abort_callback &p_abort, bool bypass_cache, bool throw_all, bool throw_404) {
+
 	Artist_ptr artist = bypass_cache ? nullptr : get_artist_from_cache(artist_id);
 	if (!artist) {
 		artist = std::make_shared<Artist>(artist_id);
@@ -145,7 +146,12 @@ Artist_ptr DiscogsInterface::get_artist(const pfc::string8 &artist_id, bool _loa
 			artist->load(p_status, p_abort, throw_all);
 		}
 		catch (http_404_exception) {
-			throw;
+			if (throw_404)
+				throw;
+			else {
+				artist->profile = "foo_discogger: 404 Artist not found.";
+				return artist;
+			}
 		}
 	}
 
@@ -305,7 +311,7 @@ pfc::array_t<JSONParser_ptr> DiscogsInterface::get_all_pages_offline_cache(ol::G
 		pfc::string8 json_page_path;
 		json_page_path << pages_path_prefix << page - 1 << "\\root.json";
 
-		json_t* j_t = offline_cache_artists->FReadAll(json_page_path.get_ptr());
+		json_t* j_t = offline_cache_artists->FRead_JSON(json_page_path.get_ptr());
 		if (j_t == nullptr) {
 			foo_discogs_exception ex("Invalid root.json file");
 			throw ex;
@@ -334,7 +340,7 @@ void DiscogsInterface::get_artist_offline_cache(pfc::string8& id, pfc::string8& 
 	pfc::string8 json_path;
 	json_path << foo_path << "\\root.json";
 
-	json_t* j_t = offline_cache_artists->FReadAll(json_path.get_ptr());
+	json_t* j_t = offline_cache_artists->FRead_JSON(json_path.get_ptr());
 	/* prevent crash on faulty offline json files */
 	/* todo: delete corrupted file*/
 	if (j_t) {
@@ -357,7 +363,7 @@ void DiscogsInterface::get_release_offline_cache(pfc::string8& id, pfc::string8 
 	pfc::string8 json_path;
 	json_path << foo_path << "\\root.json";
 
-	json_t* j_t = offline_cache_release->FReadAll(json_path.get_ptr());
+	json_t* j_t = offline_cache_release->FRead_JSON(json_path.get_ptr());
 
 	size_t obj_size = json_object_size(j_t);
 	if (obj_size) {
@@ -457,11 +463,9 @@ bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release, bool isArti
 	if (!isArtist) {
 		id = release->id;
 		if (!release->images.get_size() || (!release->images[img_ndx]->url150.get_length())) {
-#ifdef DEBUG		
-			pfc::string8 msg = "Unable to read thumbnail from cache (no artist);
+			pfc::string8 msg = "Unable to read thumbnail from cache (no artist). Url: ";
 			//msg << release->images[img_ndx]->url150;
 			log_msg(msg);
-#endif			
 			return false;
 		}
 		else {
@@ -472,11 +476,8 @@ bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release, bool isArti
 		id = release->artists[0]->full_artist->id;
 		if (!release->artists.get_size() || !release->artists[0]->full_artist->images.get_size() ||
 			(!release->artists[0]->full_artist->images[img_ndx]->url150.get_length())) {
-#ifdef DEBUG
-			pfc::string8 msg = "Unable to read thumbnail from cache (artist)";
-			//msg << release->images[img_ndx]->url150;
+			pfc::string8 msg = "Unable to read thumbnail from cache (artist).";
 			log_msg(msg);
-#endif			
 			return false;
 		}
 		else {

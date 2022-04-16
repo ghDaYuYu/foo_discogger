@@ -138,6 +138,12 @@
 #define CFG_HISTORY_MAX_ITEMS					2133
 #define CFG_FIND_RELEASE_DIALOG_FLAG			2134
 
+//v206 (1.0.8)
+#define CFG_DISCOGS_ARTWORK_INDEX_WIDTH			2135
+#define CFG_MATCH_FILE_ARTWORK_INDEX_WIDTH		2136
+#define CFG_PREVIEW_MODAL_TAGS_DLG_COLS_WIDTH	2137
+
+
 // STRINGS -------------------------------------
 
 #define CFG_EDIT_TAGS_DIALOG_HL_KEYWORD			2201
@@ -290,6 +296,14 @@ private:
 public:
 
 	CConf(std::string name = "") : thisname(name) {
+		//draft flag assist
+		vflags.emplace_back(CFG_UPDATE_ART_FLAGS);
+		vflags.emplace_back(CFG_CACHE_OFFLINE_CACHE_FLAG);
+		vflags.emplace_back(CFG_DC_DB_FLAG);
+		vflags.emplace_back(CFG_FIND_RELEASE_FILTER_FLAG);
+		vflags.emplace_back(CFG_FIND_RELEASE_DIALOG_FLAG);
+		vflags.emplace_back(CFG_SKIP_MNG_FLAG);
+		//..
 	}
 	// shallow copy
 	CConf::CConf(CConf const& other) {
@@ -308,6 +322,7 @@ public:
 		CONF = 0,
 		FIND,
 		PREVIEW,
+		PREVIEW_MODAL,
 		TAG,
 		TRACK,
 		UPDATE_ART,
@@ -328,11 +343,13 @@ public:
 
 	//save all
 	void save();
-	//save only active config tab#
+	//save just active config tab#
 	void save_active_config_tab(int newtab);
+	//save just preview modal tab widths
+	void save_preview_modal_tab_widths(int newwidths);
 
 	template <typename Enumeration>
-	//as_integer...
+	//as_integern
 	auto asi(Enumeration const value)
 		-> typename std::underlying_type<Enumeration>::type
 	{
@@ -387,7 +404,7 @@ public:
 		{ asi(cfgFilter::CONF), CFG_DC_DB_FLAG},
 		{ asi(cfgFilter::CONF), CFG_SKIP_MNG_FLAG},
 		{ asi(cfgFilter::CONF), CFG_LIST_STYLE},
-		{ asi(cfgFilter::CONF), CFG_HISTORY_MAX_ITEMS},				//sent to cfgFilter::FIND
+		{ asi(cfgFilter::CONF), CFG_HISTORY_MAX_ITEMS},
 		{ asi(cfgFilter::CONF), CFG_FIND_RELEASE_DIALOG_FLAG },
 
 		//..
@@ -422,6 +439,11 @@ public:
 		{ asi(cfgFilter::PREVIEW), CFG_EDIT_TAGS_DIALOG_FLAGS},
 		//..
 
+		//PREVIEW MODAL TAG (preview result modal tag)
+		//v206 (1.0.8)
+		{ asi(cfgFilter::PREVIEW_MODAL), CFG_PREVIEW_MODAL_TAGS_DLG_COLS_WIDTH },
+		//..
+
 		//TAG (tag_mappings_dialog)
 		{ asi(cfgFilter::TAG), CFG_EDIT_TAGS_DIALOG_COL1_WIDTH },
 		{ asi(cfgFilter::TAG), CFG_EDIT_TAGS_DIALOG_COL2_WIDTH },
@@ -452,6 +474,10 @@ public:
 		{ asi(cfgFilter::TRACK), CFG_ALBUM_ART_SKIP_DEFAULT_CUST },
 
 		//v205
+		//V206
+		{ asi(cfgFilter::TRACK), CFG_DISCOGS_ARTWORK_INDEX_WIDTH },
+		{ asi(cfgFilter::TRACK), CFG_MATCH_FILE_ARTWORK_INDEX_WIDTH },
+		
 		//..
 
 		//UPDATE_ART (update_art_dialog)
@@ -547,7 +573,7 @@ public:
 	formatting_script release_discogs_format_string = "$ifgreater(%RELEASE_TOTAL_DISCS%,1,%DISC_NUMBER%-,)$num(%TRACK_DISC_TRACK_NUMBER%,2) - $multi_if($multi_and(%ARTISTS_NAME_VARIATION%,$multi_not(%REPLACE_ANVS%)),%ARTISTS_NAME_VARIATION%$multi_if(%DISPLAY_ANVS%,*,),%ARTISTS_NAME%) - %TRACK_TITLE%$ifequal(%TRACK_TOTAL_HIDDEN_TRACKS%,0,,'   [+'%TRACK_TOTAL_HIDDEN_TRACKS%' HIDDEN]')";
 	formatting_script release_file_format_string = "$if($strcmp($ext(%path%),tags),$info(@),%path%)";
 
-	//v.200
+	//v200
 	int preview_tags_dialog_col1_width = 0;
 	int preview_tags_dialog_col2_width = 0;
 	int match_tracks_discogs_col1_width = 0;
@@ -594,8 +620,17 @@ public:
 	int history_enabled_max = MAKELPARAM(10, 1); //enabled-max20
 
 	int find_release_dlg_flags = 0;
+
+	//v206 (1.0.8)
+	int match_discogs_artwork_index_width = MAKELPARAM(2* 10 + 6, 30);	//justify center*10 + index, width
+	int match_file_artwork_index_width = MAKELPARAM(2*10 + 3, 30);
+	int preview_modal_tags_dlg_cols_width = 0;                          //lo #col, hi track col
 	//..
+
+	std::vector<int> vflags;
+
+	friend class FlgMng;
 };
 
 typedef CConf foo_conf;
-extern CConf CONF;
+inline CConf CONF("Global");

@@ -34,12 +34,18 @@ public:
 	enum {
 		IDD = IDD_DIALOG_PREVIEW_MODAL_TAG,
 		IDD_TAB_CTRL = IDC_PREVIEW_MODAL_TAB,
+		IDD_TAB_LIST = IDC_MODAL_TAG_LIST,
 		MY_NUM_TABS = 3,
 	};
 
 	enum {
 		ID_CMD_COPY = 1, ID_CMD_PASTE
 	};
+
+	void update_list_width();
+	void load_size();
+	bool build_current_cfg(int& out);
+	void pushcfg();
 
 	MY_BEGIN_MSG_MAP(CPreviewModalTagDialog)
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)

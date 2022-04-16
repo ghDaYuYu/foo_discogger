@@ -850,7 +850,7 @@ void artwork_presenter::insert_columns() {
 
 	set_row_height(m_row_height);
 
-	std::vector<int> col_order;
+	std::vector<int> vorder;
 	std::vector<int> col_align;
 	std::vector<int> col_width;
 
@@ -859,7 +859,7 @@ void artwork_presenter::insert_columns() {
 
 		int lo = LOWORD(param);
 
-		col_order.push_back(lo % 10);
+		vorder.push_back(lo % 10);
 		col_align.push_back(lo / 10);
 		col_width.push_back(HIWORD(param));
 
@@ -877,8 +877,14 @@ void artwork_presenter::insert_columns() {
 		icol++;
 	}
 
+	//default is all zeros, rebuild if needed
+	if (std::find(vorder.begin(), vorder.end(), 1) == vorder.end()) {
+		int c = 0;
+		for (int& v : vorder) v = c++;
+	}
+
 	CHeaderCtrl header = ListView_GetHeader(GetListView());
-	//header.SetOrderArray(col_order.size(), &col_order[0]);
+	header.SetOrderArray(vorder.size(), &vorder[0]);
 
 	ListView_SetExtendedListViewStyle(GetListView(), m_dwHeaderStyle);
 
@@ -985,7 +991,7 @@ void discogs_artwork_presenter::define_columns() {
 	m_conf_col_woa.push_back(m_conf.match_discogs_artwork_save_width);
 	m_conf_col_woa.push_back(m_conf.match_discogs_artwork_ovr_width);
 	m_conf_col_woa.push_back(m_conf.match_discogs_artwork_embed_width);
-	m_conf_col_woa.push_back(m_conf.match_discogs_artwork_embed_width);
+	m_conf_col_woa.push_back(m_conf.match_discogs_artwork_index_width);
 
 	m_dwHeaderStyle = LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | /*LVS_EX_SUBITEMIMAGES |*/ LVS_REPORT | LVS_OWNERDATA | LVS_ICON;
 	
@@ -1013,6 +1019,7 @@ void discogs_artwork_presenter::build_cfg_columns() {
 		conf.match_discogs_artwork_save_width = m_conf_col_woa.at(3);
 		conf.match_discogs_artwork_ovr_width = m_conf_col_woa.at(4);
 		conf.match_discogs_artwork_embed_width = m_conf_col_woa.at(5);
+		conf.match_discogs_artwork_index_width = m_conf_col_woa.at(6);
 
 	}
 	size_t icomp = get_extended_style(GetListView());
@@ -1060,7 +1067,7 @@ void files_artwork_presenter::define_columns() {
 	m_conf_col_woa.push_back(m_conf.match_file_artwork_name_width);
 	m_conf_col_woa.push_back(m_conf.match_file_artwork_dim_width);
 	m_conf_col_woa.push_back(m_conf.match_file_artwork_size_width);
-	m_conf_col_woa.push_back(m_conf.match_file_artwork_size_width);
+	m_conf_col_woa.push_back(m_conf.match_file_artwork_index_width);
 
 	m_dwHeaderStyle = LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | /*LVS_EX_SUBITEMIMAGES |*/ LVS_REPORT | LVS_OWNERDATA | LVS_ICON;
 
@@ -1084,6 +1091,7 @@ void files_artwork_presenter::build_cfg_columns() {
 		conf.match_file_artwork_name_width = m_conf_col_woa.at(0);
 		conf.match_file_artwork_dim_width = m_conf_col_woa.at(1);
 		conf.match_file_artwork_size_width = m_conf_col_woa.at(2);
+		conf.match_file_artwork_index_width = m_conf_col_woa.at(3);
 
 	}
 	size_t icomp = get_extended_style(GetListView());
@@ -1165,12 +1173,9 @@ void files_artwork_presenter::GetExistingArtwork() {
 		result = ReadDimSizeFromFile(directory, fb_art_pref.second);
 
 		pfc::string8 full_path(directory); full_path << "\\" << fb_art_pref.second;
-		char converted[MAX_PATH - 1];
-		pfc::stringcvt::string_os_from_utf8 cvt(full_path);
-		wcstombs(converted, cvt.get_ptr(), MAX_PATH - 1);
 
 		//imagefile info...
-		image_info_t image_info = { pfc::string8(converted), result.first, result.second };
+		image_info_t image_info = {full_path, result.first, result.second };
 
 		ndx_image_file_t ndx_image_file = std::pair<size_t, GUID>(fb_art_pref.first, album_art_ids::query_type(fb_art_pref.first));
 		ndx_image_file_info_row_t ndximgfileinfo = std::pair(ndx_image_file, image_info);
@@ -1219,12 +1224,9 @@ void files_artwork_presenter::Add_template(GUID template_guid, size_t template_s
 		//if (!STR_EQUAL(result.first, "") && !STR_EQUAL(result.second, "")) {
 
 		pfc::string8 full_path(directory); full_path << "\\" << tmpl_file_name;
-		char converted[MAX_PATH - 1];
-		pfc::stringcvt::string_os_from_utf8 cvt(full_path);
-		wcstombs(converted, cvt.get_ptr(), MAX_PATH - 1);
 
 		//imagefile info...
-		image_info_t image_info = { pfc::string8(converted), result.first, result.second };
+		image_info_t image_info = { full_path, result.first, result.second };
 
 		//todo: debug if might be skipped
 		size_t tmpl_ndx = ~0;
@@ -1350,9 +1352,6 @@ void files_artwork_presenter::update_img_defs(size_t img_ndx, size_t album_art_i
 	result = ReadDimSizeFromFile(directory, file_name);
 
 	pfc::string8 full_path(directory); full_path << "\\" << file_name;
-	char converted[MAX_PATH - 1];
-	pfc::stringcvt::string_os_from_utf8 cvt(full_path);
-	wcstombs(converted, cvt.get_ptr(), MAX_PATH - 1);
 
 	//get lv position for this album art id
 	auto find_it = std::find_if(m_lvimage_files.begin(), m_lvimage_files.end(), [&](V const& elem) {
@@ -1367,7 +1366,7 @@ void files_artwork_presenter::update_img_defs(size_t img_ndx, size_t album_art_i
 	//replace dims and file size
 	if (find_it != m_lvimage_files.end()) {
 		image_info_t& image_info = std::get<3>(*find_it).second->second;
-		image_info = { pfc::string8(converted), result.first, result.second };
+		image_info = { full_path, result.first, result.second };
 	}
 
 	//ndx_image_file_t ndx_image_file = std::pair<size_t, GUID>(fb_art_pref.first, album_art_ids::query_type(fb_art_pref.first));
@@ -1620,7 +1619,19 @@ bool discogs_artwork_presenter::AddArtwork(size_t img_ndx, art_src artSrc, Memor
 	cache_path_small << img_ndx << THUMB_EXTENSION;
 	cache_path_mini << img_ndx << THUMB_EXTENSION;
 
-	bool bcreated = Offline::CreateOfflinePagesPath(id, artSrc, pfc_infinite, Offline::GetFrom::ArtistReleases, "", true);
+	bool bfolder_ready = Offline::CreateOfflinePath_PAGES(id, artSrc, pfc_infinite, Offline::GetFrom::ArtistReleases, "", true);
+
+    //..
+
+	if (!bfolder_ready) {
+
+		return false;
+	}
+	
+	//..
+
+	// prepare bitmaps
+
 	std::pair<HBITMAP, HBITMAP> hRES = MemoryBlockToTmpBitmap(std::pair(cache_path_small,	cache_path_mini),
 		img_ndx, small_art);
 

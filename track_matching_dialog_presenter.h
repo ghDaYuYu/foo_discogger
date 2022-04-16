@@ -79,7 +79,7 @@ public:
 
 		mm_hWnd = NULL;
 		m_coord = coord;
-		//m_wlist = NULL;
+
 		m_listID = 0;
 		m_loaded = false;
 		m_dwHeaderStyle = 0L;
@@ -344,14 +344,17 @@ public:
 		m_lvfiles.erase(m_lvfiles.begin() + position);
 		return ndx_deleted;
 	}
+
 	bool SwapMapItem(size_t key1, size_t key2) override {
 		bool bres = key1 < m_lvfiles.size() && key2 < m_lvfiles.size();
 		if (bres) std::swap(m_lvfiles.at(key1), m_lvfiles.at(key2));
 		return bres;
 	}
+	
 	void ReorderMapItem(size_t const* order, size_t count) override {
 		pfc::reorder_t(m_lvfiles, order, count);
 	}
+	
 	void Reset() override { m_vfiles.clear(); m_lvfiles.clear(); }
 
 protected:

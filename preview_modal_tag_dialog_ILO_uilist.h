@@ -3,6 +3,8 @@
 
 class CPreviewModalTagDialog;
 
+#define LINES_LONGFIELD 4;
+
 class ILOD_preview_modal : public IListControlOwnerDataSource {
 
 private:
@@ -57,6 +59,7 @@ private:
 	void listItemAction(ctx_t, size_t item) override;
 	void listSubItemClicked(ctx_t, size_t item, size_t subItem) override;
 	void listSetEditField(ctx_t ctx, size_t item, size_t subItem, const char* val) override;
+	pfc::string8 listGetEditField(ctx_t ctx, size_t item, size_t subItem, size_t& lineCount) override;
 	bool listIsColumnEditable(ctx_t, size_t subItem) override;
 
 	//..

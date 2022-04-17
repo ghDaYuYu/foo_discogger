@@ -8,7 +8,8 @@
 #include "preview_modal_tag_dialog_ILO_uilist.h"
 
 class CPreviewModalTagDialog : public MyCDialogImpl<CPreviewModalTagDialog>,
-	public CDialogResize<CPreviewModalTagDialog>, private ILOD_preview_modal
+	public CDialogResize<CPreviewModalTagDialog>,
+	private ILOD_preview_modal
 {
 
 private:
@@ -18,6 +19,8 @@ private:
 	CListControlOwnerData m_ui_list;
 
 	int m_parent_preview_mode;
+
+	size_t m_iItem;
 	tag_result_ptr m_item_result;
 	std::vector<pfc::string8> m_vtracks_desc;
 
@@ -36,6 +39,7 @@ public:
 		IDD_TAB_CTRL = IDC_PREVIEW_MODAL_TAB,
 		IDD_TAB_LIST = IDC_MODAL_TAG_LIST,
 		MY_NUM_TABS = 3,
+		ORD_COL_DEF_WITH = 40,
 	};
 
 	enum {
@@ -55,6 +59,7 @@ public:
 		COMMAND_ID_HANDLER(IDOK, OnOK)
 		NOTIFY_HANDLER(IDC_PREVIEW_MODAL_TAB, TCN_SELCHANGING, OnChangingTab)
 		NOTIFY_HANDLER(IDC_PREVIEW_MODAL_TAB, TCN_SELCHANGE, OnChangeTab)
+		NOTIFY_HANDLER(IDD_TAB_LIST, NM_CLICK, OnListClick)
 		CHAIN_MSG_MAP(CDialogResize<CPreviewModalTagDialog>)
 	MY_END_MSG_MAP()
 
@@ -64,6 +69,7 @@ public:
 		DLGRESIZE_CONTROL(IDC_PREVIEW_MODAL_TAG_NAME, DLSZ_SIZE_X)
 		DLGRESIZE_CONTROL(IDOK, DLSZ_MOVE_X | DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDCANCEL, DLSZ_MOVE_X | DLSZ_MOVE_Y)
+		DLGRESIZE_CONTROL(IDC_PREVIEW_MODAL_TAG_STATIC_FOOTNOTE, DLSZ_MOVE_Y)
 	END_DLGRESIZE_MAP()
 
 
@@ -75,8 +81,8 @@ public:
 
 	//constructor
 
-	CPreviewModalTagDialog(HWND p_parent, tag_result_ptr item_result, std::vector<pfc::string8> vtracks_desc, int parent_preview_mode)
-		: m_item_result(/*std::move(*/item_result/*)*/), m_vtracks_desc(vtracks_desc), m_parent_preview_mode(parent_preview_mode), m_ui_list(this),
+	CPreviewModalTagDialog(HWND p_parent, size_t item, tag_result_ptr item_result, std::vector<pfc::string8> vtracks_desc, int parent_preview_mode)
+		: m_iItem(item), m_item_result(item_result), m_vtracks_desc(vtracks_desc), m_parent_preview_mode(parent_preview_mode), m_ui_list(this),
 		ILOD_preview_modal(&this->m_ui_list, item_result, &m_vtracks_desc, IDD_TAB_CTRL, 0)
 	{
 
@@ -92,10 +98,10 @@ public:
 	LRESULT OnOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 
 	LRESULT OnChangingTab(WORD /*wNotifyCode*/, LPNMHDR /*lParam*/, BOOL& /*bHandled*/);
-	LRESULT OnChangeTab(WORD /*wNotifyCode*/, LPNMHDR /*lParam*/, BOOL& /*bHandled*/);
+	LRESULT OnChangeTab(WORD /*wNotifyCode*/, LPNMHDR /*lParam*/, BOOL& /*bHandled*/); 
+	LRESULT OnListClick(WORD /*wNotifyCode*/, LPNMHDR /*lParam*/, BOOL& /*bHandled*/);
 
 	void enable(bool v) override { enable(v, true); };
 	void enable(bool v, bool change_focus);
-
 };
 

@@ -97,7 +97,7 @@ LRESULT CTagMappingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM
 	const SIZE DPI = QueryScreenDPIEx();
 	m_tag_list.AddColumn("Tag Name", 10);
 	m_tag_list.AddColumn("Formatting String", 10);
-	m_tag_list.AddColumn("Enabled", MulDiv(WRITE_UPDATE_COL_WIDTH, DPI.cx, 96) );
+	m_tag_list.AddColumn("Action", MulDiv(WRITE_UPDATE_COL_WIDTH, DPI.cx, 96) );
 	m_tag_list.SetRowStyle(conf.list_style);
 	remove_button = GetDlgItem(IDC_REMOVE_TAG); 
 

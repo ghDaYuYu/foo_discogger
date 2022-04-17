@@ -93,13 +93,13 @@ inline void CPreviewTagsDialog::load_size() {
 	}
 	else {
 		CRect client_rectangle;
-		::GetClientRect(tag_results_list, &client_rectangle);
+		::GetClientRect(m_results_list, &client_rectangle);
 		int width = client_rectangle.Width();
 
 		int c1 = width / 3;
 		int	c2 = width / 3 * 2;
-		ListView_SetColumnWidth(tag_results_list, 0, c1);
-		ListView_SetColumnWidth(tag_results_list, 1, c2);
+		ListView_SetColumnWidth(m_results_list, 0, c1);
+		ListView_SetColumnWidth(m_results_list, 1, c2);
 	}
 }
 
@@ -113,14 +113,6 @@ inline bool CPreviewTagsDialog::build_current_cfg() {
 		conf.replace_ANVs != local_replace_ANV) {
 		bres |= true;
 	}
-
-	//get current dimensions
-	RECT rcDlg = {};
-	GetWindowRect(&rcDlg);
-	int dlgcx = rcDlg.right;
-	int dlgcy = rcDlg.bottom;
-	int dlgwidth = rcDlg.right - rcDlg.left;
-	int dlgheight = rcDlg.bottom - rcDlg.top;
 
 	int colwidth1 = ListView_GetColumnWidth(GetDlgItem(IDC_PREVIEW_LIST), 0);
 	int colwidth2 = ListView_GetColumnWidth(GetDlgItem(IDC_PREVIEW_LIST), 1);
@@ -180,9 +172,10 @@ inline bool CPreviewTagsDialog::build_current_cfg() {
 	case (BST_CHECKED):
 		hi |= ARTSAVE_SKIP_USER_FLAG;
 		break;
-	case (BST_INDETERMINATE):		
+	case (BST_INDETERMINATE):
+		[[fallthrough]];
 	case (BST_UNCHECKED):
-		hi &= ~ARTSAVE_SKIP_USER_FLAG;
+		hi &= (int)~ARTSAVE_SKIP_USER_FLAG;
 		break;
 	default:
 		;
@@ -223,13 +216,13 @@ LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	cfg_lv.colmap.at(4).width = static_cast<float>(conf.preview_tags_dialog_s_width);
 	cfg_lv.colmap.at(5).width = static_cast<float>(conf.preview_tags_dialog_e_width);
 
-	tag_results_list = GetDlgItem(IDC_PREVIEW_LIST);
+	m_results_list = GetDlgItem(IDC_PREVIEW_LIST);
 
-	ListView_SetExtendedListViewStyleEx(tag_results_list,
+	ListView_SetExtendedListViewStyleEx(m_results_list,
 		LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES | LVS_EX_INFOTIP | LVS_EX_LABELTIP, LVS_EX_FULLROWSELECT |
 		(conf.list_style != 1 ? LVS_EX_GRIDLINES : 0) | LVS_EX_INFOTIP | LVS_EX_LABELTIP);
 
-	reset_default_columns(tag_results_list, true);
+	reset_default_columns(m_results_list, true);
 	set_preview_mode(conf.preview_mode);
 
 	::ShowWindow(uGetDlgItem(IDC_EDIT_TAG_MAPPINGS_BUTTON), true);
@@ -244,6 +237,7 @@ LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	::SendMessageW(write_btn, BM_SETIMAGE, IMAGE_BITMAP, (LPARAM)m_rec_icon);
 
 	HWND hwndSmallPreview = GetDlgItem(IDC_ALBUM_ART);
+
 	LPARAM stl = ::uGetWindowLong(hwndSmallPreview, GWL_STYLE);
 	stl |= SS_GRAYFRAME;
 	::uSetWindowLong(hwndSmallPreview, GWL_STYLE, stl);
@@ -262,6 +256,7 @@ LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 
 	if (conf.edit_tags_dlg_flags & FLG_TAGMAP_DLG_ATTACHED) {
 		uButton_SetCheck(m_hWnd, IDC_EDIT_TAGS_DLG_BIND_FLAG, true);
+		
 		if (conf.edit_tags_dlg_flags & FLG_TAGMAP_DLG_OPENED) {
 			BOOL bdummy = false;
 			OnEditTagMappings(0, 0, NULL, bdummy);
@@ -272,7 +267,11 @@ LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	LPARAM lpskip = conf.album_art_skip_default_cust;
 
 	bool user_wants_skip_artwork = HIWORD(lpskip) & ARTSAVE_SKIP_USER_FLAG;
+	bool cust_wants_skip_artwork = HIWORD(lpskip) & ARTSAVE_SKIP_CUST_FLAG;
+
 	if (user_wants_skip_artwork) {
+
+		//Nothing to do
 		::CheckDlgButton(m_hWnd, IDC_CHECK_SKIP_ARTWORK, BST_CHECKED);;
 	}
 	else {
@@ -315,7 +314,7 @@ LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 LRESULT CPreviewTagsDialog::OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) {
 
 	HWND hwndCtrl = (HWND)wParam;
-	size_t iItem = ListView_GetFirstSelection(tag_results_list);
+	size_t iItem = ListView_GetFirstSelection(m_results_list);
 
 	context_menu_show(hwndCtrl, iItem, lParam /*Coords*/);
 
@@ -362,46 +361,30 @@ bool CPreviewTagsDialog::context_menu_show(HWND wnd, size_t isel, LPARAM lParamC
 			}
 		}
 
-        //..
-        
-        
-        //..
-        
-
-		// add menu options
+		// menu options
 
 		if (is_results) {
 
 			if (bselection) {
 
-				//uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 				uAppendMenu(menu, MF_STRING, ID_PREVIEW_CMD_EDIT_RESULT_TAG, "&Edit");
-				//uAppendMenu(menu, MF_STRING MF_DISABLED | MF_GRAYED, ID_PREVIEW_CMD_EDIT_RESULT_TAG, "&Edit (in-place)");
-				uAppendMenu(menu, MF_STRING, ID_PREVIEW_CMD_COPY, "Copy\tCtrl+C");
-                uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+				uAppendMenu(menu, MF_STRING, ID_PREVIEW_CMD_COPY, "&Copy");
+				uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 			}	
-		}
+        }
 
-        //TODO:
-        /*
-		uAppendMenu(menu, MF_STRING | MF_DISABLED | MF_GRAYED, ID_PREVIEW_CMD_BACK, "&Back");
+		uAppendMenu(menu, MF_STRING, ID_PREVIEW_CMD_BACK, "&Back");
 		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 		uAppendMenu(menu, MF_STRING | MF_DISABLED | MF_GRAYED, ID_PREVIEW_CMD_BACK, "&Skip artwork");
 		uAppendMenu(menu, MF_STRING | MF_DISABLED | MF_GRAYED, ID_PREVIEW_CMD_BACK, "S&how stats");
 		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
-		uAppendMenu(menu, MF_STRING | MF_DISABLED | MF_GRAYED, ID_ART_IMAGE_VIEWER, "Results view");
-		uAppendMenu(menu, MF_STRING | MF_DISABLED | MF_GRAYED, ID_ART_IMAGE_VIEWER, "Difference view");
-		uAppendMenu(menu, MF_STRING | MF_DISABLED | MF_GRAYED, ID_ART_IMAGE_VIEWER, "Original view");
+		uAppendMenu(menu, MF_STRING | (bnormal ? MF_CHECKED : 0), ID_PREVIEW_CMD_RESULTS_VIEW, "&Results view");
+		uAppendMenu(menu, MF_STRING | (bdiff ? MF_CHECKED : 0), ID_PREVIEW_CMD_DIFF_VIEW, "&Difference view");
+		uAppendMenu(menu, MF_STRING | (bori ? MF_CHECKED : 0), ID_PREVIEW_CMD_ORI_VIEW, "&Original view");
 		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
-		uAppendMenu(menu, MF_STRING | (true ? MF_DISABLED | MF_GRAYED : 0), ID_SELECT_ALL, "Select all\tCtrl+A");
-		uAppendMenu(menu, MF_STRING | (true ? MF_DISABLED | MF_GRAYED : 0), ID_INVERT_SELECTION, "Invert selection\tCtrl+Shift+A");
-		uAppendMenu(menu, MF_STRING | (true ? MF_DISABLED | MF_GRAYED : 0), ID_REMOVE, "Remove\tDel");
-		uAppendMenu(menu, MF_STRING | (true ? MF_DISABLED | MF_GRAYED : 0), ID_CROP, "Crop\tCtrl+C");
-		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
-		uAppendMenu(menu, MF_STRING | (true ? MF_DISABLED | MF_GRAYED : 0), ID_PREVIEW_CMD_WRITE_TAGS, "&Write tags");
-		//uAppendMenu(menu, MF_STRING | (citems ? 0 : MF_DISABLED), ID_ART_RESET, "Reset");
-        */
-        
+
+		uAppendMenu(menu, MF_STRING | (/*todo*/false ? MF_DISABLED | MF_GRAYED : 0), ID_PREVIEW_CMD_WRITE_TAGS, "&Write tags");
+
 		int cmd = TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, 0, wnd, 0);
 		DestroyMenu(menu);
 
@@ -415,33 +398,82 @@ bool CPreviewTagsDialog::context_menu_switch(HWND wnd, POINT point, bool is_resu
 
 	switch (cmd)
 	{
+	case ID_PREVIEW_CMD_WRITE_TAGS: {
+
+		BOOL bDummy;
+		return OnButtonWriteTags(0, 0, NULL, bDummy);
+	}
 	case ID_PREVIEW_CMD_BACK: {
-        //TODO:
+
+		BOOL bDummy;
+		return OnButtonBack(0, 0, NULL, bDummy);		
+	}
+	case ID_PREVIEW_CMD_SKIP_ARTWORK: {
+
+		bool prev = IsDlgButtonChecked(IDC_CHECK_SKIP_ARTWORK);
+		uButton_SetCheck(m_hWnd, IDC_CHECK_SKIP_ARTWORK, !prev);
+		::SendMessage(m_hWnd, WM_COMMAND, MAKEWPARAM(IDC_CHECK_SKIP_ARTWORK, BN_CLICKED), 0);
 		return true;
 	}
+	case ID_PREVIEW_CMD_SHOW_STATS: {
+		bool prev = IsDlgButtonChecked(IDC_CHECK_PREV_DLG_SHOW_STATS);
+		uButton_SetCheck(m_hWnd, IDC_CHECK_PREV_DLG_SHOW_STATS, !prev);
+		::SendMessage(m_hWnd, WM_COMMAND, MAKEWPARAM(IDC_CHECK_PREV_DLG_SHOW_STATS, BN_CLICKED), 0);
+		return true;
+	}
+	case ID_PREVIEW_CMD_RESULTS_VIEW: {
+		uButton_SetCheck(m_hWnd, IDC_VIEW_NORMAL, true);
+		uButton_SetCheck(m_hWnd, IDC_VIEW_DIFFERENCE, false);
+		uButton_SetCheck(m_hWnd, IDC_VIEW_ORIGINAL, false);
+		uButton_SetCheck(m_hWnd, IDC_VIEW_DEBUG, false);
+
+		::SendMessage(m_hWnd, WM_COMMAND, MAKEWPARAM(IDC_VIEW_NORMAL, BN_CLICKED), 0);
+		return true;
+	}
+	case ID_PREVIEW_CMD_DIFF_VIEW: {
+		uButton_SetCheck(m_hWnd, IDC_VIEW_NORMAL, false);
+		uButton_SetCheck(m_hWnd, IDC_VIEW_DIFFERENCE, true);
+		uButton_SetCheck(m_hWnd, IDC_VIEW_ORIGINAL, false);
+		uButton_SetCheck(m_hWnd, IDC_VIEW_DEBUG, false);
+
+		::SendMessage(m_hWnd, WM_COMMAND, MAKEWPARAM(IDC_VIEW_DIFFERENCE, BN_CLICKED), 0);
+		return true;
+	}
+	case ID_PREVIEW_CMD_ORI_VIEW: {
+		uButton_SetCheck(m_hWnd, IDC_VIEW_NORMAL, false);
+		uButton_SetCheck(m_hWnd, IDC_VIEW_DIFFERENCE, false);
+		uButton_SetCheck(m_hWnd, IDC_VIEW_ORIGINAL, true);
+		uButton_SetCheck(m_hWnd, IDC_VIEW_DEBUG, false);
+
+		::SendMessage(m_hWnd, WM_COMMAND, MAKEWPARAM(IDC_VIEW_ORIGINAL, BN_CLICKED), 0);
+		return true;
+	}
+
+	// ,,
+
 	case ID_PREVIEW_CMD_EDIT_RESULT_TAG: {
 
 		size_t isel = selmask.find_first(true, 0, selmask.size());
-		
-		//open selected tag dlg
 
 		if (isel != ~0) {
 
-			tag_result_ptr item_result = m_tag_writer->tag_results[isel];
+			tag_result_ptr& item_result = m_tag_writer->tag_results[isel];
 			track_mappings_list_type track_mappings = m_tag_writer->track_mappings;
 
 			std::vector<pfc::string8> vtracks_desc;
+
 			for (size_t i = 0; i < track_mappings.get_count(); i++) {
-
-				pfc::string8 track_desc;
-				metadb_handle_ptr item = finfo_manager->items[i];
-				item->format_title(nullptr, track_desc, m_track_desc_script, nullptr);	//TRACK DESCRIPTION
-				vtracks_desc.emplace_back(track_desc);
+				track_mapping tm = track_mappings[i];
+				if (tm.enabled) {
+					pfc::string8 track_desc;
+					metadb_handle_ptr item = finfo_manager->items[tm.file_index];
+					item->format_title(nullptr, track_desc, m_track_desc_script, nullptr);	//TRACK DESCRIPTION
+					vtracks_desc.emplace_back(track_desc);
+				}
 			}
-
-			fb2k::newDialog <CPreviewModalTagDialog>(core_api::get_main_window(), item_result, vtracks_desc, get_preview_mode());
+			fb2k::newDialog <CPreviewModalTagDialog>(core_api::get_main_window(), isel, item_result, vtracks_desc, get_preview_mode()/*, m_tag_writer, m_use_update_tags*/);
 		}
-
+		
 		return true;
 	}
 	case ID_PREVIEW_CMD_COPY: {
@@ -536,8 +568,15 @@ void CPreviewTagsDialog::reset_tag_result_stats() {
 	totalupdates = 0;
 }
 
+void CPreviewTagsDialog::replace_tag_result(size_t item, tag_result_ptr result) {
+	
+	if (STR_EQUAL(m_tag_writer->tag_results[item]->tag_entry->tag_name, result->tag_entry->tag_name)) {
+		m_tag_writer->tag_results[item]->value = result->value;
+	}
+}
+
 void CPreviewTagsDialog::insert_tag_results(bool computestat) {
-	ListView_DeleteAllItems(tag_results_list);
+	ListView_DeleteAllItems(m_results_list);
 	if (computestat) {
 		v_stats.clear(); // .reset();
 		compute_stats(m_tag_writer->tag_results);
@@ -564,7 +603,9 @@ void CPreviewTagsDialog::TableEdit_GetField(size_t item, size_t subItem, pfc::st
 		return;
 	}
 	else {
-		InPlaceEdit::CTableEditHelperV2_ListView::TableEdit_GetField(item, subItem, out, lineCount);
+		listview_helper::get_item_text(TableEdit_GetParentWnd(), (int)item, (int)subItem, out);
+		bool onelined = out.length() < 50 && out.find_first(';', 0) == pfc_infinite;
+		lineCount = onelined ? 1 : LINES_LONGFIELD;
 	}
 }
 
@@ -702,7 +743,7 @@ pfc::string8 print_result_in_mode(const tag_result_ptr& result, int preview_mode
 		mode_result = print_normal(GetPreviewValue(result));
 	}
 	else if (preview_mode == PREVIEW_DIFFERENCE) {
-		listview_helper::insert_item2(tag_results_list, pos, result->tag_entry->tag_name, print_difference(result->value, result->old_value), 0);
+		mode_result = print_difference(result->value, result->old_value);
 	}
 	else if (preview_mode == PREVIEW_ORIGINAL) {
 		mode_result = print_normal(result->old_value);
@@ -718,13 +759,13 @@ void CPreviewTagsDialog::insert_tag_result(int pos, const tag_result_ptr &result
 	
 	pfc::string8 mode_result = print_result_in_mode(result, preview_mode).c_str();
 	
-	listview_helper::insert_item2(tag_results_list, pos, result->tag_entry->tag_name, mode_result, 0);
+	listview_helper::insert_item2(m_results_list, pos, result->tag_entry->tag_name, mode_result, 0);
 	
 	if (cfg_preview_dialog_show_stats) {
-		listview_helper::set_item_text(tag_results_list, pos, 2, v_stats.size() > 0 ? std::to_string(v_stats.at(pos).totalwrites).c_str() : "n/a");
-		listview_helper::set_item_text(tag_results_list, pos, 3, v_stats.size() > 0 ? std::to_string(v_stats.at(pos).totalupdates).c_str() : "n/a");
-		listview_helper::set_item_text(tag_results_list, pos, 4, v_stats.size() > 0 ? std::to_string(v_stats.at(pos).totalskips).c_str() : "n/a");
-		listview_helper::set_item_text(tag_results_list, pos, 5, v_stats.size() > 0 ? std::to_string(v_stats.at(pos).totalequal).c_str() : "n/a");
+		listview_helper::set_item_text(m_results_list, pos, 2, v_stats.size() > 0 ? std::to_string(v_stats.at(pos).totalwrites).c_str() : "n/a");
+		listview_helper::set_item_text(m_results_list, pos, 3, v_stats.size() > 0 ? std::to_string(v_stats.at(pos).totalupdates).c_str() : "n/a");
+		listview_helper::set_item_text(m_results_list, pos, 4, v_stats.size() > 0 ? std::to_string(v_stats.at(pos).totalskips).c_str() : "n/a");
+		listview_helper::set_item_text(m_results_list, pos, 5, v_stats.size() > 0 ? std::to_string(v_stats.at(pos).totalequal).c_str() : "n/a");
 	}
 }
 
@@ -807,18 +848,18 @@ int CPreviewTagsDialog::get_preview_mode() {
 }
 
 LRESULT CPreviewTagsDialog::OnChangePreviewMode(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	int top = ListView_GetTopIndex(tag_results_list);
-	int sel = ListView_GetSelectionMark(tag_results_list);
+	int top = ListView_GetTopIndex(m_results_list);
+	int sel = ListView_GetSelectionMark(m_results_list);
 
-	SendMessage(tag_results_list, WM_SETREDRAW, FALSE, 0);
+	SendMessage(m_results_list, WM_SETREDRAW, FALSE, 0);
 	insert_tag_results(false);
 
-	SendMessage(tag_results_list, LVM_ENSUREVISIBLE,
-		SendMessage(tag_results_list, LVM_GETITEMCOUNT, 0, 0) - 1, TRUE); //Rool to the end
-	SendMessage(tag_results_list, LVM_ENSUREVISIBLE, top/* - 1*/, TRUE); //Roll back to top position
+	SendMessage(m_results_list, LVM_ENSUREVISIBLE,
+		SendMessage(m_results_list, LVM_GETITEMCOUNT, 0, 0) - 1, TRUE); //Rool to the end
+	SendMessage(m_results_list, LVM_ENSUREVISIBLE, top/* - 1*/, TRUE); //Roll back to top position
 
-	ListView_SetItemState(tag_results_list, sel, LVNI_SELECTED | LVNI_FOCUSED, LVNI_SELECTED | LVNI_FOCUSED);
-	SendMessage(tag_results_list, WM_SETREDRAW, TRUE, 0);
+	ListView_SetItemState(m_results_list, sel, LVNI_SELECTED | LVNI_FOCUSED, LVNI_SELECTED | LVNI_FOCUSED);
+	SendMessage(m_results_list, WM_SETREDRAW, TRUE, 0);
 	
 	return FALSE;
 }
@@ -895,23 +936,40 @@ LRESULT CPreviewTagsDialog::OnListClick(LPNMHDR lParam) {
 	return FALSE;
 }
 
+LRESULT CPreviewTagsDialog::OnListDoubleClick(LPNMHDR lParam) {
+
+	if (lParam->idFrom == IDC_PREVIEW_LIST) {
+	
+		NMITEMACTIVATE* info = reinterpret_cast<NMITEMACTIVATE*>(lParam);
+
+		if (info->iItem != -1 && info->iSubItem == 0) {
+
+			const int index = ListView_GetSingleSelection(m_results_list);
+			const int icount = ListView_GetItemCount(m_results_list);
+			bit_array_bittable selmask(icount);
+			selmask.set(index, true);
+			context_menu_switch(info->hdr.hwndFrom, info->ptAction, true, ID_PREVIEW_CMD_EDIT_RESULT_TAG, selmask);
+		}
+	}
+
+	return FALSE;
+}
+
 bool CPreviewTagsDialog::delete_selection() {
-	const int index = ListView_GetSingleSelection(tag_results_list);
+	const int index = ListView_GetSingleSelection(m_results_list);
 	if (index < 0) {
 		return false;
 	}
 	
-	ListView_DeleteItem(tag_results_list, index);
+	ListView_DeleteItem(m_results_list, index);
 	erase(m_tag_writer->tag_results, index);
 
-	//tag_writer->tag_results.remove_by_idx(index);
-
-	int total = ListView_GetItemCount(tag_results_list);
+	int total = ListView_GetItemCount(m_results_list);
 	if (index < total) {
-		listview_helper::select_single_item(tag_results_list, index);
+		listview_helper::select_single_item(m_results_list, index);
 	}
 	else if (total > 0) {
-		listview_helper::select_single_item(tag_results_list, total - 1);
+		listview_helper::select_single_item(m_results_list, total - 1);
 	}
 	return true;
 }
@@ -924,7 +982,7 @@ LRESULT CPreviewTagsDialog::OnListKeyDown(LPNMHDR lParam) {
 
 	case VK_F2:
 		{
-			int index = ListView_GetSingleSelection(tag_results_list);
+			int index = ListView_GetSingleSelection(m_results_list);
 			if (index >= 0) {
 				trigger_edit(index, IsKeyPressed(VK_SHIFT) ? 0 : 1);
 			}
@@ -981,12 +1039,6 @@ void CPreviewTagsDialog::compute_stats_track_map(tag_results_list_type tag_resul
 
 		const size_t tk_count = res->r_approved.get_count();
 
-//#ifdef DEBUG
-//		if (stricmp_utf8(entry->tag_name, "DISCOGS_ARTISTS_MEMBERS") == 0) {
-//			int dbug = 0;
-//		}
-//#endif	
-
 		preview_stats before_tag_loop_stats = stats;
 
 		for (size_t walk_tk = 0; walk_tk < tk_count; walk_tk++) {
@@ -994,13 +1046,6 @@ void CPreviewTagsDialog::compute_stats_track_map(tag_results_list_type tag_resul
 			const bool r_approved = res->r_approved[walk_tk];
 			string_encoded_array* oldvalue;
 			string_encoded_array* value;
-
-//#ifdef DEBUG
-//			int oldvalue_count = res->old_value.get_count();
-//			int value_count = res->m_value.get_count();
-//			int oldvalue_size = res->old_value.get_size();
-//			int value_size = res->m_value.get_size();
-//#endif
 
 			if (res->old_value.get_size() == 1) {
 				oldvalue = &(res->old_value[0]);
@@ -1182,7 +1227,7 @@ void CPreviewTagsDialog::enable(bool is_enabled, bool change_focus) {
 void CPreviewTagsDialog::destroy_all() {
 
 	if (g_discogs->track_matching_dialog) {
-		CTrackMatchingDialog* dlg = reinterpret_cast<CTrackMatchingDialog*>(g_discogs->track_matching_dialog);
+		CTrackMatchingDialog* dlg = g_discogs->track_matching_dialog;
 		dlg->destroy_all();
 	}
 	destroy();
@@ -1282,11 +1327,11 @@ LRESULT CPreviewTagsDialog::OnCheckPreviewShowStats(WORD /*wNotifyCode*/, WORD w
 	}
 
 	if (!cfg_preview_dialog_show_stats) {
-		reset_default_columns(tag_results_list, true);
+		reset_default_columns(m_results_list, true);
 	}
 	else {
 		
-		reset_default_columns(tag_results_list, false);
+		reset_default_columns(m_results_list, false);
 
 		int def_statswidth = 0;
 		for (int cc = COL_STAT_POS; cc < COL_STAT_POS + COL_STAT_COLS; cc++) {
@@ -1295,32 +1340,32 @@ LRESULT CPreviewTagsDialog::OnCheckPreviewShowStats(WORD /*wNotifyCode*/, WORD w
 			def_statswidth += (int)cfg_lv.colmap.at(cc).width;
 		}
 
-		int def_fieldwidth = ListView_GetColumnWidth(tag_results_list, 0);
+		int def_fieldwidth = ListView_GetColumnWidth(m_results_list, 0);
 
 		CRect reclist;
-		::GetWindowRect(tag_results_list, reclist);
+		::GetWindowRect(m_results_list, reclist);
 
 		int framewidth = reclist.Width();
 		int delta = framewidth - def_fieldwidth - def_statswidth - 40;
 
 		if (delta < 0) {
-			ListView_SetColumnWidth(tag_results_list, 1, delta);
-			ListView_SetColumnWidth(tag_results_list, 0, def_fieldwidth);
+			ListView_SetColumnWidth(m_results_list, 1, delta);
+			ListView_SetColumnWidth(m_results_list, 0, def_fieldwidth);
 		}
 		else {
-			ListView_SetColumnWidth(tag_results_list, 1, delta);
+			ListView_SetColumnWidth(m_results_list, 1, delta);
 		}
 		for (int cc = COL_STAT_POS; cc < COL_STAT_POS + COL_STAT_COLS; cc++) {
-			ListView_SetColumnWidth(tag_results_list, cc, cfg_lv.colmap.at(cc).width);
+			ListView_SetColumnWidth(m_results_list, cc, cfg_lv.colmap.at(cc).width);
 		}
 
 		update_sorted_icol_map(false /*sort without reset*/);
 	}
 
-	ListView_DeleteAllItems(tag_results_list);
+	ListView_DeleteAllItems(m_results_list);
 	insert_tag_results(true);
 
-	ListView_RedrawItems(tag_results_list, 0, ListView_GetGroupCount(tag_results_list));
+	ListView_RedrawItems(m_results_list, 0, ListView_GetGroupCount(m_results_list));
 	return FALSE;
 }
 

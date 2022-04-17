@@ -1,6 +1,7 @@
 ﻿#include "stdafx.h"
 
 #include "libPPUI/clipboard.h"
+#include "preview_dialog.h"
 #include "preview_modal_tag_dialog.h"
 
 static const GUID guid_cfg_window_placement_preview_modal_tag_dlg = { 0x59e76248, 0x99ac, 0x4d54, { 0x98, 0x67, 0x79, 0x2e, 0x2c, 0x75, 0xb7, 0xaf } };
@@ -32,8 +33,7 @@ void CPreviewModalTagDialog::enable(bool is_enabled, bool change_focus) {
 }
 
 LRESULT CPreviewModalTagDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
-    
-    //tab definitions
+
 	init_tabs_defs();
 
 	//(1) resize
@@ -43,7 +43,6 @@ LRESULT CPreviewModalTagDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, L
 
 	HWND hWndTab = uGetDlgItem(IDC_PREVIEW_MODAL_TAB);
 
-	// add tabs
 	uTCITEM item = { 0 };
 	item.mask = TCIF_TEXT;
 	for (size_t n = 0; n < MY_NUM_TABS; n++) {
@@ -52,12 +51,10 @@ LRESULT CPreviewModalTagDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, L
 		uTabCtrl_InsertItem(hWndTab, n, &item);
 	}
 
-	// get tab control list container size
 	RECT rcTab;
-	//GetChildWindowRect(m_hWnd, IDC_PREVIEW_MODAL_TAB, &rcTab);
+	GetChildWindowRect(m_hWnd, IDC_PREVIEW_MODAL_TAB, &rcTab);
 	uSendMessage(hWndTab, TCM_ADJUSTRECT, FALSE, (LPARAM)&rcTab);
 
-	// set tagname edit box
 	uSetDlgItemText(m_hWnd, IDC_PREVIEW_MODAL_TAG_NAME, m_item_result->tag_entry->tag_name);
 
 	//todo: rev column creation and ILO
@@ -73,7 +70,6 @@ LRESULT CPreviewModalTagDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, L
 
 	show();
 
-	//set active tab
 	st_preview_current_tab = m_parent_preview_mode - 1;
 	uSendMessage(hWndTab, TCM_SETCURSEL, st_preview_current_tab, 0);
 
@@ -84,7 +80,12 @@ LRESULT CPreviewModalTagDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, L
 
 LRESULT CPreviewModalTagDialog::OnOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 
-	//todo: check mods, pass new values...
+	//update values
+	if (g_discogs->preview_tags_dialog) {
+		CPreviewTagsDialog* dlg = g_discogs->preview_tags_dialog;
+		dlg->replace_tag_result(m_iItem, m_item_result);
+		dlg->cb_generate_tags();
+	}
 
 	destroy();
 
@@ -101,12 +102,7 @@ LRESULT CPreviewModalTagDialog::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*
 
 LRESULT CPreviewModalTagDialog::OnChangingTab(WORD /*wNotifyCode*/, LPNMHDR /*lParam*/, BOOL& /*bHandled*/) {
 
-    //todo:
-	//if (changed) {
-		
-		//..
-	//}
-	
+	//..
 	return FALSE;
 }
 
@@ -126,6 +122,12 @@ LRESULT CPreviewModalTagDialog::OnChangeTab(WORD /*wNotifyCode*/, LPNMHDR /*lPar
 	m_ui_list.GetClientRect(&rc_visible);
 	::RedrawWindow(m_ui_list.m_hWnd, &rc_visible, 0, RDW_INVALIDATE);
 
+	return FALSE;
+}
+
+LRESULT CPreviewModalTagDialog::OnListClick(WORD /*wNotifyCode*/, LPNMHDR lParam, BOOL& /*bHandled*/) {
+    
+    //..
 	return FALSE;
 }
 
@@ -196,19 +198,12 @@ bool CPreviewModalTagDialog::context_menu_switch(HWND wnd, POINT point, bool is_
 	return false;
 }
 
-
 LRESULT CPreviewModalTagDialog::OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) {
 
 	HWND hwndCtrl = (HWND)wParam;
-
 	size_t iItem = ListView_GetFirstSelection(m_ui_list);
 
 	context_menu_show(hwndCtrl, iItem, lParam /*Coords*/);
-
-	//..
-
-	//bHandled = FALSE;
-
 	return FALSE;
 }
 

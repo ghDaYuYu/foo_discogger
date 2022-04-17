@@ -18,9 +18,10 @@ class CPreviewTagsDialog : public MyCDialogImpl<CPreviewTagsDialog>,
 	public CDialogResize<CPreviewTagsDialog>, public CMessageFilter,
 	private InPlaceEdit::CTableEditHelperV2_ListView
 {
+
 private:
 
-	HWND tag_results_list;
+	HWND m_results_list;
 	HBITMAP m_rec_icon;
 	HBITMAP m_preview_bitmap;
 
@@ -80,11 +81,11 @@ private:
 	}
 
 	size_t TableEdit_GetColumnCount() const override {
-		return ListView_GetColumnCount(tag_results_list);
+		return ListView_GetColumnCount(m_results_list);
 	}
 
 	HWND TableEdit_GetParentWnd() const override {
-		return tag_results_list;
+		return m_results_list;
 	}
 
 	void TableEdit_GetField(size_t item, size_t subItem, pfc::string_base & out, size_t & lineCount) override;
@@ -98,7 +99,7 @@ private:
 	void set_image_list();
 
 	bool context_menu_show(HWND wnd, size_t isel, LPARAM lParamCoords);
-	bool context_menu_switch(HWND wnd, POINT point, bool is_results, int cmd, bit_array_bittable selmask);
+	bool context_menu_switch(HWND wnd, POINT point, bool is_results, int cmd, bit_array_bittable selmask /*, CListControlOwnerData* ilist*/);
 
 
 public:
@@ -108,8 +109,18 @@ public:
 	};
 
 	enum {
-		ID_PREVIEW_CMD_BACK = 1, ID_PREVIEW_CMD_EDIT_RESULT_TAG, ID_PREVIEW_CMD_COPY, 
-		ID_PREVIEW_CMD_WRITE_TAGS
+		ID_PREVIEW_CMD_BACK = 1,
+		ID_PREVIEW_CMD_SKIP_ARTWORK,
+		ID_PREVIEW_CMD_SHOW_STATS,
+		ID_PREVIEW_CMD_RESULTS_VIEW,
+		ID_PREVIEW_CMD_DIFF_VIEW,
+		ID_PREVIEW_CMD_ORI_VIEW,
+
+		ID_PREVIEW_CMD_EDIT_RESULT_TAG,
+		ID_PREVIEW_CMD_WRITE_TAGS,
+		ID_PREVIEW_CMD_COPY,
+		ID_SELECT_ALL,
+		ID_INVERT_SELECTION, 
 	};
 
 	enum {
@@ -127,28 +138,39 @@ public:
 
 #pragma warning( push )
 #pragma warning( disable : 26454 )
+
 	MY_BEGIN_MSG_MAP(CPreviewTagsDialog)
+		
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
 		MESSAGE_HANDLER(WM_CONTEXTMENU, OnContextMenu)
-		COMMAND_ID_HANDLER(IDC_WRITE_TAGS_BUTTON, OnButtonWriteTags)
-		COMMAND_ID_HANDLER(IDC_BACK_BUTTON, OnButtonBack)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
+		
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
+		COMMAND_ID_HANDLER(IDC_BACK_BUTTON, OnButtonBack)
+		COMMAND_ID_HANDLER(IDC_EDIT_TAG_MAPPINGS_BUTTON, OnEditTagMappings)
+		COMMAND_ID_HANDLER(IDC_WRITE_TAGS_BUTTON, OnButtonWriteTags)
+		
 		COMMAND_ID_HANDLER(IDC_REPLACE_ANV_CHECK, OnCheckReplaceANVs)
 		COMMAND_ID_HANDLER(IDC_CHECK_PREV_DLG_SHOW_STATS, OnCheckPreviewShowStats)
 		COMMAND_ID_HANDLER(IDC_CHECK_SKIP_ARTWORK, OnCheckSkipArtwork)
 		COMMAND_ID_HANDLER(IDC_EDIT_TAGS_DLG_BIND_FLAG, OnCheckAttachMappingPanel)
-		COMMAND_ID_HANDLER(IDC_EDIT_TAG_MAPPINGS_BUTTON, OnEditTagMappings)
+
 		COMMAND_ID_HANDLER(IDC_VIEW_NORMAL, OnChangePreviewMode)
 		COMMAND_ID_HANDLER(IDC_VIEW_DIFFERENCE, OnChangePreviewMode)
 		COMMAND_ID_HANDLER(IDC_VIEW_ORIGINAL, OnChangePreviewMode)
 		COMMAND_ID_HANDLER(IDC_VIEW_DEBUG, OnChangePreviewMode)
+
 		NOTIFY_HANDLER_EX(IDC_PREVIEW_LIST, NM_CLICK, OnListClick)
+		NOTIFY_HANDLER_EX(IDC_PREVIEW_LIST, NM_DBLCLK, OnListDoubleClick)
 		NOTIFY_HANDLER_EX(IDC_PREVIEW_LIST, LVN_KEYDOWN, OnListKeyDown)
-		MESSAGE_HANDLER_EX(MSG_EDIT, OnEdit)
 		NOTIFY_HANDLER(IDC_PREVIEW_LIST, NM_CUSTOMDRAW, OnCustomDraw)
+
+		MESSAGE_HANDLER_EX(MSG_EDIT, OnEdit)
+
 		CHAIN_MSG_MAP(CDialogResize<CPreviewTagsDialog>)
+
 	MY_END_MSG_MAP()
+
 #pragma warning(pop)
 
 	BEGIN_DLGRESIZE_MAP(CPreviewTagsDialog)
@@ -173,7 +195,7 @@ public:
 	}
 
 	CPreviewTagsDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags)
-		: m_tag_writer(tag_writer), tag_results_list(NULL), conf(CONF),
+		: m_tag_writer(tag_writer), m_results_list(NULL), conf(CONF),
 		use_update_tags(use_update_tags), m_preview_bitmap(NULL) {
 
 		conf.SetName("PreviewDlg");
@@ -181,8 +203,7 @@ public:
 
 		m_rec_icon = LoadDpiBitmapResource(Icon::Record);
 
-		static_api_ptr_t<titleformat_compiler>()->compile_force(m_track_desc_script, "[%discnumber%].[%tracknumber%] %album artist% - %title%[ '//' %track artist%]");
-
+		static_api_ptr_t<titleformat_compiler>()->compile_force(m_track_desc_script, "[[%album artist%]] - [[%discnumber% .]%tracknumber% -] [%track artist% -] %title% ");
 	}
 
 	~CPreviewTagsDialog();
@@ -190,9 +211,9 @@ public:
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnButtonWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnButtonBack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnButtonBack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCheckReplaceANVs(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCheckPreviewShowStats(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCheckSkipArtwork(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
@@ -200,10 +221,12 @@ public:
 	LRESULT OnEditTagMappings(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnChangePreviewMode(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnListClick(LPNMHDR lParam);
+	LRESULT OnListDoubleClick(LPNMHDR lParam);
 	LRESULT OnListKeyDown(LPNMHDR lParam);
 	LRESULT OnEdit(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	LRESULT OnCustomDraw(int idCtrl, LPNMHDR pnmh, BOOL& bHandled);
 
+	void replace_tag_result(size_t item, tag_result_ptr result);
 	void insert_tag_results(bool computestat);
 	void tag_mappings_updated();
 	void cb_generate_tags();

@@ -80,6 +80,9 @@ foo_discogs::foo_discogs() {
 	discogs_interface->fetcher->set_oauth(CONF.oauth_token, CONF.oauth_token_secret);
 
 	static_api_ptr_t<titleformat_compiler>()->compile_force(release_name_script, "[%album artist%] - [%album%]");
+	static_api_ptr_t<titleformat_compiler>()->compile_force(dc_artist_id_script, (PFC_string_formatter() << "[%" << TAG_ARTIST_ID << "%]").c_str());
+	static_api_ptr_t<titleformat_compiler>()->compile_force(dc_release_id_script, (PFC_string_formatter() << "[%" << TAG_RELEASE_ID << "%]").c_str());
+	
 	gave_oauth_warning = false;
 }
 
@@ -87,14 +90,26 @@ foo_discogs::~foo_discogs() {
 	if (find_release_dialog)  {
 		find_release_dialog->destroy();
 	}
+
 	if (find_release_artist_dialog)
 		find_release_artist_dialog->DestroyWindow();
-	/*if (track_matching_dialog) {
+	
+	if (preview_modal_tag_dialog) {
+		preview_modal_tag_dialog->destroy();
+	}
+
+	if (preview_tags_dialog) {
+		preview_tags_dialog->destroy();
+	}
+
+	if (track_matching_dialog) {
 		track_matching_dialog->destroy();
-	}*/
+	}
+
 	if (tag_mappings_dialog) {
 		tag_mappings_dialog->destroy();
 	}
+
 #ifdef CAT_CRED
 	if (tag_credit_dialog) {
 		tag_credit_dialog->destroy();
@@ -104,9 +119,6 @@ foo_discogs::~foo_discogs() {
 	//if (configuration_dialog) {
 	//	configuration_dialog->destroy();
 	//}
-	if (preview_tags_dialog) {
-		preview_tags_dialog->destroy();
-	}
 }
 
 void foo_discogs::item_display_web_page(const metadb_handle_ptr item, discog_web_page web_page) {

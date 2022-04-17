@@ -30,11 +30,9 @@ private:
 
 	CFindReleaseDialog* m_dlg = nullptr;
 
-	HWND m_hwndParent;
 	HWND m_hwndArtists;
 	HWND m_edit_artist;
 
-	HICON hiconItem;
 	CImageList m_hImageList;
 
 	LV_ITEM* m_lv_selected = NULL;
@@ -42,8 +40,6 @@ private:
 
 	//app
 
-	foo_conf m_conf;
-	history_oplog* m_oplogger_p;
 	id_tracer* _idtracer_p;
 
 	size_t m_lost_selection_id = pfc_infinite;
@@ -158,7 +154,7 @@ private:
 
 	pfc::string8 get_search_string() { return uGetWindowText(m_edit_artist); }
 
-	void set_artist_tracer_fr(size_t artist_fr_id) { _idtracer_p->set_artist_fr_id(artist_fr_id); }
+	void set_artist_tracer_ovr(size_t artist_ovr_id) { _idtracer_p->set_artist_ovr_id(artist_ovr_id); }
 
 	void set_find_release_artist(Artist_ptr find_release_artist_p) {
 		m_find_release_artist = find_release_artist_p;

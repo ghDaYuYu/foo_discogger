@@ -474,7 +474,12 @@ void CFindReleaseDialog::on_search_artist_done(const pfc::array_t<Artist_ptr>& p
 		CheckDlgButton(IDC_ONLY_EXACT_MATCHES_CHECK, false);
 	}
 	
-	m_alist.set_artists(exact_matches, nullptr, p_artist_exact_matches, p_artist_other_matches);
+	if (m_tracer.is_multi_artist()) {
+		m_alist.set_artists(exact_matches, nullptr, p_artist_exact_matches, p_artist_other_matches);
+	}
+	else {
+		m_alist.set_artists(exact_matches, nullptr, p_artist_exact_matches, p_artist_other_matches);
+	}
 	
 	//spawns on list item selection (not by default)
 	m_alist.fill_artist_list(exact_matches, m_tracer.has_amr(), updRelSrc::ArtistSearch);
@@ -672,13 +677,15 @@ void CFindReleaseDialog::on_write_tags(const pfc::string8& release_id) {
 	}
 
 	pfc::string8 offline_artist_id;
-	bool bskip_idded_release_dlg = conf.skip_mng_flag & SkipMng::SKIP_FIND_RELEASE_DLG_IDED;
+	bool bskip_idded_release_dlg = conf.skip_mng_flag & SkipMng::SKIP_RELEASE_DLG_IDED;
 
 	if (bskip_idded_release_dlg && m_tracer.has_artist()) {
 
-		//from on init
+		//from oninit
 
-		offline_artist_id = std::to_string(m_tracer.get_artist_id()).c_str();
+		size_t artist_id = m_tracer.get_artist_id_store();
+		offline_artist_id = std::to_string(artist_id).c_str();
+
 	}
 	else {
 	
@@ -692,7 +699,7 @@ void CFindReleaseDialog::on_write_tags(const pfc::string8& release_id) {
 		else if (m_tracer.has_artist()) {
 
 			// artist_id meta
-			offline_artist_id = std::to_string(m_tracer.get_some_artist_id()).c_str();
+			offline_artist_id = std::to_string(m_tracer.get_artist_id_store()).c_str();
 		}
 		else {
 
@@ -856,11 +863,20 @@ void CFindReleaseDialog::route_artist_search(pfc::string8 artistname, bool dlgbu
 		if (by_id) {
 			
 			//anything other than ArtistProfile will also load releases
+			if (m_tracer.is_multi_artist()) {
+			
+				service_ptr_t<get_various_artists_process_callback> task =
+					new service_impl_t<get_various_artists_process_callback>(updsrc, m_tracer.get_vartist_ids());
 
-			service_ptr_t<get_artist_process_callback> task =
-				new service_impl_t<get_artist_process_callback>(updsrc, artist_id);
-			task->start(m_hWnd);
+				task->start(m_hWnd);
+			}
+			else {
+			
+				service_ptr_t<get_artist_process_callback> task =
+					new service_impl_t<get_artist_process_callback>(updsrc, artist_id);
 
+				task->start(m_hWnd);
+			}
 		}
 		else if (by_name) {
 
@@ -1006,6 +1022,7 @@ bool CFindReleaseDialog::Set_Config_Flag(int ID, int flag, bool flagvalue) {
 	FlgMng fv_stats;
 	conf.GetFlagVar(ID, fv_stats);
 	
-	fv_stats.SetFlag(FLG_SHOW_RELEASE_TREE_STATS, flagvalue);
+	fv_stats.SetFlag(flag, flagvalue);
+
 	return true;
 }

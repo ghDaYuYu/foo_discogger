@@ -100,36 +100,39 @@ public:
 	size_t master_id = pfc_infinite;
 	size_t release_id = pfc_infinite;
 
-	size_t id_tracer::get_fr_artist_id() {
-		
-		return artist_fr_id ? artist_fr_id : artist_fr_id;
-
-	}
-
 	// artist_id related
 
 	size_t id_tracer::get_artist_id() const {
 		return artist_id;
 	}
-	size_t id_tracer::get_artist_fr_id() const {
-		return artist_fr_id;
+
+	size_t id_tracer::get_artist_ovr_id() const {
+		return artist_ovr_id;
 	}
-	size_t id_tracer::get_some_artist_id() const {
-		return artist_fr_id == pfc_infinite ? artist_id : artist_fr_id;
+
+	void id_tracer::set_artist_ovr_id(size_t id) {
+		artist_ovr_id = id;
 	}
+
+	size_t id_tracer::get_artist_id_store() {
+		return is_multi_artist() ? ol::k_offline_multi_artists : artist_id;
+	}
+
 	void id_tracer::set_artist_id(size_t id) {
 		artist_id = id;
 	}
 
 	// has
 
-	bool id_tracer::has_artist() const {
-		//return artist_id != pfc_infinite;
-		return get_some_artist_id() != pfc_infinite;
+	bool id_tracer::has_artist() {
+
+		return get_artist_id_store() != pfc_infinite;
 	}
+	
 	bool id_tracer::has_master() const {
 		return master_id != pfc_infinite;
 	}
+	
 	bool id_tracer::has_release() const {
 		return release_id != pfc_infinite;
 	}
@@ -171,6 +174,8 @@ public:
 	void id_tracer::release_reset() {
 		release_pos = pfc_infinite;
 	}
+
+	// checks
 
 	bool id_tracer::artist_check(const pfc::string8 currentid, int currentndx) {
 		if (need_artist()) {

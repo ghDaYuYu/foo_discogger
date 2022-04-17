@@ -80,5 +80,5 @@ public:
 
 };
 
-extern Discogs_DB_Interface* discogs_db_interface;
+inline Discogs_DB_Interface* discogs_db_interface = nullptr;
 #endif //DB_DC

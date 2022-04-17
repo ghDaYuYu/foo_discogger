@@ -29,6 +29,7 @@ class contextmenu_discogs;
 class process_release_callback;
 class process_aside_release_callback;
 class get_artist_process_callback;
+class get_various_artists_process_callback;
 class search_artist_process_callback;
 class edit_complete;
 
@@ -72,6 +73,9 @@ public:
 
 	service_ptr_t<titleformat_object> release_name_script;
 
+	service_ptr_t<titleformat_object> dc_artist_id_script;
+	service_ptr_t<titleformat_object> dc_release_id_script;
+
 	void item_display_web_page(const metadb_handle_ptr item, discog_web_page web_page);
 	bool item_has_tag(const metadb_handle_ptr item, const char *tag, const char *backup_tag=nullptr);
 	bool some_item_has_tag(const metadb_handle_list items, const char *tag);
@@ -80,5 +84,5 @@ public:
 	const ReleaseDisc_ptr& get_discogs_disc(const Release_ptr &release, size_t pos, size_t &track_num);
 };
 
-extern foo_discogs *g_discogs;
-extern bool g_os_is_wine;
+inline bool g_os_is_wine = false;
+inline foo_discogs* g_discogs = nullptr;

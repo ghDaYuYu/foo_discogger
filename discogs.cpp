@@ -1570,21 +1570,24 @@ void Discogs::Artist::load(threaded_process_status &p_status, abort_callback &p_
 		//..
 
 		loaded = true;
-		bool bCacheSaved;
+		bool bCacheSaved = false;
 
 		if (btransient && offline_can_write) {
 			try {
 
 				//create page-n folder
-				ol::CreateOfflinePath_ID(id, ol::GetFrom::Artist);
+				bool bFolderReady = ol::CreateOfflinePath_ID(id, ol::GetFrom::Artist);
 
-				//PENDING
-				bool bmark_loading = ol::MarkDownload("", rel_path, false/*done*/);
+				if (bFolderReady) {
+				
+					//PENDING
+					bool bmark_loading = ol::MarkDownload("", rel_path, false/*done*/);
 
-				pfc::string8 page_path = ol::GetOfflinePath(id, true, ol::GetFrom::Artist, "");
-				page_path << "\\root.json";
+					pfc::string8 page_path = ol::GetOfflinePath(id, true, ol::GetFrom::Artist, "");
+					page_path << "\\root.json";
 
-				bCacheSaved = bmark_loading && discogs_interface->offline_cache_save(page_path, jp.root);
+					bCacheSaved = bmark_loading && discogs_interface->offline_cache_save(page_path, jp.root);
+				}
 			}
 			catch (...) {
 				//todo: error writting to disk
@@ -1604,7 +1607,12 @@ void Discogs::Artist::load(threaded_process_status &p_status, abort_callback &p_
 			}
 		}
 	}
+	catch (http_404_exception &e) {
+		//see: DiscogsInterface::get_artist(..., bool throw_all, bool throw_404) 
+		throw;
+	}
 	catch (foo_discogs_exception &e) {
+
 		if (throw_all) {
 			throw;
 		}
@@ -1710,18 +1718,26 @@ void Discogs::Release::load(threaded_process_status &p_status, abort_callback &p
 
 		loaded = true;
 
-		bool bCacheSaved;
+		bool bCacheSaved = false;
+
 		if (btransient && offline_can_write) {
 			try {
 				//create page-n folder
-				ol::CreateOfflinePath_ID(artists[0]->id, ol::GetFrom::Release, id);
-				//PENDING
-				bool bmark_loading = ol::MarkDownload("", rel_path, false/*done*/);
 
-				pfc::string8 page_path = ol::GetOfflinePath(artists[0]->id, true, ol::GetFrom::Release, id);
-				page_path << "\\root.json";
+				pfc::string8 target_artist_id = atoi(offlineArtistId) == ol::k_offline_multi_artists ? offlineArtistId : artists[0]->id;
 
-				bCacheSaved = bmark_loading && discogs_interface->offline_cache_save(page_path, jp.root);
+				bool bFolderReady = ol::CreateOfflinePath_ID(target_artist_id, ol::GetFrom::Release, id);
+				
+				if (bFolderReady) {
+				
+					//mark as pending
+					bool bmark_loading = ol::MarkDownload("", rel_path, false/*done*/);
+
+					pfc::string8 page_path = ol::GetOfflinePath(target_artist_id, true, ol::GetFrom::Release, id);
+					page_path << "\\root.json";
+
+					bCacheSaved = bmark_loading && discogs_interface->offline_cache_save(page_path, jp.root);
+				}
 			}
 			catch (...) {
 				//todo: error writting to disk				
@@ -1732,7 +1748,7 @@ void Discogs::Release::load(threaded_process_status &p_status, abort_callback &p
 
 			if (bCacheSaved) {
 				try {
-					//DONE
+					//mark as done
 					bool bmark_done = ol::MarkDownload("", rel_path, true/*done*/);
 				}
 				catch (...) {

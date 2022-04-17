@@ -13,14 +13,15 @@
 using namespace Discogs;
 namespace ol = Offline;
 
+const size_t MAX_ARTISTS = 32;
+
 class SkipMng {
 public:
 	enum {
 		SKIP_RELEASE_DLG_MATCHED		= 1 << 0,
-		SKIP_FIND_RELEASE_DLG_IDED		= 1 << 1,
+		SKIP_RELEASE_DLG_IDED		    = 1 << 1,
 		SKIP_PREVIEW_DLG				= 1 << 2,
 		SKIP_LOAD_RELEASES_TASK_IDED	= 1 << 3,
-
 		SKIP_BRAINZ_ID_FETCH			= 1 << 5,
 	};
 
@@ -101,8 +102,8 @@ public:
 		cache_artists = new lru_cache<pfc::string8, Artist_ptr>(CONF.cache_max_objects);
 		cache_deleted_releases = new lru_cache<pfc::string8, bool>(CONF.cache_max_objects);
 
-		offline_cache_artists = new ol::ol_cache<pfc::string8, json_t*>(CONF.cache_max_objects);
-		offline_cache_release = new ol::ol_cache<pfc::string8, json_t*>(CONF.cache_max_objects);
+		offline_cache_artists = new ol::ol_cache<pfc::string8, json_t*>();
+		offline_cache_release = new ol::ol_cache<pfc::string8, json_t*>();
 	}
 
 	~DiscogsInterface() {
@@ -113,6 +114,9 @@ public:
 		delete cache_master_releases;
 		delete cache_artists;
 		delete cache_deleted_releases;
+
+		delete offline_cache_artists;
+		delete offline_cache_release;
 	}
 
 	inline void reset_master_release_cache() {
@@ -150,7 +154,7 @@ public:
 	}
 
 	inline bool offline_cache_save(pfc::string8 path, json_t* root) {
-		return offline_cache_artists->FDumpToFolder(path, root);
+		return offline_cache_artists->FDump_JSON(path, root);
 	}
 
 	bool get_thumbnail_from_cache(Release_ptr release, bool isArtist, size_t img_ndx, MemoryBlock& small_art,
@@ -179,4 +183,4 @@ public:
 	bool delete_artist_cache(const pfc::string8& artist_id);
 };
 
-extern DiscogsInterface *discogs_interface;
+inline DiscogsInterface *discogs_interface;

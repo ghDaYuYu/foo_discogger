@@ -206,7 +206,7 @@ void CArtistList::set_image_list() {
 bool CArtistList::OnDisplayCellImage(int item, int subitem, int& result) {
 
 	int img_ndx = I_IMAGENONE;
-	bool is_traced = !_idtracer_p->multi_artist && atoi(m_find_release_artists[item]->id) == _idtracer_p->get_artist_id();
+	bool is_traced = !_idtracer_p->is_multi_artist() && atoi(m_find_release_artists[item]->id) == _idtracer_p->get_artist_id();
 	if (is_traced) {
 		img_ndx = TRACER_IMG_NDX;
 	}
@@ -296,8 +296,10 @@ LRESULT CArtistList::OnGetInfo(WORD /*wNotifyCode*/, LPNMHDR hdr, BOOL& /*bHandl
 
 	bool req = m_find_release_artists.get_count() > plvdi->item.iItem;
 
-	if (!req) 	return FALSE;
+	if (!req) {
 
+		return FALSE;
+	}
 
 	LV_ITEM* pItem = &(plvdi)->item;
 
@@ -509,10 +511,13 @@ void CArtistList::Default_Artist_Action() {
 	
 	Artist_ptr artist = m_find_release_artists[pos];
 
-	set_artist_tracer_fr(atoi(artist->id));
+	if (atoi(artist->id) != _idtracer_p->get_artist_id()) {
 
-	// convey
-
+		set_artist_tracer_ovr(atoi(artist->id));
+	}
+	
+	// convery
+	
 	m_dlg->convey_artist_list_selection(updRelSrc::ArtistList);
 
 	//

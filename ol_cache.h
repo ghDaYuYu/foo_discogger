@@ -7,6 +7,9 @@
 
 namespace Offline {
 
+	//not equivalent to [a=194]
+	const size_t k_offline_multi_artists = ((size_t)~0) / 2000 * 1000;
+
 	const pfc::string8 MARK_LOADING_NAME = "loading";
 	const pfc::string8 MARK_CHECK_NAME = "taskreg.txt";
 	const pfc::string8 OC_NAME = "foo_discogger-cache";
@@ -139,42 +142,14 @@ namespace Offline {
 		return pagepaths;
 	}
 
-	static pfc::array_t<pfc::string8> GetFS_IdFilePaths(pfc::string8 id, GetFrom getFrom, pfc::string8 secid) {
-
-		PFC_ASSERT(getFrom == GetFrom::Artist || getFrom == GetFrom::Release || getFrom == GetFrom::ArtistReleases || getFrom == GetFrom::Versions);
-		PFC_ASSERT((getFrom != GetFrom::Release && getFrom != GetFrom::Versions) || (!STR_EQUAL(id, secid) && secid.get_length()));
-
-		pfc::array_t<pfc::string8> entries;
-		pfc::array_t<pfc::string8> paths;
-
-		pfc::string8 rel_path = GetOfflinePath(id, false, getFrom, secid);
-
-		std::filesystem::path os_path = std::filesystem::u8path(rel_path.c_str());
-
-		abort_callback_dummy dummy_abort;
-
-		try {
-			listFiles(os_path.string().c_str(), entries, dummy_abort);
-		}
-		catch (...) {
-			return {};
-		}
-		if (!entries.get_size())
-			return {};
-
-		return entries;
-	}
-
-	//marks folder job: 'loading.' or 'TaskReg.txt' (done param value)
+	bool CheckOfflineFolder_ID(pfc::string8 id, GetFrom getFrom, pfc::string8 secid);
 
 	bool static MarkDownload(pfc::string8 fcontent, pfc::string8 path, bool done) {
 		
 		bool bok = false;
 		
 		if (!done) {
-			
-			//delete 'not done' existing folder
-
+		
 			std::filesystem::path os_path = std::filesystem::u8path(path.c_str());
 			
 			try {
@@ -267,7 +242,7 @@ namespace Offline {
 		//..
 
 		out_relative_path = GetOfflinePath(id, true, gfFrom, secid);
-		bool bres = Get_FS_Id_Folder_Entries(id, gfFrom, secid).get_count();
+		bool bres = CheckOfflineFolder_ID(id, gfFrom, secid);
 
 		bres &= CheckDownload(out_relative_path);
 
@@ -328,7 +303,9 @@ namespace Offline {
 		std::filesystem::path os_path = std::filesystem::u8path(rel_path.c_str());
 		
 		try {
-			return std::filesystem::create_directories(os_path);
+			std::error_code ec;
+			std::filesystem::create_directories(os_path, ec);
+			return !ec.value();
 		}
 		catch (...) {
 			return false;

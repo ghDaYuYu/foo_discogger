@@ -76,7 +76,7 @@ private:
 	void generate_track_mappings(track_mappings_list_type &track_mappings);
 
 	void update_list_width(HWND list, bool initialize=false);
-	bool track_context_menu(HWND wnd, LPARAM coords);
+	bool track_context_menu(HWND wnd, int idFrom, LPARAM coords);
 	bool track_url_context_menu(HWND wnd, LPARAM coords);
 	bool switch_context_menu(HWND wnd, POINT point, bool isfiles, int cmd, bit_array_bittable selmask, pfc::array_t<t_size> order, CListControlOwnerData* ilist);
 	void attrib_menu_command(HWND wnd, af afalbum, af afart, UINT IDATT, lsmode mode);
@@ -94,7 +94,7 @@ public:
 
 
 		NMLVKEYDOWN info;
-		info.wVKey = 0x9F; //todo: remove hack, do proper imp
+		info.wVKey = 0x9F;
 		info.flags = i;
 		list_key_down(x, (LPNMHDR)&info);
 
@@ -108,28 +108,31 @@ public:
 #pragma warning( disable : 26454 )
 
 	MY_BEGIN_MSG_MAP(CTrackMatchingDialog)
-		MSG_WM_CONTEXTMENU(OnContextMenu)
+
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
+		MESSAGE_HANDLER(WM_CONTEXTMENU, OnContextMenu)
+		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		MESSAGE_HANDLER(WM_CTLCOLORSTATIC, OnColorStatic)
-		MESSAGE_HANDLER(WM_RBUTTONUP, OnRButtonUp)
+
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
 		COMMAND_ID_HANDLER(IDC_CHECK_SKIP_ARTWORK, OnCheckSkipArtwork)
-		NOTIFY_HANDLER_EX(IDC_FILE_LIST, NM_RCLICK, OnListRClick)
+		COMMAND_ID_HANDLER(IDC_TRACK_MATCH_ALBUM_ART, OnCheckManageArtwork)
+
 		NOTIFY_HANDLER_EX(IDC_FILE_LIST, NM_DBLCLK, OnListDBLClick)
 		NOTIFY_HANDLER_EX(IDC_DISCOGS_TRACK_LIST, NM_DBLCLK, OnListDBLClick)
-		NOTIFY_HANDLER_EX(IDC_DISCOGS_TRACK_LIST, NM_RCLICK, OnListRClick)
-		NOTIFY_HANDLER_EX(IDC_UI_LIST_DISCOGS, NM_RCLICK, OnListRClick)
-		NOTIFY_HANDLER_EX(IDC_UI_LIST_FILES, NM_RCLICK, OnListRClick)
+
 		NOTIFY_HANDLER_EX(IDC_FILE_LIST, LVN_KEYDOWN, OnListKeyDown)
 		NOTIFY_HANDLER_EX(IDC_DISCOGS_TRACK_LIST, LVN_KEYDOWN, OnListKeyDown)
-		NOTIFY_HANDLER_EX(IDC_DISCOGS_TRACK_LIST, LVN_GETDISPINFO, OnDiscogListGetDispInfo)
+
 		NOTIFY_HANDLER_EX(IDC_FILE_LIST, LVN_GETDISPINFO, OnDiscogListGetDispInfo)
-		COMMAND_ID_HANDLER(IDC_PREVIEW_TAGS_BUTTON, OnButtonPreviewTags)
-		COMMAND_ID_HANDLER(IDC_WRITE_TAGS_BUTTON, OnButtonWriteTags)
+		NOTIFY_HANDLER_EX(IDC_DISCOGS_TRACK_LIST, LVN_GETDISPINFO, OnDiscogListGetDispInfo)
+
 		COMMAND_ID_HANDLER(IDC_BACK_BUTTON, OnButtonBack)
-		COMMAND_ID_HANDLER(IDC_BTN_TRACK_MATCH_WRITE_ARTWORK, OnButtonWriteArtwork)
-		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
-		MESSAGE_HANDLER(WM_COMMAND, OnCommand)
+		COMMAND_ID_HANDLER(IDC_WRITE_TAGS_BUTTON, OnButtonWriteTags)
+		COMMAND_ID_HANDLER(IDC_PREVIEW_TAGS_BUTTON, OnButtonPreviewTags)
+		COMMAND_ID_HANDLER(IDC_WRITE_ARTWORK_BUTTON, OnButtonWriteArtwork)
+
+
 		CHAIN_MSG_MAP_MEMBER(m_list_drop_handler)
 		CHAIN_MSG_MAP(CDialogResize<CTrackMatchingDialog>)
 	MY_END_MSG_MAP()
@@ -180,6 +183,7 @@ public:
 		m_conf(CONF), m_coord(p_parent, CONF),
 		m_idc_list(this), m_ifile_list(this)
 	{
+		m_conf.SetName("TrackMatchingDlg");
 		g_discogs->track_matching_dialog = this;
 		m_rec_icon = LoadDpiBitmapResource(Icon::Record);
 
@@ -192,43 +196,33 @@ public:
 		g_discogs->track_matching_dialog = nullptr;
 	}
 
-	void OnContextMenu(CWindow wnd, CPoint point) {
-
-		UINT id = ::GetWindowLong(wnd, GWL_ID);
-		if (id == IDC_UI_LIST_DISCOGS || id == IDC_UI_LIST_FILES) {
-			NMHDR nmhdr = { 0 };
-			nmhdr.hwndFrom = wnd;
-			nmhdr.idFrom = id;
-			OnListRClick(&nmhdr);
-		}
-		else {
-		    // 
-		}
-
-		return;
-	};
-
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+	LRESULT OnContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+
 	LRESULT OnColorStatic(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
 	LRESULT OnMoveTrackUp(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnMoveTrackDown(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnButtonPreviewTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnButtonWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 
+	LRESULT OnButtonPreviewTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnButtonBack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnCheckSkipArtwork(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnButtonWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnButtonWriteArtwork(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+
+	LRESULT OnCheckSkipArtwork(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnCheckManageArtwork(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+
 	LRESULT OnWriteArtworkKnownIds(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+
 	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
-	LRESULT OnCommand(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+
 	LRESULT OnDiscogListGetDispInfo(LPNMHDR lParam);
 	LRESULT DiscogTrackGetDispInfo(LPNMHDR lParam);
 	LRESULT DiscogArtGetDispInfo(LPNMHDR lParam);
+
 	LRESULT OnListKeyDown(LPNMHDR lParam);
-	LRESULT OnListRClick(LPNMHDR lParam);
 	LRESULT OnListDBLClick(LPNMHDR lParam);
-	LRESULT OnRButtonUp(UINT ctrl_id, WPARAM, LPARAM lParam, BOOL&);
+
 	LRESULT list_key_down(HWND wnd, LPNMHDR lParam);
 
 	void match_message_update(pfc::string8 local_msg = "");
@@ -272,6 +266,7 @@ private:
 
 	foo_conf m_conf;
 
+	uartwork m_last_run_uart;
 	
 	std::vector<preview_job> m_vpreview_jobs;
 	
@@ -284,7 +279,6 @@ private:
 	size_t multi_count = 0;
 
 	TagWriter_ptr m_tag_writer;
-	pfc::array_t<TagWriter_ptr> tag_writers;
 
 	size_t tw_index = 0;
 	size_t tw_skip = 0;

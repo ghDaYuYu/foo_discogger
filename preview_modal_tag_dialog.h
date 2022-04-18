@@ -59,7 +59,6 @@ public:
 		COMMAND_ID_HANDLER(IDOK, OnOK)
 		NOTIFY_HANDLER(IDC_PREVIEW_MODAL_TAB, TCN_SELCHANGING, OnChangingTab)
 		NOTIFY_HANDLER(IDC_PREVIEW_MODAL_TAB, TCN_SELCHANGE, OnChangeTab)
-		NOTIFY_HANDLER(IDD_TAB_LIST, NM_CLICK, OnListClick)
 		CHAIN_MSG_MAP(CDialogResize<CPreviewModalTagDialog>)
 	MY_END_MSG_MAP()
 
@@ -86,20 +85,19 @@ public:
 		ILOD_preview_modal(&this->m_ui_list, item_result, &m_vtracks_desc, IDD_TAB_CTRL, 0)
 	{
 
-		//..
+		g_discogs->preview_modal_tag_dialog = this;
 	}
 
 	~CPreviewModalTagDialog();
 
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+	void ReLoad(HWND p_parent, size_t item, tag_result_ptr item_result, std::vector<pfc::string8> vtracks_desc, int parent_preview_mode);
 	LRESULT OnContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-
 	LRESULT OnChangingTab(WORD /*wNotifyCode*/, LPNMHDR /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnChangeTab(WORD /*wNotifyCode*/, LPNMHDR /*lParam*/, BOOL& /*bHandled*/); 
-	LRESULT OnListClick(WORD /*wNotifyCode*/, LPNMHDR /*lParam*/, BOOL& /*bHandled*/);
 
 	void enable(bool v) override { enable(v, true); };
 	void enable(bool v, bool change_focus);

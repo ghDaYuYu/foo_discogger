@@ -17,7 +17,8 @@ LRESULT CPreviewModalTagDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPAR
 }
 
 CPreviewModalTagDialog::~CPreviewModalTagDialog() {
-	//..
+
+	g_discogs->preview_modal_tag_dialog = nullptr;
 }
 
 void CPreviewModalTagDialog::init_tabs_defs() {
@@ -78,6 +79,20 @@ LRESULT CPreviewModalTagDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, L
 	return FALSE;
 }
 
+void CPreviewModalTagDialog::ReLoad(HWND p_parent, size_t item, tag_result_ptr item_result, std::vector<pfc::string8> vtracks_desc, int parent_preview_mode) {
+	
+	m_iItem = item;
+	m_item_result = item_result;
+	m_vtracks_desc = vtracks_desc;
+	m_parent_preview_mode = parent_preview_mode;
+
+	((ILOD_preview_modal*)this)->Reload(&this->m_ui_list, item_result, &m_vtracks_desc);
+
+	CRect rc_visible;
+	m_ui_list.GetClientRect(&rc_visible);
+	::RedrawWindow(m_ui_list.m_hWnd, &rc_visible, 0, RDW_INVALIDATE);
+}
+
 LRESULT CPreviewModalTagDialog::OnOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 
 	//update values
@@ -124,13 +139,6 @@ LRESULT CPreviewModalTagDialog::OnChangeTab(WORD /*wNotifyCode*/, LPNMHDR /*lPar
 
 	return FALSE;
 }
-
-LRESULT CPreviewModalTagDialog::OnListClick(WORD /*wNotifyCode*/, LPNMHDR lParam, BOOL& /*bHandled*/) {
-    
-    //..
-	return FALSE;
-}
-
 
 bool CPreviewModalTagDialog::context_menu_show(HWND wnd, size_t isel, LPARAM lParamCoords) {
 

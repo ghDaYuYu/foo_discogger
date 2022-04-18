@@ -74,7 +74,7 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 	//add write tags icon
 	HWND write_btn = GetDlgItem(IDC_WRITE_TAGS_BUTTON);
 	::SendMessageW(write_btn, BM_SETIMAGE, IMAGE_BITMAP, (LPARAM)m_rec_icon);
-	//todo: clean non owner data leftovers
+
 	m_list_drop_handler.Initialize(m_hWnd, discogs_track_list, file_list, &m_coord);
 	m_list_drop_handler.SetNotifier(stdf_change_notifier);
 
@@ -119,12 +119,6 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 		CONFARTWORK = CONFARTWORK;
 		init_track_matching_dialog();
 
-		bool skip_artwork = ((LOWORD(lpskip) & ART_CUST_SKIP_DEF_FLAG) == ART_CUST_SKIP_DEF_FLAG
-			|| (HIWORD(lpskip) & ART_CUST_SKIP_DEF_FLAG) == ART_CUST_SKIP_DEF_FLAG);
-
-		uButton_SetCheck(m_hWnd, IDC_CHECK_PREV_DLG_SKIP_ARTWORK, managed_artwork || skip_artwork);
-
-		// TODO: revise return value - skip if release dialog checked
 		if (m_tag_writer->match_status == MATCH_SUCCESS && (m_conf.skip_mng_flag & SkipMng::SKIP_RELEASE_DLG_MATCHED)) {
 			generate_track_mappings(m_tag_writer->track_mappings);
 			service_ptr_t<generate_tags_task> task = new service_impl_t<generate_tags_task>(this, m_tag_writer, false, use_update_tags);
@@ -210,17 +204,77 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 
 LRESULT CTrackMatchingDialog::OnCheckSkipArtwork(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 
-	LPARAM param = m_conf.album_art_skip_default_cust;
-	unsigned lo = LOWORD(param);
-	unsigned hi = HIWORD(param);
+	SendMessage(GetDlgItem(IDC_CHECK_SKIP_ARTWORK)
+		, BM_SETSTYLE
+		, (WPARAM)0
+		, (LPARAM)0);
 
-	if (IsDlgButtonChecked(IDC_CHECK_PREV_DLG_SKIP_ARTWORK))
-		lo |= ART_CUST_SKIP_DEF_FLAG;
-	else
-		lo &= ~ART_CUST_SKIP_DEF_FLAG;
+	SendMessage(GetDlgItem(IDC_CHECK_SKIP_ARTWORK)
+		, BM_SETSTYLE
+		, (WPARAM)BS_CHECKBOX | BS_AUTOCHECKBOX
+		, (LPARAM)0);
 
-	m_conf.album_art_skip_default_cust = MAKELPARAM(lo, hi);
+	return FALSE;
+}
 
+LRESULT CTrackMatchingDialog::OnCheckManageArtwork(WORD wNotifyCode, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+
+
+	WPARAM wParam = MAKEWPARAM(0, wNotifyCode);
+
+	if (wID == IDC_TRACK_MATCH_ALBUM_ART) {
+
+		if (HIWORD(wParam) == BN_CLICKED) {
+
+			bool state = (uButton_GetCheck(m_hWnd, IDC_TRACK_MATCH_ALBUM_ART) == TRUE);
+
+			m_coord.PullConf(state ? lsmode::tracks_ui : lsmode::art, true, &m_conf);
+			m_coord.PullConf(state ? lsmode::tracks_ui : lsmode::art, false, &m_conf);
+
+			if (state) {
+
+				LibUIAsOwnerData(false);
+
+				::ShowWindow(uGetDlgItem(IDC_DISCOGS_TRACK_LIST), SW_SHOW);
+				::ShowWindow(uGetDlgItem(IDC_FILE_LIST), SW_SHOW);
+				::EnableWindow(uGetDlgItem(IDC_DISCOGS_TRACK_LIST), true);
+				::EnableWindow(uGetDlgItem(IDC_FILE_LIST), true);
+				::ShowWindow(uGetDlgItem(IDC_WRITE_ARTWORK_BUTTON), SW_SHOW);
+
+				m_idc_list.DeleteColumns(bit_array_true(), false);
+				m_ifile_list.DeleteColumns(bit_array_true(), false);
+
+				::ShowWindow(uGetDlgItem(IDC_UI_LIST_DISCOGS), SW_HIDE);
+				::ShowWindow(uGetDlgItem(IDC_UI_LIST_FILES), SW_HIDE);
+				::EnableWindow(uGetDlgItem(IDC_UI_LIST_DISCOGS), false);
+				::EnableWindow(uGetDlgItem(IDC_UI_LIST_FILES), false);
+			}
+			else {
+
+				LibUIAsOwnerData(true);
+
+				if (!m_idc_list.GetColumnCount()) {
+					m_coord.InitUiList(m_idc_list.m_hWnd, lsmode::tracks_ui, true, &m_idc_list);
+					m_coord.InitUiList(m_ifile_list.m_hWnd, lsmode::tracks_ui, false, &m_ifile_list);
+				}
+
+				::ShowWindow(uGetDlgItem(IDC_UI_LIST_DISCOGS), SW_SHOW);
+				::ShowWindow(uGetDlgItem(IDC_UI_LIST_FILES), SW_SHOW);
+				::EnableWindow(uGetDlgItem(IDC_UI_LIST_DISCOGS), true);
+				::EnableWindow(uGetDlgItem(IDC_UI_LIST_FILES), true);
+
+				::ShowWindow(uGetDlgItem(IDC_DISCOGS_TRACK_LIST), SW_HIDE);
+				::ShowWindow(uGetDlgItem(IDC_FILE_LIST), SW_HIDE);
+				::EnableWindow(uGetDlgItem(IDC_DISCOGS_TRACK_LIST), false);
+				::EnableWindow(uGetDlgItem(IDC_FILE_LIST), false);
+				::ShowWindow(uGetDlgItem(IDC_WRITE_ARTWORK_BUTTON), SW_HIDE);
+			}
+
+			m_coord.SetMode(state ? lsmode::art : lsmode::tracks_ui);
+			m_coord.Show();
+			::ShowScrollBar(uGetDlgItem(IDC_DISCOGS_TRACK_LIST), SB_HORZ, FALSE);
+		}
+	}
 	return FALSE;
 }
 
@@ -482,17 +536,6 @@ LRESULT CTrackMatchingDialog::OnMoveTrackDown(WORD /*wNotifyCode*/, WORD wID, HW
 	return FALSE;
 }
 
-LRESULT CTrackMatchingDialog::OnRemoveTrackButton(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	HWND discogs_track_list = uGetDlgItem(IDC_DISCOGS_TRACK_LIST);
-	HWND file_list = uGetDlgItem(IDC_FILE_LIST);
-	match_message_update(match_manual);
-	if (wID == IDC_REMOVE_DISCOGS_TRACK_BUTTON)
-		remove_items(discogs_track_list, false);
-	else
-		remove_items(file_list, false);
-	return FALSE;
-}
-
 void CTrackMatchingDialog::generate_track_mappings(track_mappings_list_type &track_mappings) {
 	
 	track_mappings.force_reset();
@@ -540,23 +583,6 @@ void CTrackMatchingDialog::generate_track_mappings(track_mappings_list_type &tra
 	}
 }
 
-bool CTrackMatchingDialog::init_count() {
-	const bool manual_revision = m_conf.update_tags_manually_match;
-	for (size_t i = 0; i < tag_writers.get_count(); i++) {
-		if (tag_writers[i]->skip || tag_writers[i]->match_status == MATCH_SUCCESS || tag_writers[i]->match_status == MATCH_ASSUME) {
-			continue;
-		}
-		if (!manual_revision) {
-			tag_writers[i]->skip = true;
-		}
-		else {
-			multi_count++;
-		}
-	}
-	return multi_count != 0;
-}
-
-
 LRESULT CTrackMatchingDialog::OnButtonBack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 
 	m_idc_list.TooltipRemove();
@@ -569,7 +595,7 @@ LRESULT CTrackMatchingDialog::OnButtonBack(WORD /*wNotifyCode*/, WORD wID, HWND 
 }
 
 //write all discogs art selected, matching available album art ids
-LRESULT CTrackMatchingDialog::OnWriteArtwork(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+LRESULT CTrackMatchingDialog::OnButtonWriteArtwork(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 
 	CONFARTWORK = *m_coord.GetUartwork();
 	CONFARTGUIDS = *m_coord.GetUartwork_GUIDS();
@@ -602,7 +628,7 @@ LRESULT CTrackMatchingDialog::OnWriteArtwork(WORD /*wNotifyCode*/, WORD wID, HWN
 		bflag |= CONFARTWORK.getflag(att, att_pos);
 		att = dc_isalbum ? af::alb_emb : af::art_emb;
 		bflag |= CONFARTWORK.getflag(att, att_pos);
-	
+
 		if (!bflag) {
 			++dc_skipped;
 			continue;
@@ -656,6 +682,9 @@ LRESULT CTrackMatchingDialog::OnWriteArtwork(WORD /*wNotifyCode*/, WORD wID, HWN
 			m_tag_writer->finfo_manager->items,	my_album_art_ids, false);
 
 	task_ids->start();
+
+	m_last_run_uart = CONFARTWORK;
+	init_track_matching_dialog();
 
 	return TRUE;
 }
@@ -725,18 +754,27 @@ LRESULT CTrackMatchingDialog::OnWriteArtworkKnownIds(WORD /*wNotifyCode*/, WORD 
 	return TRUE;
 }
 
-LRESULT CTrackMatchingDialog::OnPreviewTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+LRESULT CTrackMatchingDialog::OnButtonPreviewTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 
-	CONFARTWORK = *m_coord.GetUartwork();
-	CONFARTGUIDS = *m_coord.GetUartwork_GUIDS();
-	
+	if (CONFARTWORK.populated) {
+		CONFARTWORK = *m_coord.GetUartwork();
+		CONFARTGUIDS = *m_coord.GetUartwork_GUIDS();
+	}
+
+	//moved here from hide
+	bool changed = build_current_cfg();
+	if (changed)
+		pushcfg();
+
+	//generate_tags_task::on_success will hide this dialog
+
 	generate_track_mappings(m_tag_writer->track_mappings);
 	service_ptr_t<generate_tags_task> task = new service_impl_t<generate_tags_task>(this, m_tag_writer, true, use_update_tags);
 	task->start();
 	return TRUE;
 }
 
-LRESULT CTrackMatchingDialog::OnWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+LRESULT CTrackMatchingDialog::OnButtonWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 
 	generate_track_mappings(m_tag_writer->track_mappings);
 	service_ptr_t<generate_tags_task> task = new service_impl_t<generate_tags_task>(this, m_tag_writer, false, use_update_tags);
@@ -755,45 +793,49 @@ void CTrackMatchingDialog::pushcfg() {
 inline bool CTrackMatchingDialog::build_current_cfg() {
 
 	bool bres = false;
-	const foo_conf cfg_coord = CONF;
+	const foo_conf * cfg_coord = &CONF;
 
 	//track match columns
-	if (cfg_coord.match_tracks_discogs_col1_width != m_conf.match_tracks_discogs_col1_width ||
-		cfg_coord.match_tracks_discogs_col2_width != m_conf.match_tracks_discogs_col2_width ||
+	if (cfg_coord->match_tracks_discogs_col1_width != m_conf.match_tracks_discogs_col1_width ||
+		cfg_coord->match_tracks_discogs_col2_width != m_conf.match_tracks_discogs_col2_width ||
 		//track match columns
-		cfg_coord.match_tracks_files_col1_width != m_conf.match_tracks_files_col1_width ||
-		cfg_coord.match_tracks_files_col2_width != m_conf.match_tracks_files_col2_width ||
+		cfg_coord->match_tracks_files_col1_width != m_conf.match_tracks_files_col1_width ||
+		cfg_coord->match_tracks_files_col2_width != m_conf.match_tracks_files_col2_width ||
 		//styles
-		cfg_coord.match_tracks_discogs_style != m_conf.match_tracks_discogs_style ||
-		cfg_coord.match_tracks_files_style != m_conf.match_tracks_files_style) {
+		cfg_coord->match_tracks_discogs_style != m_conf.match_tracks_discogs_style ||
+		cfg_coord->match_tracks_files_style != m_conf.match_tracks_files_style) {
 
 		bres |= true;
 	}
 
 	//artwork image columns
-	if (cfg_coord.match_discogs_artwork_ra_width != m_conf.match_discogs_artwork_ra_width ||
-		cfg_coord.match_discogs_artwork_type_width != m_conf.match_discogs_artwork_type_width ||
-		cfg_coord.match_discogs_artwork_dim_width != m_conf.match_discogs_artwork_dim_width ||
-		cfg_coord.match_discogs_artwork_save_width != m_conf.match_discogs_artwork_save_width ||
-		cfg_coord.match_discogs_artwork_ovr_width != m_conf.match_discogs_artwork_ovr_width ||
-		cfg_coord.match_discogs_artwork_embed_width != m_conf.match_discogs_artwork_embed_width ||
+	if (cfg_coord->match_discogs_artwork_ra_width != m_conf.match_discogs_artwork_ra_width ||
+		cfg_coord->match_discogs_artwork_type_width != m_conf.match_discogs_artwork_type_width ||
+		cfg_coord->match_discogs_artwork_dim_width != m_conf.match_discogs_artwork_dim_width ||
+		cfg_coord->match_discogs_artwork_save_width != m_conf.match_discogs_artwork_save_width ||
+		cfg_coord->match_discogs_artwork_ovr_width != m_conf.match_discogs_artwork_ovr_width ||
+		cfg_coord->match_discogs_artwork_embed_width != m_conf.match_discogs_artwork_embed_width ||
+		cfg_coord->match_discogs_artwork_embed_width != m_conf.match_discogs_artwork_index_width ||
 		//artwork file columns
-		cfg_coord.match_file_artwork_name_width != m_conf.match_file_artwork_name_width ||
-		cfg_coord.match_file_artwork_dim_width != m_conf.match_file_artwork_dim_width ||
-		cfg_coord.match_file_artwork_size_width != m_conf.match_file_artwork_size_width ||
+		cfg_coord->match_file_artwork_name_width != m_conf.match_file_artwork_name_width ||
+		cfg_coord->match_file_artwork_dim_width != m_conf.match_file_artwork_dim_width ||
+		cfg_coord->match_file_artwork_size_width != m_conf.match_file_artwork_size_width ||
+		cfg_coord->match_file_artwork_size_width != m_conf.match_file_artwork_index_width ||
 		//styles
-		cfg_coord.match_discogs_artwork_art_style != m_conf.match_discogs_artwork_art_style ||
-		cfg_coord.match_file_artworks_art_style != m_conf.match_file_artworks_art_style) {
+		cfg_coord->match_discogs_artwork_art_style != m_conf.match_discogs_artwork_art_style ||
+		cfg_coord->match_file_artworks_art_style != m_conf.match_file_artworks_art_style) {
 		bres |= true;
 	}
 
 	//skip artwork
 
 	auto checkstate = SendDlgItemMessage(IDC_CHECK_SKIP_ARTWORK, BM_GETSTATE, (WPARAM)0, (LPARAM)0);
-	if (checkstate == BST_INDETERMINATE) {
+	if (checkstate == BST_INDETERMINATE)
+	{
 		m_conf.album_art_skip_default_cust = MAKELPARAM(ARTSAVE_SKIP_CUST_FLAG, ARTSAVE_SKIP_CUST_FLAG);
 	}
 	else if (checkstate == BST_CHECKED) {
+
 		m_conf.album_art_skip_default_cust = MAKELPARAM(ARTSAVE_SKIP_USER_FLAG, ARTSAVE_SKIP_USER_FLAG);
 	}		
 	else {
@@ -835,38 +877,41 @@ void CTrackMatchingDialog::LibUIAsOwnerData(bool OwnerToLibUi) {
 	}
 	else {
 
-		foo_conf* cfg_coord = m_coord.cfgRef();
+		foo_conf tmp_cfg_coord = CConf(m_coord.Get_Conf());
 
 		size_t icol = 0;
 			
-		LPARAM woa = cfg_coord->match_tracks_discogs_col1_width;
+		LPARAM woa = tmp_cfg_coord.match_tracks_discogs_col1_width;
 		//size_t debug = HIWORD(woa);
 		LPARAM tmpwoa = MAKELPARAM(LOWORD(woa), m_idc_list.GetColumnWidthF(icol));
 
-		cfg_coord->match_tracks_discogs_col1_width = tmpwoa;
+		tmp_cfg_coord.match_tracks_discogs_col1_width = tmpwoa;
 
 		icol++;
 
-		woa = cfg_coord->match_tracks_discogs_col2_width;
+		woa = tmp_cfg_coord.match_tracks_discogs_col2_width;
 		tmpwoa = MAKELPARAM(LOWORD(woa), m_idc_list.GetColumnWidthF(icol));
 			
-		cfg_coord->match_tracks_discogs_col2_width = tmpwoa;
+		tmp_cfg_coord.match_tracks_discogs_col2_width = tmpwoa;
 
 		//second list
 		icol = 0;
 
-		woa = cfg_coord->match_tracks_files_col1_width;
+		woa = tmp_cfg_coord.match_tracks_files_col1_width;
 		//debug = HIWORD(woa);
 		tmpwoa = MAKELPARAM(LOWORD(woa), m_ifile_list.GetColumnWidthF(icol));
 
-		cfg_coord->match_tracks_files_col1_width = tmpwoa;
+		tmp_cfg_coord.match_tracks_files_col1_width = tmpwoa;
 
 		icol++;
 
-		woa = cfg_coord->match_tracks_files_col2_width;
+		woa = tmp_cfg_coord.match_tracks_files_col2_width;
 		tmpwoa = MAKELPARAM(LOWORD(woa), m_ifile_list.GetColumnWidthF(icol));
 			
-		cfg_coord->match_tracks_files_col2_width = tmpwoa;
+		tmp_cfg_coord.match_tracks_files_col2_width = tmpwoa;
+
+		m_coord.Set_Conf(tmp_cfg_coord);
+
 
 		::GetWindowRect(uGetDlgItem(IDC_UI_LIST_DISCOGS), &rc_UI_dcList);
 		::GetWindowRect(uGetDlgItem(IDC_UI_LIST_FILES), &rc_UI_fileList);
@@ -884,66 +929,6 @@ void CTrackMatchingDialog::LibUIAsOwnerData(bool OwnerToLibUi) {
 			rc_UI_fileList.Width(), rc_UI_fileList.Height(), SWP_NOACTIVATE | SWP_SHOWWINDOW);
 	}
 }
-
-LRESULT CTrackMatchingDialog::OnCommand(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/) {
-	
-	if (LOWORD(wParam) == IDC_TRACK_MATCH_ALBUM_ART) {
-		
-		if (HIWORD(wParam) == BN_CLICKED) {
-			
-			bool state = (uButton_GetCheck(m_hWnd, IDC_TRACK_MATCH_ALBUM_ART) == TRUE);
-
-			//backup column defs of exiting mode
-			m_coord.PullConf(state ? lsmode::tracks_ui : lsmode::art, true, &m_conf);
-			m_coord.PullConf(state ? lsmode::tracks_ui : lsmode::art, false, &m_conf);
-
-			if (state) {
-
-				LibUIAsOwnerData(false);
-
-				::ShowWindow(uGetDlgItem(IDC_DISCOGS_TRACK_LIST), SW_SHOW);
-				::ShowWindow(uGetDlgItem(IDC_FILE_LIST), SW_SHOW);
-				::EnableWindow(uGetDlgItem(IDC_DISCOGS_TRACK_LIST), true);
-				::EnableWindow(uGetDlgItem(IDC_FILE_LIST), true);
-				::ShowWindow(uGetDlgItem(IDC_BTN_TRACK_MATCH_WRITE_ARTWORK), SW_SHOW);
-
-				m_idc_list.DeleteColumns(bit_array_true(), false);
-				m_ifile_list.DeleteColumns(bit_array_true(), false);
-
-				::ShowWindow(uGetDlgItem(IDC_UI_LIST_DISCOGS), SW_HIDE);
-				::ShowWindow(uGetDlgItem(IDC_UI_LIST_FILES), SW_HIDE);
-				::EnableWindow(uGetDlgItem(IDC_UI_LIST_DISCOGS), false);
-				::EnableWindow(uGetDlgItem(IDC_UI_LIST_FILES), false);
-			}
-			else {
-
-				LibUIAsOwnerData(true);
-
-				if (!m_idc_list.GetColumnCount()) {
-					m_coord.InitUiList(m_idc_list.m_hWnd, lsmode::tracks_ui, true, &m_idc_list);
-					m_coord.InitUiList(m_ifile_list.m_hWnd, lsmode::tracks_ui, false, &m_ifile_list);
-				}
-
-				::ShowWindow(uGetDlgItem(IDC_UI_LIST_DISCOGS), SW_SHOW);
-				::ShowWindow(uGetDlgItem(IDC_UI_LIST_FILES), SW_SHOW);
-				::EnableWindow(uGetDlgItem(IDC_UI_LIST_DISCOGS), true);
-				::EnableWindow(uGetDlgItem(IDC_UI_LIST_FILES), true);
-
-				::ShowWindow(uGetDlgItem(IDC_DISCOGS_TRACK_LIST), SW_HIDE);
-				::ShowWindow(uGetDlgItem(IDC_FILE_LIST), SW_HIDE);
-				::EnableWindow(uGetDlgItem(IDC_DISCOGS_TRACK_LIST), false);
-				::EnableWindow(uGetDlgItem(IDC_FILE_LIST), false);
-				::ShowWindow(uGetDlgItem(IDC_BTN_TRACK_MATCH_WRITE_ARTWORK), SW_HIDE);
-			}
-
-			m_coord.SetMode(state ? lsmode::art : lsmode::tracks_ui);
-			m_coord.Show();
-			::ShowScrollBar(uGetDlgItem(IDC_DISCOGS_TRACK_LIST), SB_HORZ, FALSE);
-		}
-	}
-	return 0;
-}
-
 
 void CTrackMatchingDialog::update_list_width(HWND list, bool initialize) {
 	
@@ -1157,8 +1142,7 @@ LRESULT CTrackMatchingDialog::list_key_down(HWND wnd, LPNMHDR lParam) {
 
 LRESULT CTrackMatchingDialog::OnListKeyDown(LPNMHDR lParam) {
 	HWND wnd = ((LPNMHDR)lParam)->hwndFrom;
-	list_key_down(wnd, lParam);
-	return 0;
+	return list_key_down(wnd, lParam);
 }
 
 bool IsTile(HWND hwnd) {
@@ -1624,6 +1608,7 @@ void CTrackMatchingDialog::attrib_menu_command(HWND wnd, af att_album, af att_ar
 		}
 	}
 	CONFARTWORK = uartwork(*uart);
+	init_track_matching_dialog();
 }
 
 bool CTrackMatchingDialog::track_url_context_menu(HWND wnd, LPARAM lParamPos) {
@@ -1732,18 +1717,26 @@ bool CTrackMatchingDialog::track_url_context_menu(HWND wnd, LPARAM lParamPos) {
 	return true;
 }
 
-bool CTrackMatchingDialog::track_context_menu(HWND wnd, LPARAM lParamCoords) {
+bool CTrackMatchingDialog::track_context_menu(HWND wnd, int idFrom, LPARAM lParamCoords) {
+
+	bool bvk_apps = lParamCoords == -1;
 	
+	bool is_uilist = wnd == uGetDlgItem(IDC_UI_LIST_DISCOGS) || wnd == uGetDlgItem(IDC_UI_LIST_FILES);
+	bool is_files = wnd == uGetDlgItem(IDC_FILE_LIST) || wnd == uGetDlgItem(IDC_UI_LIST_FILES);
+
 	POINT point;
-	point.x = GET_X_LPARAM(lParamCoords);
-	point.y = GET_Y_LPARAM(lParamCoords);
-	
-	if (point.x == -1 || point.y == -1) {
+
+	if (bvk_apps) {
 		CRect rect;
 		CWindow(wnd).GetWindowRect(&rect);
 		point = rect.CenterPoint();
 	}
-	
+	else {
+
+		point.x = GET_X_LPARAM(lParamCoords);
+		point.y = GET_Y_LPARAM(lParamCoords);
+	}
+		
 	try {
 		HMENU menu = CreatePopupMenu();
 		
@@ -1764,21 +1757,20 @@ bool CTrackMatchingDialog::track_context_menu(HWND wnd, LPARAM lParamCoords) {
 		mi_template.hSubMenu = _childmenuTemplate;
 		mi_template.dwTypeData = _T("Templates");
 
-		CListControlOwnerData* ilist = nullptr; bool is_ilist = false;
-		if (wnd == uGetDlgItem(IDC_UI_LIST_DISCOGS) || wnd == uGetDlgItem(IDC_UI_LIST_FILES)) {
-			is_ilist = true;
+		CListControlOwnerData* ilist = nullptr; 
+		if (is_uilist) {		
 			ilist = (wnd == uGetDlgItem(IDC_UI_LIST_DISCOGS)) ? &m_idc_list : &m_ifile_list;
 		}
-		
-		int csel = is_ilist ? ilist->GetSelectedCount()
+
+		int csel = is_uilist ? ilist->GetSelectedCount()
 			: ListView_GetSelectedCount(wnd);
 
-		size_t citems = is_ilist ? ilist->GetItemCount()
+		size_t citems = is_uilist ? ilist->GetItemCount()
 			: ListView_GetItemCount(wnd);
 
 		bit_array_bittable selmask(0);
 		
-		if (is_ilist) selmask = ilist->GetSelectionMask();
+		if (is_uilist) selmask = ilist->GetSelectionMask();
 		else {
 			selmask.resize(citems);
 			size_t n = ListView_GetFirstSelection(wnd) == -1 ? pfc_infinite : ListView_GetFirstSelection(wnd);
@@ -1787,11 +1779,12 @@ bool CTrackMatchingDialog::track_context_menu(HWND wnd, LPARAM lParamCoords) {
 			}
 		}
 
-		bool is_files = wnd == uGetDlgItem(IDC_FILE_LIST) || wnd == uGetDlgItem(IDC_UI_LIST_FILES);
-		
-		uAppendMenu(menu, MF_STRING
-			| (citems? 0 : MF_DISABLED | MF_GRAYED), ID_ART_TOOGLE_TRACK_ART_MODES,
-			get_mode() == lsmode::default? "View Artwork\tCtrl+T" : "View Tracks\tCtrl+T");
+		uAppendMenu(menu, MF_STRING, ID_PREVIEW_CMD_BACK, "&Back");
+		uAppendMenu(menu, MF_STRING, ID_PREVIEW_CMD_PREVIEW, "&Preview");
+		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+		uAppendMenu(menu, MF_STRING	| (citems? 0 : MF_DISABLED | MF_GRAYED) | (get_mode() == lsmode::default ? MF_UNCHECKED : MF_CHECKED),
+			ID_ART_TOOGLE_TRACK_ART_MODES, "&manage artwork\tCtrl+T");
+
 
 		if (get_mode() == lsmode::art) {
 			if (!is_files) {
@@ -1813,19 +1806,17 @@ bool CTrackMatchingDialog::track_context_menu(HWND wnd, LPARAM lParamCoords) {
 				append_art_context_menu(wnd, &menu);
 			}
 			else {
+				bool bsel = selmask.find_first(true, 0, selmask.size()) != selmask.size();
+
 				//image viewer req >= 1.6.2
 				bool b_ver_ok = core_version_info_v2::get()->test_version(1, 6, 2, 0);
 				if (b_ver_ok) {
-					uAppendMenu(menu, MF_STRING | (get_mode() == lsmode::art ? 0 : MF_DISABLED | MF_GRAYED), ID_ART_IMAGE_VIEWER, "Image Viewer\tDouble Click");
+
+					uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+					uAppendMenu(menu, MF_STRING | (bsel && get_mode() == lsmode::art ? 0 : MF_DISABLED | MF_GRAYED), ID_ART_IMAGE_VIEWER, "Image Viewer\tDouble Click");
 				}
 			}
 		}
-
-
-
-
-
-
 
 		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 		uAppendMenu(menu, MF_STRING | (citems? 0 : MF_DISABLED | MF_GRAYED), ID_SELECT_ALL, "Select all\tCtrl+A");
@@ -1833,19 +1824,30 @@ bool CTrackMatchingDialog::track_context_menu(HWND wnd, LPARAM lParamCoords) {
 		uAppendMenu(menu, MF_STRING | (csel? 0 : MF_DISABLED | MF_GRAYED), ID_REMOVE, "Remove\tDel");
 		uAppendMenu(menu, MF_STRING | (csel? 0 : MF_DISABLED | MF_GRAYED), ID_CROP, "Crop\tCtrl+C");
 
-		std::pair<size_t, presenter*> icol_hit = m_coord.HitUiTest(point);
-		if (icol_hit.first != pfc_infinite) {
+		if (is_uilist) {
+			std::pair<size_t, presenter*> icol_hit = m_coord.HitUiTest(point);
+			if (icol_hit.first != pfc_infinite) {
 
-			size_t fmt = m_coord.GetUiColumnFormat(icol_hit.first, icol_hit.second);
+				size_t fmt = m_coord.GetUiColumnFormat(icol_hit.first, icol_hit.second);
 
-			uAppendMenu(menu, MF_SEPARATOR, 0, 0);
-			// display submenu
-			uAppendMenu(_childmenuAlign, MF_STRING | (fmt == HDF_LEFT ? MF_CHECKED | MF_DISABLED | MF_GRAYED : 0), ID_LEFT_ALIGN, "Left");
-			uAppendMenu(_childmenuAlign, MF_STRING | (fmt == HDF_CENTER ? MF_CHECKED | MF_DISABLED | MF_GRAYED : 0), ID_CENTER_ALIGN, "Center");
-			uAppendMenu(_childmenuAlign, MF_STRING | (fmt == HDF_RIGHT ? MF_CHECKED | MF_DISABLED | MF_GRAYED : 0), ID_RIGHT_ALIGN, "Right");
-			InsertMenuItem(menu, ID_SUBMENU_SELECTOR_ALIGN, true, &mi_align);		
-		
+				uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+				// display submenu
+				uAppendMenu(_childmenuAlign, MF_STRING | (fmt == HDF_LEFT ? MF_CHECKED | MF_DISABLED | MF_GRAYED : 0), ID_LEFT_ALIGN, "Left");
+				uAppendMenu(_childmenuAlign, MF_STRING | (fmt == HDF_CENTER ? MF_CHECKED | MF_DISABLED | MF_GRAYED : 0), ID_CENTER_ALIGN, "Center");
+				uAppendMenu(_childmenuAlign, MF_STRING | (fmt == HDF_RIGHT ? MF_CHECKED | MF_DISABLED | MF_GRAYED : 0), ID_RIGHT_ALIGN, "Right");
+				InsertMenuItem(menu, ID_SUBMENU_SELECTOR_ALIGN, true, &mi_align);				
+			}
 		}
+
+		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+
+		if (get_mode() != lsmode::default) {
+
+			uAppendMenu(menu, MF_STRING | (citems ? 0 : MF_DISABLED | MF_GRAYED), ID_PREVIEW_CMD_WRITE_ARTWORK, "Write &artwork");		
+		}
+		
+		uAppendMenu(menu, MF_STRING | (citems ? 0 : MF_DISABLED | MF_GRAYED), ID_PREVIEW_CMD_WRITE_TAGS, "&Write tags");
+
 
 		int cmd = TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, 0, wnd, 0);
 		DestroyMenu(menu);
@@ -2002,18 +2004,24 @@ bool CTrackMatchingDialog::switch_context_menu(HWND wnd, POINT point, bool is_fi
 		return true;
 	}
 	case ID_ART_IMAGE_VIEWER: {
+
+		bool bsel = selmask.find_first(true, 0, selmask.size()) != selmask.size();
+
 		//image viewer req >= 1.6.2
 		bool has_viewer = core_version_info_v2::get()->test_version(1, 6, 2, 0);
 		if (has_viewer) {
-			size_t first_sel = selmask.find_first(true, 0, selmask.size());
-			getimages_file_it out_art_file_it;
-			m_coord.GetFileArtAtLvPos(first_sel, out_art_file_it);
-			ndx_image_file_t ndx_img = out_art_file_it->first;
-			service_ptr_t<fb2k::imageViewer> img_viewer = fb2k::imageViewer::get();
-			const GUID aaType = ndx_img.second;
-			img_viewer->load_and_show(m_hWnd,
-				m_tag_writer->finfo_manager->items,
-				aaType/*ndx_img.second*/, 0);
+		    if (bsel) {
+			    size_t first_sel = selmask.find_first(true, 0, selmask.size());
+			    getimages_file_it out_art_file_it;
+			    m_coord.GetFileArtAtLvPos(first_sel, out_art_file_it);
+			
+			    ndx_image_file_t ndx_img = out_art_file_it->first;
+			    service_ptr_t<fb2k::imageViewer> img_viewer = fb2k::imageViewer::get();
+			    const GUID aaType = ndx_img.second;
+			    img_viewer->load_and_show(m_hWnd,
+				    m_tag_writer->finfo_manager->items,
+				    aaType, 0);
+			}
 		}
 		break;
 	}
@@ -2055,6 +2063,32 @@ bool CTrackMatchingDialog::switch_context_menu(HWND wnd, POINT point, bool is_fi
 			m_coord.Show(!is_files, is_files);
 		}
 		return true;
+	}
+	case ID_PREVIEW_CMD_BACK: {
+
+		HWND hwndButton = uGetDlgItem(IDC_BACK_BUTTON);
+		uSendMessage(m_hWnd, WM_NEXTDLGCTL, (WPARAM)(HWND)hwndButton, TRUE);
+		auto retval = ::PostMessage(hwndButton, BM_CLICK, (WPARAM)(HWND)hwndButton, 0);
+
+		break;
+	}
+	case ID_PREVIEW_CMD_PREVIEW: {
+		BOOL bDummy;
+		OnButtonPreviewTags(0, 0, NULL, bDummy);
+		break;
+	}
+	case ID_PREVIEW_CMD_WRITE_TAGS: {
+
+		HWND hwndButton = uGetDlgItem(IDC_WRITE_TAGS_BUTTON);
+		uSendMessage(m_hWnd, WM_NEXTDLGCTL, (WPARAM)(HWND)hwndButton, TRUE);
+		auto retval = ::PostMessage(hwndButton, BM_CLICK, (WPARAM)(HWND)hwndButton, 0);
+
+		break;
+	}
+	case ID_PREVIEW_CMD_WRITE_ARTWORK: {
+		BOOL bDummy;
+		OnButtonWriteArtwork(0, 0, NULL, bDummy);
+		break;
 	}
 	default: {
 		if (cmd == 0) return false;
@@ -2145,11 +2179,17 @@ bool CTrackMatchingDialog::append_art_context_menu(HWND wndlist, HMENU* menu) {
 	return false;
 }
 
-LRESULT CTrackMatchingDialog::OnListRClick(LPNMHDR lParam) {
-	HWND wnd = ((LPNMHDR)lParam)->hwndFrom;
-	NMITEMACTIVATE* info = reinterpret_cast<NMITEMACTIVATE*>(lParam);
-	POINT coords; GetCursorPos(&coords);
-	track_context_menu(wnd, MAKELPARAM(coords.x, coords.y));
+LRESULT CTrackMatchingDialog::OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) {
+
+	bHandled = TRUE;
+	HWND hwnd = (HWND)wParam;
+	UINT id = ::GetWindowLong(hwnd, GWL_ID);
+
+	if (id == IDC_UI_LIST_DISCOGS || id == IDC_UI_LIST_FILES ||
+		id == IDC_DISCOGS_TRACK_LIST || id == IDC_FILE_LIST) {
+
+    	track_context_menu(hwnd, id, lParam);
+	}
 	return FALSE;
 }
 
@@ -2168,7 +2208,7 @@ LRESULT CTrackMatchingDialog::OnListDBLClick(LPNMHDR lParam) {
 	bool is_art_files = wnd == uGetDlgItem(IDC_FILE_LIST);
 
 	if (is_art_files) {
-		switch_context_menu(m_hWnd, coords, is_art_files, ID_ART_IMAGE_VIEWER, selmask, nullptr);
+		switch_context_menu(m_hWnd, coords, is_art_files, ID_ART_IMAGE_VIEWER, selmask, pfc::array_t<t_size>(), nullptr);
 	}
 	else {
 		//right click hit coords...
@@ -2188,7 +2228,7 @@ LRESULT CTrackMatchingDialog::OnListDBLClick(LPNMHDR lParam) {
 			bool bitems = ListView_GetItemCount(wnd) > 0;
 			size_t cmd = isTile ? ID_ART_DETAIL : ID_ART_TILE;
 			//call menu switch
-			switch_context_menu(wnd, coords, is_art_files, cmd, selmask, nullptr);
+			switch_context_menu(wnd, coords, is_art_files, cmd, selmask, pfc::array_t<t_size>(), nullptr);
 		}
 		else if (!isTile && (ht.iSubItem >= WRITE_COL && ht.iSubItem <= EMB_COL)) {
 			//attribs
@@ -2204,40 +2244,10 @@ LRESULT CTrackMatchingDialog::OnListDBLClick(LPNMHDR lParam) {
 			}
 			//call menu switch
 			ClientToScreen(&ht.pt);
-			switch_context_menu(wnd, ht.pt, false, cmd, selmask, nullptr);
+			switch_context_menu(wnd, ht.pt, false, cmd, selmask, pfc::array_t<t_size>(), nullptr);
 		}
 	}
 	return FALSE;
-}
-
-LRESULT CTrackMatchingDialog::OnRButtonUp(UINT ctrl_id, WPARAM p_wp, LPARAM lParam, BOOL& bHandled) {
-
-	POINT point;
-	point.x = GET_X_LPARAM(lParam);
-	point.y = GET_Y_LPARAM(lParam);
-
-	HWND wnd_ctrl = uGetDlgItem(IDC_STATIC_MATCH_TRACKING_REL_NAME);
-
-	bool ok_hit = false;
-	CRect rc;
-
-	if (!::GetWindowRect(wnd_ctrl, &rc))
-		ok_hit = false;
-	else {
-		ScreenToClient(&rc);
-		if (PtInRect(rc, point))
-			ok_hit = true;
-	}
-
-	if (ok_hit) {
-
-		track_url_context_menu(m_hWnd, lParam);
-		bHandled = TRUE;
-		return 0;
-	}
-
-	bHandled = FALSE;
-	return 0;
 }
 
 void CTrackMatchingDialog::enable(bool is_enabled) {
@@ -2246,10 +2256,6 @@ void CTrackMatchingDialog::enable(bool is_enabled) {
 	::uEnableWindow(GetDlgItem(IDC_BACK_BUTTON), is_enabled);
 	::uEnableWindow(GetDlgItem(IDC_EDIT_TAG_MAPPINGS_BUTTON), is_enabled);
 	::uEnableWindow(GetDlgItem(IDC_REPLACE_ANV_CHECK), is_enabled);
-	::uEnableWindow(GetDlgItem(IDC_REMOVE_DISCOGS_TRACK_BUTTON), is_enabled);
-	::uEnableWindow(GetDlgItem(IDC_REMOVE_FILE_TRACK_BUTTON), is_enabled);
-	::uEnableWindow(GetDlgItem(IDC_MOVE_UP_BUTTON), is_enabled);
-	::uEnableWindow(GetDlgItem(IDC_MOVE_DOWN_BUTTON), is_enabled);
 	::uEnableWindow(GetDlgItem(IDC_PREVIEW_TAGS_BUTTON), is_enabled);
 }
 
@@ -2352,7 +2358,7 @@ void CTrackMatchingDialog::go_back() {
 	CFindReleaseDialog* find_release_dlg = g_discogs->find_release_dialog;
 	HWND hwndReleases = g_discogs->find_release_dialog->m_hWnd;
 
-	UINT next_default = IDC_PROCESS_RELEASE_BUTTON;
+	UINT next_default = IDC_BTN_PROCESS_RELEASE;
 	
 	if (dlg_release_id.get_length()) {
 		
@@ -2361,7 +2367,7 @@ void CTrackMatchingDialog::go_back() {
 		uSetWindowText(release_url_edit, dlg_release_id.get_ptr());
 
 		if (!dlg_artist_id.get_length()) {
-			next_default = IDC_SEARCH_BUTTON;
+			next_default = IDC_BTN_SEARCH;
 			HWND search_edit = ::GetDlgItem(hwndReleases, IDC_SEARCH_TEXT);
 			uSetWindowText(search_edit, dlg_artist_name.get_ptr());
 		}

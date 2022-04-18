@@ -135,12 +135,10 @@ public:
 #pragma warning( disable : 26454 )
 
 	BEGIN_MSG_MAP(CArtistList)
+		MESSAGE_HANDLER(WM_CONTEXTMENU, OnContextMenu)
 		NOTIFY_HANDLER(IDC_ARTIST_LIST, LVN_GETDISPINFO, OnGetInfo)
 		NOTIFY_HANDLER(IDC_ARTIST_LIST, LVN_ITEMCHANGED, OnListSelChanged)
 		NOTIFY_HANDLER(IDC_ARTIST_LIST, LVN_ITEMCHANGING, OnListSelChanging)
-		MESSAGE_HANDLER(WM_CONTEXTMENU, OnContextMenu)
-		NOTIFY_HANDLER(IDC_ARTIST_LIST, NM_RCLICK, OnRClickRelease)
-		//NOTIFY_HANDLER(IDC_ARTIST_LIST, NM_RETURN, OnListReturn) (parent hook)
 		NOTIFY_HANDLER(IDC_ARTIST_LIST, NM_DBLCLK, OnListDoubleClick)
 	END_MSG_MAP()
 
@@ -154,7 +152,7 @@ private:
 
 	pfc::string8 get_search_string() { return uGetWindowText(m_edit_artist); }
 
-	void set_artist_tracer_ovr(size_t artist_ovr_id) { _idtracer_p->set_artist_ovr_id(artist_ovr_id); }
+	void set_artist_tracer_ovr(size_t artist_fr_id) { _idtracer_p->set_artist_ovr_id(artist_fr_id); }
 
 	void set_find_release_artist(Artist_ptr find_release_artist_p) {
 		m_find_release_artist = find_release_artist_p;
@@ -172,7 +170,6 @@ private:
 	LRESULT OnListSelChanged(int, LPNMHDR hdr, BOOL& bHandled);
 	LRESULT OnListSelChanging(int, LPNMHDR hdr, BOOL& bHandled);
 	LRESULT OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
-	LRESULT OnRClickRelease(int, LPNMHDR hdr, BOOL&);
 	LRESULT OnListDoubleClick(int, LPNMHDR hdr, BOOL& bHandled);
 
 	void set_image_list();

@@ -375,15 +375,19 @@ bool CPreviewTagsDialog::context_menu_show(HWND wnd, size_t isel, LPARAM lParamC
 
 		uAppendMenu(menu, MF_STRING, ID_PREVIEW_CMD_BACK, "&Back");
 		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
-		uAppendMenu(menu, MF_STRING | MF_DISABLED | MF_GRAYED, ID_PREVIEW_CMD_BACK, "&Skip artwork");
-		uAppendMenu(menu, MF_STRING | MF_DISABLED | MF_GRAYED, ID_PREVIEW_CMD_BACK, "S&how stats");
+		bool bskip = IsDlgButtonChecked(IDC_CHECK_SKIP_ARTWORK);		
+		bool bshowstats = IsDlgButtonChecked(IDC_CHECK_PREV_DLG_SHOW_STATS);
+		bool bnormal = IsDlgButtonChecked(IDC_VIEW_NORMAL);
+		bool bdiff = IsDlgButtonChecked(IDC_VIEW_DIFFERENCE);
+		bool bori = IsDlgButtonChecked(IDC_VIEW_ORIGINAL);
+		uAppendMenu(menu, MF_STRING | (bskip? MF_CHECKED : 0), ID_PREVIEW_CMD_SKIP_ARTWORK, "&skip artwork");
+		uAppendMenu(menu, MF_STRING | (bshowstats ? MF_CHECKED : 0), ID_PREVIEW_CMD_SHOW_STATS, "s&how stats");
 		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 		uAppendMenu(menu, MF_STRING | (bnormal ? MF_CHECKED : 0), ID_PREVIEW_CMD_RESULTS_VIEW, "&Results view");
 		uAppendMenu(menu, MF_STRING | (bdiff ? MF_CHECKED : 0), ID_PREVIEW_CMD_DIFF_VIEW, "&Difference view");
 		uAppendMenu(menu, MF_STRING | (bori ? MF_CHECKED : 0), ID_PREVIEW_CMD_ORI_VIEW, "&Original view");
 		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
-
-		uAppendMenu(menu, MF_STRING | (/*todo*/false ? MF_DISABLED | MF_GRAYED : 0), ID_PREVIEW_CMD_WRITE_TAGS, "&Write tags");
+		uAppendMenu(menu, MF_STRING | (false/*todo*/ ? MF_DISABLED | MF_GRAYED : 0), ID_PREVIEW_CMD_WRITE_TAGS, "&Write tags");
 
 		int cmd = TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, 0, wnd, 0);
 		DestroyMenu(menu);
@@ -458,6 +462,7 @@ bool CPreviewTagsDialog::context_menu_switch(HWND wnd, POINT point, bool is_resu
 		if (isel != ~0) {
 
 			tag_result_ptr& item_result = m_tag_writer->tag_results[isel];
+			file_info_manager_ptr finfo_manager = m_tag_writer->finfo_manager;
 			track_mappings_list_type track_mappings = m_tag_writer->track_mappings;
 
 			std::vector<pfc::string8> vtracks_desc;
@@ -471,9 +476,16 @@ bool CPreviewTagsDialog::context_menu_switch(HWND wnd, POINT point, bool is_resu
 					vtracks_desc.emplace_back(track_desc);
 				}
 			}
-			fb2k::newDialog <CPreviewModalTagDialog>(core_api::get_main_window(), isel, item_result, vtracks_desc, get_preview_mode()/*, m_tag_writer, m_use_update_tags*/);
+
+			if (!g_discogs->preview_modal_tag_dialog) {
+				fb2k::newDialog <CPreviewModalTagDialog>(core_api::get_main_window(), isel, item_result, vtracks_desc, get_preview_mode());
+			}			
+			else
+			{
+				g_discogs->preview_modal_tag_dialog->ReLoad(core_api::get_main_window(), isel, item_result, vtracks_desc, get_preview_mode());
+			}
 		}
-		
+
 		return true;
 	}
 	case ID_PREVIEW_CMD_COPY: {
@@ -1236,9 +1248,14 @@ void CPreviewTagsDialog::destroy_all() {
 void CPreviewTagsDialog::go_back() {
 
 	destroy();
+
+	// back to track matching
+
 	if (g_discogs->track_matching_dialog) {
 
 		CTrackMatchingDialog* dlg = g_discogs->track_matching_dialog;
+		HWND hwndButton = ::GetDlgItem(dlg->m_hWnd, IDC_PREVIEW_TAGS_BUTTON);
+		::PostMessage(dlg->m_hWnd, WM_NEXTDLGCTL, (WPARAM)hwndButton, TRUE);
 		dlg->show();
 	}
 }
@@ -1336,7 +1353,7 @@ LRESULT CPreviewTagsDialog::OnCheckPreviewShowStats(WORD /*wNotifyCode*/, WORD w
 		int def_statswidth = 0;
 		for (int cc = COL_STAT_POS; cc < COL_STAT_POS + COL_STAT_COLS; cc++) {
 			cfg_lv.colmap.at(cc).enabled = true;
-			ListView_SetColumnWidth(tag_results_list, cc, cfg_lv.colmap.at(cc).width);
+			ListView_SetColumnWidth(m_results_list, cc, cfg_lv.colmap.at(cc).width);
 			def_statswidth += (int)cfg_lv.colmap.at(cc).width;
 		}
 

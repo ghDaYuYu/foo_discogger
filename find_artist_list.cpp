@@ -489,11 +489,6 @@ LRESULT CArtistList::OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL
 	return FALSE;
 }
 
-LRESULT CArtistList::OnRClickRelease(int, LPNMHDR hdr, BOOL&) {
-
-    //debug
-	return 0;
-}
 
 //
 
@@ -569,24 +564,30 @@ void CArtistList::context_menu(size_t list_index, POINT screen_pos) {
 		isArtistOffline = artist->loaded_releases_offline;
 	}
 
-	pfc::string8 sourcepage = "View artist page";
-	pfc::string8 copyrow = "Copy to clipboard";
+	pfc::string8 sourcepage = "&Web artist page";
+	pfc::string8 copyrow = "&Copy to clipboard";
 
 	try {
 
-		enum { ID_VIEW_PAGE = 1, ID_CLP_COPY_ROW, ID_ARTIST_DEL_CACHE, ID_ARTIST_PROFILE };
+		enum { ID_CMD_LOAD_RELEASES = 1, ID_VIEW_PAGE, ID_CLP_COPY_ROW, ID_ARTIST_DEL_CACHE, ID_ARTIST_EXACT_MATCHES, ID_ARTIST_PROFILE };
 		HMENU menu = CreatePopupMenu();
 
 		if (!empty_sel) {
-		
-			uAppendMenu(menu, MF_STRING, ID_VIEW_PAGE, sourcepage);
-			uAppendMenu(menu, MF_STRING, ID_ARTIST_PROFILE, "Open profile panel");
+
+			bool bexact_matches = IsDlgButtonChecked(m_dlg->m_hWnd, IDC_CHK_ONLY_EXACT_MATCHES);
+
+			uAppendMenu(menu, MF_STRING, ID_CMD_LOAD_RELEASES, "&Load artist releases");
 			uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 			uAppendMenu(menu, MF_STRING, ID_CLP_COPY_ROW, copyrow);
+			uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+			uAppendMenu(menu, MF_STRING | (bexact_matches? MF_CHECKED : MF_UNCHECKED), ID_ARTIST_EXACT_MATCHES, "&exact matches");
+			uAppendMenu(menu, MF_STRING, ID_ARTIST_PROFILE, "&profile panel");
+			uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 			if (isArtistOffline) {
+				uAppendMenu(menu, MF_STRING, ID_ARTIST_DEL_CACHE, "C&lear artist cache");
 				uAppendMenu(menu, MF_SEPARATOR, 0, 0);
-				uAppendMenu(menu, MF_STRING, ID_ARTIST_DEL_CACHE, "Clear artist cache");
 			}
+			uAppendMenu(menu, MF_STRING, ID_VIEW_PAGE, sourcepage);
 		}
 		
 		int cmd = TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, screen_pos.x, screen_pos.y, 0, m_hwndArtists, 0);
@@ -594,6 +595,11 @@ void CArtistList::context_menu(size_t list_index, POINT screen_pos) {
 
 		switch (cmd)
 		{
+		case ID_CMD_LOAD_RELEASES:
+		{
+			Default_Artist_Action();
+			break;
+		}
 		case ID_VIEW_PAGE:
 		{
 			pfc::string8 url;
@@ -634,13 +640,23 @@ void CArtistList::context_menu(size_t list_index, POINT screen_pos) {
 			TCHAR outBuffer[MAX_PATH + 1] = {};
 
 			size_t cItems = ListView_GetItemCount(m_hwndArtists);
+
 			for (size_t walk_item = 0; walk_item < cItems; walk_item++) {
+
 				if (LVIS_SELECTED == ListView_GetItemState(m_hwndArtists, walk_item, LVIS_SELECTED)) {
 					//delete cache
 					discogs_interface->delete_artist_cache(artist->id);
 					artist->loaded_releases_offline = false;
 				}
 			}
+
+			break;
+		}	
+		case ID_ARTIST_EXACT_MATCHES: {
+
+			bool prev = IsDlgButtonChecked(m_dlg->m_hWnd, IDC_CHK_ONLY_EXACT_MATCHES);
+			uButton_SetCheck(m_dlg->m_hWnd, IDC_CHK_ONLY_EXACT_MATCHES, !prev);
+			::SendMessage(m_dlg->m_hWnd, WM_COMMAND, MAKEWPARAM(IDC_CHK_ONLY_EXACT_MATCHES, BN_CLICKED), 0);
 
 			break;
 		}

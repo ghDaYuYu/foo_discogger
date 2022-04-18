@@ -2145,25 +2145,28 @@ void CFindReleaseTree::context_menu(size_t param_mr, POINT screen_pos) {
 
 	mounted_param myparam(param_mr);
 
-	pfc::string8 sourcepage = myparam.brelease ? "View release page" : "View master release page";
-	pfc::string8 copytitle = "Copy title to clipboard";
-	pfc::string8 copyrow = "Copy to clipboard";
-	pfc::string8 filterversions = "filter loaded versions";
-	pfc::string8 clearfilter = "Clear filter";
-	pfc::string8 mainrole = "main role";
+	pfc::string8 sourcepage = myparam.brelease ? "View &release page" : "View mas&ter release page";
+	pfc::string8 copytitle = "Copy &title to clipboard";
+	pfc::string8 copyrow = "Copy to &clipboard";
+	pfc::string8 filterversions = "&filter loaded versions";
+	pfc::string8 clearfilter = "C&lear filter";
+	pfc::string8 mainrole = "&main role";
 
 	//debugging
 	m_post_selection_param = ~0;
 
 	try {
 
-		enum { ID_VIEW_PAGE = 1, ID_CLP_COPY_TITLE, ID_CLP_COPY_ROW, ID_DLG_CLEAR_FILTER, ID_DLG_FILTER_TOGGLE,  ID_DLG_MAIN_ROLE_TOGGLE };
+		enum { ID_CMD_NEXT = 1, ID_VIEW_PAGE, ID_CLP_COPY_TITLE, ID_CLP_COPY_ROW, ID_DLG_CLEAR_FILTER, ID_DLG_FILTER_TOGGLE,  ID_DLG_MAIN_ROLE_TOGGLE };
 		HMENU menu = CreatePopupMenu();
 
 		foo_conf cfg = m_dlg->config();
 		bool enabled_versions = cfg.find_release_filter_flag & FilterFlag::Versions;
 		bool enabled_rolemain = cfg.find_release_filter_flag & FilterFlag::RoleMain;
-		bool enabled_filter = uGetDlgItemText(m_dlg->m_hWnd, IDC_FILTER_EDIT).get_length();
+		bool enabled_filter = uGetDlgItemText(m_dlg->m_hWnd, IDC_EDIT_FILTER).get_length();
+
+		uAppendMenu(menu, MF_STRING, ID_CMD_NEXT, "&Next");
+		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 
 		if (!empty_sel) {
 
@@ -2194,6 +2197,12 @@ void CFindReleaseTree::context_menu(size_t param_mr, POINT screen_pos) {
 
 		switch (cmd)
 		{
+		case ID_CMD_NEXT: {
+			CFindReleaseDialog* dlg = (CFindReleaseDialog*)m_dlg;
+			BOOL bDummy;
+			dlg->OnButtonNext(0, 0, NULL, bDummy);
+			break;
+		}
 		case ID_VIEW_PAGE:
 		{
 			pfc::string8 url;
@@ -2249,7 +2258,7 @@ void CFindReleaseTree::context_menu(size_t param_mr, POINT screen_pos) {
 		}
 		case ID_DLG_CLEAR_FILTER:
 		{
-			uSetDlgItemText(m_dlg->m_hWnd, IDC_FILTER_EDIT, "");
+			uSetDlgItemText(m_dlg->m_hWnd, IDC_EDIT_FILTER, "");
 
 			break;
 		}
@@ -2278,13 +2287,6 @@ void CFindReleaseTree::context_menu(size_t param_mr, POINT screen_pos) {
 
 }
 
-LRESULT CFindReleaseTree::OnClick(WORD /*wNotifyCode*/, LPNMHDR /*lParam*/, BOOL& /*bHandled*/) {
-
-	//debug
-	//..
-	return FALSE;
-}
-
 //public serves find-rel dlg
 
 size_t CFindReleaseTree::Get_Artist_List_Position() {
@@ -2297,9 +2299,4 @@ size_t CFindReleaseTree::Get_Size() {
 	size_t res;
 	res = m_rt_cache.bulk_Size();
 	return res;
-}
-
-LRESULT CFindReleaseTree::OnRClickRelease(int, LPNMHDR hdr, BOOL&) {
-    //debug
-	return 0;
 }

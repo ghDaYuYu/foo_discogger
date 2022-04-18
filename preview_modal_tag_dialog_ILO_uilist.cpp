@@ -132,10 +132,57 @@ pfc::string8 ILOD_preview_modal::listGetEditField(ctx_t ctx, size_t item, size_t
 // set edit field
 
 void ILOD_preview_modal::listSetEditField(ctx_t ctx, size_t item, size_t subItem, const char* val) {
-	//if (subItem == 1) {m_data[item].m_value = val; }
+
+	pfc::chain_list_v2_t<pfc::string8> splitfile;
+	pfc::splitStringByChar(splitfile, val, ';');
+
+	string_encoded_array sea_val;
+
+	for (auto it = splitfile.first(); it.is_valid(); it++) {
+		pfc::string8 buffer = *it;
+		sea_val.append_item(buffer);
+		
+	}
+
+	sea_val.encode();
+
+	pfc::array_t<string_encoded_array> sfa_value = m_item_result->value;
+
+	if (m_item_result->value.get_count() == 1) {
+
+		//src common to all tracks ?
+
+		if (!STR_EQUAL(sea_val, m_item_result->value[0].print())) {
+
+			//build per track values
+
+			size_t newcount = m_ui_list->GetItemCount();
+
+			pfc::string8 prevstring = m_item_result->value[0].print();
+
+			m_item_result->value.force_reset();
+
+			for (size_t it = 0; it < newcount; it++) {
+				string_encoded_array previtem(prevstring);
+				previtem.encode();
+				m_item_result->value.add_item(previtem);
+			}
+
+			// replace common value by per track
+
+			m_item_result->value[item] = sea_val;
+		}
+	}
+	else {
+		m_item_result->value[item] = sea_val;
+	}
 }
-bool ILOD_preview_modal::listIsColumnEditable(ctx_t, size_t subItem) {
-	return false;
+
+// column editable
+
+bool ILOD_preview_modal::listIsColumnEditable(ctx_t ctx, size_t subItem) {
+
+	return (get_mode() == 0 && subItem == 2);
 }
 
 // mode set/get

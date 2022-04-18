@@ -30,6 +30,12 @@ public:
 		//..
 	}
 
+	void Reload(CListControlOwnerData* ui_list, tag_result_ptr item_result, const std::vector<pfc::string8>* vtracks_desc) {
+		m_ui_list = ui_list;
+		m_item_result = item_result;
+		m_vtracks_p = vtracks_desc;
+	}
+
 	void set_mode(int view_mode);
 
 private:

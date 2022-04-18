@@ -802,10 +802,10 @@ void CFindReleaseDialog::convey_artist_list_selection(updRelSrc updsrc) {
 			m_loading_selection_id = pfc_infinite; //pending udpates validation on done 
 		}
 
-		//			update data already loaded
-		if (g_discogs->find_release_artist_dialog) {
-			g_discogs->find_release_artist_dialog->UpdateProfile(artist);
-		}
+		//			update data available
+		
+		UpdateArtistProfile(artist);
+		
 	}
 }
 
@@ -980,6 +980,66 @@ void CFindReleaseDialog::print_root_stats(rppair root_stats, bool save) {
 
 	if (save)
 		m_row_stats = root_stats;
+}
+
+void replace_artist_refs(const pfc::string8 & profile, pfc::string8& outprofile, const pfc::array_t<Artist_ptr> artists) {
+
+	outprofile = profile;
+
+	if (!profile.get_length()) return;
+
+	std::vector<std::pair<std::string, std::string>> vfound;
+
+	std::regex regex_v("\\[a\\d+?\\]");
+
+	std::string s(profile.c_str());
+	std::sregex_iterator begin = std::sregex_iterator(s.begin(), s.end(), regex_v);
+	std::sregex_iterator end = std::sregex_iterator();
+
+	//extract unique artist refs
+	for (std::sregex_iterator i = begin; i != end; i++) {
+
+		std::string id(i->str());
+		id = id.substr(2, id.size() - 3); //"[a1234]" -> 1234
+
+		auto fit = std::find_if(vfound.begin(), vfound.end(), [&](const auto& item) {
+			return !i->str().compare(item.first);
+			});
+
+		if (fit == vfound.end())
+			vfound.emplace_back(id, "");
+	}
+	//look up artist names
+	for (auto & walk_found : vfound) {
+		for (auto w = artists.begin(); w < artists.end(); w++) {
+
+			if (!walk_found.first.compare(w->get()->id.c_str())) {
+				walk_found.second = w->get()->name;
+				break;
+			}
+		}
+	}
+	//replace
+	if (vfound.size()) {
+		for (auto walk : vfound) {
+			if (walk.second.size()) {
+				pfc::string8 replace = PFC_string_formatter() << "[a" << walk.first.c_str() << "]";
+				outprofile = outprofile.replace(replace, walk.second.c_str());
+			}
+		}	
+	}	
+}
+
+//todo: rev #calls
+void CFindReleaseDialog::UpdateArtistProfile(Artist_ptr artist) {
+
+	const auto exactlist = m_alist.Get_Artists();
+
+	if (g_discogs->find_release_artist_dialog) {
+		pfc::string8 modprofile;
+		replace_artist_refs(artist->profile, modprofile, exactlist);
+		g_discogs->find_release_artist_dialog->UpdateProfile(artist, modprofile);
+	}
 }
 
 bool CFindReleaseDialog::add_history(oplog_type optype, std::string cmd, pfc::string8 ff, pfc::string8 fs, pfc::string8 sf, pfc::string8 ss) {

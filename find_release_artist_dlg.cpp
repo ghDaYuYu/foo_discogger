@@ -20,7 +20,7 @@ CFindReleaseArtistDialog::CFindReleaseArtistDialog(HWND p_parent, size_t SW_FLAG
     //
 }
 
-void CFindReleaseArtistDialog::UpdateProfile(Artist_ptr& artist)
+void CFindReleaseArtistDialog::UpdateProfile(Artist_ptr& artist, pfc::string8 modprofile)
 {
 
 	if (artist) {
@@ -31,7 +31,7 @@ void CFindReleaseArtistDialog::UpdateProfile(Artist_ptr& artist)
 		if (id != m_id || loaded != m_loaded) {
 
 			pfc::string8 name = artist->name;
-			pfc::string8 profile = artist->profile;
+			pfc::string8 profile= modprofile;
 			pfc::string8 realname = artist->realname;
 			pfc::string8 tmp;
 

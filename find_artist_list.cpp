@@ -37,9 +37,7 @@ void CArtistList::on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist) {
 
 			if (m_dlg->m_loading_selection_id == atoi(artist->id)) {
 
-				if (g_discogs->find_release_artist_dialog)
-					g_discogs->find_release_artist_dialog->UpdateProfile(artist);
-
+				g_discogs->find_release_dialog->UpdateArtistProfile(artist);
 
 				m_dlg->m_loading_selection_id = pfc_infinite;
 			}
@@ -548,8 +546,9 @@ void CArtistList::open_artist_profile(size_t list_index) {
 
 		Artist_ptr artist = get_artist_inlist(list_index);
 
-		if (artist) {
-			g_discogs->find_release_artist_dialog->UpdateProfile(artist);
+		if (artist.get()) {
+			
+			g_discogs->find_release_dialog->UpdateArtistProfile(artist);
 		}		
 	}
 

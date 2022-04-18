@@ -302,6 +302,8 @@ public:
 
 	size_t get_tree_artist_list_pos() { return m_dctree.Get_Artist_List_Position(); }
 
+	void UpdateArtistProfile(Artist_ptr artist);
+
 	//todo:
 	pfc::string EscapeWin(pfc::string8 keyWord) {
 		pfc::string8 out_keyWord(keyWord);

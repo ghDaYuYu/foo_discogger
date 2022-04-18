@@ -644,10 +644,10 @@ void CFindReleaseTree::on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist) 
 
 	if (updsrc == updRelSrc::ArtistProfile) {
 
-		if (artist.get() && g_discogs->find_release_artist_dialog) {
-			g_discogs->find_release_artist_dialog->UpdateProfile(artist);
-		}
+		if (artist.get()) {
 
+			g_discogs->find_release_dialog->UpdateArtistProfile(artist);
+		}
 		return;
 	}
 
@@ -656,10 +656,9 @@ void CFindReleaseTree::on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist) 
 	m_rt_cache.bulk_Clear();
 	m_rt_cache.new_Version();
 	
-	_idtracer_p->set_artist_fr_id(atoi(artist->id));
+	_idtracer_p->set_artist_ovr_id(atoi(artist->id));
 
-	if (g_discogs->find_release_artist_dialog)
-		g_discogs->find_release_artist_dialog->UpdateProfile(artist);
+	g_discogs->find_release_dialog->UpdateArtistProfile(artist);
 
 	// todo: tidy up init_titles
 	// init source album filter

@@ -250,8 +250,7 @@ pfc::string8 substr(const pfc::string8 &s, size_t start, size_t count) {
 }
 
 pfc::string8 extract_max_number(const pfc::string8& s) {
-
-	std::regex regex_v("[\\d]+"); //\s+www.[a-z0-9]+.[a-z]{2,3}\b
+	std::regex regex_v("\\[a\\d+?\\]");
 
 	size_t max = 0;
 	std::string str(s);

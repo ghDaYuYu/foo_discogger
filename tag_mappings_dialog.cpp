@@ -195,7 +195,7 @@ void CTagMappingDialog::applymappings() {
 	on_mapping_changed(check_mapping_changed());
 
 	if (g_discogs->preview_tags_dialog) {
-		CPreviewTagsDialog* dlg = reinterpret_cast<CPreviewTagsDialog*>(g_discogs->preview_tags_dialog);
+		CPreviewTagsDialog* dlg = g_discogs->preview_tags_dialog;
 		dlg->tag_mappings_updated();
 	}
 }
@@ -345,11 +345,6 @@ LRESULT CTagMappingDialog::OnExport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndC
 		display_errors();
 		clear_errors();
 	}
-	return FALSE;
-}
-
-LRESULT CTagMappingDialog::OnAddTag(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	trigger_add_new();
 	return FALSE;
 }
 
@@ -733,7 +728,6 @@ LRESULT CTagMappingDialog::OnSplitDropDown(WORD wNotifyCode, WORD wID, HWND hWnd
 			}
 
 			PostMessage(MSG_ADD_NEW, cmd, 0);
-			
 		}
 	}
 

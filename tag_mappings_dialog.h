@@ -1,11 +1,11 @@
 #pragma once
 
-#include "../../libPPUI/PaintUtils.h"
-#include "../../libPPUI/CListControlOwnerData.h"
+#include "libPPUI/PaintUtils.h"
+#include "libPPUI/CListControlOwnerData.h"
 #include "resource.h"
 #include "foo_discogs.h"
 #include "tags.h"
-#include "ceditwithbuttonsdim.h"
+#include "my_editwithbuttons.h"
 
 static const char* TEXT_WRITE = "write";
 static const char* TEXT_UPDATE = "update";
@@ -169,6 +169,7 @@ private:
 	//- Remove
 
 	bool listRemoveItems(ctx_t ctx, pfc::bit_array const& mask) override {
+		
 		//remove not freezed masked
 		size_t walk = 0;
 		size_t deleted = 0;
@@ -231,13 +232,6 @@ private:
 		on_mapping_changed(check_mapping_changed());
 	}
 
-	void trigger_add_new() {
-		PostMessage(MSG_ADD_NEW, 0, 0);
-	}
-
-	void trigger_edit(size_t item, size_t sub_item) {
-		PostMessage(MSG_EDIT, item, sub_item);
-	}
 
 	void loadComboCreditUserDefinitions(HWND hparent, UINT id, vppair v, const char* selected_name) {
 
@@ -276,7 +270,6 @@ public:
 
 	enum {
 		IDD = IDD_DIALOG_TAG_MAPPINGS,
-		MSG_EDIT = WM_APP,
 		MSG_ADD_NEW
 	};
 
@@ -373,7 +366,6 @@ public:
 	LRESULT OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnImport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnExport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnAddTag(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnBtnRemoveTag(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 #ifdef CAT_CRED
 	LRESULT OnBtnCreditsClick(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);

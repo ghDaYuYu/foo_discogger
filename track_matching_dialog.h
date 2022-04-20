@@ -61,13 +61,6 @@ private:
 			lsmode::art : lsmode::default;
 	}
 
-	void update_window_title() {
-		pfc::string8 text;
-		text << "Match Tracks (" << tw_index - tw_skip << "/" << multi_count << ")";
-		pfc::stringcvt::string_wide_from_ansi wtext(text);
-		SetWindowText((LPCTSTR)const_cast<wchar_t*>(wtext.get_ptr()));
-	}
-
 	void load_size();
 	bool build_current_cfg();
 	void pushcfg();
@@ -76,11 +69,11 @@ private:
 	void generate_track_mappings(track_mappings_list_type &track_mappings);
 
 	void update_list_width(HWND list, bool initialize=false);
-	bool track_context_menu(HWND wnd, int idFrom, LPARAM coords);
-	bool track_url_context_menu(HWND wnd, LPARAM coords);
-	bool switch_context_menu(HWND wnd, POINT point, bool isfiles, int cmd, bit_array_bittable selmask, pfc::array_t<t_size> order, CListControlOwnerData* ilist);
-	void attrib_menu_command(HWND wnd, af afalbum, af afart, UINT IDATT, lsmode mode);
-	bool append_art_context_menu(HWND wnd, HMENU* menu);
+	bool context_menu_form(HWND wnd, LPARAM coords);
+	bool context_menu_track_show(HWND wnd, int idFrom, LPARAM coords);
+	bool context_menu_track_switch(HWND wnd, POINT point, bool isfiles, int cmd, bit_array_bittable selmask, pfc::array_t<t_size> order, CListControlOwnerData* ilist);
+	void context_menu_art_attrib_switch(HWND wnd, af afalbum, af afart, UINT IDATT, lsmode mode);
+	bool context_menu_art_attrib_show(HWND wnd, HMENU* menu);
 
 protected:
 
@@ -118,8 +111,8 @@ public:
 		COMMAND_ID_HANDLER(IDC_CHECK_SKIP_ARTWORK, OnCheckSkipArtwork)
 		COMMAND_ID_HANDLER(IDC_TRACK_MATCH_ALBUM_ART, OnCheckManageArtwork)
 
-		NOTIFY_HANDLER_EX(IDC_FILE_LIST, NM_DBLCLK, OnListDBLClick)
-		NOTIFY_HANDLER_EX(IDC_DISCOGS_TRACK_LIST, NM_DBLCLK, OnListDBLClick)
+		NOTIFY_HANDLER_EX(IDC_FILE_LIST, NM_DBLCLK, OnListDoubleClick)
+		NOTIFY_HANDLER_EX(IDC_DISCOGS_TRACK_LIST, NM_DBLCLK, OnListDoubleClick)
 
 		NOTIFY_HANDLER_EX(IDC_FILE_LIST, LVN_KEYDOWN, OnListKeyDown)
 		NOTIFY_HANDLER_EX(IDC_DISCOGS_TRACK_LIST, LVN_KEYDOWN, OnListKeyDown)
@@ -149,7 +142,7 @@ public:
 		END_DLGRESIZE_GROUP()
 		DLGRESIZE_CONTROL(IDC_STATIC_MATCH_TRACKING_REL_NAME, DLSZ_SIZE_X)
 		DLGRESIZE_CONTROL(IDC_MATCH_TRACKS_MSG, DLSZ_MOVE_X | DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDC_BTN_TRACK_MATCH_WRITE_ARTWORK, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_WRITE_ARTWORK_BUTTON, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_PREVIEW_TAGS_BUTTON, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_WRITE_TAGS_BUTTON, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_BACK_BUTTON, DLSZ_MOVE_X)
@@ -179,7 +172,7 @@ public:
 	// constructor
 
 	CTrackMatchingDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags = false) : ILODsrc(&this->m_coord, &this->m_idc_list, &this->m_ifile_list),
-		m_tag_writer(tag_writer), use_update_tags(use_update_tags), m_list_drop_handler(),
+		m_tag_writer(tag_writer), m_list_drop_handler(),
 		m_conf(CONF), m_coord(p_parent, CONF),
 		m_idc_list(this), m_ifile_list(this)
 	{
@@ -221,7 +214,7 @@ public:
 	LRESULT DiscogArtGetDispInfo(LPNMHDR lParam);
 
 	LRESULT OnListKeyDown(LPNMHDR lParam);
-	LRESULT OnListDBLClick(LPNMHDR lParam);
+	LRESULT OnListDoubleClick(LPNMHDR lParam);
 
 	LRESULT list_key_down(HWND wnd, LPNMHDR lParam);
 
@@ -265,18 +258,12 @@ public:
 private:
 
 	foo_conf m_conf;
-
 	uartwork m_last_run_uart;
-	
+
 	std::vector<preview_job> m_vpreview_jobs;
-	
 	size_t m_pending_previews = 0;
 	std::mutex m_mx_pending_previews_mod;
 	void add_pending_previews(size_t n);
-
-	bool use_update_tags = false;
-
-	size_t multi_count = 0;
 
 	TagWriter_ptr m_tag_writer;
 

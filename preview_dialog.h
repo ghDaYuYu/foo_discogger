@@ -27,10 +27,6 @@ private:
 
 	foo_conf conf;
 
-	bool use_update_tags = false;
-
-	size_t multi_count = 0;
-
 	std::vector<preview_stats> v_stats;
 	std::vector<std::pair<int, int>> vec_icol_subitems;
 
@@ -42,7 +38,6 @@ private:
 	bool cfg_preview_dialog_show_stats = false;
 
 	TagWriter_ptr m_tag_writer;
-	pfc::array_t<TagWriter_ptr> tag_writers;
 
 	service_ptr_t<titleformat_object> m_track_desc_script;
 	
@@ -54,15 +49,7 @@ private:
 
 	bool init_count();
 
-
-	void update_window_title() {
-		pfc::string8 text;
-		text << "Preview Tags (" << tw_index - tw_skip << "/" << multi_count << ")";
-		pfc::stringcvt::string_wide_from_ansi wtext(text);
-		SetWindowText((LPCTSTR)const_cast<wchar_t*>(wtext.get_ptr()));
-	}
-
-	void insert_tag_result(int pos, const tag_result_ptr &result, int preview_mode);
+	void insert_tag_result(int pos, const tag_result_ptr &result, PreView preview_mode);
 
 	void compute_stats(tag_results_list_type tag_results);
 	void compute_stats_track_map(tag_results_list_type tag_results);
@@ -70,11 +57,13 @@ private:
 	void reset_stats () { v_stats.clear(); }
 	void reset_tag_result_stats();
 
-	void set_preview_mode(int mode);
-	int get_preview_mode();
+	void set_preview_mode(PreView mode);
+	PreView get_preview_mode();
 
 	bool initialize();
 	void GlobalReplace_ANV(bool state);
+
+	bool is_result_editable(size_t item);
 
 	bool TableEdit_IsColumnEditable(size_t subItem) const override {
 		return subItem == 1;
@@ -91,16 +80,14 @@ private:
 	void TableEdit_GetField(size_t item, size_t subItem, pfc::string_base & out, size_t & lineCount) override;
 	void TableEdit_SetField(size_t item, size_t subItem, const char * value) override;
 
-	void trigger_edit(size_t item, size_t sub_item) {
-		PostMessage(MSG_EDIT, item, sub_item);
-	}
+	void trigger_edit(size_t item, size_t sub_item);
+
 	bool delete_selection();
 
 	void set_image_list();
 
-	bool context_menu_show(HWND wnd, size_t isel, LPARAM lParamCoords);
-	bool context_menu_switch(HWND wnd, POINT point, bool is_results, int cmd, bit_array_bittable selmask /*, CListControlOwnerData* ilist*/);
-
+	bool context_menu_show(HWND wnd, size_t isel, LPARAM lParamPos);
+	bool context_menu_switch(HWND wnd, POINT point, int cmd, bit_array_bittable selmask);
 
 public:
 	enum {
@@ -117,6 +104,7 @@ public:
 		ID_PREVIEW_CMD_ORI_VIEW,
 
 		ID_PREVIEW_CMD_EDIT_RESULT_TAG,
+		ID_PREVIEW_CMD_EDIT_RESULT_TAGINP,
 		ID_PREVIEW_CMD_WRITE_TAGS,
 		ID_PREVIEW_CMD_COPY,
 		ID_SELECT_ALL,
@@ -147,13 +135,13 @@ public:
 		
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
 		COMMAND_ID_HANDLER(IDC_BACK_BUTTON, OnButtonBack)
-		COMMAND_ID_HANDLER(IDC_EDIT_TAG_MAPPINGS_BUTTON, OnEditTagMappings)
+		COMMAND_ID_HANDLER(IDC_TAG_MAPPINGS_BUTTON, OnEditTagMappings)
 		COMMAND_ID_HANDLER(IDC_WRITE_TAGS_BUTTON, OnButtonWriteTags)
 		
-		COMMAND_ID_HANDLER(IDC_REPLACE_ANV_CHECK, OnCheckReplaceANVs)
+		COMMAND_ID_HANDLER(IDC_CHECK_REPLACE_ANV, OnCheckReplaceANVs)
 		COMMAND_ID_HANDLER(IDC_CHECK_PREV_DLG_SHOW_STATS, OnCheckPreviewShowStats)
 		COMMAND_ID_HANDLER(IDC_CHECK_SKIP_ARTWORK, OnCheckSkipArtwork)
-		COMMAND_ID_HANDLER(IDC_EDIT_TAGS_DLG_BIND_FLAG, OnCheckAttachMappingPanel)
+		COMMAND_ID_HANDLER(IDC_CHECK_BIND_TAGS_DLG, OnCheckAttachMappingPanel)
 
 		COMMAND_ID_HANDLER(IDC_VIEW_NORMAL, OnChangePreviewMode)
 		COMMAND_ID_HANDLER(IDC_VIEW_DIFFERENCE, OnChangePreviewMode)
@@ -176,7 +164,7 @@ public:
 	BEGIN_DLGRESIZE_MAP(CPreviewTagsDialog)
 		DLGRESIZE_CONTROL(IDC_ALBUM_ART, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_OPTIONS_GROUP, DLSZ_MOVE_X)
-		DLGRESIZE_CONTROL(IDC_REPLACE_ANV_CHECK, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_CHECK_REPLACE_ANV, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_CHECK_SKIP_ARTWORK, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_CHECK_PREV_DLG_SHOW_STATS, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_VIEW_GROUP, DLSZ_MOVE_X)
@@ -184,7 +172,7 @@ public:
 		DLGRESIZE_CONTROL(IDC_VIEW_DIFFERENCE, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_VIEW_ORIGINAL, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_VIEW_DEBUG, DLSZ_MOVE_X)
-		DLGRESIZE_CONTROL(IDC_EDIT_TAG_MAPPINGS_BUTTON, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_TAG_MAPPINGS_BUTTON, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_BACK_BUTTON, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_WRITE_TAGS_BUTTON, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_PREVIEW_LIST, DLSZ_SIZE_X | DLSZ_SIZE_Y)
@@ -194,9 +182,8 @@ public:
 		CDialogResize<CPreviewTagsDialog>::DlgResize_UpdateLayout(cxWidth, cyHeight);
 	}
 
-	CPreviewTagsDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags)
-		: m_tag_writer(tag_writer), m_results_list(NULL), conf(CONF),
-		use_update_tags(use_update_tags), m_preview_bitmap(NULL) {
+	CPreviewTagsDialog(HWND p_parent, TagWriter_ptr tag_writer)
+		: m_tag_writer(tag_writer), m_results_list(NULL), conf(CONF), m_preview_bitmap(NULL) {
 
 		conf.SetName("PreviewDlg");
 		g_discogs->preview_tags_dialog = this;

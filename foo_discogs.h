@@ -20,6 +20,7 @@ class CFindReleaseDialog;
 class CFindReleaseArtistDialog;
 class CTrackMatchingDialog;
 class CPreviewTagsDialog;
+class CPreviewModalTagDialog;
 class CTagMappingDialog;
 class CTagCreditDialog;
 class CConfigurationDialog;
@@ -52,6 +53,7 @@ public:
 	CFindReleaseArtistDialog* find_release_artist_dialog = nullptr;
 	CTrackMatchingDialog *track_matching_dialog = nullptr;
 	CPreviewTagsDialog *preview_tags_dialog = nullptr;
+	CPreviewModalTagDialog*preview_modal_tag_dialog = nullptr;
 	CTagMappingDialog *tag_mappings_dialog = nullptr;
 	CTagCreditDialog *tag_credit_dialog = nullptr;
 	CConfigurationDialog *configuration_dialog = nullptr;
@@ -86,3 +88,5 @@ public:
 
 inline bool g_os_is_wine = false;
 inline foo_discogs* g_discogs = nullptr;
+
+enum class PreView :int { kNORMAL = 0, kDIFFERENCE, kORIGINAL, kDEBUG, default = 0 };

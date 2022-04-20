@@ -79,14 +79,14 @@ LRESULT CPreviewModalTagDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, L
 	return FALSE;
 }
 
-void CPreviewModalTagDialog::ReLoad(HWND p_parent, size_t item, tag_result_ptr item_result, std::vector<pfc::string8> vtracks_desc, int parent_preview_mode) {
+void CPreviewModalTagDialog::ReloadItem(HWND p_parent, size_t item, tag_result_ptr item_result, std::vector<pfc::string8> vtracks_desc, PreView parent_preview_mode) {
 	
 	m_iItem = item;
 	m_item_result = item_result;
 	m_vtracks_desc = vtracks_desc;
 	m_parent_preview_mode = parent_preview_mode;
 
-	((ILOD_preview_modal*)this)->Reload(&this->m_ui_list, item_result, &m_vtracks_desc);
+	((ILOD_preview_modal*)this)->ReloadItem();
 
 	CRect rc_visible;
 	m_ui_list.GetClientRect(&rc_visible);
@@ -95,22 +95,22 @@ void CPreviewModalTagDialog::ReLoad(HWND p_parent, size_t item, tag_result_ptr i
 
 LRESULT CPreviewModalTagDialog::OnOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 
-	//update values
+	//push updates
 	if (g_discogs->preview_tags_dialog) {
+
 		CPreviewTagsDialog* dlg = g_discogs->preview_tags_dialog;
 		dlg->replace_tag_result(m_iItem, m_item_result);
+
 		dlg->cb_generate_tags();
 	}
 
 	destroy();
-
 	return TRUE;
 }
 
 LRESULT CPreviewModalTagDialog::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 
 	destroy();
-
 	return TRUE;
 }
 
@@ -129,10 +129,10 @@ LRESULT CPreviewModalTagDialog::OnChangeTab(WORD /*wNotifyCode*/, LPNMHDR /*lPar
 
 	//set mode
 
-	//todo: rev next call
-	((ILOD_preview_modal*)this)->set_mode(st_preview_current_tab);
+	PreView pv_curr = (PreView)st_preview_current_tab;
 
-	// refresh mode values
+	((ILOD_preview_modal*)this)->set_mode(pv_curr);
+
 	CRect rc_visible;
 	m_ui_list.GetClientRect(&rc_visible);
 	::RedrawWindow(m_ui_list.m_hWnd, &rc_visible, 0, RDW_INVALIDATE);
@@ -140,12 +140,9 @@ LRESULT CPreviewModalTagDialog::OnChangeTab(WORD /*wNotifyCode*/, LPNMHDR /*lPar
 	return FALSE;
 }
 
-bool CPreviewModalTagDialog::context_menu_show(HWND wnd, size_t isel, LPARAM lParamCoords) {
+bool CPreviewModalTagDialog::context_menu_show(HWND wnd, size_t isel, LPARAM lParamPos) {
 
-	bool bvk_apps = lParamCoords == -1;
-
-	isel = m_ui_list.GetFirstSelected();
-
+	bool bvk_apps = lParamPos == -1;
 	bool bselected = isel != ~0;
 
 	POINT point;
@@ -156,8 +153,8 @@ bool CPreviewModalTagDialog::context_menu_show(HWND wnd, size_t isel, LPARAM lPa
 		point = rect.CenterPoint();
 	}
 	else {
-		point.x = GET_X_LPARAM(lParamCoords);
-		point.y = GET_Y_LPARAM(lParamCoords);
+		point.x = GET_X_LPARAM(lParamPos);
+		point.y = GET_Y_LPARAM(lParamPos);
 	}
 
 	try {
@@ -182,7 +179,6 @@ bool CPreviewModalTagDialog::context_menu_show(HWND wnd, size_t isel, LPARAM lPa
 }
 
 bool CPreviewModalTagDialog::context_menu_switch(HWND wnd, POINT point, bool is_files, int cmd, bit_array_bittable selmask /*, CListControlOwnerData* ilist*/ ) {
-
 
 	size_t isel = m_ui_list.GetFirstSelected();
 
@@ -254,7 +250,6 @@ inline bool CPreviewModalTagDialog::build_current_cfg(int& out) {
 	if (out != CONF.preview_modal_tags_dlg_cols_width) {		
 		bres |= true;
 	}
-
 	return bres;
 }
 

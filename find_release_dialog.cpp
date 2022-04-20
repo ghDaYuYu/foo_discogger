@@ -83,7 +83,7 @@ inline bool CFindReleaseDialog::build_current_cfg() {
 
 	bool bres = false;
 
-	bool bcheck = IsDlgButtonChecked(IDC_ONLY_EXACT_MATCHES_CHECK);
+	bool bcheck = IsDlgButtonChecked(IDC_CHK_ONLY_EXACT_MATCHES);
 
 	if (CONF.display_exact_matches != bcheck) {
 		conf.display_exact_matches = bcheck;
@@ -98,12 +98,12 @@ inline bool CFindReleaseDialog::build_current_cfg() {
 	}
 
 	//bind artist profile panel
-	size_t attach_flagged = (IsDlgButtonChecked(IDC_CHECK_FIND_RELEASE_SHOW_PROFILE) == BST_CHECKED) ?
-		FLG_PROFILE_DLG_ATTACHED : 0;
+	size_t attach_flagged = (IsDlgButtonChecked(IDC_CHK_RELEASE_SHOW_PROFILE) == BST_CHECKED) ?
+		FLG_PROFILE_DLG_SHOW : 0;
 
-	size_t open_flagged = g_discogs->find_release_artist_dialog ? FLG_PROFILE_DLG_OPENED : 0;
+	size_t open_flagged = g_discogs->find_release_artist_dialog ? FLG_PROFILE_DLG_ATTACHED : 0;
 
-	conf.find_release_dlg_flags &= ~(FLG_PROFILE_DLG_ATTACHED | FLG_PROFILE_DLG_OPENED);
+	conf.find_release_dlg_flags &= ~(FLG_PROFILE_DLG_SHOW | FLG_PROFILE_DLG_ATTACHED);
 	conf.find_release_dlg_flags |= (attach_flagged | open_flagged);
 
 	if (CONF.find_release_dlg_flags != conf.find_release_dlg_flags) {		
@@ -125,11 +125,11 @@ void CFindReleaseDialog::init_cfged_dialog_controls() {
 	}
 
 	//init artist profile panel
-	if (conf.find_release_dlg_flags & FLG_PROFILE_DLG_ATTACHED) {
+	if (conf.find_release_dlg_flags & fle_fr::FLG_PROFILE_DLG_SHOW) {
 
-		uButton_SetCheck(m_hWnd, IDC_CHECK_FIND_RELEASE_SHOW_PROFILE, true);
+		uButton_SetCheck(m_hWnd, IDC_CHK_RELEASE_SHOW_PROFILE, true);
 
-		if (conf.find_release_dlg_flags & FLG_PROFILE_DLG_OPENED) {
+		if (conf.find_release_dlg_flags & fle_fr::FLG_PROFILE_DLG_ATTACHED) {
 
 			if (!g_discogs->find_release_artist_dialog) {
 
@@ -146,7 +146,7 @@ void CFindReleaseDialog::init_cfged_dialog_controls() {
 
 	// tree stats
 
-	if (conf.find_release_dlg_flags & FLG_SHOW_RELEASE_TREE_STATS) {
+	if (conf.find_release_dlg_flags & fle_fr::FLG_SHOW_RELEASE_TREE_STATS) {
 		//do not save
 		print_root_stats(m_row_stats, false);
 	}
@@ -231,7 +231,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	InitCommonControlsEx(&icex);
 
 	m_edit_artist = GetDlgItem(IDC_SEARCH_EDIT);
-	m_edit_filter = GetDlgItem(IDC_FILTER_EDIT);
+	m_edit_filter = GetDlgItem(IDC_EDIT_FILTER);
 	m_edit_release = GetDlgItem(IDC_RELEASE_URL_TEXT);
 	m_artist_list = GetDlgItem(IDC_ARTIST_LIST);
 	m_release_tree = GetDlgItem(IDC_RELEASE_TREE);
@@ -282,6 +282,8 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	item->format_title(nullptr, frm_album, m_album_name_script, nullptr);			//ALBUM
 	item->format_title(nullptr, frm_artist, m_artist_name_script, nullptr);			//ARTIST
 	item->format_title(nullptr, frm_album_artist, m_album_artist_script, nullptr);	//ALBUM ARTIST
+
+	m_tracer.init_tracker_tags(items);
 
 	const char* artist = frm_album_artist.get_length() ? frm_album_artist.get_ptr() :
 		frm_artist.get_length() ? frm_artist.get_ptr() : "";
@@ -382,13 +384,13 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 
 			UINT default_button = 0;
 			if (m_tracer.has_amr() || m_tracer.release_tag) {
-				default_button = IDC_PROCESS_RELEASE_BUTTON;
+				default_button = IDC_BTN_PROCESS_RELEASE;
 			}
 			else if (!artist) {
 				default_button = IDC_SEARCH_EDIT;
 			}
 			else if (artist) {
-				default_button = IDC_SEARCH_BUTTON;
+				default_button = IDC_BTN_SEARCH;
 			}
 
 			if (default_button) {
@@ -413,24 +415,23 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 
 LRESULT CFindReleaseDialog::OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) {
 
-	HWND hwndCtrl = (HWND)wParam;
+	//chained artist list and release tree
 
-    int debugme = 1;
-    
-    //artist list and release tree are chained
 	bHandled = FALSE;
 	return FALSE;
 }
 
 LRESULT CFindReleaseDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
 	pushcfg();
+
 	if (g_discogs->find_release_artist_dialog
-		&& (conf.find_release_dlg_flags & (FLG_PROFILE_DLG_ATTACHED | FLG_PROFILE_DLG_OPENED)) == (FLG_PROFILE_DLG_ATTACHED | FLG_PROFILE_DLG_OPENED)) {
+		&& (conf.find_release_dlg_flags & (FLG_PROFILE_DLG_SHOW | FLG_PROFILE_DLG_ATTACHED)) == (FLG_PROFILE_DLG_SHOW | FLG_PROFILE_DLG_ATTACHED)) {
 		g_discogs->find_release_artist_dialog->DestroyWindow();
 	}
 
 	cfg_window_placement_find_release_dlg.on_window_destruction(m_hWnd);
 	KillTimer(KTypeFilterTimerID);
+
 	return FALSE;
 }
 
@@ -457,7 +458,7 @@ void CFindReleaseDialog::on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist
 
 void CFindReleaseDialog::on_search_artist_done(const pfc::array_t<Artist_ptr>& p_artist_exact_matches, const pfc::array_t<Artist_ptr>& p_artist_other_matches) {
 
-	bool exact_matches = IsDlgButtonChecked(IDC_ONLY_EXACT_MATCHES_CHECK) == BST_CHECKED;
+	bool exact_matches = IsDlgButtonChecked(IDC_CHK_ONLY_EXACT_MATCHES) == BST_CHECKED;
 
 	HWND hwnd = uGetDlgItem(IDC_STATIC_FIND_REL_SEARCH_STATS);
 
@@ -471,7 +472,7 @@ void CFindReleaseDialog::on_search_artist_done(const pfc::array_t<Artist_ptr>& p
 	}
 
 	if (!p_artist_exact_matches.get_count() && p_artist_other_matches.get_count()) {
-		CheckDlgButton(IDC_ONLY_EXACT_MATCHES_CHECK, false);
+		CheckDlgButton(IDC_CHK_ONLY_EXACT_MATCHES, false);
 	}
 	
 	if (m_tracer.is_multi_artist()) {
@@ -546,7 +547,7 @@ void CFindReleaseDialog::OnTypeFilterTimer(WPARAM id) {
 	}
 }
 
-LRESULT CFindReleaseDialog::OnEditFilterText(WORD wNotifyCode, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+LRESULT CFindReleaseDialog::OnEditFilter(WORD wNotifyCode, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 
 	if (is_filter_box_event_enabled() && wNotifyCode == EN_CHANGE) {
 
@@ -575,12 +576,12 @@ LRESULT CFindReleaseDialog::OnEditFilterText(WORD wNotifyCode, WORD wID, HWND /*
 
 LRESULT CFindReleaseDialog::OnCheckboxBindProfilePanel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 
-	bool state = IsDlgButtonChecked(IDC_CHECK_FIND_RELEASE_SHOW_PROFILE);
+	bool state = IsDlgButtonChecked(IDC_CHK_RELEASE_SHOW_PROFILE);
 
 	conf.find_release_dlg_flags =
 		state ?
-			conf.find_release_dlg_flags |  FLG_PROFILE_DLG_ATTACHED
-		:	conf.find_release_dlg_flags & ~FLG_PROFILE_DLG_ATTACHED;
+			conf.find_release_dlg_flags |  fle_fr::FLG_PROFILE_DLG_ATTACHED
+		:	conf.find_release_dlg_flags & ~fle_fr::FLG_PROFILE_DLG_ATTACHED;
 
 	if (state && !g_discogs->find_release_artist_dialog)
 		m_alist.ShowArtistProfile();
@@ -590,9 +591,9 @@ LRESULT CFindReleaseDialog::OnCheckboxBindProfilePanel(WORD /*wNotifyCode*/, WOR
 
 LRESULT CFindReleaseDialog::OnCheckboxOnlyExactMatches(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 
-	if (wID == IDC_ONLY_EXACT_MATCHES_CHECK) {
+	if (wID == IDC_CHK_ONLY_EXACT_MATCHES) {
 
-		conf.display_exact_matches = IsDlgButtonChecked(IDC_ONLY_EXACT_MATCHES_CHECK) == BST_CHECKED;
+		conf.display_exact_matches = IsDlgButtonChecked(IDC_CHK_ONLY_EXACT_MATCHES) == BST_CHECKED;
 
 		m_alist.fill_artist_list(conf.display_exact_matches, m_tracer.has_amr(), updRelSrc::ArtistListCheckExact);
 
@@ -894,37 +895,40 @@ void CFindReleaseDialog::route_artist_search(pfc::string8 artistname, bool dlgbu
 
 bool CFindReleaseDialog::id_from_url(HWND hwndCtrl, pfc::string8& out) {
 
-	pfc::string8 prefix = "[";
+	pfc::string8 prefix;
 	pfc::string8 suffix = "]";
 	pfc::string8 url = "https://www.discogs.com/";
 
+	char mode_param;
+	pfc::string8 buffer = trim(out);
+
 	if (hwndCtrl == m_edit_artist) {
 
-		if (out.has_prefix("[a=")) {
+		if (buffer.has_prefix("[a=")) {
 
-			out = out.subString(3, out.get_length() - 4);
+			out = out.subString(3, buffer.get_length() - 4);
 			return false;
 		}
 
 		prefix = "[a";
 		url << "artist/";
+		mode_param = buffer.has_prefix(url) ? 'w' : 'a';
+
 	}
 	else if (hwndCtrl == m_edit_release) {
 
 		prefix = "[r";
 		url << "release/";
+		mode_param = buffer.has_prefix(url) ? 'w' : 'r';
 	}
 	else {
 
 		return false;
 	}
 
-	pfc::string8 buffer = trim(out);
+	if (mode_param == 'w' || (buffer.has_prefix(prefix) && buffer.has_suffix(suffix))) {
 
-	if (buffer.has_prefix(url) ||
-		(buffer.has_prefix(prefix) && buffer.has_suffix(suffix))) {
-
-		if ((buffer = extract_max_number(trim(out))).get_length()) {
+		if ((buffer = extract_max_number(buffer, mode_param)).get_length()) {
 
 			out = buffer.c_str();
 			return true;
@@ -953,7 +957,7 @@ void CFindReleaseDialog::print_root_stats(rppair root_stats, bool save) {
 	pfc::string8 stat_msg = "";
 
 
-	if (conf.find_release_dlg_flags & FLG_SHOW_RELEASE_TREE_STATS) {
+	if (conf.find_release_dlg_flags & fle_fr::FLG_SHOW_RELEASE_TREE_STATS) {
 
 		//in-dlg
 		int tot = atoi(root_stats.first.first) + atoi(root_stats.first.second);

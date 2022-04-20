@@ -1,11 +1,11 @@
 ﻿#include "stdafx.h"
 
 #include "preview_modal_tag_dialog.h"
-#include "preview_modal_tag_dialog_ILO_uilist.h"
+#include "preview_modal_tag_ILO.h"
 
 size_t ILOD_preview_modal::listGetItemCount(ctx_t ctx) {
 
-	return m_vtracks_p->size();
+	return ilo_get_vtracks_desc().size();
 }
 
 // fb2k lib - get subitems
@@ -18,21 +18,21 @@ pfc::string8 ILOD_preview_modal::listGetSubItemText(ctx_t ctx, size_t item, size
 	}
 	else if (subItem == 1) {
 	
-		return m_vtracks_p->at(item);
+		return ilo_get_vtracks_desc().at(item);
 	}
 	else if (subItem == 2) {
 
 		pfc::array_t<string_encoded_array>* arr_sea_val = {};
 		pfc::array_t<string_encoded_array>* cmp_old_sea_val = {};
 
-		if (get_mode() == 0) {
+		if (get_mode() == PreView::kNORMAL) {
 			arr_sea_val = &m_item_result->value;
 		}
-		else if (get_mode() == 1) {
+		else if (get_mode() == PreView::kDIFFERENCE) {
 			arr_sea_val = &m_item_result->value;
 			cmp_old_sea_val = &m_item_result->old_value;
 		}
-		else if (get_mode() == 2) {
+		else if (get_mode() == PreView::kORIGINAL) {
 			arr_sea_val = &m_item_result->old_value;
 		}
 		else {
@@ -43,6 +43,8 @@ pfc::string8 ILOD_preview_modal::listGetSubItemText(ctx_t ctx, size_t item, size
 		pfc::string8 buffer;
 		pfc::string8 cmp_old_buffer;
 
+		//see: preview_dialog (1000: print_normal)
+
 		if (arr_sea_val->size() == 1) {
 
 			buffer = (*arr_sea_val)[0].print();
@@ -51,7 +53,7 @@ pfc::string8 ILOD_preview_modal::listGetSubItemText(ctx_t ctx, size_t item, size
 			buffer = (*arr_sea_val)[item].print();
 		}
 
-		if (get_mode() == 1) {
+		if (get_mode() == PreView::kDIFFERENCE) {
 
 			if (cmp_old_sea_val->size() == 1) {
 
@@ -108,14 +110,13 @@ void ILOD_preview_modal::listItemAction(ctx_t ctx, size_t item) {
 void ILOD_preview_modal::listSubItemClicked(ctx_t ctx, size_t item, size_t subItem) {
 
 	if (listIsColumnEditable(ctx, subItem)) {
-		//enable edits
+
 		if (!m_item_result->tag_entry->freeze_tag_name) {
 
-			m_ui_list->TableEdit_Start(item, 2);
+			//edit
+			ilo_get_ui_list()->TableEdit_Start(item, 2);
 		}
 	}
-
-	//if (subItem == 1) {m_list.TableEdit_Start(item, subItem); }
 }
 
 // get edit field
@@ -126,19 +127,19 @@ pfc::string8 ILOD_preview_modal::listGetEditField(ctx_t ctx, size_t item, size_t
 	bool onelined = str.length() < 50 && str.find_first(';', 0) == pfc_infinite;
 	lineCount = onelined ? 1 : LINES_LONGFIELD;
 	return str;
+	//return listGetSubItemText(ctx, item, subItem);
 }
-
 
 // set edit field
 
 void ILOD_preview_modal::listSetEditField(ctx_t ctx, size_t item, size_t subItem, const char* val) {
 
-	pfc::chain_list_v2_t<pfc::string8> splitfile;
-	pfc::splitStringByChar(splitfile, val, ';');
+	pfc::chain_list_v2_t<pfc::string8> splitval;
+	pfc::splitStringByChar(splitval, val, ';');
 
 	string_encoded_array sea_val;
 
-	for (auto it = splitfile.first(); it.is_valid(); it++) {
+	for (auto it = splitval.first(); it.is_valid(); it++) {
 		pfc::string8 buffer = *it;
 		sea_val.append_item(buffer);
 		
@@ -146,7 +147,8 @@ void ILOD_preview_modal::listSetEditField(ctx_t ctx, size_t item, size_t subItem
 
 	sea_val.encode();
 
-	pfc::array_t<string_encoded_array> sfa_value = m_item_result->value;
+	//pfc::array_t<string_encoded_array> sfa_value = m_item_result->value;	
+	//size_t valsize = sfa_value.get_count();
 
 	if (m_item_result->value.get_count() == 1) {
 
@@ -156,7 +158,7 @@ void ILOD_preview_modal::listSetEditField(ctx_t ctx, size_t item, size_t subItem
 
 			//build per track values
 
-			size_t newcount = m_ui_list->GetItemCount();
+			size_t newcount = ilo_get_ui_list()->GetItemCount();
 
 			pfc::string8 prevstring = m_item_result->value[0].print();
 
@@ -176,25 +178,30 @@ void ILOD_preview_modal::listSetEditField(ctx_t ctx, size_t item, size_t subItem
 	else {
 		m_item_result->value[item] = sea_val;
 	}
+
+	/*for (size_t i = 0; i < sfa_value.size(); i++) {
+		auto w = sfa_value[i];
+		w = w;
+	}*/
 }
 
 // column editable
 
 bool ILOD_preview_modal::listIsColumnEditable(ctx_t ctx, size_t subItem) {
 
-	return (get_mode() == 0 && subItem == 2);
+	return (get_mode() == PreView::kNORMAL && subItem == 2);
 }
 
 // mode set/get
 
-int ILOD_preview_modal::get_mode() {
+PreView ILOD_preview_modal::get_mode() {
 
 	return m_view_mode;
 }
 
-//todo: mutex
+//todo: mutex?
 
-void ILOD_preview_modal::set_mode(int view_mode) {
+void ILOD_preview_modal::set_mode(PreView view_mode) {
 
 	m_view_mode = view_mode;
 }

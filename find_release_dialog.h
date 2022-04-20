@@ -5,7 +5,8 @@
 #include "resource.h"
 #include "foo_discogs.h"
 #include "multiformat.h"
-#include "myeditwithbuttons.h"
+#include "my_editwithbuttons.h"
+
 #include "history_oplog.h"
 #include "find_release_tree.h"
 #include "find_artist_list.h"
@@ -61,7 +62,7 @@ private:
 	std::function<bool()>stdf_enteroverride_artist = [this]() {
 		
 		BOOL bdummy;
-		HWND button = uGetDlgItem(IDC_SEARCH_BUTTON);
+		HWND button = uGetDlgItem(IDC_BTN_SEARCH);
 		
 		if (::IsWindowEnabled(button)) OnButtonSearch(0L, 0L, NULL, bdummy);
 		return false;
@@ -70,7 +71,7 @@ private:
 	std::function<bool()>stdf_enteroverride_url = [this]() {
 		
 		BOOL bdummy;
-		HWND button = uGetDlgItem(IDC_PROCESS_RELEASE_BUTTON);
+		HWND button = uGetDlgItem(IDC_BTN_PROCESS_RELEASE);
 		
 		if (::IsWindowEnabled(button)) OnButtonNext(0L, 0L, NULL, bdummy);
 		return false;
@@ -218,7 +219,7 @@ private:
 		DLGRESIZE_CONTROL(IDC_LABEL_RELEASE_ID, DLSZ_MOVE_X | DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_RELEASE_URL_TEXT, DLSZ_MOVE_X | DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_STATIC_FIND_REL_STATS_EXT, DLSZ_MOVE_X | DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDC_FILTER_EDIT, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_EDIT_FILTER, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_ARTIST_LIST, DLSZ_SIZE_Y)
 		DLGRESIZE_CONTROL(IDC_RELEASE_TREE, DLSZ_SIZE_Y)
 		DLGRESIZE_CONTROL(IDC_CHK_FIND_RELEASE_FILTER_ROLEMAIN, DLSZ_MOVE_Y)
@@ -228,18 +229,17 @@ private:
 			DLGRESIZE_CONTROL(IDC_ARTIST_LIST, DLSZ_SIZE_X)
 			DLGRESIZE_CONTROL(IDC_RELEASE_TREE, DLSZ_SIZE_X)
 			DLGRESIZE_CONTROL(IDC_LABEL_RELEASES, DLSZ_MOVE_X)
-			//MOVE X CHECKBOX ROLEMAIN INSIDE THIS GROUP TO ALIGN WITH RELEASE_TREE LEFT POSITION
 			DLGRESIZE_CONTROL(IDC_CHK_FIND_RELEASE_FILTER_ROLEMAIN, DLSZ_MOVE_X)
 
 		END_DLGRESIZE_GROUP()
 
 		DLGRESIZE_CONTROL(IDC_CHK_FIND_RELEASE_FILTER_VERS, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_LABEL_FILTER, DLSZ_MOVE_X)
-		DLGRESIZE_CONTROL(IDC_ONLY_EXACT_MATCHES_CHECK, DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDC_CHECK_FIND_RELEASE_SHOW_PROFILE, DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDC_CONFIGURE_BUTTON, DLSZ_MOVE_Y)
+		DLGRESIZE_CONTROL(IDC_CHK_ONLY_EXACT_MATCHES, DLSZ_MOVE_Y)
+		DLGRESIZE_CONTROL(IDC_CHK_RELEASE_SHOW_PROFILE, DLSZ_MOVE_Y)
+		DLGRESIZE_CONTROL(IDC_BTN_CONFIGURE, DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_STATIC_FIND_REL_STATS, DLSZ_MOVE_Y | DLSZ_SIZE_X)
-		DLGRESIZE_CONTROL(IDC_PROCESS_RELEASE_BUTTON, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_BTN_PROCESS_RELEASE, DLSZ_MOVE_X)
 
 	END_DLGRESIZE_MAP()
 
@@ -262,7 +262,7 @@ private:
 	LRESULT OnContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 
-	LRESULT OnEditFilterText(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnEditFilter(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnButtonNext(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	
 	LRESULT OnButtonSearch(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
@@ -300,6 +300,12 @@ private:
 public:
 
 	enum { IDD = IDD_DIALOG_FIND_RELEASE };
+
+	enum fle_fr {
+		FLG_PROFILE_DLG_SHOW = 1 << 0,
+		FLG_PROFILE_DLG_ATTACHED = 1 << 1,
+		FLG_SHOW_RELEASE_TREE_STATS = 1 << 2
+	};
 
 	void show() override;
 	void hide() override;

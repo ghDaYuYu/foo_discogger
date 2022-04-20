@@ -8,7 +8,9 @@
 
 #include "track_matching_dialog.h"
 #include "preview_dialog.h"
+#include "preview_modal_tag_dialog.h"
 #include "tag_mappings_dialog.h"
+
 #ifdef CAT_CRED
 #include "tag_mappings_credits_dlg.h"
 #endif // CAT_CRED
@@ -36,6 +38,7 @@ static const char* ERROR_IMAGE_NUMBER_REQUIRED = "Cannot save multiple images wi
 class initquit_discogs : public initquit
 {
 	virtual void on_init() override {
+
 		console::print("Loading foo_discogger");
 		
 		if (!CONF.load()) {
@@ -49,6 +52,7 @@ class initquit_discogs : public initquit
 		}
 
 		discogs_interface = new DiscogsInterface();
+
 #ifdef DB_DC
 		discogs_db_interface = new Discogs_DB_Interface();
 #endif
@@ -323,7 +327,6 @@ void foo_discogs::save_album_art(Release_ptr &release, metadb_handle_ptr item,
 									postfix++;
 							}
 						}
-
 					}
 				}
 

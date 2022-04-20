@@ -27,7 +27,7 @@ public:
 		return ::IsDialogMessage(m_hWnd, pMsg);
 	}
 
-	void UpdateProfile(Artist_ptr& artist);
+	void UpdateProfile(Artist_ptr& artist, pfc::string8 modprofile);
 
 private:
 

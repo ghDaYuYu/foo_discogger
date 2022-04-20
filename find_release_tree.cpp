@@ -639,10 +639,9 @@ void CFindReleaseTree::init_titles(Artist_ptr artist, pfc::string8 & filter_hint
 	filter_hint = filter;
 }
 
-//todo: unfinished
-void CFindReleaseTree::on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist) {
+void CFindReleaseTree::on_get_artist_done(cupdRelSrc cupdsrc, Artist_ptr& artist) {
 
-	if (updsrc == updRelSrc::ArtistProfile) {
+	if (cupdsrc == updRelSrc::ArtistProfile && !cupdsrc.extended) {
 
 		if (artist.get()) {
 
@@ -687,7 +686,7 @@ void CFindReleaseTree::on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist) 
 
 	}
 	else {
-		if (updsrc == updRelSrc::Undef || updsrc == updRelSrc::UndefFast) {
+		if (cupdsrc == updRelSrc::Undef || cupdsrc == updRelSrc::UndefFast) {
 			m_results_filter.set_string(hint);
 			uSetWindowText(m_edit_filter, hint/*filter*/);
 		}
@@ -709,7 +708,7 @@ void CFindReleaseTree::on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist) 
 
 	//
 
-	std::pair<rppair_t, rppair_t>  res = update_releases(m_results_filter, updsrc, true, brolemain_filter);
+	std::pair<rppair_t, rppair_t>  res = update_releases(m_results_filter, cupdsrc, true, brolemain_filter);
 
 
 	//todo: rev scroll down to release tree item
@@ -1353,8 +1352,7 @@ void release_tree_cache::expand_releases(const pfc::string8& filter, t_size mast
 	pfc::array_t<Artist_ptr> m_find_release_artists = m_rt_manager->get_find_release_artists();
 	Artist_ptr m_find_release_artist = m_rt_manager->get_find_release_artist();
 
-	foo_conf cfg = m_rt_manager->m_dlg->config();
-	bool bversions_filter = cfg.find_release_filter_flag & FilterFlag::Versions;
+	bool bversions_filter = get_conf()->find_release_filter_flag & FilterFlag::Versions;
 
 	pfc::array_t<pfc::string> lcf_words;
 	bool filtered = tokenize_filter(filter, lcf_words);
@@ -2299,4 +2297,22 @@ size_t CFindReleaseTree::Get_Size() {
 	size_t res;
 	res = m_rt_cache.bulk_Size();
 	return res;
+}
+
+void CFindReleaseTree::OnInitExpand(int lparam) {
+
+	HTREEITEM w = TreeView_GetFirstVisible(m_hwndTreeView);
+	while (w) {
+		TVITEM tvitem = { 0 };
+		tvitem.mask = TVIF_PARAM | TVIS_EXPANDED;
+		tvitem.hItem = w;
+		TreeView_GetItem(m_hwndTreeView, &tvitem);
+
+		if (tvitem.lParam == lparam) {
+			TreeView_Expand(m_hwndTreeView, tvitem.hItem, TVM_EXPAND);
+			break;
+		}
+
+		w = TreeView_GetNextSibling(m_hwndTreeView, w);
+	}
 }

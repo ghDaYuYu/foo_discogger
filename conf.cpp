@@ -151,7 +151,7 @@ bool CConf::load() {
 	//vspec v203 { &vec_specs, 28, 41, 14 };
 	vspec v204{ &vec_specs, 28, 42, 14 }; // 1.0.4
 	vspec v205{ &vec_specs, 24, 39, 15 }; // 1.0.6 + sqlite db
-	vspec v206{ &vec_specs, 24, 42, 15 }; // 1.0.8
+	vspec v206{ &vec_specs, 26, 42, 15 }; // 1.0.8
 
 	vspec* vlast = &vec_specs.at(vec_specs.size() - 1);
 	vspec vLoad = { nullptr,
@@ -181,6 +181,16 @@ bool CConf::load() {
 	//ignore bres, update after loop
 	for (unsigned int i = 0; i < cfg_bool_entries.get_count(); i++) {
 		/*bres &=*/ bool_load(cfg_bool_entries[i]);
+	}
+
+	if (vLoad < v206) {
+
+		cfg_bool_entries.add_item(
+			make_conf_entry(CFG_AUTO_REL_LOAD_ON_OPEN, auto_rel_load_on_open)
+		);
+		cfg_bool_entries.add_item(
+			make_conf_entry(CFG_AUTO_REL_LOAD_ON_SELECT, auto_rel_load_on_select)
+		);		
 	}
 
 	//ignore bres, update after loop
@@ -357,6 +367,14 @@ bool CConf::bool_load(const conf_bool_entry& item) {
 	case CFG_RELEASE_ENTER_KEY_OVR:
 		release_enter_key_override = item.value;
 		break;
+	//v206 (1.0.8)
+	case CFG_AUTO_REL_LOAD_ON_OPEN:
+		auto_rel_load_on_open = item.value;
+		break;
+	case CFG_AUTO_REL_LOAD_ON_SELECT:
+		auto_rel_load_on_select = item.value;
+		break;
+	//
 	default:
 		return false;
 	}
@@ -653,18 +671,20 @@ bool CConf::id_to_val_bool(int id, const CConf& in_conf, bool& out, bool assert)
 	case CFG_SKIP_VIDEO_TRACKS:
 		out = in_conf.skip_video_tracks;
 		break;
-		//v200
+	//v200
 	case CFG_EDIT_TAGS_DIALOG_SHOW_TM_STATS:
 		out = in_conf.edit_tags_dlg_show_tm_stats;
 		break;
 	case CFG_RELEASE_ENTER_KEY_OVR:
 		out = in_conf.release_enter_key_override;
 		break;
-
-
-	//..
-
-
+	//v206 (1.0.8)
+	case CFG_AUTO_REL_LOAD_ON_OPEN:
+		out = in_conf.auto_rel_load_on_open;
+		break;
+	case CFG_AUTO_REL_LOAD_ON_SELECT:
+		out = in_conf.auto_rel_load_on_select;
+		break;
 	//..
 
 	default:
@@ -1074,6 +1094,9 @@ void CConf::save() {
 	//v200
 	cfg_bool_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_SHOW_TM_STATS, edit_tags_dlg_show_tm_stats));
 	cfg_bool_entries.add_item(make_conf_entry(CFG_RELEASE_ENTER_KEY_OVR, release_enter_key_override));
+	//v206 (1.0.8)
+	cfg_bool_entries.add_item(make_conf_entry(CFG_AUTO_REL_LOAD_ON_OPEN, auto_rel_load_on_open));
+	cfg_bool_entries.add_item(make_conf_entry(CFG_AUTO_REL_LOAD_ON_SELECT, auto_rel_load_on_select));
 	//..
 
 	cfg_int_entries.remove_all();

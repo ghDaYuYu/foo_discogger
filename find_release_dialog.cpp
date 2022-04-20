@@ -451,8 +451,21 @@ LRESULT CFindReleaseDialog::OnButtonSearch(WORD /*wNotifyCode*/, WORD wID, HWND 
 
 void CFindReleaseDialog::on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist) {
 
-	m_alist.on_get_artist_done(updsrc, artist);	
-	m_dctree.on_get_artist_done(updsrc, artist);
+	m_alist.on_get_artist_done(updsrc, artist);
+
+	cupdRelSrc cupdsrc = updsrc;
+	if (cupdsrc == updRelSrc::ArtistProfile) {
+		cupdsrc.extended = full_olcache() && conf.auto_rel_load_on_select;
+	}
+
+	m_dctree.on_get_artist_done(cupdsrc, artist);
+
+	if (conf.auto_rel_load_on_open) {
+		if (m_dctree.Get_Size() && updsrc == updRelSrc::UndefFast && m_tracer.has_master()) {
+
+			m_dctree.OnInitExpand(mounted_param(m_tracer.master_i, ~0, true, false).lparam());	
+		}
+	}
 
 }
 
@@ -776,7 +789,9 @@ void CFindReleaseDialog::convey_artist_list_selection(updRelSrc updsrc) {
 
 	need_data |= need_releases;
 
-	// update ctrls or collect
+	if (full_olcache() && updsrc == updRelSrc::ArtistProfile && conf.auto_rel_load_on_select) {
+		need_data = true;
+	}
 
 	if (need_data || updsrc == updRelSrc::UndefFast || updsrc == updRelSrc::ArtistList)
 	{
@@ -789,9 +804,11 @@ void CFindReleaseDialog::convey_artist_list_selection(updRelSrc updsrc) {
 		//			artist will continue 'on_get_artist_done'(updSrc::ArtistProfile)
 		//			and refresh ui from there
 
+		cupdRelSrc cupdsrc(updsrc);
+		cupdsrc.extended = full_olcache() && conf.auto_rel_load_on_select;
 
 		service_ptr_t<get_artist_process_callback> task =
-			new service_impl_t<get_artist_process_callback>(updsrc, artist->id.get_ptr());
+			new service_impl_t<get_artist_process_callback>(cupdsrc, artist->id.get_ptr());
 
 		task->start(m_hWnd);
 	}
@@ -862,19 +879,27 @@ void CFindReleaseDialog::route_artist_search(pfc::string8 artistname, bool dlgbu
 	if (by_any) {
 
 		if (by_id) {
+
+			cupdRelSrc cupdsrc(updsrc);
+			if (updsrc == updRelSrc::UndefFast) {
+				cupdsrc.extended |= conf.auto_rel_load_on_open;
+			}
+			else if (updsrc == updRelSrc::ArtistProfile) {
+				cupdsrc.extended |= full_olcache() && conf.auto_rel_load_on_select;
+			}
 			
 			//anything other than ArtistProfile will also load releases
 			if (m_tracer.is_multi_artist()) {
 			
 				service_ptr_t<get_various_artists_process_callback> task =
-					new service_impl_t<get_various_artists_process_callback>(updsrc, m_tracer.get_vartist_ids());
+					new service_impl_t<get_various_artists_process_callback>(cupdsrc, m_tracer.get_vartist_ids());
 
 				task->start(m_hWnd);
 			}
 			else {
 			
 				service_ptr_t<get_artist_process_callback> task =
-					new service_impl_t<get_artist_process_callback>(updsrc, artist_id);
+					new service_impl_t<get_artist_process_callback>(cupdsrc, artist_id);
 
 				task->start(m_hWnd);
 			}

@@ -152,6 +152,8 @@ private:
 	void on_expand_master_release_done(const MasterRelease_ptr& master_release, int pos, threaded_process_status& p_status, abort_callback& p_abort);
 	void on_expand_master_release_complete();
 	
+	bool full_olcache() { return ol::can_read() && ol::can_write(); };
+	
 	void convey_artist_list_selection(updRelSrc updsrc);
 
 	//misc string formats

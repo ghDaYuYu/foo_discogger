@@ -90,3 +90,32 @@ inline bool g_os_is_wine = false;
 inline foo_discogs* g_discogs = nullptr;
 
 enum class PreView :int { kNORMAL = 0, kDIFFERENCE, kORIGINAL, kDEBUG, default = 0 };
+
+enum class updRelSrc { Artist, Releases, Filter, ArtistList, ArtistListCheckExact, ArtistProfile, ArtistSearch, Undef, UndefFast };
+
+class cupdRelSrc {
+
+public:
+
+	cupdRelSrc(updRelSrc src) : src(src), extended(false), oninit(false) {};
+
+	friend bool operator == (const cupdRelSrc& lhs, const cupdRelSrc& rhs);
+	friend bool operator == (const cupdRelSrc& lhs, const updRelSrc& rhs);
+
+	// implicit conversion
+	operator updRelSrc() const { return src; }
+
+	bool extended;
+
+private:
+
+	updRelSrc src;
+
+	bool oninit;
+
+};
+
+inline bool operator==(const cupdRelSrc& lhs, const cupdRelSrc& rhs) { return lhs.src == rhs.src; }
+inline bool operator==(const cupdRelSrc& lhs, const updRelSrc& rhs) { return lhs.src == rhs; }
+inline bool operator!=(const cupdRelSrc& lhs, const cupdRelSrc& rhs) { return !(lhs == rhs); }
+inline bool operator!=(const cupdRelSrc& lhs, const updRelSrc& rhs) { return !(lhs == rhs); }

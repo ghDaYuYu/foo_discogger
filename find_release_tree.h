@@ -190,7 +190,7 @@ public:
 
 	//
 	
-	void on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist);
+	void on_get_artist_done(cupdRelSrc cupdsrc, Artist_ptr& artist);
 	std::pair<rppair_t, rppair_t> update_releases(const pfc::string8& filter, updRelSrc updsrc, bool init_expand, bool brolemain_filter);
 	
 	//
@@ -206,6 +206,9 @@ public:
 	size_t Get_Artist_List_Position();
 	size_t Get_Size();
 
+	// serves find release dlg
+	void OnInitExpand(int lparam);
+	
 	void SetHit(int lparam) {
 		
 		CTreeViewCtrl tree(m_hwndTreeView);
@@ -250,6 +253,8 @@ public:
 		NOTIFY_HANDLER(IDC_RELEASE_TREE, TVN_ITEMEXPANDING, OnReleaseTreeExpanding)
 		NOTIFY_HANDLER(IDC_RELEASE_TREE, TVN_SELCHANGING, OnReleaseTreeSelChanging)
 		NOTIFY_HANDLER(IDC_RELEASE_TREE, TVN_SELCHANGED, OnReleaseTreeSelChanged)
+		NOTIFY_HANDLER(IDC_RELEASE_TREE, NM_RCLICK, OnRClickRelease)
+
 	END_MSG_MAP()
 
 #pragma warning(pop)

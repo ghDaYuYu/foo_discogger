@@ -84,6 +84,10 @@
 #define DEPRI_CFG_FIND_RELEASE_DIALOG_SHOW_ID	2002
 #define CFG_RELEASE_ENTER_KEY_OVR				2003
 
+//v206 (1.0.8)
+#define CFG_AUTO_REL_LOAD_ON_OPEN				2004
+#define CFG_AUTO_REL_LOAD_ON_SELECT				2005
+
 //DEPRI v205
 #define DEPRI_CFG_SKIP_RELEASE_DLG_IF_MATCHED		41
 #define DEPRI_CFG_SKIP_FIND_RELEASE_DLG_IF_IDED		42
@@ -407,6 +411,9 @@ public:
 		{ asi(cfgFilter::CONF), CFG_HISTORY_MAX_ITEMS},
 		{ asi(cfgFilter::CONF), CFG_FIND_RELEASE_DIALOG_FLAG },
 
+		//v206 (1.0.8)
+		{ asi(cfgFilter::CONF), CFG_AUTO_REL_LOAD_ON_OPEN},
+		{ asi(cfgFilter::CONF), CFG_AUTO_REL_LOAD_ON_SELECT},
 		//..
 
 		//FIND (find_release_dialog)
@@ -625,6 +632,10 @@ public:
 	int match_discogs_artwork_index_width = MAKELPARAM(2* 10 + 6, 30);	//justify center*10 + index, width
 	int match_file_artwork_index_width = MAKELPARAM(2*10 + 3, 30);
 	int preview_modal_tags_dlg_cols_width = 0;                          //lo #col, hi track col
+	
+	bool auto_rel_load_on_open = false;
+	bool auto_rel_load_on_select = false;
+											   
 	//..
 
 	std::vector<int> vflags;

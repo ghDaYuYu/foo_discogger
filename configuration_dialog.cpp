@@ -373,9 +373,9 @@ void InitComboRowStyle(HWND wnd, UINT id, t_size sel) {
 }
 
 void CConfigurationDialog::init_searching_dialog(HWND wnd) {
-	uButton_SetCheck(wnd, IDC_ENABLE_AUTO_SEARCH_CHECK, conf.enable_autosearch);
-	uButton_SetCheck(wnd, IDC_SKIP_FIND_RELEASE_DIALOG_CHECK, conf.skip_mng_flag & SkipMng::SKIP_FIND_RELEASE_DLG_IDED);
-	uButton_SetCheck(wnd, IDC_SKIP_LOAD_RELEASES_IF_IDED_CHECK, conf.skip_mng_flag & SkipMng::SKIP_LOAD_RELEASES_TASK_IDED);
+	uButton_SetCheck(wnd, IDC_CHK_ENABLE_AUTO_SEARCH, conf.enable_autosearch);
+	uButton_SetCheck(wnd, IDC_CHK_AUTO_REL_LOAD_ON_OPEN, conf.auto_rel_load_on_open);
+	uButton_SetCheck(wnd, IDC_CHK_AUTO_REL_LOAD_ON_SELECT, conf.auto_rel_load_on_select);
 	uSetDlgItemText(wnd, IDC_RELEASE_FORMATTING_EDIT, conf.search_release_format_string);
 	uSetDlgItemText(wnd, IDC_MASTER_FORMATTING_EDIT, conf.search_master_format_string);
 	uSetDlgItemText(wnd, IDC_MASTER_SUB_FORMATTING_EDIT, conf.search_master_sub_format_string);	
@@ -509,8 +509,10 @@ void CConfigurationDialog::save_searching_dialog(HWND wnd, bool dlgbind) {
 
 	foo_conf* conf_ptr = dlgbind ? &conf_edit : &conf;
 
-	conf_ptr->enable_autosearch = uButton_GetCheck(wnd, IDC_ENABLE_AUTO_SEARCH_CHECK);
-	
+	conf_ptr->enable_autosearch = uButton_GetCheck(wnd, IDC_CHK_ENABLE_AUTO_SEARCH);
+	conf_ptr->auto_rel_load_on_open = uButton_GetCheck(wnd, IDC_CHK_AUTO_REL_LOAD_ON_OPEN);
+	conf_ptr->auto_rel_load_on_select = uButton_GetCheck(wnd, IDC_CHK_AUTO_REL_LOAD_ON_SELECT);
+
 	if (uButton_GetCheck(wnd, IDC_SKIP_LOAD_RELEASES_IF_IDED_CHECK))
 		conf_ptr->skip_mng_flag |= SkipMng::SKIP_LOAD_RELEASES_TASK_IDED;
 	else
@@ -536,6 +538,9 @@ bool CConfigurationDialog::cfg_searching_has_changed() {
 	bool bcmp = false;
 
 	bres |= conf.enable_autosearch != conf_edit.enable_autosearch;
+	bres |= conf.auto_rel_load_on_open != conf_edit.auto_rel_load_on_open;
+	bres |= conf.auto_rel_load_on_select != conf_edit.auto_rel_load_on_select;
+
 	bres |= conf.skip_mng_flag != conf_edit.skip_mng_flag;
 
 	bres |= conf.release_enter_key_override != conf_edit.release_enter_key_override;

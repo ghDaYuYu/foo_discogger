@@ -61,7 +61,3 @@
 #include "version.h"
 
 #include "wtl_helpers.h"
-
-#ifndef UPDRELSRC
-enum class updRelSrc { Artist, Releases, Filter, ArtistList, ArtistListCheckExact, ArtistProfile, ArtistSearch, Undef, UndefFast };
-#endif

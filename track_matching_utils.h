@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "conf.h"
 #include "utils.h"
 #include "libPPUI/CListControlOwnerData.h"
@@ -113,8 +113,8 @@ const struct uartwork {
 		return key;
 	}
 
-	t_uint32 setbitflag_range(af an_af, bool val, size_t from = 0, size_t to = 0) {
-		t_uint32* key = fl_val_p(an_af);
+	t_uint32 setbitflag_range(af an_af, bool val, size_t from, size_t to) {
+		t_uint32* key = fl_pval(an_af);
 		for (size_t i = from; i < to; i++) {
 			t_uint32 bitmask = 1 << i;
 			if (val) *key |= bitmask;
@@ -123,7 +123,7 @@ const struct uartwork {
 		return *key;
 	}
 
-	t_uint32* fl_val_p(af an_af) {
+	t_uint32* fl_pval(af an_af) {
 		switch (an_af) {
 		case (af::alb_emb): return &ucfg_album_embed;
 		case (af::alb_sd): return &ucfg_album_save_to_dir;
@@ -140,15 +140,16 @@ const struct uartwork {
 	}
 
 	void setflag(af fl, size_t pos,  bool val) {
+		//todo: call fl_pval
 		PFC_ASSERT(pos <= kBlockSize); 
 		if (fl == af::alb_emb)			{ setbitflag(ucfg_album_embed, pos, val); }
 		else if (fl == af::alb_sd)		{ setbitflag(ucfg_album_save_to_dir, pos, val);
-																		if (!val) setflag(af::alb_ovr, pos, false); }
+											if (!val) setflag(af::alb_ovr, pos, false); }
 		else if (fl == af::alb_sa)		{ setbitflag(ucfg_album_save_all, pos, val); }
 		else if (fl == af::alb_ovr)		{ setbitflag(ucfg_album_ovr, pos, ucfg_album_save_to_dir && val); }
 		else if (fl == af::art_emb)		{ setbitflag(ucfg_art_embed, pos, val); }
 		else if (fl == af::art_sd)		{ setbitflag(ucfg_art_save_to_dir, pos, val); 
-																		if (!val) setflag(af::art_ovr, pos, false); }
+											if (!val) setflag(af::art_ovr, pos, false); }
 		else if (fl == af::art_sa)		{ setbitflag(ucfg_art_save_all, pos, val); }
 		else if (fl == af::art_ovr)		{ setbitflag(ucfg_art_ovr, pos, ucfg_art_save_to_dir && val); }
 	}
@@ -159,7 +160,8 @@ const struct uartwork {
 	}
 
 	bool getbitflag(af an_af, size_t pos) {
-		t_uint32* key = fl_val_p(an_af);
+
+		t_uint32* key = fl_pval(an_af);
 		t_uint32 bitmask = 1 << pos;
 		return (*key & bitmask) == bitmask;
 	}
@@ -201,6 +203,7 @@ const struct uartwork {
 	}
 
 	uartwork() {
+
 		ucfg_album_embed = 0;
 		ucfg_album_save_to_dir = 0;
 		ucfg_album_save_all = 0;
@@ -250,6 +253,7 @@ const struct uartwork {
 	}
 
 	bool hasCustomSaveOrEmbed(const art_src src, const foo_conf& cfg) {
+	
 		uartwork uartconf = uartwork(cfg);
 		bool bcust_save_or_embed = false;
 		
@@ -258,6 +262,7 @@ const struct uartwork {
 			bcust_save_or_embed |= ucfg_album_ovr != uartconf.ucfg_album_ovr;
 			bcust_save_or_embed |= ucfg_album_embed != uartconf.ucfg_album_embed;
 		}
+		
 		if (src == art_src::unknown || src == art_src::art) {
 			bcust_save_or_embed |= ucfg_art_save_to_dir != uartconf.ucfg_art_save_to_dir;
 			bcust_save_or_embed |= ucfg_art_ovr != uartconf.ucfg_art_ovr;
@@ -268,10 +273,10 @@ const struct uartwork {
 };
 
 const struct multi_uartwork {
-	
+
 	std::vector<uartwork> vuart;
 	bool populated = false;
-	
+
 	void prep_block(size_t ndx) { if (vuart.size() < ndx + 1) vuart.emplace_back(uartwork()); }
 	
 	std::pair<size_t, size_t> get_block(size_t pos) {
@@ -279,33 +284,34 @@ const struct multi_uartwork {
 		prep_block(pres.first); //todo: init once
 		return pres;
 	}
-	
+
 	t_uint32 setbitflag(t_uint32& key, size_t pos, bool val) {
 		auto pbp = get_block(pos);
 		return vuart.at(pbp.first).setbitflag(key, pbp.second, val);
 	}
-	
-	t_uint32 setbitflag_range(af an_af, bool val, size_t from = 0, size_t to = 0) {
+
+	t_uint32 setbitflag_range(af an_af, bool val, size_t from, size_t to) {
 
 		auto pbp_first = get_block(from);
 		auto pbp_last = get_block(to);
 
 		bool block_range = pbp_last.first - pbp_first.first;
 		for (size_t i = pbp_first.first; i < pbp_last.first; i++) {
+
 			if (i == pbp_first.first) {
 				//first block
 				size_t ito = block_range ? kBlockSize - 1 : pbp_last.second;
-				vuart.at(i).setbitflag_range(an_af, pbp_first.second, ito);				
+				vuart.at(i).setbitflag_range(an_af, val, pbp_first.second, ito);
 			}
 			else if (i == pbp_last.first) {
 				//last block
-				if (block_range) {					
-					vuart.at(i).setbitflag_range(an_af, 0, pbp_last.second);
-				}			
+				if (block_range) {
+					vuart.at(i).setbitflag_range(an_af, val, 0, pbp_last.second);
+				}
 			}
 			else {
 				//intermediates
-				vuart.at(i).setbitflag_range(an_af, 0, kBlockSize - 1);
+				vuart.at(i).setbitflag_range(an_af, val, 0, kBlockSize - 1);
 			}
 		}
 		return 0;	
@@ -345,7 +351,7 @@ const struct multi_uartwork {
 
 	bool getflag(af fl, size_t pos) {
 		auto pbp = get_block(pos);
-		return vuart.at(pbp.first).getflag(fl, pbp.second);		
+		return vuart.at(pbp.first).getflag(fl, pbp.second);
 	}
 
 	multi_uartwork(
@@ -357,7 +363,7 @@ const struct multi_uartwork {
 		bool cfg_art_save_to_dir,
 		bool cfg_art_save_all,
 		bool cfg_art_ovr) {
-		
+
 		vuart.emplace_back(uartwork(cfg_album_embed,
 			cfg_album_save_to_dir,
 			cfg_album_save_all,
@@ -383,7 +389,7 @@ const struct multi_uartwork {
 		} 
 		
 		for (auto uart = vuart.begin(); uart != vuart.end(); uart++) {
-			size_t ndx = std::distance(uart, vuart.end()) - 1;
+			size_t ndx = std::distance(vuart.begin(), uart);
 			bool eq = *uart == rhs.vuart.at(ndx);
 			if (!eq) return false;
 		}
@@ -422,7 +428,7 @@ inline uartwork_guids CONFARTGUIDS;
 inline multi_uartwork CONF_MULTI_ARTWORK;
 
 const pfc::string8 THUMB_EXTENSION = ".png";
-const size_t FLAG_FIRST_COL = 3; 
+const size_t FLAG_FIRST_COL = 3;
 
 std::pair<HBITMAP, HBITMAP> MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::string8> cache_path, size_t pos, MemoryBlock small_art);
 std::pair<HBITMAP, HBITMAP> GenerateTmpBitmapsFromRealSize(pfc::string8 release_id, size_t pos, pfc::string8 source_full_path, std::pair<pfc::string8, pfc::string8> &temp_file_names);

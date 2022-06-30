@@ -143,16 +143,17 @@ void write_tags_task::on_success(HWND p_wnd) {
 
 	int lpskip = CONF.album_art_skip_default_cust;
 	bool lo_skip_global_defs = (LOWORD(lpskip)) & ARTSAVE_SKIP_USER_FLAG;
-	bool user_skip_artwork = (HIWORD(lpskip)) & ARTSAVE_SKIP_USER_FLAG;
+	bool user_wants_skip_write_artwork = (HIWORD(lpskip)) & ARTSAVE_SKIP_USER_FLAG;
 
-	bool bskip_art = user_skip_artwork || lo_skip_global_defs;
+	bool bskip_art = user_wants_skip_write_artwork || lo_skip_global_defs;
 
 	bool bconf_art_save = (CONF.save_album_art || CONF.save_artist_art || CONF.embed_album_art || CONF.embed_artist_art);
-	bool bcustom_art_save = !(CONFARTWORK == uartwork(CONF));
+	bool bcustom_art_save = !(CONF_MULTI_ARTWORK == multi_uartwork(CONF, m_tag_writer->release));
+	bool bfile_match = CONF_MULTI_ARTWORK.file_match;
 
 	if (!bskip_art && (bconf_art_save || bcustom_art_save)) {
 		service_ptr_t<download_art_task> task =
-			new service_impl_t<download_art_task>(m_tag_writer->release->id, m_tag_writer->finfo_manager->items);
+			new service_impl_t<download_art_task>(m_tag_writer->release->id, m_tag_writer->finfo_manager->items, bfile_match);
 		task->start();
 	}
 }
@@ -234,50 +235,30 @@ void update_art_task::safe_run(threaded_process_status &p_status, abort_callback
 				try {
 					g_discogs->file_info_get_tag(item, finfo, TAG_ARTIST_ID, artist_id);
 
-					// TODO: use artist id in better string instead
-					pfc::string8 formatted_release_name;
-					item->format_title(nullptr, formatted_release_name, g_discogs->release_name_script, nullptr);
+class att_vcmp {
+	af m_att = af::alb_emb;
+public:
+	att_vcmp(af att_flg) : m_att(att_flg) {}
+	void set(af att_flg) { m_att = att_flg; }
 
-					if (artist_id.get_length()) {
-						Artist_ptr artist = discogs_interface->get_artist(artist_id.get_ptr(), false, p_status, p_abort);
+	std::function< bool(const uartwork&, const uartwork&) > comp_uart_att = [=](const uartwork& left, const uartwork& right) {
+		// Lambda function to compare 2 strings in case insensitive manner
+		bool is_album = false;
 
-						art_download_attribs ada;
-						ada.write_it = save_artist_art;
-						ada.embed_it = CONF.embed_artist_art;
-						ada.overwrite_it = CONF.artist_art_overwrite;
-						ada.fetch_all_it = CONF.artist_art_fetch_all;
-						ada.to_path_only = false;
+		if (m_att == af::alb_sd)
+			return (left.ucfg_album_save_to_dir == right.ucfg_album_save_to_dir);
+		else if (m_att == af::alb_emb)
+			return (left.ucfg_album_embed == right.ucfg_album_embed);
+		else if (m_att == af::art_sd)
+			return (left.ucfg_art_save_to_dir == right.ucfg_art_save_to_dir);
+		else if (m_att == af::art_emb)
+			return (left.ucfg_art_embed == right.ucfg_art_embed);
+		return false;
+	};
+};
 
-						bit_array_bittable dummy_saved_mask(release->images.get_count() + release->artists[0]->full_artist->images.get_count());
-						g_discogs->save_artist_art(artist, release, item, ada, pfc::array_t<GUID>(), dummy_saved_mask, done_artist_files, p_status, p_abort);
-					}
-					else {
-						pfc::string8 error(formatted_release_name);
-						error << "missing tag DISCOGS_ARTIST_ID";
-						add_error(error);
-					}
-				}
-				catch (network_exception &e) {
-					pfc::string8 error("artist ");
-					error << artist_id;
-					add_error(error, e, true);
-					throw;
-				}
-				catch (foo_discogs_exception &e) {
-					pfc::string8 error("artist ");
-					error << artist_id;
-					add_error(error, e);
-				}
-			}
-		}
-		catch (exception_aborted) {
-		}
-	}
-}
-
-
-download_art_task::download_art_task(pfc::string8 release_id, metadb_handle_list items) :
-		release_id(release_id), items(items) {
+download_art_task::download_art_task(pfc::string8 release_id, metadb_handle_list items, bool file_match) :
+		release_id(release_id), items(items), m_file_match(file_match) {
 }
 
 void download_art_task::start() {
@@ -293,69 +274,105 @@ void download_art_task::start() {
 }
 
 void download_art_task::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
+
 	unsigned long lkey = encode_mr(0, release_id);
 	Release_ptr release = discogs_interface->get_release(lkey, p_status, p_abort);
 
-	uartwork uartconf = uartwork(CONF);
+	bool bfile_match = CONF_MULTI_ARTWORK.file_match;
+	multi_uartwork multi_uartconf = multi_uartwork(CONF, release);
 	bool bconf_album_save_or_embed = CONF.save_album_art || CONF.embed_album_art;
 	bool bconf_artist_save_or_embed = CONF.save_artist_art || CONF.embed_artist_art;
 
-	bool bcust_album_save_or_embed = CONFARTWORK.ucfg_album_save_to_dir != uartconf.ucfg_album_save_to_dir;
-	bcust_album_save_or_embed |= CONFARTWORK.ucfg_album_embed != uartconf.ucfg_album_embed;
+    //todo: rev
+	att_vcmp cust_cmp(af::alb_sd);
+	bool bcust_album_save = bfile_match || !std::equal(CONF_MULTI_ARTWORK.vuart.begin(), CONF_MULTI_ARTWORK.vuart.end(), multi_uartconf.vuart.begin(), cust_cmp.comp_uart_att);
+	cust_cmp.set(af::alb_emb);
+	bool bcust_album_embed = !std::equal(CONF_MULTI_ARTWORK.vuart.begin(), CONF_MULTI_ARTWORK.vuart.end(), multi_uartconf.vuart.begin(), cust_cmp.comp_uart_att);
 
-	bool bcust_artist_save_or_embed = CONFARTWORK.ucfg_art_save_to_dir != uartconf.ucfg_art_save_to_dir;
-	bcust_artist_save_or_embed |= CONFARTWORK.ucfg_art_embed != uartconf.ucfg_art_embed;
+	bool bcust_album_save_or_embed = bcust_album_save || bcust_album_embed;
+
+	cust_cmp.set(af::art_sd);
+	bool bcust_artist_save = bfile_match || !std::equal(CONF_MULTI_ARTWORK.vuart.begin(), CONF_MULTI_ARTWORK.vuart.end(), multi_uartconf.vuart.begin(), cust_cmp.comp_uart_att);
+	cust_cmp.set(af::art_emb);
+	bool bcust_artist_embed = !std::equal(CONF_MULTI_ARTWORK.vuart.begin(), CONF_MULTI_ARTWORK.vuart.end(), multi_uartconf.vuart.begin(), cust_cmp.comp_uart_att);
+
+	bool bcust_artist_save_or_embed = bcust_artist_save || bcust_artist_embed;
 
 	if (bconf_album_save_or_embed || bcust_album_save_or_embed) {
+
+		art_download_attribs ada_mod;
 		pfc::array_t<pfc::string8> done_files;
+		bit_array_bittable dummy_saved_mask(release->images.get_count() + release->artists[0]->full_artist->images.get_count());
+
 		for (size_t i = 0; i < items.get_count(); i++) {
-			bool bsave = false;
+		
+			bool bcall = false;
+			bool bfile_match = m_file_match;
+
 			if (bconf_album_save_or_embed && !bcust_album_save_or_embed) {
-				art_download_attribs cfg_ada(CONF.save_album_art, CONF.embed_album_art, CONF.album_art_overwrite, CONF.album_art_fetch_all, false, {});			
-				bit_array_bittable dummy_saved_mask(release->images.get_count() + release->artists[0]->full_artist->images.get_count());
-				g_discogs->save_album_art(release, items[i], cfg_ada, pfc::array_t<GUID>(), dummy_saved_mask, done_files, p_status, p_abort);
+				
+				ada_mod = art_download_attribs(CONF.save_album_art, CONF.embed_album_art, CONF.album_art_overwrite, CONF.album_art_fetch_all, false, {}, bfile_match, bcust_album_save_or_embed);
+				bcall = true;
 			}
 			else {
-				bool bitem_write = CONFARTWORK.ucfg_art_save_to_dir != 0;
-				bool bitem_embed = CONFARTWORK.ucfg_art_ovr != 0;
-				bool bitem_overwrite = CONFARTWORK.ucfg_art_ovr != 0;
+
+				bool bitem_write = CONF_MULTI_ARTWORK.save_to_dir(art_src::alb);
+				bool bitem_embed = CONF_MULTI_ARTWORK.embed_art(art_src::alb);
+				bool bitem_overwrite = CONF_MULTI_ARTWORK.ovr_art(art_src::alb);
 				bool bitem_fetch_all = true; //CONFARTWORK.getflag(af::art_sa, i);
+
 				if (bitem_write || bitem_embed) {					
-					art_download_attribs ada_mod(bitem_write, bitem_embed, bitem_overwrite, true /*enter image loop*/, false, {});
-					bit_array_bittable dummy_saved_mask(release->images.get_count() + release->artists[0]->full_artist->images.get_count());
-					g_discogs->save_album_art(release, items[i], ada_mod, pfc::array_t<GUID>(), dummy_saved_mask, done_files, p_status, p_abort);
+					ada_mod = art_download_attribs(bitem_write, bitem_embed, bitem_overwrite, bitem_fetch_all /*always true, enter image loop*/, false, {}, bfile_match, bcust_album_save_or_embed);
+					bcall = true;
 				}
+			}
+
+			if (bcall) {
+				g_discogs->save_album_art(release, items[i], ada_mod, CONF_ARTWORK_GUIDS /*pfc::array_t<GUID>()*/, dummy_saved_mask, done_files, p_status, p_abort);							
 			}
 		}
 	}
+
 	if (bconf_artist_save_or_embed || bcust_artist_save_or_embed) {
+
+		art_download_attribs ada_mod;
 		pfc::array_t<pfc::string8> done_files;
+		bit_array_bittable dummy_saved_mask(release->images.get_count() + release->artists[0]->full_artist->images.get_count());
+		
 		for (size_t i = 0; i < items.get_count(); i++) {
-			bool bsave = false;
+		
+			bool bcall = false;
+			bool bfile_match = m_file_match;
+
 			if (bconf_artist_save_or_embed && !bcust_artist_save_or_embed) {
-				art_download_attribs cfg_ada(CONF.save_artist_art, CONF.embed_artist_art, CONF.artist_art_overwrite, CONF.artist_art_fetch_all, false, {});
-				bit_array_bittable dummy_saved_mask(release->images.get_count() + release->artists[0]->full_artist->images.get_count());
-				g_discogs->save_artist_art(release, items[i], cfg_ada, pfc::array_t<GUID>(), dummy_saved_mask, done_files, p_status, p_abort);
+
+				ada_mod = art_download_attribs(CONF.save_artist_art, CONF.embed_artist_art, CONF.artist_art_overwrite, CONF.artist_art_fetch_all, false, {}, bfile_match, bcust_artist_save_or_embed);
+				bcall = true;
 			}
 			else {
-				bool bitem_write = CONFARTWORK.ucfg_art_save_to_dir != 0;
-				bool bitem_embed = CONFARTWORK.ucfg_art_ovr != 0;
-				bool bitem_overwrite = CONFARTWORK.ucfg_art_ovr != 0;
+
+				bool bitem_write = CONF_MULTI_ARTWORK.save_to_dir(art_src::art);
+				bool bitem_embed = CONF_MULTI_ARTWORK.embed_art(art_src::art);
+				bool bitem_overwrite = CONF_MULTI_ARTWORK.ovr_art(art_src::art);
 				bool bitem_fetch_all = true; //CONFARTWORK.getflag(af::art_sa, i);
+
 				if (bitem_write || bitem_embed) {
-					art_download_attribs ada_mod(bitem_write, bitem_embed, bitem_overwrite, true /*enter image loop*/, false, {});
-					bit_array_bittable dummy_saved_mask(release->images.get_count() + release->artists[0]->full_artist->images.get_count());
-					g_discogs->save_artist_art(release, items[i], ada_mod, pfc::array_t<GUID>(), dummy_saved_mask, done_files, p_status, p_abort);
+					ada_mod = art_download_attribs(bitem_write, bitem_embed, bitem_overwrite, bitem_fetch_all /*always true, need to loop all images*/, false, {}, bfile_match, bcust_artist_save_or_embed);
+					bcall = true;
 				}
+			}
+
+			if (bcall) {
+				g_discogs->save_artist_art(release, items[i], ada_mod, CONF_ARTWORK_GUIDS /*pfc::array_t<GUID>()*/, dummy_saved_mask, done_files, p_status, p_abort);
 			}
 		}
 	}
 }
 
 download_art_paths_task::download_art_paths_task(CTrackMatchingDialog* m_dialog, pfc::string8 release_id, 
-	metadb_handle_list items, pfc::array_t<GUID> album_art_ids, bool to_path_only) :
+	metadb_handle_list items, pfc::array_t<GUID> album_art_ids, bool to_path_only, bool file_match) :
 	m_dialog(m_dialog), m_release_id(release_id), m_items(items),
-	m_album_art_ids(album_art_ids), m_to_path_only(to_path_only) {
+	m_album_art_ids(album_art_ids), m_to_path_only(to_path_only), m_file_match(file_match) {
 
 }
 
@@ -371,51 +388,64 @@ void download_art_paths_task::start() {
 	);
 }
 
+
 void download_art_paths_task::safe_run(threaded_process_status& p_status, abort_callback& p_abort) {
+	
 	unsigned long lkey = encode_mr(0, m_release_id);
 	Release_ptr release = discogs_interface->get_release(lkey, p_status, p_abort);
 
 	bit_array_bittable saved_mask(m_album_art_ids.size());
 
-	uartwork uartconf = uartwork(CONF);
+	bool bfile_match = CONF_MULTI_ARTWORK.file_match;
+
+	multi_uartwork multi_uartconf = multi_uartwork(CONF, release);
 	bool bconf_album_save_or_embed = CONF.save_album_art || CONF.embed_album_art;
 	bool bconf_artist_save_or_embed = CONF.save_artist_art || CONF.embed_artist_art;
+	
+	att_vcmp cust_cmp(af::alb_sd);
+	bool bcust_album_save = bfile_match || !std::equal(CONF_MULTI_ARTWORK.vuart.begin(), CONF_MULTI_ARTWORK.vuart.end(), multi_uartconf.vuart.begin(), cust_cmp.comp_uart_att);	
+	cust_cmp.set(af::alb_emb);
+	bool bcust_album_embed = !std::equal(CONF_MULTI_ARTWORK.vuart.begin(), CONF_MULTI_ARTWORK.vuart.end(), multi_uartconf.vuart.begin(), cust_cmp.comp_uart_att);
 
-	bool bcust_album_save_or_embed = CONFARTWORK.ucfg_album_save_to_dir != uartconf.ucfg_album_save_to_dir;
-	bcust_album_save_or_embed |= CONFARTWORK.ucfg_album_ovr != uartconf.ucfg_album_ovr;
-	bcust_album_save_or_embed |= CONFARTWORK.ucfg_album_embed != uartconf.ucfg_album_embed;
+	bool bcust_album_save_or_embed = bcust_album_save || bcust_album_embed;
 
-	bool bcust_artist_save_or_embed = CONFARTWORK.ucfg_art_save_to_dir != uartconf.ucfg_art_save_to_dir;
-	bcust_artist_save_or_embed |= CONFARTWORK.ucfg_art_ovr != uartconf.ucfg_art_ovr;
-	bcust_artist_save_or_embed |= CONFARTWORK.ucfg_art_embed != uartconf.ucfg_art_embed;
+	cust_cmp.set(af::art_sd);
+	bool bcust_artist_save = bfile_match || !std::equal(CONF_MULTI_ARTWORK.vuart.begin(), CONF_MULTI_ARTWORK.vuart.end(), multi_uartconf.vuart.begin(), cust_cmp.comp_uart_att);
+	cust_cmp.set(af::art_emb);
+	bool bcust_artist_embed = !std::equal(CONF_MULTI_ARTWORK.vuart.begin(), CONF_MULTI_ARTWORK.vuart.end(), multi_uartconf.vuart.begin(), cust_cmp.comp_uart_att);
+
+	bool bcust_artist_save_or_embed = bcust_artist_save || bcust_artist_embed;
 
 	if (bconf_album_save_or_embed || bcust_album_save_or_embed) {
 		pfc::array_t<pfc::string8> done_files;
+		art_download_attribs ada_mod;
+
 		for (size_t i = 0; i < m_items.get_count(); i++) {
-			bool bsave = false;
+
+			bool becall = false;
+			bool bfile_match = m_file_match;
+
 			if (bconf_album_save_or_embed && !bcust_album_save_or_embed) {
-				art_download_attribs cfg_ada(CONF.save_album_art, CONF.embed_album_art, CONF.album_art_overwrite, CONF.album_art_fetch_all, true, {});
-				cfg_ada.to_path_only = m_to_path_only;
 				
-				g_discogs->save_album_art(release, m_items[i], cfg_ada, m_album_art_ids, saved_mask, done_files, p_status, p_abort);
-				
-				for (size_t walk = 0; walk < done_files.size(); walk++) {
-					m_vres.emplace_back(std::pair(done_files[walk].get_ptr(), saved_mask));
-				}
+				ada_mod = art_download_attribs(CONF.save_album_art, CONF.embed_album_art, CONF.album_art_overwrite, CONF.album_art_fetch_all, false/*true*/, {}, bfile_match, bcust_album_save_or_embed);
+				becall = true;
 			}
 			else {
-				bool bitem_write = CONFARTWORK.ucfg_album_save_to_dir != 0;
-				bool bitem_embed = CONFARTWORK.ucfg_album_embed != 0;
-				bool bitem_overwrite = CONFARTWORK.ucfg_album_ovr != 0;
-				bool bitem_fetch_all = true; //CONFARTWORK.getflag(af::art_sa, i);
+
+				bool bitem_write = CONF_MULTI_ARTWORK.save_to_dir(art_src::alb);
+				bool bitem_embed = CONF_MULTI_ARTWORK.embed_art(art_src::alb);
+				bool bitem_overwrite = CONF_MULTI_ARTWORK.ovr_art(art_src::alb);
+				bool bitem_fetch_all = true;
+
 				if (bitem_write || bitem_embed) {
-					art_download_attribs ada_mod(bitem_write, bitem_embed, bitem_overwrite, true /*enter image loop*/, true, {});
-				
-					ada_mod.to_path_only = m_to_path_only;
-					
-					g_discogs->save_album_art(release, m_items[i],
-						ada_mod, m_album_art_ids, saved_mask,
-						done_files, p_status, p_abort);
+					ada_mod = art_download_attribs(bitem_write, bitem_embed, bitem_overwrite, true /*always true, enter image loop*/, false/*true*/, {}, bfile_match, bcust_album_save_or_embed);
+					becall = true;
+				}
+			}
+
+			if (becall) {
+
+				g_discogs->save_album_art(release, m_items[i], ada_mod, m_album_art_ids, saved_mask, done_files, p_status, p_abort);
 
 					for (size_t walk = 0; walk < done_files.size(); walk++) {
 						m_vres.emplace_back(std::pair(done_files[walk].get_ptr(), saved_mask));
@@ -425,35 +455,40 @@ void download_art_paths_task::safe_run(threaded_process_status& p_status, abort_
 		}
 	}
 	if (bconf_artist_save_or_embed || bcust_artist_save_or_embed) {
+
+		art_download_attribs ada_mod;
 		pfc::array_t<pfc::string8> done_files;
+
 		for (size_t i = 0; i < m_items.get_count(); i++) {
-			bool bsave = false;
+
+			bool bcall = false;
+			bool bfile_match = m_file_match;
+
 			if (bconf_artist_save_or_embed && !bcust_artist_save_or_embed) {
-				art_download_attribs cfg_ada(CONF.save_artist_art, CONF.embed_artist_art, CONF.artist_art_overwrite, CONF.artist_art_fetch_all, false, {});
-				
-				g_discogs->save_artist_art(release, m_items[i],
-					cfg_ada, m_album_art_ids, saved_mask,
-					done_files, p_status, p_abort);
+
+				ada_mod = art_download_attribs(CONF.save_artist_art, CONF.embed_artist_art, CONF.artist_art_overwrite, CONF.artist_art_fetch_all, false, {}, bfile_match, bcust_artist_save_or_embed);
+				bcall = true;
+			}
+			else {
+
+				bool bitem_write = CONF_MULTI_ARTWORK.save_to_dir(art_src::art);
+				bool bitem_embed = CONF_MULTI_ARTWORK.embed_art(art_src::art);
+				bool bitem_overwrite = CONF_MULTI_ARTWORK.ovr_art(art_src::art);
+				bool bitem_fetch_all = true;
+
+				if (bitem_write || bitem_embed) {
+
+					ada_mod = art_download_attribs(bitem_write, bitem_embed, bitem_overwrite, bitem_fetch_all /*always true, need to loop all images*/, false, {}, bfile_match, bcust_artist_save_or_embed);
+					bcall = true;
+				}
+			}
+
+			if (bcall) {
+
+				g_discogs->save_artist_art(release, m_items[i], ada_mod, m_album_art_ids, saved_mask, done_files, p_status, p_abort);
 
 				for (size_t walk = 0; walk < done_files.size(); walk++) {
 					m_vres.emplace_back(std::pair(done_files[walk].get_ptr(), saved_mask));
-				}
-			}
-			else {
-				bool bitem_write = CONFARTWORK.ucfg_art_save_to_dir != 0;
-				bool bitem_embed = CONFARTWORK.ucfg_art_embed != 0;
-				bool bitem_overwrite = CONFARTWORK.ucfg_art_ovr != 0;
-				bool bitem_fetch_all = true; //CONFARTWORK.getflag(af::art_sa, i);
-				if (bitem_write || bitem_embed) {
-					art_download_attribs ada_mod(bitem_write, bitem_embed, bitem_overwrite, true, false, {});
-
-					g_discogs->save_artist_art(release, m_items[i],
-						ada_mod, m_album_art_ids, saved_mask,
-						done_files, p_status, p_abort);
-
-					for (size_t walk = 0; walk < done_files.size(); walk++) {
-						m_vres.emplace_back(std::pair(done_files[walk].get_ptr(), saved_mask));
-					}
 				}
 			}
 		}

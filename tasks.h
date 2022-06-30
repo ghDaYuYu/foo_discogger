@@ -8,6 +8,7 @@
 
 #include "track_matching_dialog.h"
 #include "preview_dialog.h"
+#include "preview_modal_tag_dialog.h"
 #ifdef CAT_CRED
 #include "tag_mappings_credits_dlg.h"
 #endif // CAT_CRED
@@ -107,12 +108,14 @@ private:
 class download_art_task : public foo_discogs_threaded_process_callback
 {
 public:
-	download_art_task(pfc::string8 release_id, metadb_handle_list items);
+	download_art_task(pfc::string8 release_id, metadb_handle_list items, bool file_match);
 	void start();
 
 private:
 	pfc::string8 release_id;
 	metadb_handle_list items;
+	bool m_file_match;
+
 	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 };
 
@@ -121,7 +124,7 @@ private:
 class download_art_paths_task : public foo_discogs_threaded_process_callback
 {
 public:
-	download_art_paths_task(CTrackMatchingDialog* m_dialog, pfc::string8 release_id, metadb_handle_list items, pfc::array_t<GUID> album_art_ids, bool to_path_only);
+	download_art_paths_task(CTrackMatchingDialog* m_dialog, pfc::string8 release_id, metadb_handle_list items, pfc::array_t<GUID> album_art_ids, bool to_path_only, bool file_match);
 	void start();
 
 private:
@@ -130,6 +133,7 @@ private:
 	pfc::string8 m_release_id;
 	metadb_handle_list m_items;
 	bool m_to_path_only; //debug sim
+	bool m_file_match;
 
 	std::vector<std::pair<pfc::string8, bit_array_bittable>> m_vres;
 	void safe_run(threaded_process_status& p_status, abort_callback& p_abort) override;

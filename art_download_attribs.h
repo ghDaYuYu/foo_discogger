@@ -9,17 +9,19 @@ struct art_download_attribs
 	bool overwrite_it;
 	bool fetch_all_it;
 	bool to_path_only;
+	bool file_match;
+	bool custom_save_or_embed;
 
 	std::vector<pfc::string8> vpaths;
 
 	art_download_attribs()
 		: write_it(false), embed_it(false), overwrite_it(false),
-		fetch_all_it(false), to_path_only(false), vpaths() {};
+		fetch_all_it(false), to_path_only(false), vpaths(), file_match(false), custom_save_or_embed(false) {};
 
 	art_download_attribs(bool write_it, bool embed_it, bool overwrite_it,
-		bool fetch_all_it, bool to_parth_only, std::vector<pfc::string8> vpaths)
+		bool fetch_all_it, bool to_parth_only, std::vector<pfc::string8> vpaths, bool file_match, bool custom_save_or_embed)
 		: write_it(write_it), embed_it(embed_it), overwrite_it(overwrite_it),
-		fetch_all_it(fetch_all_it), to_path_only(to_parth_only), vpaths(vpaths) {};
+		fetch_all_it(fetch_all_it), to_path_only(to_parth_only), vpaths(vpaths), file_match(file_match), custom_save_or_embed(custom_save_or_embed) {};
 };
 
 namespace template_art_ids {

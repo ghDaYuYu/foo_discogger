@@ -62,6 +62,7 @@ private:
 	foo_conf conf;
 	foo_conf conf_edit;
 
+	bool original_parsing_merge_titles = false;
 	bool original_parsing = false;
 	bool original_skip_video = false;
 
@@ -82,7 +83,6 @@ private:
 	INT_PTR WINAPI on_db_dialog_message(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 #endif // DB_DC
-
 
 	static INT_PTR WINAPI matching_dialog_proc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 	INT_PTR WINAPI on_matching_dialog_message(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -159,14 +159,16 @@ public:
 	}
 
 #pragma warning(suppress:26454)
+
 	MY_BEGIN_MSG_MAP(CConfigurationDialog)
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
-		NOTIFY_HANDLER(IDC_TAB, TCN_SELCHANGING, OnChangingTab)
-		NOTIFY_HANDLER(IDC_TAB, TCN_SELCHANGE, OnChangeTab)
-		COMMAND_ID_HANDLER(IDC_CONF_DEFAULTS_BUTTON, OnDefaults)
+		NOTIFY_HANDLER(IDC_TAB_CFG, TCN_SELCHANGING, OnChangingTab)
+		NOTIFY_HANDLER(IDC_TAB_CFG, TCN_SELCHANGE, OnChangeTab)
+		COMMAND_ID_HANDLER(IDC_BTN_CONF_DEFAULTS, OnDefaults)
 		MESSAGE_HANDLER(WM_CUSTOM_ANV_CHANGED, OnCustomAnvChanged)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 	MY_END_MSG_MAP()
+
 #pragma warning(suppress:26454)
 
 	// constructor

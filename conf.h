@@ -15,12 +15,14 @@
 #define CFG_DISPLAY_ANVS					17
 
 #define CFG_UPDATE_ART_FLAGS				18
+
 #define DEPRI_CFG_FIND_RELEASE_DIALOG_SIZE			19
 #define DEPRI_CFG_FIND_RELEASE_DIALOG_POSITION		20
 #define DEPRI_CFG_RELEASE_DIALOG_SIZE				21
 #define DEPRI_CFG_RELEASE_DIALOG_POSITION			22
 #define DEPRI_CFG_EDIT_TAGS_DIALOG_SIZE				23
 #define DEPRI_CFG_EDIT_TAGS_DIALOG_POSITION			24
+
 #define CFG_EDIT_TAGS_DIALOG_COL1_WIDTH		25
 #define CFG_EDIT_TAGS_DIALOG_COL2_WIDTH		26
 #define CFG_EDIT_TAGS_DIALOG_COL3_WIDTH		27
@@ -48,7 +50,7 @@
 
 #define CFG_MATCH_TRACKS_USING_DURATION		6
 #define CFG_MATCH_TRACKS_USING_NUMBER		38
-#define DEPRI_NOT_USED_CFG_MATCH_TRACKS_USING_META	39
+#define DEPRI_NA_CFG_TRACKS_USING_META		39
 #define CFG_ASSUME_TRACKS_SORTED			40
 
 #define CFG_LAST_CONF_TAB					46
@@ -63,8 +65,8 @@
 
 #define CFG_PREVIEW_MODE					51
 #define CFG_UPDATE_PREVIEW_CHANGES			52
-#define DEPRI_CFG_PREVIEW_DIALOG_SIZE				53
-#define DEPRI_CFG_PREVIEW_DIALOG_POSITION			54
+#define DEPRI_CFG_PREVIEW_DIALOG_SIZE		53
+#define DEPRI_CFG_PREVIEW_DIALOG_POSITION	54
 
 #define CFG_UPDATE_TAGS_MANUALLY_PROMPT		55
 #define CFG_PARSE_HIDDEN_AS_REGULAR			56
@@ -87,6 +89,7 @@
 //v206 (1.0.8)
 #define CFG_AUTO_REL_LOAD_ON_OPEN				2004
 #define CFG_AUTO_REL_LOAD_ON_SELECT				2005
+#define CFG_PARSE_HIDDEN_MERGE_TITLES			2006
 
 //DEPRI v205
 #define DEPRI_CFG_SKIP_RELEASE_DLG_IF_MATCHED		41
@@ -104,8 +107,7 @@
 #define CFG_MATCH_TRACKS_FILES_COL1_WIDTH		2105
 #define CFG_MATCH_TRACKS_FILES_COL2_WIDTH		2106
 
-//v.201
-
+//v201
 #define CFG_MATCH_TRACKS_DISCOGS_STYLE			2107
 #define CFG_MATCH_TRACKS_FILES_STYLE			2108
 #define CFG_PREVIEW_TAGS_DIALOG_W_WIDTH			2109
@@ -132,7 +134,7 @@
 #define CFG_ALBUM_ART_SKIP_DEFAULT_CUST			2125
 #define CFG_EDIT_TAGS_DIALOG_FLAGS				2126
 
-//v205 (1.0.6/1.1.0)
+//v205 (1.0.6)
 #define CFG_DC_DB_FLAG							2127
 #define CFG_FIND_RELEASE_FILTER_FLAG			2128
 #define CFG_SKIP_MNG_FLAG						2129
@@ -147,12 +149,13 @@
 #define CFG_MATCH_FILE_ARTWORK_INDEX_WIDTH		2136
 #define CFG_PREVIEW_MODAL_TAGS_DLG_COLS_WIDTH	2137
 
-
 // STRINGS -------------------------------------
 
 #define CFG_EDIT_TAGS_DIALOG_HL_KEYWORD			2201
 //v205 (1.0.6/1.1.0)
 #define CFG_DC_DB_PATH							2202
+
+
 //..
 
 typedef struct
@@ -362,7 +365,7 @@ public:
 
 	std::vector<std::pair<int, int>> idarray
 	{
-		//(configuration_dialog)
+		// **** CONF (configuration_dialog)
 		{ asi(cfgFilter::CONF), CFG_REPLACE_ANVS },
 		{ asi(cfgFilter::CONF), CFG_MOVE_THE_AT_BEGINNING},
 		{ asi(cfgFilter::CONF), CFG_DISCARD_NUMERIC_SUFFIX},
@@ -387,7 +390,7 @@ public:
 		{ asi(cfgFilter::CONF), CFG_REMOVE_EXCLUDE_TAGS},
 		{ asi(cfgFilter::CONF), CFG_MATCH_TRACKS_USING_DURATION},
 		{ asi(cfgFilter::CONF), CFG_MATCH_TRACKS_USING_NUMBER},
-		{ asi(cfgFilter::CONF), DEPRI_NOT_USED_CFG_MATCH_TRACKS_USING_META},
+		{ asi(cfgFilter::CONF), DEPRI_NA_CFG_TRACKS_USING_META},
 		{ asi(cfgFilter::CONF), CFG_ASSUME_TRACKS_SORTED},
 		{ asi(cfgFilter::CONF), DEPRI_CFG_SKIP_RELEASE_DLG_IF_MATCHED},
 		{ asi(cfgFilter::CONF), DEPRI_CFG_SKIP_FIND_RELEASE_DLG_IF_IDED},
@@ -403,7 +406,7 @@ public:
 		{ asi(cfgFilter::CONF), CFG_CACHE_MAX_OBJECTS},
 		{ asi(cfgFilter::CONF), CFG_RELEASE_ENTER_KEY_OVR},
 		{ asi(cfgFilter::CONF), CFG_CACHE_OFFLINE_CACHE_FLAG},
-		//v205 (1.0.6/1.1.0)
+		//v205 (1.0.6)
 		{ asi(cfgFilter::CONF), CFG_DC_DB_PATH},
 		{ asi(cfgFilter::CONF), CFG_DC_DB_FLAG},
 		{ asi(cfgFilter::CONF), CFG_SKIP_MNG_FLAG},
@@ -414,13 +417,13 @@ public:
 		//v206 (1.0.8)
 		{ asi(cfgFilter::CONF), CFG_AUTO_REL_LOAD_ON_OPEN},
 		{ asi(cfgFilter::CONF), CFG_AUTO_REL_LOAD_ON_SELECT},
+		{ asi(cfgFilter::CONF), CFG_PARSE_HIDDEN_MERGE_TITLES},
 		//..
 
-		//FIND (find_release_dialog)
+		// **** FIND (find_release_dialog)
 		{ asi(cfgFilter::FIND), CFG_DISPLAY_EXACT_MATCHES },
 		//v200
 		{ asi(cfgFilter::FIND), DEPRI_CFG_FIND_RELEASE_DIALOG_SHOW_ID },
-
 		//v205
 		{ asi(cfgFilter::FIND), CFG_FIND_RELEASE_FILTER_FLAG },
 		{ asi(cfgFilter::FIND), CFG_FIND_RELEASE_DIALOG_FLAG },
@@ -428,7 +431,7 @@ public:
 
 		//..
 
-		//PREVIEW (preview_dialog)
+		// **** PREVIEW (preview_dialog)
 		{ asi(cfgFilter::PREVIEW), CFG_PREVIEW_MODE },
 		{ asi(cfgFilter::PREVIEW), CFG_REPLACE_ANVS }, //<<
 		//v200
@@ -446,12 +449,12 @@ public:
 		{ asi(cfgFilter::PREVIEW), CFG_EDIT_TAGS_DIALOG_FLAGS},
 		//..
 
-		//PREVIEW MODAL TAG (preview result modal tag)
+		// **** PREVIEW MODAL TAG (preview result modal tag)
 		//v206 (1.0.8)
 		{ asi(cfgFilter::PREVIEW_MODAL), CFG_PREVIEW_MODAL_TAGS_DLG_COLS_WIDTH },
 		//..
 
-		//TAG (tag_mappings_dialog)
+		// **** TAG (tag_mappings_dialog)
 		{ asi(cfgFilter::TAG), CFG_EDIT_TAGS_DIALOG_COL1_WIDTH },
 		{ asi(cfgFilter::TAG), CFG_EDIT_TAGS_DIALOG_COL2_WIDTH },
 		{ asi(cfgFilter::TAG), CFG_EDIT_TAGS_DIALOG_COL3_WIDTH },
@@ -459,7 +462,7 @@ public:
 		{ asi(cfgFilter::TAG), CFG_EDIT_TAGS_DIALOG_HL_KEYWORD },
 		//..
 
-		//TRACK (track_matching_dialog)
+		// **** TRACK (track_matching_dialog)
 		//v200
 		{ asi(cfgFilter::TRACK), CFG_MATCH_TRACKS_DISCOGS_COL1_WIDTH },
 		{ asi(cfgFilter::TRACK), CFG_MATCH_TRACKS_DISCOGS_COL2_WIDTH },
@@ -487,12 +490,12 @@ public:
 		
 		//..
 
-		//UPDATE_ART (update_art_dialog)
+		// **** UPDATE_ART (update_art_dialog)
 		{ asi(cfgFilter::UPDATE_ART), CFG_UPDATE_ART_FLAGS },
 		//v200
 		//..
 
-		//UPDATE_TAG (update_tags_dialog)
+		// **** UPDATE_TAG (update_tags_dialog)
 		{ asi(cfgFilter::UPDATE_TAG), CFG_REPLACE_ANVS },	//<<
 		{ asi(cfgFilter::UPDATE_TAG), CFG_UPDATE_TAGS_MANUALLY_PROMPT },
 		{ asi(cfgFilter::UPDATE_TAG), CFG_UPDATE_PREVIEW_CHANGES },
@@ -544,7 +547,7 @@ public:
 	bool parse_hidden_as_regular = false;
 	bool skip_video_tracks = false;
 
-	//PREVIEW_NORMAL
+	//todo: rev default
 	int preview_mode = 1; 
 
 	// TODO: depri
@@ -625,9 +628,7 @@ public:
 	int skip_mng_flag = 1 << 5; //skip mbids
 	int list_style = 2;
 	int history_enabled_max = MAKELPARAM(10, 1); //enabled-max20
-
 	int find_release_dlg_flags = 0;
-
 	//v206 (1.0.8)
 	int match_discogs_artwork_index_width = MAKELPARAM(2* 10 + 6, 30);	//justify center*10 + index, width
 	int match_file_artwork_index_width = MAKELPARAM(2*10 + 3, 30);
@@ -635,13 +636,15 @@ public:
 	
 	bool auto_rel_load_on_open = false;
 	bool auto_rel_load_on_select = false;
-											   
+	
+	bool parse_hidden_merge_titles = true;
 	//..
 
 	std::vector<int> vflags;
 
 	friend class FlgMng;
 };
+
 
 typedef CConf foo_conf;
 inline CConf CONF("Global");

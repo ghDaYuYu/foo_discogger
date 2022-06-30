@@ -30,7 +30,7 @@ conf_int_entry make_conf_entry(int i, int v) {
 	return result;
 }
 
-conf_string_entry make_conf_entry(int i, const pfc::string8 &v) {
+conf_string_entry make_conf_entry(int i, const pfc::string8& v) {
 	conf_string_entry result;
 	result.id = i;
 	result.value = v;
@@ -115,7 +115,7 @@ bool prepare_dbf_and_cache(bool bimport = true) {
 
 			// copy database
 
-			bres = copy_dbf_file(os_src.string().c_str(), os_src.string().c_str());
+			bres = copy_dbf_file(os_src.string().c_str(), os_dst.string().c_str());
 
 		}
 	}
@@ -127,7 +127,7 @@ bool prepare_dbf_and_cache(bool bimport = true) {
 	}
 
 	try {
-		std::filesystem::create_directories(os_dst_path);
+		std::filesystem::create_directory(os_dst_path);
 		bres &= true;
 	}
 	catch (...) {
@@ -151,7 +151,7 @@ bool CConf::load() {
 	//vspec v203 { &vec_specs, 28, 41, 14 };
 	vspec v204{ &vec_specs, 28, 42, 14 }; // 1.0.4
 	vspec v205{ &vec_specs, 24, 39, 15 }; // 1.0.6 + sqlite db
-	vspec v206{ &vec_specs, 26, 42, 15 }; // 1.0.8
+	vspec v206{ &vec_specs, 27, 42, 15 }; // 1.0.8
 
 	vspec* vlast = &vec_specs.at(vec_specs.size() - 1);
 	vspec vLoad = { nullptr,
@@ -178,7 +178,7 @@ bool CConf::load() {
 		}
 	}
 
-	//ignore bres, update after loop
+	//ignore bres, depricated values are not there
 	for (unsigned int i = 0; i < cfg_bool_entries.get_count(); i++) {
 		/*bres &=*/ bool_load(cfg_bool_entries[i]);
 	}
@@ -190,10 +190,13 @@ bool CConf::load() {
 		);
 		cfg_bool_entries.add_item(
 			make_conf_entry(CFG_AUTO_REL_LOAD_ON_SELECT, auto_rel_load_on_select)
-		);		
+		);
+		cfg_bool_entries.add_item(
+			make_conf_entry(CFG_PARSE_HIDDEN_MERGE_TITLES, parse_hidden_merge_titles)
+		);
 	}
 
-	//ignore bres, update after loop
+	//ignore bres, depricated values are not there
 	for (unsigned int i = 0; i < cfg_int_entries.get_count(); i++) {
 		/*bres &=*/ int_load(cfg_int_entries[i]);
 	}
@@ -276,7 +279,7 @@ bool CConf::load() {
 	}
 	//..
 
-	//ignore bres, update after loop
+	//ignore bres, depricated values will not be there
 	for (unsigned int i = 0; i < cfg_string_entries.get_count(); i++) {
 		/*bres &=*/ string_load(cfg_string_entries[i]);
 	}
@@ -359,8 +362,7 @@ bool CConf::bool_load(const conf_bool_entry& item) {
 	case CFG_SKIP_VIDEO_TRACKS:
 		skip_video_tracks = item.value;
 		break;
-
-		//v200
+	//v200
 	case CFG_EDIT_TAGS_DIALOG_SHOW_TM_STATS:
 		edit_tags_dlg_show_tm_stats = item.value;
 		break;
@@ -373,6 +375,9 @@ bool CConf::bool_load(const conf_bool_entry& item) {
 		break;
 	case CFG_AUTO_REL_LOAD_ON_SELECT:
 		auto_rel_load_on_select = item.value;
+		break;
+	case CFG_PARSE_HIDDEN_MERGE_TITLES:
+		parse_hidden_merge_titles = item.value;
 		break;
 	//
 	default:
@@ -575,7 +580,7 @@ bool CConf::string_load(const conf_string_entry& item) {
 		break;
 
 	//..
-	
+
 	//..
 
 	default:
@@ -685,6 +690,9 @@ bool CConf::id_to_val_bool(int id, const CConf& in_conf, bool& out, bool assert)
 	case CFG_AUTO_REL_LOAD_ON_SELECT:
 		out = in_conf.auto_rel_load_on_select;
 		break;
+	case CFG_PARSE_HIDDEN_MERGE_TITLES:
+		out = in_conf.parse_hidden_merge_titles;
+		break;
 	//..
 
 	default:
@@ -720,7 +728,7 @@ int* CConf::id_to_ref_int(int ID, bool assert) {
 	return nullptr;
 }
 
-bool CConf::id_to_val_int(int id, const CConf & in_conf, int & out, bool assert) {
+bool CConf::id_to_val_int(int id, const CConf& in_conf, int& out, bool assert) {
 
 	switch (id) {
 	case CFG_UPDATE_ART_FLAGS:
@@ -868,7 +876,7 @@ bool CConf::id_to_val_int(int id, const CConf & in_conf, int & out, bool assert)
 	return true;
 }
 
-bool CConf::id_to_val_str(int id, const CConf & in_conf, pfc::string8 & out, bool assert) {
+bool CConf::id_to_val_str(int id, const CConf& in_conf, pfc::string8& out, bool assert) {
 
 	switch (id) {
 	case CFG_ALBUM_ART_DIRECTORY_STRING: {
@@ -1097,6 +1105,7 @@ void CConf::save() {
 	//v206 (1.0.8)
 	cfg_bool_entries.add_item(make_conf_entry(CFG_AUTO_REL_LOAD_ON_OPEN, auto_rel_load_on_open));
 	cfg_bool_entries.add_item(make_conf_entry(CFG_AUTO_REL_LOAD_ON_SELECT, auto_rel_load_on_select));
+	cfg_bool_entries.add_item(make_conf_entry(CFG_PARSE_HIDDEN_MERGE_TITLES, parse_hidden_merge_titles));
 	//..
 
 	cfg_int_entries.remove_all();

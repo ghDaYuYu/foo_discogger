@@ -90,7 +90,7 @@ static BOOL GetChildWindowRect(HWND wnd, UINT id, RECT* child)
 LRESULT CConfigurationDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
 
 	InitTabs();
-	HWND hWndTab = uGetDlgItem(IDC_TAB);
+	HWND hWndTab = uGetDlgItem(IDC_TAB_CFG);
 
 	INITCOMMONCONTROLSEX InitCtrls;
 	InitCtrls.dwSize = sizeof(InitCtrls);
@@ -112,7 +112,7 @@ LRESULT CConfigurationDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 
 	// get the size of the inner part of the tab control
 	RECT rcTab;
-	GetChildWindowRect(m_hWnd, IDC_TAB, &rcTab);
+	GetChildWindowRect(m_hWnd, IDC_TAB_CFG, &rcTab);
 	uSendMessage(hWndTab, TCM_ADJUSTRECT, FALSE, (LPARAM)&rcTab);
 
 	// Tab Control
@@ -197,7 +197,7 @@ LRESULT CConfigurationDialog::OnChangeTab(WORD /*wNotifyCode*/, LPNMHDR /*lParam
 	}
 	g_hWndCurrentTab = nullptr;
 
-	g_current_tab = (t_uint32)::SendDlgItemMessage(m_hWnd, IDC_TAB, TCM_GETCURSEL, 0, 0);
+	g_current_tab = (t_uint32)::SendDlgItemMessage(m_hWnd, IDC_TAB_CFG, TCM_GETCURSEL, 0, 0);
 	if (g_current_tab < tabsize(g_hWndTabDialog)) {
 		g_hWndCurrentTab = g_hWndTabDialog[g_current_tab];
 		::ShowWindow(help_link, toggle_title_format_help() ? SW_SHOW : SW_HIDE);
@@ -238,9 +238,7 @@ bool CConfigurationDialog::build_current_cfg(bool reset, bool bind) {
 	}
 
 	bres = reset || HasChanged();
-
 	return bres;
-
 }
 
 void CConfigurationDialog::pushcfg(bool reset) {
@@ -258,7 +256,6 @@ void CConfigurationDialog::pushcfg(bool reset) {
 		CONF.load();
 	}
 }
-
 
 void CConfigurationDialog::reset() {
 
@@ -310,7 +307,7 @@ LRESULT CConfigurationDialog::OnCustomAnvChanged(UINT /*uMsg*/, WPARAM /*wParam*
 	conf.replace_ANVs = lParam;
 	if (g_hWndTabDialog[CONF_TAGGING_TAB]) {
 		uButton_SetCheck(g_hWndTabDialog[CONF_TAGGING_TAB],
-			IDC_ENABLE_ANV_CHECK, conf.replace_ANVs);
+			IDC_CHK_ENABLE_ANV, conf.replace_ANVs);
 	}
 	return FALSE;
 }
@@ -328,11 +325,8 @@ void CConfigurationDialog::show_tab(unsigned int itab) {
 		if (g_hWndCurrentTab != nullptr) {
 			::ShowWindow(g_hWndCurrentTab, SW_HIDE);
 		}
-		
-		//g_hWndCurrentTab = nullptr;
-		//::SendDlgItemMessage(m_hWnd, IDC_TAB, TCM_SETCURSEL, itab, 0);
 
-		g_current_tab = (t_uint32)::SendDlgItemMessage(m_hWnd, IDC_TAB, TCM_GETCURSEL, itab, 0);
+		g_current_tab = (t_uint32)::SendDlgItemMessage(m_hWnd, IDC_TAB_CFG, TCM_GETCURSEL, itab, 0);
 
 		g_hWndCurrentTab = g_hWndTabDialog[itab];
 		::ShowWindow(help_link, toggle_title_format_help() ? SW_SHOW : SW_HIDE);
@@ -373,28 +367,34 @@ void InitComboRowStyle(HWND wnd, UINT id, t_size sel) {
 }
 
 void CConfigurationDialog::init_searching_dialog(HWND wnd) {
+
 	uButton_SetCheck(wnd, IDC_CHK_ENABLE_AUTO_SEARCH, conf.enable_autosearch);
 	uButton_SetCheck(wnd, IDC_CHK_AUTO_REL_LOAD_ON_OPEN, conf.auto_rel_load_on_open);
 	uButton_SetCheck(wnd, IDC_CHK_AUTO_REL_LOAD_ON_SELECT, conf.auto_rel_load_on_select);
-	uSetDlgItemText(wnd, IDC_RELEASE_FORMATTING_EDIT, conf.search_release_format_string);
-	uSetDlgItemText(wnd, IDC_MASTER_FORMATTING_EDIT, conf.search_master_format_string);
-	uSetDlgItemText(wnd, IDC_MASTER_SUB_FORMATTING_EDIT, conf.search_master_sub_format_string);	
+
+	FlgMng fv_skip;
+	conf.GetFlagVar(CFG_SKIP_MNG_FLAG, fv_skip);
+	uButton_SetCheck(wnd, IDC_SKIP_RELEASE_DLG_IDED, fv_skip.GetFlat(SkipMng::SKIP_RELEASE_DLG_IDED));
+
+	uSetDlgItemText(wnd, IDC_EDIT_RELEASE_FORMATTING, conf.search_release_format_string);
+	uSetDlgItemText(wnd, IDC_EDIT_MASTER_FORMATTING, conf.search_master_format_string);
+	uSetDlgItemText(wnd, IDC_EDIT_MASTER_SUB_FORMATTING, conf.search_master_sub_format_string);	
 }
 
 void CConfigurationDialog::init_matching_dialog(HWND wnd) {
 	uButton_SetCheck(wnd, IDC_MATCH_USING_DURATIONS, conf.match_tracks_using_duration);
 	uButton_SetCheck(wnd, IDC_MATCH_USING_NUMBERS, conf.match_tracks_using_number);
 	uButton_SetCheck(wnd, IDC_MATCH_ASSUME_SORTED, conf.assume_tracks_sorted);
-	uButton_SetCheck(wnd, IDC_SKIP_RELEASE_DIALOG_CHECK, conf.skip_mng_flag & SkipMng::SKIP_RELEASE_DLG_MATCHED);
+	uButton_SetCheck(wnd, IDC_CHK_SKIP_RELEASE_DLG, conf.skip_mng_flag & SkipMng::SKIP_RELEASE_DLG_MATCHED);
 	uButton_SetCheck(wnd, IDC_SKIP_BRAINZ_MIBS_FETCH, conf.skip_mng_flag & SkipMng::SKIP_BRAINZ_ID_FETCH);
-	uSetDlgItemText(wnd, IDC_DISCOGS_FORMATTING_EDIT, conf.release_discogs_format_string);
-	uSetDlgItemText(wnd, IDC_FILE_FORMATTING_EDIT, conf.release_file_format_string);
+	uSetDlgItemText(wnd, IDC_EDIT_DISCOGS_FORMATTING, conf.release_discogs_format_string);
+	uSetDlgItemText(wnd, IDC_EDIT_FILE_FORMATTING, conf.release_file_format_string);
 }
 
 void CConfigurationDialog::init_tagging_dialog(HWND wnd) {
-	uButton_SetCheck(wnd, IDC_ENABLE_ANV_CHECK, conf.replace_ANVs);
-	uButton_SetCheck(wnd, IDC_MOVE_THE_AT_BEGINNING_CHECK, conf.move_the_at_beginning);
-	uButton_SetCheck(wnd, IDC_DISCARD_NUMERIC_SUFFIXES_CHECK, conf.discard_numeric_suffix);
+	uButton_SetCheck(wnd, IDC_CHK_ENABLE_ANV, conf.replace_ANVs);
+	uButton_SetCheck(wnd, IDC_CHK_MOVE_THE_AT_BEGINNING, conf.move_the_at_beginning);
+	uButton_SetCheck(wnd, IDC_CHK_DISCARD_NUMERIC_SUFFIXES, conf.discard_numeric_suffix);
 
 	uButton_SetCheck(wnd, IDC_SKIP_PREVIEW_DIALOG, conf.skip_mng_flag & SkipMng::SKIP_PREVIEW_DLG);
 	uButton_SetCheck(wnd, IDC_REMOVE_OTHER_TAGS, conf.remove_other_tags);
@@ -422,70 +422,91 @@ void CConfigurationDialog::init_memory_cache_buttons(HWND wnd) {
 }
 
 void CConfigurationDialog::init_caching_dialog(HWND wnd) {
+	
 	//hidden regular & skip videp
-	uButton_SetCheck(wnd, IDC_HIDDEN_AS_REGULAR_CHECK, conf.parse_hidden_as_regular);
+	
+	uButton_SetCheck(wnd, IDC_CHK_HIDDEN_MERGE_TITLES, conf.parse_hidden_merge_titles);
+	uButton_SetCheck(wnd, IDC_CHK_HIDDEN_AS_REGULAR, conf.parse_hidden_as_regular);
 	uButton_SetCheck(wnd, IDC_SKIP_VIDEO_TRACKS, conf.skip_video_tracks);
+
 	//offline cache
+
 	FlgMng fv_offline_cache;
 	conf.GetFlagVar(CFG_CACHE_OFFLINE_CACHE_FLAG, fv_offline_cache);
 	bool bread = fv_offline_cache.GetFlat(ol::CacheFlags::OC_READ);
 	bool bwrite = fv_offline_cache.GetFlat(ol::CacheFlags::OC_WRITE);
 
 	uButton_SetCheck(wnd, IDC_CFG_CACHE_USE_OFFLINE_CACHE, bread);
-	uButton_SetCheck(wnd, IDC_CFG_CACHE_WRITE_OFFLINE_CACHE, bwrite);
+	uButton_SetCheck(wnd, IDC_CFG_CACHE_WRITE_OL_CACHE, bwrite);
 
 	//memory cache
+
+	original_parsing_merge_titles = conf.parse_hidden_merge_titles;
 	original_parsing = conf.parse_hidden_as_regular;
 	original_skip_video = conf.skip_video_tracks;
 
 	pfc::string8 num;
 	num << conf.cache_max_objects;
-	uSetDlgItemText(wnd, IDC_CACHED_OBJECTS_EDIT, num);
+	uSetDlgItemText(wnd, IDC_EDIT_CACHED_OBJECTS, num);
 
 	init_memory_cache_buttons(wnd);
 }
 
 void CConfigurationDialog::init_db_dialog(HWND wnd) {
+
 	uButton_SetCheck(wnd, IDC_CFG_DB_DC_FLAG_SEARCH, DBFlags(conf.db_dc_flag).Search());
 	uButton_SetCheck(wnd, IDC_CFG_DB_DC_FLAG_SEARCH_LIKE, DBFlags(conf.db_dc_flag).SearchLike());
 	uButton_SetCheck(wnd, IDC_CFG_DB_DC_FLAG_SEARCH_ANV, DBFlags(conf.db_dc_flag).SearchAnv());
 	uButton_SetCheck(wnd, IDC_CFG_DB_DC_FLAG_ONLINE_RELEASES, DBFlags(conf.db_dc_flag).WantArtwork());
+	
 	uSetDlgItemText(wnd, IDC_DB_DC_PATH, conf.db_dc_path);
 }
 
 void CConfigurationDialog::init_art_dialog(HWND wnd) {
-	uButton_SetCheck(wnd, IDC_SAVE_ALBUM_ART_CHECK, conf.save_album_art);
-	uButton_SetCheck(wnd, IDC_ALBUM_ART_FETCH_ALL_CHECK, conf.album_art_fetch_all);
-	uButton_SetCheck(wnd, IDC_ALBUM_ART_EMBED, conf.embed_album_art);
-	uSetDlgItemText(wnd, IDC_ALBUM_ART_DIR_EDIT, conf.album_art_directory_string);
-	uSetDlgItemText(wnd, IDC_ALBUM_ART_PREFIX_EDIT, conf.album_art_filename_string);
-	uButton_SetCheck(wnd, IDC_ALBUM_ART_OVERWRITE_CHECK, conf.album_art_overwrite);
 
-	uButton_SetCheck(wnd, IDC_SAVE_ARTIST_ART_CHECK, conf.save_artist_art);
-	uButton_SetCheck(wnd, IDC_ARTIST_ART_FETCH_ALL_CHECK, conf.artist_art_fetch_all);
-	uSetDlgItemText(wnd, IDC_ARTIST_ART_IDS_EDIT, conf.artist_art_id_format_string);
+	uButton_SetCheck(wnd, IDC_CHK_SAVE_ALBUM_ART, conf.save_album_art);
+	uButton_SetCheck(wnd, IDC_CHK_ALBUM_ART_FETCH_ALL, conf.album_art_fetch_all);
+	uButton_SetCheck(wnd, IDC_ALBUM_ART_EMBED, conf.embed_album_art);
+	uSetDlgItemText(wnd, IDC_EDIT_ALBUM_ART_DIR, conf.album_art_directory_string);
+	uSetDlgItemText(wnd, IDC_EDIT_ALBUM_ART_PREFIX, conf.album_art_filename_string);
+	uButton_SetCheck(wnd, IDC_CHK_ALBUM_ART_OVR, conf.album_art_overwrite);
+
+	uButton_SetCheck(wnd, IDC_CHK_SAVE_ARTIST_ART, conf.save_artist_art);
+	uButton_SetCheck(wnd, IDC_CHK_ARTIST_ART_FETCH_ALL, conf.artist_art_fetch_all);
+	uSetDlgItemText(wnd, IDC_EDIT_ARTIST_ART_IDS, conf.artist_art_id_format_string);
 	uButton_SetCheck(wnd, IDC_ARTIST_ART_EMBED, conf.embed_artist_art);
-	uSetDlgItemText(wnd, IDC_ARTIST_ART_DIR_EDIT, conf.artist_art_directory_string);
-	uSetDlgItemText(wnd, IDC_ARTIST_ART_PREFIX_EDIT, conf.artist_art_filename_string);
-	uButton_SetCheck(wnd, IDC_ARTIST_ART_OVERWRITE_CHECK, conf.artist_art_overwrite);
+	uSetDlgItemText(wnd, IDC_EDIT_ARTIST_ART_DIR, conf.artist_art_directory_string);
+	uSetDlgItemText(wnd, IDC_EDIT_ARTIST_ART_PREFIX, conf.artist_art_filename_string);
+	uButton_SetCheck(wnd, IDC_CHK_ARTIST_ART_OVERWRITE, conf.artist_art_overwrite);
 }
 
 void CConfigurationDialog::init_ui_dialog(HWND wnd) {
+
+	//history
 	uButton_SetCheck(wnd, IDC_CFG_UI_HISTORY_ENABLED, HIWORD(conf.history_enabled_max));
 	size_t imax = LOWORD(conf.history_enabled_max);
 	uSetDlgItemText(wnd, IDC_UI_HISTORY_MAX_ITEMS, std::to_string(imax).c_str());
+	//enter override
 	uButton_SetCheck(wnd, IDC_RELEASE_ENTER_KEY_OVR, conf.release_enter_key_override);
-	uButton_SetCheck(wnd, IDC_CHK_FIND_RELEASE_STATS, conf.find_release_dlg_flags & FLG_SHOW_RELEASE_TREE_STATS);
+	
+	//release stats
+
+	FlgMng fv_stats;
+	conf.GetFlagVar(CFG_FIND_RELEASE_DIALOG_FLAG, fv_stats);
+	bool bstats = fv_stats.GetFlat(CFindReleaseDialog::FLG_SHOW_RELEASE_TREE_STATS);
+	uButton_SetCheck(wnd, IDC_CHK_FIND_RELEASE_STATS, bstats);
+
+
+	//list style
 	InitComboRowStyle(wnd, IDC_CMB_CONFIG_LIST_STYLE, conf.list_style);
 	HWND cmb = ::uGetDlgItem(wnd, IDC_CMB_CONFIG_LIST_STYLE);
 
 	BOOL res = ::SendMessage(cmb, CB_SETMINVISIBLE, 10, 0L);
-
 }
 
 void CConfigurationDialog::init_oauth_dialog(HWND wnd) {
-	m_hwndTokenEdit = ::uGetDlgItem(wnd, IDC_OAUTH_TOKEN_EDIT);
-	m_hwndSecretEdit = ::uGetDlgItem(wnd, IDC_OAUTH_SECRET_EDIT);
+	m_hwndTokenEdit = ::uGetDlgItem(wnd, IDC_EDIT_OAUTH_TOKEN);
+	m_hwndSecretEdit = ::uGetDlgItem(wnd, IDC_EDIT_OAUTH_SECRET);
 	m_hwndOAuthMsg = ::uGetDlgItem(wnd, IDC_STATIC_CONF_OAUTH_MSG);
 
 	uSetWindowText(m_hwndTokenEdit, conf.oauth_token);
@@ -497,7 +518,7 @@ void CConfigurationDialog::init_oauth_dialog(HWND wnd) {
 void CConfigurationDialog::show_oauth_msg(pfc::string8 msg, bool iserror) {
 	
 	if (g_current_tab != CONF_OATH_TAB) {
-		HWND hWndTab = uGetDlgItem(IDC_TAB);
+		HWND hWndTab = uGetDlgItem(IDC_TAB_CFG);
 		uSendMessage(hWndTab, TCM_SETCURSEL, CONF_OATH_TAB, 0);
 		show_tab(CONF_OATH_TAB);
 	}
@@ -513,24 +534,17 @@ void CConfigurationDialog::save_searching_dialog(HWND wnd, bool dlgbind) {
 	conf_ptr->auto_rel_load_on_open = uButton_GetCheck(wnd, IDC_CHK_AUTO_REL_LOAD_ON_OPEN);
 	conf_ptr->auto_rel_load_on_select = uButton_GetCheck(wnd, IDC_CHK_AUTO_REL_LOAD_ON_SELECT);
 
-	if (uButton_GetCheck(wnd, IDC_SKIP_LOAD_RELEASES_IF_IDED_CHECK))
-		conf_ptr->skip_mng_flag |= SkipMng::SKIP_LOAD_RELEASES_TASK_IDED;
-	else
-		conf_ptr->skip_mng_flag &= ~SkipMng::SKIP_LOAD_RELEASES_TASK_IDED;
-	if (uButton_GetCheck(wnd, IDC_SKIP_FIND_RELEASE_DIALOG_CHECK))
-		conf_ptr->skip_mng_flag |= SkipMng::SKIP_FIND_RELEASE_DLG_IDED;
-	else
-		conf_ptr->skip_mng_flag &= ~SkipMng::SKIP_FIND_RELEASE_DLG_IDED;
+	FlgMng fv_skip;
+	conf_ptr->GetFlagVar(CFG_SKIP_MNG_FLAG, fv_skip);
+	fv_skip.SetFlag(wnd, IDC_SKIP_RELEASE_DLG_IDED, SkipMng::SKIP_RELEASE_DLG_IDED);	//pass control val to var
 
 	pfc::string8 text;
-	uGetDlgItemText(wnd, IDC_RELEASE_FORMATTING_EDIT, text);
+	uGetDlgItemText(wnd, IDC_EDIT_RELEASE_FORMATTING, text);
 	conf_ptr->search_release_format_string = text;
-	uGetDlgItemText(wnd, IDC_MASTER_FORMATTING_EDIT, text);
+	uGetDlgItemText(wnd, IDC_EDIT_MASTER_FORMATTING, text);
 	conf_ptr->search_master_format_string = text;
-	uGetDlgItemText(wnd, IDC_MASTER_SUB_FORMATTING_EDIT, text);
+	uGetDlgItemText(wnd, IDC_EDIT_MASTER_SUB_FORMATTING, text);
 	conf_ptr->search_master_sub_format_string = text;
-
-	conf_ptr->list_style = ::uSendDlgItemMessage(wnd, IDC_CMB_CONFIG_LIST_STYLE, CB_GETCURSEL, 0, 0);
 }
 
 bool CConfigurationDialog::cfg_searching_has_changed() {
@@ -565,16 +579,16 @@ void CConfigurationDialog::save_matching_dialog(HWND wnd, bool dlgbind) {
 	conf_ptr->match_tracks_using_number = uButton_GetCheck(wnd, IDC_MATCH_USING_NUMBERS);
 	conf_ptr->assume_tracks_sorted = uButton_GetCheck(wnd, IDC_MATCH_ASSUME_SORTED);
 
-	if (uButton_GetCheck(wnd, IDC_SKIP_RELEASE_DIALOG_CHECK))
+	if (uButton_GetCheck(wnd, IDC_CHK_SKIP_RELEASE_DLG))
 		conf_ptr->skip_mng_flag |= SkipMng::SKIP_RELEASE_DLG_MATCHED;
 	else
 		conf_ptr->skip_mng_flag &= ~SkipMng::SKIP_RELEASE_DLG_MATCHED;
 
 	pfc::string8 text;
-	uGetDlgItemText(wnd, IDC_DISCOGS_FORMATTING_EDIT, text);
+	uGetDlgItemText(wnd, IDC_EDIT_DISCOGS_FORMATTING, text);
 	conf_ptr->release_discogs_format_string = text;
 
-	uGetDlgItemText(wnd, IDC_FILE_FORMATTING_EDIT, text);
+	uGetDlgItemText(wnd, IDC_EDIT_FILE_FORMATTING, text);
 	conf_ptr->release_file_format_string = text;
 
 	if (uButton_GetCheck(wnd, IDC_SKIP_BRAINZ_MIBS_FETCH))
@@ -603,9 +617,9 @@ void CConfigurationDialog::save_tagging_dialog(HWND wnd, bool dlgbind) {
 
 	foo_conf* conf_ptr = dlgbind ? &conf_edit : &conf;
 
-	conf_ptr->replace_ANVs = uButton_GetCheck(wnd, IDC_ENABLE_ANV_CHECK);
-	conf_ptr->move_the_at_beginning = uButton_GetCheck(wnd, IDC_MOVE_THE_AT_BEGINNING_CHECK);
-	conf_ptr->discard_numeric_suffix = uButton_GetCheck(wnd, IDC_DISCARD_NUMERIC_SUFFIXES_CHECK);
+	conf_ptr->replace_ANVs = uButton_GetCheck(wnd, IDC_CHK_ENABLE_ANV);
+	conf_ptr->move_the_at_beginning = uButton_GetCheck(wnd, IDC_CHK_MOVE_THE_AT_BEGINNING);
+	conf_ptr->discard_numeric_suffix = uButton_GetCheck(wnd, IDC_CHK_DISCARD_NUMERIC_SUFFIXES);
 
 	if (uButton_GetCheck(wnd, IDC_SKIP_PREVIEW_DIALOG))
 		conf_ptr->skip_mng_flag |= SkipMng::SKIP_PREVIEW_DLG;
@@ -635,7 +649,8 @@ void CConfigurationDialog::save_caching_dialog(HWND wnd, bool dlgbind) {
 
 	foo_conf* conf_ptr = dlgbind ? &conf_edit : &conf;
 
-	conf_ptr->parse_hidden_as_regular = uButton_GetCheck(wnd, IDC_HIDDEN_AS_REGULAR_CHECK);
+	conf_ptr->parse_hidden_merge_titles = uButton_GetCheck(wnd, IDC_CHK_HIDDEN_MERGE_TITLES);
+	conf_ptr->parse_hidden_as_regular = uButton_GetCheck(wnd, IDC_CHK_HIDDEN_AS_REGULAR);
 	conf_ptr->skip_video_tracks = uButton_GetCheck(wnd, IDC_SKIP_VIDEO_TRACKS);
 	
 	if (uButton_GetCheck(wnd, IDC_CFG_CACHE_USE_OFFLINE_CACHE)) 
@@ -643,17 +658,17 @@ void CConfigurationDialog::save_caching_dialog(HWND wnd, bool dlgbind) {
 	else
 		conf_ptr->cache_offline_cache_flag &= ~ol::CacheFlags::OC_READ;
 	
-	if (uButton_GetCheck(wnd, IDC_CFG_CACHE_WRITE_OFFLINE_CACHE))
+	if (uButton_GetCheck(wnd, IDC_CFG_CACHE_WRITE_OL_CACHE))
 		conf_ptr->cache_offline_cache_flag |= ol::CacheFlags::OC_WRITE;
 	else
 		conf_ptr->cache_offline_cache_flag &= ~ol::CacheFlags::OC_WRITE;
 	
-	if (original_parsing != conf_ptr->parse_hidden_as_regular || original_skip_video != conf_ptr->skip_video_tracks) {
+	if (original_parsing_merge_titles != conf_ptr->parse_hidden_merge_titles || original_parsing != conf_ptr->parse_hidden_as_regular || original_skip_video != conf_ptr->skip_video_tracks) {
 		discogs_interface->reset_release_cache();
 	}
 
 	pfc::string8 text;
-	uGetDlgItemText(wnd, IDC_CACHED_OBJECTS_EDIT, text);
+	uGetDlgItemText(wnd, IDC_EDIT_CACHED_OBJECTS, text);
 
 	if (!is_number(text.c_str())) return;
 
@@ -663,6 +678,8 @@ void CConfigurationDialog::save_caching_dialog(HWND wnd, bool dlgbind) {
 
 bool CConfigurationDialog::cfg_caching_has_changed() {
 	bool bres = false;
+
+	bres |= conf.parse_hidden_merge_titles != conf_edit.parse_hidden_merge_titles;
 	bres |= conf.parse_hidden_as_regular != conf_edit.parse_hidden_as_regular;
 	bres |= conf.skip_video_tracks != conf_edit.skip_video_tracks;
 	bres |= conf.cache_max_objects != conf_edit.cache_max_objects;
@@ -712,25 +729,25 @@ void CConfigurationDialog::save_art_dialog(HWND wnd, bool dlgbind) {
 	pfc::string8 temp;
 	foo_conf* conf_ptr = dlgbind? &conf_edit : &conf;
 
-	conf_ptr->save_album_art = uButton_GetCheck(wnd, IDC_SAVE_ALBUM_ART_CHECK);
-	conf_ptr->album_art_fetch_all = uButton_GetCheck(wnd, IDC_ALBUM_ART_FETCH_ALL_CHECK);
+	conf_ptr->save_album_art = uButton_GetCheck(wnd, IDC_CHK_SAVE_ALBUM_ART);
+	conf_ptr->album_art_fetch_all = uButton_GetCheck(wnd, IDC_CHK_ALBUM_ART_FETCH_ALL);
 	conf_ptr->embed_album_art = uButton_GetCheck(wnd, IDC_ALBUM_ART_EMBED);
-	uGetDlgItemText(wnd, IDC_ALBUM_ART_DIR_EDIT, temp);
+	uGetDlgItemText(wnd, IDC_EDIT_ALBUM_ART_DIR, temp);
 	conf_ptr->album_art_directory_string = temp;
-	uGetDlgItemText(wnd, IDC_ALBUM_ART_PREFIX_EDIT, temp);
+	uGetDlgItemText(wnd, IDC_EDIT_ALBUM_ART_PREFIX, temp);
 	conf_ptr->album_art_filename_string = temp;
-	conf_ptr->album_art_overwrite = uButton_GetCheck(wnd, IDC_ALBUM_ART_OVERWRITE_CHECK);
+	conf_ptr->album_art_overwrite = uButton_GetCheck(wnd, IDC_CHK_ALBUM_ART_OVR);
 	
-	conf_ptr->save_artist_art = uButton_GetCheck(wnd, IDC_SAVE_ARTIST_ART_CHECK);
-	conf_ptr->artist_art_fetch_all = uButton_GetCheck(wnd, IDC_ARTIST_ART_FETCH_ALL_CHECK);
-	uGetDlgItemText(wnd, IDC_ARTIST_ART_IDS_EDIT, temp);
+	conf_ptr->save_artist_art = uButton_GetCheck(wnd, IDC_CHK_SAVE_ARTIST_ART);
+	conf_ptr->artist_art_fetch_all = uButton_GetCheck(wnd, IDC_CHK_ARTIST_ART_FETCH_ALL);
+	uGetDlgItemText(wnd, IDC_EDIT_ARTIST_ART_IDS, temp);
 	conf_ptr->artist_art_id_format_string = temp;
 	conf_ptr->embed_artist_art = uButton_GetCheck(wnd, IDC_ARTIST_ART_EMBED);
-	uGetDlgItemText(wnd, IDC_ARTIST_ART_DIR_EDIT, temp);
+	uGetDlgItemText(wnd, IDC_EDIT_ARTIST_ART_DIR, temp);
 	conf_ptr->artist_art_directory_string = temp;
-	uGetDlgItemText(wnd, IDC_ARTIST_ART_PREFIX_EDIT, temp);
+	uGetDlgItemText(wnd, IDC_EDIT_ARTIST_ART_PREFIX, temp);
 	conf_ptr->artist_art_filename_string = temp;
-	conf_ptr->artist_art_overwrite = uButton_GetCheck(wnd, IDC_ARTIST_ART_OVERWRITE_CHECK);
+	conf_ptr->artist_art_overwrite = uButton_GetCheck(wnd, IDC_CHK_ARTIST_ART_OVERWRITE);
 }
 
 bool CConfigurationDialog::cfg_art_has_changed() {
@@ -777,11 +794,11 @@ void CConfigurationDialog::save_ui_dialog(HWND wnd, bool dlgbind) {
 	
 	FlgMng fv_stats;
 	conf_ptr->GetFlagVar(CFG_FIND_RELEASE_DIALOG_FLAG, fv_stats);
-	bool val = fv_stats.SetFlag(wnd, IDC_CHK_FIND_RELEASE_STATS, FLG_SHOW_RELEASE_TREE_STATS);
+	bool val = fv_stats.SetFlag(wnd, IDC_CHK_FIND_RELEASE_STATS, CFindReleaseDialog::FLG_SHOW_RELEASE_TREE_STATS); //pass control val to var
 
 	//todo: move this to on apply
 	if (g_discogs->find_release_dialog) {
-		g_discogs->find_release_dialog->Set_Config_Flag(fv_stats.id(), FLG_SHOW_RELEASE_TREE_STATS, val);
+		g_discogs->find_release_dialog->Set_Config_Flag(fv_stats.id(), CFindReleaseDialog::FLG_SHOW_RELEASE_TREE_STATS, val);
 	}
 	conf_ptr->list_style = ::uSendDlgItemMessage(wnd, IDC_CMB_CONFIG_LIST_STYLE, CB_GETCURSEL, 0, 0);
 }
@@ -793,7 +810,7 @@ bool CConfigurationDialog::cfg_ui_has_changed() {
 	bres |= conf.release_enter_key_override != conf_edit.release_enter_key_override;
 	bres |= conf.list_style != conf_edit.list_style;
 
-	bres |= (conf.find_release_dlg_flags & FLG_SHOW_RELEASE_TREE_STATS) != (conf_edit.find_release_dlg_flags & FLG_SHOW_RELEASE_TREE_STATS);
+	bres |= (conf.find_release_dlg_flags & CFindReleaseDialog::FLG_SHOW_RELEASE_TREE_STATS) != (conf_edit.find_release_dlg_flags & CFindReleaseDialog::FLG_SHOW_RELEASE_TREE_STATS);
 
 	return bres;
 }
@@ -803,11 +820,11 @@ void CConfigurationDialog::save_oauth_dialog(HWND wnd, bool dlgbind) {
 	foo_conf* conf_ptr = dlgbind ? &conf_edit : &conf;
 
 	pfc::string8 text;
-	uGetDlgItemText(wnd, IDC_OAUTH_TOKEN_EDIT, text);
-	conf_ptr->oauth_token = text;
+	uGetDlgItemText(wnd, IDC_EDIT_OAUTH_TOKEN, text);
+	conf_ptr->oauth_token = text.c_str();
 
-	uGetDlgItemText(wnd, IDC_OAUTH_SECRET_EDIT, text);
-	conf_ptr->oauth_token_secret = text;
+	uGetDlgItemText(wnd, IDC_EDIT_OAUTH_SECRET, text);
+	conf_ptr->oauth_token_secret = text.c_str();
 }
 
 bool CConfigurationDialog::cfg_oauth_has_changed() {
@@ -860,7 +877,7 @@ BOOL CConfigurationDialog::on_tagging_dialog_message(HWND wnd, UINT msg, WPARAM 
 		setting_dlg = false;
 		return TRUE;
 	case WM_COMMAND:
-		if (LOWORD(wp) == IDC_EDIT_TAG_MAPPINGS_BUTTON) {
+		if (LOWORD(wp) == IDC_BTN_TAG_MAPPINGS) {
 			if (!g_discogs->tag_mappings_dialog) {
 				g_discogs->tag_mappings_dialog = fb2k::newDialog<CTagMappingDialog>(core_api::get_main_window());
 			}
@@ -869,7 +886,7 @@ BOOL CConfigurationDialog::on_tagging_dialog_message(HWND wnd, UINT msg, WPARAM 
 				::SetFocus(tmdlg->m_hWnd);
 			}
 		}
-		else if (LOWORD(wp) == IDC_EDIT_CAT_CREDIT_BTN) {
+		else if (LOWORD(wp) == IDC_BTN_EDIT_CAT_CREDIT) {
 #ifdef CAT_CRED
 			if (!g_discogs->tag_credit_dialog) {
 				g_discogs->tag_credit_dialog = fb2k::newDialog<CTagCreditDialog>(core_api::get_main_window()/*, nullptr*/);
@@ -897,11 +914,11 @@ INT_PTR WINAPI CConfigurationDialog::tagging_dialog_proc(HWND hWnd, UINT msg, WP
 	CConfigurationDialog * p_this;
 
 	if (msg == WM_INITDIALOG) {
-		p_this = (CConfigurationDialog*)(lParam); //retrieve pointer to class
-		::uSetWindowLong(hWnd, GWL_USERDATA, (LPARAM)p_this); //store it for future use
+		p_this = (CConfigurationDialog*)(lParam);
+		::uSetWindowLong(hWnd, GWL_USERDATA, (LPARAM)p_this);
 	}
 	else {
-		// if isnt wm_create, retrieve pointer to class
+
 		p_this = reinterpret_cast<CConfigurationDialog*>(::uGetWindowLong(hWnd, GWL_USERDATA));
 	}
 	return p_this ? p_this->on_tagging_dialog_message(hWnd, msg, wParam, lParam) : FALSE;
@@ -910,17 +927,18 @@ INT_PTR WINAPI CConfigurationDialog::tagging_dialog_proc(HWND hWnd, UINT msg, WP
 INT_PTR WINAPI CConfigurationDialog::caching_dialog_proc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	CConfigurationDialog * p_this;
 	if (msg == WM_INITDIALOG) {
-		p_this = (CConfigurationDialog*)(lParam); //retrieve pointer to class
-		::uSetWindowLong(hWnd, GWL_USERDATA, (LPARAM)p_this); //store it for future use
+		p_this = (CConfigurationDialog*)(lParam);
+		::uSetWindowLong(hWnd, GWL_USERDATA, (LPARAM)p_this);
 	}
 	else {
-		// if isnt wm_create, retrieve pointer to class
+
 		p_this = reinterpret_cast<CConfigurationDialog*>(::uGetWindowLong(hWnd, GWL_USERDATA));
 	}
 	return p_this ? p_this->on_caching_dialog_message(hWnd, msg, wParam, lParam) : FALSE;
 }
 
 BOOL CConfigurationDialog::on_caching_dialog_message(HWND wnd, UINT msg, WPARAM wp, LPARAM lp) {
+
 	switch (msg) {
 		case WM_INITDIALOG:
 			setting_dlg = true;
@@ -953,6 +971,7 @@ BOOL CConfigurationDialog::on_caching_dialog_message(HWND wnd, UINT msg, WPARAM 
 					}
 				}
 			}
+
 			if (brefresh_mem_cache_buttons) {
 				init_memory_cache_buttons(wnd);
 			}
@@ -1048,7 +1067,7 @@ INT_PTR WINAPI CConfigurationDialog::searching_dialog_proc(HWND hWnd, UINT msg, 
 		::uSetWindowLong(hWnd, GWL_USERDATA, (LPARAM)p_this); //store it for future use
 	}
 	else {
-		// if isnt wm_create, retrieve pointer to class
+
 		p_this = reinterpret_cast<CConfigurationDialog*>(::uGetWindowLong(hWnd, GWL_USERDATA));
 	}
 	return p_this ? p_this->on_searching_dialog_message(hWnd, msg, wParam, lParam) : FALSE;
@@ -1116,7 +1135,7 @@ INT_PTR WINAPI CConfigurationDialog::art_dialog_proc(HWND hWnd, UINT msg, WPARAM
 	CConfigurationDialog * p_this;
 
 	if (msg == WM_INITDIALOG) {
-		p_this = (CConfigurationDialog*)(lParam); //retrieve pointer to class
+		p_this = (CConfigurationDialog*)(lParam);
 		::uSetWindowLong(hWnd, GWL_USERDATA, (LPARAM)p_this); //store it for future use
 	}
 	else {
@@ -1149,8 +1168,8 @@ BOOL CConfigurationDialog::on_art_dialog_message(HWND wnd, UINT msg, WPARAM wp, 
 INT_PTR WINAPI CConfigurationDialog::ui_dialog_proc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	CConfigurationDialog* p_this;
 	if (msg == WM_INITDIALOG) {
-		p_this = (CConfigurationDialog*)(lParam); //retrieve pointer to class
-		::uSetWindowLong(hWnd, GWL_USERDATA, (LPARAM)p_this); //store it for future use
+		p_this = (CConfigurationDialog*)(lParam);
+		::uSetWindowLong(hWnd, GWL_USERDATA, (LPARAM)p_this);
 	}
 	else {
 		p_this = reinterpret_cast<CConfigurationDialog*>(::uGetWindowLong(hWnd, GWL_USERDATA));
@@ -1159,6 +1178,7 @@ INT_PTR WINAPI CConfigurationDialog::ui_dialog_proc(HWND hWnd, UINT msg, WPARAM 
 }
 
 BOOL CConfigurationDialog::on_ui_dialog_message(HWND wnd, UINT msg, WPARAM wp, LPARAM lp) {
+
 	switch (msg) {
 		case WM_INITDIALOG:
 			setting_dlg = true;
@@ -1166,14 +1186,32 @@ BOOL CConfigurationDialog::on_ui_dialog_message(HWND wnd, UINT msg, WPARAM wp, L
 			setting_dlg = false;
 			return TRUE;
 		case WM_COMMAND: {
-			switch (wp) {
+
+			int idFrom = LOWORD(wp);
+			int cmd = HIWORD(wp);
+
+			switch (idFrom) {
 				case IDC_BTN_UI_CLEAR_HISTORY:
 					if (g_discogs->find_release_dialog)
 						g_discogs->find_release_dialog->get_oplogger()->zap_vhistory();
 					on_delete_history(wnd, 0, true);
 					break;
+				case IDC_CMB_CONFIG_LIST_STYLE:
+					if (!setting_dlg) {
+						if (cmd == CBN_SELCHANGE) {
+							int s = ::uSendDlgItemMessage(wnd, IDC_CMB_CONFIG_LIST_STYLE, CB_GETCURSEL, 0, 0);
+							int data = ::uSendDlgItemMessage(wnd, IDC_CMB_CONFIG_LIST_STYLE, CB_GETITEMDATA, s, 0);
+							if (s != CB_ERR) {
+								conf_edit.list_style = s;
+							}
+							OnChanged();
+							break;
+						}
+					}
+					break;
 				default:
-					if ((HIWORD(wp) == BN_CLICKED) || (HIWORD(wp) == EN_UPDATE)) {
+					//IDC_UI_HISTORY_MAX_ITEMS...
+					if (cmd == BN_CLICKED || cmd == EN_UPDATE) {
 						if (!setting_dlg) {
 							save_ui_dialog(wnd, true);
 							OnChanged();
@@ -1191,8 +1229,8 @@ INT_PTR WINAPI CConfigurationDialog::oauth_dialog_proc(HWND hWnd, UINT msg, WPAR
 	CConfigurationDialog * p_this;
 
 	if (msg == WM_INITDIALOG) {
-		p_this = (CConfigurationDialog*)(lParam); //retrieve pointer to class
-		::uSetWindowLong(hWnd, GWL_USERDATA, (LPARAM)p_this); //store it for future use
+		p_this = (CConfigurationDialog*)(lParam);
+		::uSetWindowLong(hWnd, GWL_USERDATA, (LPARAM)p_this);
 	}
 	else {
 		// if isnt wm_create, retrieve pointer to class
@@ -1282,28 +1320,29 @@ void CConfigurationDialog::on_load_search_formatting(HWND wnd) {
 	switch (cmd)
 	{
 	case MENU_1:
-		uid = IDC_RELEASE_FORMATTING_EDIT;
+		uid = IDC_EDIT_RELEASE_FORMATTING;
 		frm_string << tmpcfg.search_release_format_string;
 		break;
 	case MENU_2:
-		uid = IDC_MASTER_FORMATTING_EDIT;
+		uid = IDC_EDIT_MASTER_FORMATTING;
 		frm_string << tmpcfg.search_master_format_string;
 		break;
 	case MENU_3:
-		uid = IDC_MASTER_SUB_FORMATTING_EDIT;
+		uid = IDC_EDIT_MASTER_SUB_FORMATTING;
 		frm_string << tmpcfg.search_master_sub_format_string;
 		break;
 
 	case MENU_4:
-		uid = IDC_RELEASE_FORMATTING_EDIT;
+		uid = IDC_EDIT_RELEASE_FORMATTING;
 		frm_string << "\'[\'%RELEASE_SEARCH_ROLES%\']\' $join($append(%RELEASE_TITLE%,%RELEASE_SEARCH_LABELS%,%RELEASE_SEARCH_MAJOR_FORMATS%,%RELEASE_SEARCH_FORMATS%,%RELEASE_YEAR%,%RELEASE_SEARCH_CATNOS%))";
 		break;
 	case MENU_5:
-		uid = IDC_MASTER_FORMATTING_EDIT;
+		uid = IDC_EDIT_MASTER_FORMATTING;
 		frm_string << "\'[T]\' \'[\'%MASTER_RELEASE_SEARCH_ROLES%\']\' $join($append(%MASTER_RELEASE_TITLE%,%MASTER_RELEASE_YEAR%))";
 		break;
 	defualt:
-		return; //quit
+		//quit
+		return;
 	}
 
 	uSetDlgItemText(wnd, uid, frm_string);
@@ -1325,10 +1364,10 @@ void CConfigurationDialog::on_delete_history(HWND wnd, size_t max, bool zap) {
 
 void CConfigurationDialog::on_test_oauth(HWND wnd) {
 	pfc::string8 text;
-	uGetDlgItemText(wnd, IDC_OAUTH_TOKEN_EDIT, text);
+	uGetDlgItemText(wnd, IDC_EDIT_OAUTH_TOKEN, text);
 	pfc::string8 token = pfc::string8(text);
 
-	uGetDlgItemText(wnd, IDC_OAUTH_SECRET_EDIT, text);
+	uGetDlgItemText(wnd, IDC_EDIT_OAUTH_SECRET, text);
 	pfc::string8 token_secret = pfc::string8(text);
 
 	service_ptr_t<test_oauth_process_callback> task = new service_impl_t<test_oauth_process_callback>(token, token_secret);
@@ -1348,7 +1387,7 @@ void CConfigurationDialog::on_authorize_oauth(HWND wnd) {
 
 void CConfigurationDialog::on_generate_oauth(HWND wnd) {
 	pfc::string8 code;
-	uGetDlgItemText(wnd, IDC_OAUTH_PIN_EDIT, code);
+	uGetDlgItemText(wnd, IDC_EDIT_OAUTH_PIN, code);
 
 	if (code.get_length() == 0) {
 		show_oauth_msg("Enter a valid PIN code.", true);

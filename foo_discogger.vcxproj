@@ -147,7 +147,9 @@
     <ClCompile Include="art_download_attribs.cpp" />
     <ClCompile Include="find_artist_list.cpp" />
     <ClCompile Include="history_oplog.cpp" />
-    <ClCompile Include="track_matching_ILOsrc_uilists.cpp" />
+    <ClCompile Include="preview_modal_tag_dialog.cpp" />
+    <ClCompile Include="preview_modal_tag_ILO.cpp" />
+    <ClCompile Include="track_matching_ILO.cpp" />
     <ClCompile Include="conf.cpp" />
     <ClCompile Include="configuration_dialog.cpp" />
     <ClCompile Include="db_fetcher.cpp" />
@@ -194,8 +196,11 @@
     <ClInclude Include="cache.h" />
     <ClInclude Include="find_artist_list.h" />
     <ClInclude Include="history_oplog.h" />
-    <ClInclude Include="track_matching_ILOsrc_uilists.h" />
-    <ClInclude Include="myeditwithbuttons.h" />
+    <ClInclude Include="my_tabentry.h" />
+    <ClInclude Include="preview_modal_tag_dialog.h" />
+    <ClInclude Include="preview_modal_tag_ILO.h" />
+    <ClInclude Include="track_matching_ILO.h" />
+    <ClInclude Include="my_editwithbuttons.h" />
     <ClInclude Include="CGdiPlusBitmap.h" />
     <ClInclude Include="conf.h" />
     <ClInclude Include="configuration_dialog.h" />

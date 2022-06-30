@@ -39,8 +39,6 @@ private:
 
 	TagWriter_ptr m_tag_writer;
 
-	service_ptr_t<titleformat_object> m_track_desc_script;
-	
 	size_t tw_index = 0;
 	size_t tw_skip = 0;
 
@@ -52,7 +50,7 @@ private:
 	void insert_tag_result(int pos, const tag_result_ptr &result, PreView preview_mode);
 
 	void compute_stats(tag_results_list_type tag_results);
-	void compute_stats_track_map(tag_results_list_type tag_results);
+	void compute_stats_track_map();
 
 	void reset_stats () { v_stats.clear(); }
 	void reset_tag_result_stats();
@@ -134,14 +132,14 @@ public:
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
-		COMMAND_ID_HANDLER(IDC_BACK_BUTTON, OnButtonBack)
-		COMMAND_ID_HANDLER(IDC_TAG_MAPPINGS_BUTTON, OnEditTagMappings)
-		COMMAND_ID_HANDLER(IDC_WRITE_TAGS_BUTTON, OnButtonWriteTags)
+		COMMAND_ID_HANDLER(IDC_BTN_BACK, OnButtonBack)
+		COMMAND_ID_HANDLER(IDC_BTN_TAG_MAPPINGS, OnButtonEditTagMappings)
+		COMMAND_ID_HANDLER(IDC_BTN_WRITE_TAGS, OnButtonWriteTags)
 		
-		COMMAND_ID_HANDLER(IDC_CHECK_REPLACE_ANV, OnCheckReplaceANVs)
-		COMMAND_ID_HANDLER(IDC_CHECK_PREV_DLG_SHOW_STATS, OnCheckPreviewShowStats)
-		COMMAND_ID_HANDLER(IDC_CHECK_SKIP_ARTWORK, OnCheckSkipArtwork)
-		COMMAND_ID_HANDLER(IDC_CHECK_BIND_TAGS_DLG, OnCheckAttachMappingPanel)
+		COMMAND_ID_HANDLER(IDC_CHK_REPLACE_ANV, OnCheckReplaceANVs)
+		COMMAND_ID_HANDLER(IDC_CHK_PREV_DLG_SHOW_STATS, OnCheckPreviewShowStats)
+		COMMAND_ID_HANDLER(IDC_CHK_SKIP_ARTWORK, OnCheckSkipArtwork)
+		COMMAND_ID_HANDLER(IDC_CHK_BIND_TAGS_DLG, OnCheckAttachMappingPanel)
 
 		COMMAND_ID_HANDLER(IDC_VIEW_NORMAL, OnChangePreviewMode)
 		COMMAND_ID_HANDLER(IDC_VIEW_DIFFERENCE, OnChangePreviewMode)
@@ -164,17 +162,17 @@ public:
 	BEGIN_DLGRESIZE_MAP(CPreviewTagsDialog)
 		DLGRESIZE_CONTROL(IDC_ALBUM_ART, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_OPTIONS_GROUP, DLSZ_MOVE_X)
-		DLGRESIZE_CONTROL(IDC_CHECK_REPLACE_ANV, DLSZ_MOVE_X)
-		DLGRESIZE_CONTROL(IDC_CHECK_SKIP_ARTWORK, DLSZ_MOVE_X)
-		DLGRESIZE_CONTROL(IDC_CHECK_PREV_DLG_SHOW_STATS, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_CHK_REPLACE_ANV, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_CHK_SKIP_ARTWORK, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_CHK_PREV_DLG_SHOW_STATS, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_VIEW_GROUP, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_VIEW_NORMAL, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_VIEW_DIFFERENCE, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_VIEW_ORIGINAL, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_VIEW_DEBUG, DLSZ_MOVE_X)
-		DLGRESIZE_CONTROL(IDC_TAG_MAPPINGS_BUTTON, DLSZ_MOVE_X)
-		DLGRESIZE_CONTROL(IDC_BACK_BUTTON, DLSZ_MOVE_X)
-		DLGRESIZE_CONTROL(IDC_WRITE_TAGS_BUTTON, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_BTN_TAG_MAPPINGS, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_BTN_BACK, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_BTN_WRITE_TAGS, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_PREVIEW_LIST, DLSZ_SIZE_X | DLSZ_SIZE_Y)
 	END_DLGRESIZE_MAP()
 
@@ -185,12 +183,13 @@ public:
 	CPreviewTagsDialog(HWND p_parent, TagWriter_ptr tag_writer)
 		: m_tag_writer(tag_writer), m_results_list(NULL), conf(CONF), m_preview_bitmap(NULL) {
 
+		multi_uartwork test = CONF_MULTI_ARTWORK;
+
 		conf.SetName("PreviewDlg");
 		g_discogs->preview_tags_dialog = this;
 
 		m_rec_icon = LoadDpiBitmapResource(Icon::Record);
 
-		static_api_ptr_t<titleformat_compiler>()->compile_force(m_track_desc_script, "[[%album artist%]] - [[%discnumber% .]%tracknumber% -] [%track artist% -] %title% ");
 	}
 
 	~CPreviewTagsDialog();
@@ -205,7 +204,7 @@ public:
 	LRESULT OnCheckPreviewShowStats(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCheckSkipArtwork(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCheckAttachMappingPanel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnEditTagMappings(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnButtonEditTagMappings(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnChangePreviewMode(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnListClick(LPNMHDR lParam);
 	LRESULT OnListDoubleClick(LPNMHDR lParam);

@@ -3,6 +3,13 @@
 #include "preview_modal_tag_dialog.h"
 #include "preview_modal_tag_ILO.h"
 
+void ILOD_preview_modal::trigger_action() {
+
+	if (ilo_get_ui_list()->GetSelectedCount()) {
+		listItemAction((CListControlOwnerData*)this, ilo_get_ui_list()->GetFirstSelected());
+	}
+}
+
 size_t ILOD_preview_modal::listGetItemCount(ctx_t ctx) {
 
 	return ilo_get_vtracks_desc().size();
@@ -12,9 +19,11 @@ size_t ILOD_preview_modal::listGetItemCount(ctx_t ctx) {
 
 pfc::string8 ILOD_preview_modal::listGetSubItemText(ctx_t ctx, size_t item, size_t subItem) {
 
+	if (item >= ilo_get_finfo_count()) return "";
+
 	if (subItem == 0) {
 	
-		return std::to_string(item).c_str();
+		return std::to_string(item + 1).c_str(); //1 based # column
 	}
 	else if (subItem == 1) {
 	
@@ -40,6 +49,11 @@ pfc::string8 ILOD_preview_modal::listGetSubItemText(ctx_t ctx, size_t item, size
 			arr_sea_val = &m_item_result->value;
 		}
 
+		if (item >= ilo_get_finfo_count()) {
+
+			return "";
+		}
+
 		pfc::string8 buffer;
 		pfc::string8 cmp_old_buffer;
 
@@ -54,6 +68,11 @@ pfc::string8 ILOD_preview_modal::listGetSubItemText(ctx_t ctx, size_t item, size
 		}
 
 		if (get_mode() == PreView::kDIFFERENCE) {
+
+			if (item >= ilo_get_finfo_count()) {
+
+				return "";
+			}
 
 			if (cmp_old_sea_val->size() == 1) {
 

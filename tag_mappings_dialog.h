@@ -169,20 +169,25 @@ private:
 	//- Remove
 
 	bool listRemoveItems(ctx_t ctx, pfc::bit_array const& mask) override {
-		
-		//remove not freezed masked
-		size_t walk = 0;
+
+		size_t max = m_ptag_mappings->get_count();
 		size_t deleted = 0;
-		while (walk = mask.find_next(true, walk, m_ptag_mappings->get_count())) {
-			if (walk >= m_ptag_mappings->get_count()) break;
+		size_t walk = -1;
+
+		while ((walk = mask.find_next(true, walk, max)) < max) {
 			auto entry = m_ptag_mappings->get_item(walk - deleted);
+
 			if (!entry.freeze_tag_name) {
 				m_ptag_mappings->remove_by_idx(walk - deleted);
 				++deleted;
 			}
 		}
-		on_mapping_changed(check_mapping_changed());
-		return true;
+
+		if (deleted) {
+			on_mapping_changed(check_mapping_changed());
+		}
+
+		return deleted;
 	}
 
 	//- Item action
@@ -208,7 +213,9 @@ private:
 	//- Set edited text
 
 	void listSetEditField(ctx_t ctx, size_t item, size_t subItem, const char* val) override {
+
 		tag_mapping_entry& entry = (*m_ptag_mappings)[item];
+
 		if (subItem == 0) {
 			entry.tag_name = val;
 		}
@@ -295,7 +302,7 @@ public:
 
 	void load_size();
 	bool build_current_cfg();
-	void pushcfg(bool force);
+	void pushcfg();
 	bool check_mapping_changed();
 	void on_mapping_changed(bool changed);
 
@@ -304,7 +311,7 @@ public:
 
 	MY_BEGIN_MSG_MAP(CTagMappingDialog)
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
-		COMMAND_ID_HANDLER(IDOK, OnButtonNext)
+		COMMAND_ID_HANDLER(IDOK, OnOk)
 		COMMAND_ID_HANDLER(IDC_APPLY, OnApply)
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
@@ -351,14 +358,10 @@ public:
 	CTagMappingDialog::~CTagMappingDialog() {
 
 		g_discogs->tag_mappings_dialog = nullptr;
-		if (m_ptag_mappings != nullptr) {
-			delete m_ptag_mappings;
-			m_ptag_mappings = nullptr;
-		}
 	}
 
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
-	LRESULT OnButtonNext(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnOk(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnApply(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);

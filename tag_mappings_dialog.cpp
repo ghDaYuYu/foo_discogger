@@ -4,7 +4,6 @@
 #include "db_fetcher_component.h"
 
 #include "preview_dialog.h"
-
 #ifdef CAT_CRED
 #include "tag_mappings_credits_dlg.h"
 #endif // CAT_CRED
@@ -29,18 +28,16 @@ inline void CTagMappingDialog::load_size() {
 	}
 }
 
-void CTagMappingDialog::pushcfg(bool force) {
-	bool conf_changed = build_current_cfg();
-	if (conf_changed || force) {
-		CONF.save(CConf::cfgFilter::TAG, conf);
-		CONF.load();
-	}
+void CTagMappingDialog::pushcfg() {
+
+	CONF.save(CConf::cfgFilter::TAG, conf);
+	CONF.load();
+
 }
 
 inline bool CTagMappingDialog::build_current_cfg() {
 
 	bool bres = false;
-	bres |= check_mapping_changed();
 
 	int width1 = m_tag_list.GetColumnWidthF(0);
 	int width2 = m_tag_list.GetColumnWidthF(1);
@@ -118,7 +115,7 @@ LRESULT CTagMappingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM
 	cfg_window_placement_tag_mapping_dlg.on_window_creation(m_hWnd, true);
 	show();
 
-	on_mapping_changed(check_mapping_changed());
+	on_mapping_changed(false);
 	::uPostMessage(m_hWnd, WM_NEXTDLGCTL, (WPARAM)(HWND)GetDlgItem(IDC_APPLY), TRUE);
 	return FALSE;
 }
@@ -190,8 +187,8 @@ void CTagMappingDialog::update_list_width() {
 }
 
 void CTagMappingDialog::applymappings() {
+
 	set_cfg_tag_mappings(m_ptag_mappings);
-	pushcfg(true);
 	on_mapping_changed(check_mapping_changed());
 
 	if (g_discogs->preview_tags_dialog) {
@@ -200,7 +197,7 @@ void CTagMappingDialog::applymappings() {
 	}
 }
 
-LRESULT CTagMappingDialog::OnButtonNext(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+LRESULT CTagMappingDialog::OnOk(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	applymappings();
 	destroy();
 	return TRUE;
@@ -218,8 +215,9 @@ LRESULT CTagMappingDialog::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndC
 }
 
 LRESULT CTagMappingDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
+
 	if (build_current_cfg()) {
-		pushcfg(true);
+		pushcfg();
 	}
 	cfg_window_placement_tag_mapping_dlg.on_window_destruction(m_hWnd);
 	return FALSE;
@@ -229,10 +227,7 @@ LRESULT CTagMappingDialog::OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*hWn
 	pfc::string8 msg;
 	msg << "Reset to default configuration?";
 	if (uMessageBox(m_hWnd, msg, "Default Tag Mappings", MB_OKCANCEL | MB_ICONINFORMATION) == IDOK) {
-		if (m_ptag_mappings != nullptr) {
-			delete m_ptag_mappings;
-			m_ptag_mappings = nullptr;
-		}
+
 		set_tag_mapping(copy_default_tag_mappings());
 		m_tag_list.Invalidate(true);
 		on_mapping_changed(check_mapping_changed());
@@ -288,6 +283,7 @@ LRESULT CTagMappingDialog::OnImport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndC
 		clear_errors();
 	}
 	delete buf;
+	m_tag_list.Invalidate(true);
 	on_mapping_changed(check_mapping_changed());
 	return FALSE;
 }
@@ -390,11 +386,11 @@ LRESULT CTagMappingDialog::OnEditHLText(WORD wNotifyCode, WORD wID, HWND hWndCtl
 }
 
 LRESULT CTagMappingDialog::OnBtnRemoveTag(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	size_t oldCount = m_tag_list.GetItemCount();
-	pfc::bit_array_bittable selmask = m_tag_list.GetSelectionMask();
-	listRemoveItems(nullptr, selmask);
-	m_tag_list.OnItemsRemoved(selmask, oldCount);
-	on_mapping_changed(check_mapping_changed());
+
+	//will visit listRemoveItems...
+
+	m_tag_list.RequestRemoveSelection();
+
 	return FALSE;
 }
 
@@ -439,6 +435,7 @@ void CTagMappingDialog::show_context_menu(CPoint& pt, pfc::bit_array_bittable& s
 		size_t csel = m_tag_list.GetSelectedCount();
 		size_t isel = selmask.find_first(true, 0, m_tag_list.GetItemCount());
 		if (isel >= m_tag_list.GetItemCount()) return;
+
 		bool ball_freezed = [this, selmask]()->bool
 		{
 			size_t sel = selmask.find_first(true, 0, m_tag_list.GetItemCount());
@@ -453,6 +450,7 @@ void CTagMappingDialog::show_context_menu(CPoint& pt, pfc::bit_array_bittable& s
 		}();
 
 		if (csel >= 0 && isel < m_ptag_mappings->get_count()) {
+
 			bool single_sel = (csel == 1);
 			tag_mapping_entry entry = m_ptag_mappings->get_item(isel);
 			
@@ -538,6 +536,7 @@ void CTagMappingDialog::show_context_menu(CPoint& pt, pfc::bit_array_bittable& s
 			}
 
 			if (bloop && !(cmd == ID_RESTORE && (csel >= 1))) {
+
 				do {
 					entry = m_ptag_mappings->get_item(isel);
 					release_id_mod = STR_EQUAL(TAG_RELEASE_ID, entry.tag_name.get_ptr()) && !bl_write;
@@ -553,7 +552,9 @@ void CTagMappingDialog::show_context_menu(CPoint& pt, pfc::bit_array_bittable& s
 							bchanged |= update_tag(isel, &entry);
 						}
 					}
+
 					isel = selmask.find_next(true, isel, m_tag_list.GetItemCount());
+
 				} while (isel < m_tag_list.GetItemCount());
 			}
 			
@@ -601,7 +602,6 @@ LRESULT CTagMappingDialog::OnSplitDropDown(WORD wNotifyCode, WORD wID, HWND hWnd
 		}
 	}
 	else if (wID == IDC_SPLIT_BTN_TAG_ADD_NEW) {
-
 		POINT pt;
 		pt.x = rcButton.left;
 		pt.y = rcButton.bottom;
@@ -664,7 +664,7 @@ LRESULT CTagMappingDialog::OnSplitDropDown(WORD wNotifyCode, WORD wID, HWND hWnd
 		++item;
 		for (size_t n = 17; n < 21; n++) {
 			entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(n));
-			uAppendMenu(submenus[item], MF_STRING, submenus_ids[item] + n, entry->tag_name);
+			uAppendMenu(submenus[item], MF_STRING | MF_DISABLED | MF_GRAYED, submenus_ids[item] + n, entry->tag_name);
 		}
 		InsertMenuItem(hSplitMenu, submenus_ids[item], true, &submenu_infos[item]);
 

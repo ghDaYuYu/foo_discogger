@@ -6,7 +6,7 @@
 #include "track_matching_dialog_presenter.h"
 #include "track_match_lstdrop.h"
 
-#include "track_matching_ILOsrc_uilists.h"
+#include "track_matching_ILO.h"
 #include "libPPUI\CListControlOwnerData.h"
 
 using namespace Discogs;
@@ -43,7 +43,7 @@ struct preview_job {
 
 class CTrackMatchingDialog : public MyCDialogImpl<CTrackMatchingDialog>,
 	public CDialogResize<CTrackMatchingDialog>,	public CMessageFilter,
-	private ILODsrc/*IListControlOwnerDataSource*/ {
+	private ILOD_track_matching/*IListControlOwnerDataSource*/ {
 
 private:
 
@@ -52,12 +52,8 @@ private:
 		return uGetDlgItem(ID);		
 	}
 
-	//.. Dlg lists
-
-	bool init_count();
-
 	lsmode get_mode() {
-		return uButton_GetCheck(m_hWnd, IDC_TRACK_MATCH_ALBUM_ART) == TRUE ?
+		return uButton_GetCheck(m_hWnd, IDC_CHK_MNG_ARTWORK) == TRUE ?
 			lsmode::art : lsmode::default;
 	}
 
@@ -67,6 +63,8 @@ private:
 
 	void insert_track_mappings();
 	void generate_track_mappings(track_mappings_list_type &track_mappings);
+	void fix_multi_artwork_embeds(multi_uartwork &mu);
+	bool generate_artwork_guids(pfc::array_t<GUID>& my_album_art_ids, bool cfg_default);
 
 	void update_list_width(HWND list, bool initialize=false);
 	bool context_menu_form(HWND wnd, LPARAM coords);
@@ -74,6 +72,10 @@ private:
 	bool context_menu_track_switch(HWND wnd, POINT point, bool isfiles, int cmd, bit_array_bittable selmask, pfc::array_t<t_size> order, CListControlOwnerData* ilist);
 	void context_menu_art_attrib_switch(HWND wnd, af afalbum, af afart, UINT IDATT, lsmode mode);
 	bool context_menu_art_attrib_show(HWND wnd, HMENU* menu);
+
+	virtual coord_presenters* ilo_get_coord() override { return &m_coord; }
+	virtual CListControlOwnerData* ilo_get_idc_list() override { return &m_idc_list; }
+	virtual CListControlOwnerData* ilo_get_ifile_list() override { return &m_ifile_list; }
 
 protected:
 
@@ -108,8 +110,9 @@ public:
 		MESSAGE_HANDLER(WM_CTLCOLORSTATIC, OnColorStatic)
 
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
-		COMMAND_ID_HANDLER(IDC_CHECK_SKIP_ARTWORK, OnCheckSkipArtwork)
-		COMMAND_ID_HANDLER(IDC_TRACK_MATCH_ALBUM_ART, OnCheckManageArtwork)
+		COMMAND_ID_HANDLER(IDC_CHK_SKIP_ARTWORK, OnCheckSkipArtwork)
+		COMMAND_ID_HANDLER(IDC_CHK_MNG_ARTWORK, OnCheckManageArtwork)
+		COMMAND_ID_HANDLER(IDC_CHK_ARTWORK_FILEMATCH, OnCheckArtworkFileMatch)
 
 		NOTIFY_HANDLER_EX(IDC_FILE_LIST, NM_DBLCLK, OnListDoubleClick)
 		NOTIFY_HANDLER_EX(IDC_DISCOGS_TRACK_LIST, NM_DBLCLK, OnListDoubleClick)
@@ -120,10 +123,10 @@ public:
 		NOTIFY_HANDLER_EX(IDC_FILE_LIST, LVN_GETDISPINFO, OnDiscogListGetDispInfo)
 		NOTIFY_HANDLER_EX(IDC_DISCOGS_TRACK_LIST, LVN_GETDISPINFO, OnDiscogListGetDispInfo)
 
-		COMMAND_ID_HANDLER(IDC_BACK_BUTTON, OnButtonBack)
-		COMMAND_ID_HANDLER(IDC_WRITE_TAGS_BUTTON, OnButtonWriteTags)
-		COMMAND_ID_HANDLER(IDC_PREVIEW_TAGS_BUTTON, OnButtonPreviewTags)
-		COMMAND_ID_HANDLER(IDC_WRITE_ARTWORK_BUTTON, OnButtonWriteArtwork)
+		COMMAND_ID_HANDLER(IDC_BTN_BACK, OnButtonBack)
+		COMMAND_ID_HANDLER(IDC_BTN_WRITE_TAGS, OnButtonWriteTags)
+		COMMAND_ID_HANDLER(IDC_BTN_PREVIEW_TAGS, OnButtonPreviewTags)
+		COMMAND_ID_HANDLER(IDC_BTN_WRITE_ARTWORK, OnButtonWriteArtwork)
 
 
 		CHAIN_MSG_MAP_MEMBER(m_list_drop_handler)
@@ -141,17 +144,18 @@ public:
 		DLGRESIZE_CONTROL(IDC_FILE_LIST, DLSZ_SIZE_X)
 		END_DLGRESIZE_GROUP()
 		DLGRESIZE_CONTROL(IDC_STATIC_MATCH_TRACKING_REL_NAME, DLSZ_SIZE_X)
-		DLGRESIZE_CONTROL(IDC_MATCH_TRACKS_MSG, DLSZ_MOVE_X | DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDC_WRITE_ARTWORK_BUTTON, DLSZ_MOVE_X)
-		DLGRESIZE_CONTROL(IDC_PREVIEW_TAGS_BUTTON, DLSZ_MOVE_X)
-		DLGRESIZE_CONTROL(IDC_WRITE_TAGS_BUTTON, DLSZ_MOVE_X)
-		DLGRESIZE_CONTROL(IDC_BACK_BUTTON, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_STATIC_MATCH_TRACKS_MSG, DLSZ_MOVE_X | DLSZ_MOVE_Y)
+		DLGRESIZE_CONTROL(IDC_BTN_WRITE_ARTWORK, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_CHK_ARTWORK_FILEMATCH, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_BTN_PREVIEW_TAGS, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_BTN_WRITE_TAGS, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_BTN_BACK, DLSZ_MOVE_X)
 	END_DLGRESIZE_MAP()
 
 	void DlgResize_UpdateLayout(int cxWidth, int cyHeight) {
 		CDialogResize<CTrackMatchingDialog>::DlgResize_UpdateLayout(cxWidth, cyHeight);
 
-		//omitted by dlgresize...
+		//post-update
 
 		if (!::IsWindowVisible(uGetDlgItem(IDC_UI_LIST_DISCOGS))) return;
 
@@ -171,7 +175,7 @@ public:
 
 	// constructor
 
-	CTrackMatchingDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags = false) : ILODsrc(&this->m_coord, &this->m_idc_list, &this->m_ifile_list),
+	CTrackMatchingDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags = false) : ILOD_track_matching(),
 		m_tag_writer(tag_writer), m_list_drop_handler(),
 		m_conf(CONF), m_coord(p_parent, CONF),
 		m_idc_list(this), m_ifile_list(this)
@@ -184,6 +188,10 @@ public:
 
 	~CTrackMatchingDialog() {
 
+#ifdef DEBUG
+		log_msg("Cleaning ~ matching dlg");
+#endif
+		
 		//DeleteObject(m_hImageList);
 		DeleteObject(m_rec_icon);
 		g_discogs->track_matching_dialog = nullptr;
@@ -203,8 +211,7 @@ public:
 
 	LRESULT OnCheckSkipArtwork(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCheckManageArtwork(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-
-	LRESULT OnWriteArtworkKnownIds(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnCheckArtworkFileMatch(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 
 	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
@@ -258,7 +265,6 @@ public:
 private:
 
 	foo_conf m_conf;
-	uartwork m_last_run_uart;
 
 	std::vector<preview_job> m_vpreview_jobs;
 	size_t m_pending_previews = 0;

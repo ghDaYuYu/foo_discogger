@@ -75,7 +75,7 @@ public:
 
 public:
 
-	presenter(coord_presenters* coord, foo_conf conf) : presenter() {
+	presenter(coord_presenters* coord) : presenter() {
 
 		mm_hWnd = NULL;
 		m_coord = coord;
@@ -425,13 +425,13 @@ class discogs_artwork_presenter : public artwork_presenter {
 
 public:
 
-	discogs_artwork_presenter(coord_presenters* coord) :
+	discogs_artwork_presenter(coord_presenters* coord, const foo_conf & conf) :
 		artwork_presenter(coord) {
 
 		m_vimages = {};
 		m_lvimages = {};
 
-		m_uart = uartwork(get_conf());
+		m_multi_uart = multi_uartwork(/*conf*/);
 	}
 
 	discogs_artwork_presenter() {}
@@ -478,12 +478,12 @@ public:
 	
 	art_src GetSrcTypeAtPos(size_t list_position) { return get_vimages_src_type_at_pos(list_position); }
 	
-	uartwork SetUartwork(uartwork uart) { m_uart = uart; }
-	uartwork SetUartwork_guids(uartwork_guids uart_guids) { m_uart_guids = uart_guids; }
-	uartwork* GetUartwork() { return &m_uart; }
+	multi_uartwork SetUartwork(multi_uartwork multi_uart) { m_multi_uart = multi_uart; }
+	multi_uartwork* GetUartwork() { return &m_multi_uart; }
+	multi_uartwork SetUartwork_guids(uartwork_guids uart_guids) { m_uart_guids = uart_guids; }
 	uartwork_guids* GetUartwork_guids() { return &m_uart_guids; }
 
-	void Reset() override { m_vimages.clear(); m_lvimages.clear(); m_uart = uartwork(m_conf); }
+	void Reset() override { m_vimages.clear(); m_lvimages.clear(); m_multi_uart = multi_uartwork(/*m_conf, m_tag_writer->release*/); }
 
 protected:
 
@@ -496,7 +496,8 @@ protected:
 	size_t get_ndx_at_pos(size_t pos);
 
 private:
-	uartwork m_uart;
+
+	multi_uartwork m_multi_uart;
 	uartwork_guids m_uart_guids;
 
 	getimages_t m_vimages;
@@ -606,16 +607,16 @@ public:
 	coord_presenters(HWND hparent, const foo_conf & discogs_conf) :
 
 		m_hWnd(hparent),
+		//note: member constructors below need m_conf being set
+		m_conf(CConf(discogs_conf))
 		m_discogs_track_libui_presenter(this),
 		m_file_track_libui_presenter(this),
-		m_discogs_art_presenter(this),
+		m_discogs_art_presenter(this, discogs_conf),
 		m_file_art_presenter(this),
 
 		m_cImageTileMode(0),
 		m_lsmode(lsmode::default)
 	{
-
-		m_conf = CConf(discogs_conf);
 		m_conf.SetName("coord_pres");
 	}
 
@@ -642,11 +643,13 @@ public:
 	void SetTileMode(int mode) {}
 
 	void ListUserCmd(HWND hwnd, lsmode mode, int cmd, bit_array_bittable cmdmask, bit_array_bittable are_albums, bool cmdmod = false);
+	void ListUserCmd(HWND hwnd, lsmode mode, int cmd, bit_array_bittable cmdmask, bit_array_bittable are_albums, pfc::array_t<size_t> order, bool cmdmod = false);
+	size_t ListUserCmdDELETE(HWND hwnd, lsmode mode, int cmd, bit_array_bittable cmdmask, bit_array_bittable are_albums, bool cmdmod = false);
+	size_t ListUserCmdMOVE(HWND hwnd, lsmode mode, int cmd, bit_array_bittable cmdmask, bit_array_bittable are_albums, pfc::array_t<size_t> order, bool cmdmod = false);
 
 	void PullConf(lsmode mode, bool tracks, foo_conf* out_conf);
 
-	uartwork* GetUartwork() {
-		//return form_mode["artwork"]->first.GetUartwork();
+	multi_uartwork* GetUartwork() {
 		return m_discogs_art_presenter.GetUartwork();
 	}
 
@@ -661,14 +664,6 @@ public:
 	std::pair<pfc::string8, pfc::string8> GetFileArtInfo(art_src art_source, size_t list_position) {
 		return m_file_art_presenter.TagWriterImgInfo(art_source, list_position);
 	}
-
-	/*
-	using V = std::variant<
-	std::pair<size_t, track_it>,
-	std::pair<size_t, file_it>,
-	std::pair<size_t, getimages_it>,
-	std::pair<size_t, getimages_file_it>>;
-	*/
 
 	size_t Get_V_LvRow(lsmode mode, bool tracks, size_t list_position, var_it_t& out) {
 		
@@ -709,7 +704,7 @@ public:
 
 	void Initialize(HWND hparent, const foo_conf & dcconf);
 	void SetMode(lsmode mode);
-	void Show(bool showleft = true, bool showright = true);
+	bool Show(bool showleft = true, bool showright = true);
 
 	void InitUiList(HWND hwnd, lsmode mode, bool tracks, CListControlOwnerData* uilist);
 	std::pair<size_t, presenter*> HitUiTest(CPoint point);
@@ -732,8 +727,11 @@ public:
 
 private:
 
-	foo_conf& get_conf() { return m_conf; }
-	void ShowFormMode(lsmode mode, bool showleft, bool showright /*, bool populate*/);
+	foo_conf& get_conf() {
+		return m_conf;
+	}
+
+	bool ShowFormMode(lsmode mode, bool showleft, bool showright);
 
 private:
 

@@ -56,8 +56,7 @@ std::vector<int> build_woas(HWND list) {
 
 	v_woa.resize(cCol);
 
-	for (auto it_woa = v_woa.begin(); it_woa != v_woa.end(); ++it_woa) {
-		//std::for_each(v_woa.begin(), v_woa.begin(), [&](auto& woa) {
+	for (auto & it_woa = v_woa.begin(); it_woa != v_woa.end(); ++it_woa) {
 
 		int index = std::distance(v_woa.begin(), it_woa);
 		int width = ListView_GetColumnWidth(list, index);
@@ -261,9 +260,6 @@ namespace tileview_helper {
 		return ListView_SetTileViewInfo(hlist, &lvtvwi);
 	}
 }
-
-uartwork_guids CONFARTGUIDS;
-uartwork CONFARTWORK;
 
 //generate cache thumbnails files and hbitmaps from artwork preview memoryblock
 std::pair<HBITMAP, HBITMAP> MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::string8> cache_path, size_t pos, MemoryBlock small_art) {

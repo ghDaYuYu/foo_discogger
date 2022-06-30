@@ -79,22 +79,22 @@ public:
 			p_out = "Write tags...";
 			break;
 		case DisplayReleasePage:
-			p_out = "View release page";
+			p_out = "Web release page";
 			break;
 		case DisplayMasterReleasePage:
-			p_out = "View master release page";
+			p_out = "Web master release page";
 			break;
 		case DisplayArtistPage:
-			p_out = "View artist page";
+			p_out = "Web artist page";
 			break;
 		case DisplayArtistArtPage:
-			p_out = "View artist artwork page";
+			p_out = "Web artist artwork page";
 			break;
 		case DisplayLabelPage:
-			p_out = "View label page";
+			p_out = "Web label page";
 			break;
 		case DisplayAlbumArtPage:
-			p_out = "View album artwork page";
+			p_out = "Web album artwork page";
 			break;
 		case EditTagMappings:
 			p_out = "Edit Tag Mappings...";
@@ -222,22 +222,22 @@ public:
 			p_out = "Write tags";
 			break;
 		case DisplayReleasePage:
-			p_out = "View release page";
+			p_out = "Web release page";
 			break;
 		case DisplayMasterReleasePage:
-			p_out = "View master release page";
+			p_out = "Web master release page";
 			break;
 		case DisplayArtistPage:
-			p_out = "View artist page";
+			p_out = "Web artist page";
 			break;
 		case DisplayArtistArtPage:
-			p_out = "View artist artwork page";
+			p_out = "Web artist artwork page";
 			break;
 		case DisplayLabelPage:
-			p_out = "View label page";
+			p_out = "Web label page";
 			break;
 		case DisplayAlbumArtPage:
-			p_out = "View album artwork page";
+			p_out = "Web album artwork page";
 			break;
 		case EditTagMappings:
 			p_out = "Edit tag mappings";

@@ -179,7 +179,6 @@ void DiscogsInterface::search_artist(const pfc::string8 &query, pfc::array_t<Art
 	log_msg(json);
 #endif
 	JSONParser jp(json);
-
 	parseArtistResults(jp.root, matches);
 
 	pfc::string8 lowercase_query = lowercase(query);
@@ -269,106 +268,101 @@ pfc::array_t<JSONParser_ptr> DiscogsInterface::get_all_pages(pfc::string8 &url, 
 	return results;
 }
 
+namespace fs =std::filesystem;
+
 pfc::array_t<JSONParser_ptr> DiscogsInterface::get_all_pages_offline_cache(ol::GetFrom getFrom, pfc::string8& id, pfc::string8 &secid, pfc::string8 params, abort_callback& p_abort, const char* msg, threaded_process_status& p_status) {
-	
-	pfc::array_t<JSONParser_ptr> results;
-	size_t page = 1;
 
-	pfc::string8 foo_path;
-	pfc::string8 pages_path_prefix;
+	pfc::string8 path_container = get_offline_path(id, true, getFrom, secid);
+	std::filesystem::path os_path_container = std::filesystem::u8path(path_container.c_str());
 
-	if (getFrom == ol::GetFrom::ArtistReleases) {
-		foo_path = ol::GetOfflinePath(id, true, getFrom, "");
-		pages_path_prefix = ol::GetOfflinePagesPath(id, pfc_infinite, true, getFrom, "");
+	pfc::array_t<JSONParser_ptr> jparsers;
+
+	pfc::string8 status_msg(msg);
+
+	try
+	{
+		if (fs::exists(os_path_container) && fs::is_directory(os_path_container))
+		{
+			//alt search recursive and detect root.json files
+			std::filesystem::directory_iterator dirpos{ os_path_container };
+			size_t msg_pos = 0;
+			for (auto walk_dir : dirpos) {
+
+				if (walk_dir.is_directory()) {
+
+					if (p_abort.is_aborting()) break;
+
+					p_status.set_item(status_msg);
+
+					fs::path os_root = fs::u8path(walk_dir.path().string());
+					os_root += "\\root.json";
+					
+					json_t* json_obj = offline_cache.Read_JSON(os_root.string().c_str());
+
+					if (json_obj == nullptr) {
+						foo_discogs_exception ex(PFC_string_formatter() << "Invalid cache file:" << os_root.c_str());
+						throw ex;
+					}
+
+					pfc::string8 json(json_dumps(json_obj, 0));
+
+					JSONParser_ptr jp = pfc::rcnew_t<JSONParser>(json);
+					jparsers.append_single(std::move(jp));
+
+					status_msg = msg;
+					status_msg << PFC_string_formatter() << " page " << std::to_string(++msg_pos).c_str() << " (100 x page)";
+				}
+			}
+		}
+		else {
+
+			//try transient
+			return get_all_pages(id, params, p_abort, msg, p_status);
+		}
 	}
-	else if (getFrom == ol::GetFrom::Versions) {
-		foo_path = ol::GetOfflinePath(id, true, getFrom, secid);
-		pages_path_prefix = ol::GetOfflinePagesPath(id, pfc_infinite, true, getFrom, secid);
+	catch (const fs::filesystem_error& err)
+	{
+		//..
+	}
+	catch (const std::exception& ex)
+	{
+		//..
+	}
+
+	return jparsers;
+}
+
+void DiscogsInterface::get_entity_offline_cache(ol::GetFrom getfrom, pfc::string8& artist_id, pfc::string8& release_id, pfc::string8& html, abort_callback& p_abort, const char* msg, threaded_process_status& p_status) {
+
+	PFC_ASSERT(getfrom == ol::GetFrom::Artist || getfrom == ol::GetFrom::Release);
+	PFC_ASSERT(!(getfrom == ol::GetFrom::Artist && release_id.get_length()));
+	PFC_ASSERT(!(getfrom == ol::GetFrom::Release && !release_id.get_length()));
+
+	pfc::string8 status(msg);
+	p_status.set_item(status);
+
+	pfc::string8 json_path;
+	
+	if (getfrom == ol::GetFrom::Artist) {
+		json_path = ol::get_offline_path(artist_id, true, ol::GetFrom::Artist, "");
 	}
 	else {
-		foo_path = "";
-		pages_path_prefix = "";
-		PFC_ASSERT(getFrom == ol::GetFrom::ArtistReleases || getFrom == ol::GetFrom::Versions);
+		json_path = ol::get_offline_path(artist_id, true, ol::GetFrom::Release, release_id);
 	}
 
-	pfc::array_t<pfc::string8> page_paths = ol::GetFSPagesFilePaths(id, getFrom, secid);
-	if (!page_paths.get_count()) {
-		//empty offline data, type transient
-		return get_all_pages(id, params, p_abort, msg, p_status);
-	}
+	json_path << "\\root.json";
 
-	size_t last = page_paths.get_count();
-	if (last == 0) return results;
+	json_t* js_obj = offline_cache.Read_JSON(json_path.get_ptr());
+	
+	/* prevent crash on invalid offline json files */
 
-	do {
-		pfc::string8 status(msg);
+	if (js_obj) {
 
-		if (page > 1) {
-			status << " page " << page << "/" << last << " (100 x page)";
-		}
-		p_status.set_item(status);
-
-		pfc::string8 json_page_path;
-		json_page_path << pages_path_prefix << page - 1 << "\\root.json";
-
-		json_t* j_t = offline_cache_artists->FRead_JSON(json_page_path.get_ptr());
-		if (j_t == nullptr) {
-			foo_discogs_exception ex("Invalid root.json file");
-			throw ex;
-		}
-
-		size_t obj_size = json_object_size(j_t);
-		pfc::string8 json(json_dumps(j_t, 0));
-
-		JSONParser_ptr jp = pfc::rcnew_t<JSONParser>(json);
-		results.append_single(std::move(jp));
-		page++;
-
-	} while (page <= last && !p_abort.is_aborting());
-
-	return results;
-}
-
-//todo: unify next two
-void DiscogsInterface::get_artist_offline_cache(pfc::string8& id, pfc::string8& html, abort_callback& p_abort, const char* msg, threaded_process_status& p_status) {
-
-	pfc::string8 foo_path(ol::GetOfflinePath(id, true, ol::GetFrom::Artist, ""));
-
-	pfc::string8 status(msg);
-	p_status.set_item(status);
-
-	pfc::string8 json_path;
-	json_path << foo_path << "\\root.json";
-
-	json_t* j_t = offline_cache_artists->FRead_JSON(json_path.get_ptr());
-	/* prevent crash on faulty offline json files */
-	/* todo: delete corrupted file*/
-	if (j_t) {
-		pfc::array_t<t_uint8> buffer;
-		size_t obj_size = json_object_size(j_t);
+		size_t obj_size = json_object_size(js_obj);
 
 		if (obj_size > 0) {
-			html = pfc::string8(json_dumps(j_t, 0));
+			html = pfc::string8(json_dumps(js_obj, 0));
 		}
-	}
-}
-
-void DiscogsInterface::get_release_offline_cache(pfc::string8& id, pfc::string8 &secid, pfc::string8& html, abort_callback& p_abort, const char* msg, threaded_process_status& p_status) {
-
-	pfc::string8 foo_path(ol::GetOfflinePath(id, true, ol::GetFrom::Release, secid));
-
-	pfc::string8 status(msg);
-	p_status.set_item(status);
-
-	pfc::string8 json_path;
-	json_path << foo_path << "\\root.json";
-
-	json_t* j_t = offline_cache_release->FRead_JSON(json_path.get_ptr());
-
-	size_t obj_size = json_object_size(j_t);
-	if (obj_size) {
-		pfc::string8 json(json_dumps(j_t, 0));
-		html = json.get_ptr();
 	}
 }
 
@@ -387,8 +381,8 @@ pfc::string8 DiscogsInterface::load_username(threaded_process_status &p_status, 
 		pfc::string8 json;
 		pfc::string8 url;
 		url << "https://api.discogs.com/oauth/identity";
-		fetcher->fetch_html(url, "", json, p_abort);
 
+		fetcher->fetch_html(url, "", json, p_abort);
 		JSONParser jp(json);
 
 		Identity i;
@@ -419,9 +413,9 @@ pfc::array_t<pfc::string8> DiscogsInterface::get_collection(threaded_process_sta
 		url = urls[0];
 		url << "/releases";
 		pfc::array_t<JSONParser_ptr> pages = get_all_pages(url, "", p_abort, "Loading collection...", p_status);
+		
+		for (size_t i = 0; i < pages.get_count(); i++) {
 
-		const size_t count = pages.get_count();
-		for (size_t i = 0; i < count; i++) {
 			parseCollection(pages[i]->root, collection);
 		}
 	}
@@ -452,7 +446,8 @@ pfc::array_t<pfc::string8> DiscogsInterface::get_collection(threaded_process_sta
 //	return collection;
 //}
 
-bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release, bool isArtist, size_t img_ndx, MemoryBlock& small_art,
+bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release,
+	bool isArtist, size_t img_ndx, MemoryBlock& small_art,
 	threaded_process_status& p_status, abort_callback& p_abort) {
 
 	bool bres = false;
@@ -460,12 +455,14 @@ bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release, bool isArti
 	pfc::string8 id;
 	pfc::string8 url;
 	pfc::array_t<Image_ptr>* images;
+
 	if (!isArtist) {
 		id = release->id;
 		if (!release->images.get_size() || (!release->images[img_ndx]->url150.get_length())) {
-			pfc::string8 msg = "Unable to read thumbnail from cache (no artist). Url: ";
-			//msg << release->images[img_ndx]->url150;
+			
+			pfc::string8 msg = "Unable to read thumbnail from cache (no artist), url: ";
 			log_msg(msg);
+
 			return false;
 		}
 		else {
@@ -473,58 +470,69 @@ bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release, bool isArti
 		}
 	}
 	else {
+
 		id = release->artists[0]->full_artist->id;
-		if (!release->artists.get_size() || !release->artists[0]->full_artist->images.get_size() ||
-			(!release->artists[0]->full_artist->images[img_ndx]->url150.get_length())) {
-			pfc::string8 msg = "Unable to read thumbnail from cache (artist).";
+
+		if (!release->artists.get_size() ||
+			!release->artists[0]->full_artist->images.get_size() ||
+			!release->artists[0]->full_artist->images[img_ndx]->url150.get_length()) {
+
+			pfc::string8 msg = "Unable to read thumbnail from cache (artist), url: ";
 			log_msg(msg);
+
 			return false;
 		}
 		else {
 			images = &release->artists[0]->full_artist->images;
 		}
 	}
+
 	size_t artist_offset = isArtist ? release->images.get_count() : 0;
+
 	pfc::array_t<pfc::string8> thumb_cache;
-	thumb_cache = Offline::get_thumbnail_cache_path_filenames(id, isArtist ? art_src::art : art_src::alb,
-		LVSIL_NORMAL, img_ndx/* + artist_offset*/);
+	thumb_cache = ol::get_thumbnail_cache_path_filenames(id, isArtist ? art_src::art : art_src::alb, LVSIL_NORMAL, img_ndx);
 
 	if (thumb_cache.get_count()) {
 
 		p_status.set_item("Fetching artwork preview small album art from cache ...");
 
+		bool bexists = true;
+		pfc::string8 file_name = thumb_cache[0];
+		extract_native_path(file_name, file_name);
+
 		try {
 
-			bool bexists = true;
-
-			pfc::string8 file_name = thumb_cache[0];
-			extract_native_path(file_name, file_name);
-		
 			std::filesystem::path os_file_name = std::filesystem::u8path(file_name.get_ptr());
 			
-			int filesize = -1;
 			if (std::filesystem::exists(os_file_name)) {
-				filesize = std::filesystem::file_size(os_file_name);
+
+				int filesize = std::filesystem::file_size(os_file_name);
+
+				FILE* file;
+				errno = 0;
+
+				if (fopen_s(&file, os_file_name.string().c_str(), "rb") == 0) {
+
+					small_art.set_size(filesize);
+					size_t done = fread(small_art.get_ptr(), filesize, 1, file);
+					bres = done;
+					fclose(file);
+				}
+
+				if (errno || !bres) {
+
+					pfc::string8 msg("can't open ");
+					msg << file_name;
+					log_msg(msg);
+					return false;
+				}
 			}
 			else {
 				return false;
 			}
-
-			FILE* fd = nullptr;
-			if (fopen_s(&fd, os_file_name.string().c_str(), "rb") != 0) {
-				pfc::string8 msg("can't open ");
-				msg << file_name;
-				log_msg(msg);
-				return false;
-			}
-
-			small_art.set_size(filesize);
-			size_t done = fread(small_art.get_ptr(), filesize, 1, fd);
-			bres = done;
-
-			fclose(fd);
 		}
 		catch (foo_discogs_exception& e) {
+
 			throw(e);
 			return false;
 		}
@@ -533,33 +541,49 @@ bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release, bool isArti
 }
 
 bool DiscogsInterface::delete_artist_cache(const pfc::string8& artist_id) {
+
 	Artist_ptr artist = get_artist_from_cache(artist_id);
-	if (artist) {
-		cache_artists->remove(artist_id);
+
+	if (artist.get()) {
+
+		// cache memory
+
+		bool bdeleted = cache_artists->remove(artist_id);
+
 		for (size_t walk = 0; walk < artist->master_releases.get_count(); walk++) {
-			unsigned long lkey = encode_mr(artist->search_role_list_pos, artist->master_releases[walk]->id);
-			cache_master_releases->remove(lkey/*artist->master_releases[walk]->id*/);
+			
+			/* rev  */
+			
+			LPARAM lkey = MAKELPARAM(atoi(artist->master_releases[walk]->id), atoi(artist->id));
+
+			//unsigned long lkey = encode_mr(artist->search_role_list_pos, artist->master_releases[walk]->id);
+
+			/* rev */
+
+			bdeleted &= cache_master_releases->remove(lkey/*artist->master_releases[walk]->id*/);
 		}
 
 		for (size_t walk = 0; walk < artist->releases.get_count(); walk++) {
+
 			unsigned long lkey = encode_mr(artist->search_role_list_pos, artist->releases[walk]->id);
-			cache_releases->remove(lkey);
+			bdeleted &= cache_releases->remove(lkey);
 		}
-			
-
-		pfc::string8 ol_artist_path = Offline::GetOfflinePath(artist_id, true, Offline::GetFrom::Artist, "");
-		ol_artist_path.truncate(ol_artist_path.length() - pfc::string8("\\artist").length());
 		
-		std::filesystem::path fspath = std::filesystem::u8path(ol_artist_path.c_str());
+		// disk cache
 
-		try {
-			std::filesystem::remove_all(fspath);
-		}
-		catch (...) {
-			return false;
-		}
+		pfc::string8 parent_path = ol::get_offline_path(artist_id, true, ol::GetFrom::Artist, "");
+		std::filesystem::path os_path = std::filesystem::u8path(parent_path.c_str());
 
-		return true;
+		os_path = os_path.parent_path();
+
+		if (fs::exists(os_path)) {
+
+			std::error_code ec;
+			std::filesystem::remove_all(os_path, ec);
+			bdeleted &= !ec.value();
+			
+			return !ec.value();
+		}		
 	}
 	return false;
 }

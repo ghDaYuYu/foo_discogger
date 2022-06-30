@@ -8,9 +8,9 @@ static cfg_window_placement cfg_window_placement_find_release_artist_dlg(guid_cf
 
 dialog_resize_helper::param CFindReleaseArtistDialog::m_resize_helper_table[] =
 {
-	{IDC_FIND_ARTIST_PROFILE_EDIT, dialog_resize_helper::XY_SIZE},
-	{IDC_FIND_ARTIST_PROFILE_STATIC_REALNAME, dialog_resize_helper::X_SIZE},
-	{IDC_FIND_ARTIST_PROFILE_STATIC_REALNAME, dialog_resize_helper::Y_MOVE},
+	{IDC_EDIT_FIND_ARTIST_PROFILE, dialog_resize_helper::XY_SIZE},
+	{IDC_STATIC_PROFILE_REALNAME, dialog_resize_helper::X_SIZE},
+	{IDC_STATIC_PROFILE_REALNAME, dialog_resize_helper::Y_MOVE},
 	{IDCANCEL,    dialog_resize_helper::XY_MOVE},
 };
 
@@ -39,7 +39,7 @@ void CFindReleaseArtistDialog::UpdateProfile(Artist_ptr& artist, pfc::string8 mo
 			tmp << "Artist Profile - " << name;
 			uSetWindowText(m_hWnd, tmp);
 			//profile
-			uSetDlgItemText(m_hWnd, IDC_FIND_ARTIST_PROFILE_EDIT, profile);
+			uSetDlgItemText(m_hWnd, IDC_EDIT_FIND_ARTIST_PROFILE, profile);
 			//realname
 
 			if (loaded) {
@@ -55,7 +55,7 @@ void CFindReleaseArtistDialog::UpdateProfile(Artist_ptr& artist, pfc::string8 mo
 				tmp = "Select artist to load profile.";
 			}
 
-			uSetDlgItemText(m_hWnd, IDC_FIND_ARTIST_PROFILE_STATIC_REALNAME, tmp);
+			uSetDlgItemText(m_hWnd, IDC_STATIC_PROFILE_REALNAME, tmp);
 
 			m_id = id;
 			m_loaded = loaded;
@@ -65,8 +65,8 @@ void CFindReleaseArtistDialog::UpdateProfile(Artist_ptr& artist, pfc::string8 mo
 	else {
 
 		uSetWindowText(m_hWnd, "Artist Profile");
-		uSetDlgItemText(m_hWnd, IDC_FIND_ARTIST_PROFILE_EDIT, "");
-		uSetDlgItemText(m_hWnd, IDC_FIND_ARTIST_PROFILE_STATIC_REALNAME, "");
+		uSetDlgItemText(m_hWnd, IDC_EDIT_FIND_ARTIST_PROFILE, "");
+		uSetDlgItemText(m_hWnd, IDC_STATIC_PROFILE_REALNAME, "");
 
 		m_id = pfc_infinite;
 	}

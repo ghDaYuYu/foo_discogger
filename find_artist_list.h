@@ -85,10 +85,14 @@ public:
 
 	//serves dlg->expand_master_release, convery
 
-	const Artist_ptr Get_Artist() { return m_find_release_artist; }
-	pfc::array_t<Artist_ptr> Get_Artists() { return m_find_release_artists; }
+	const Artist_ptr Get_Artist() {
+		return m_find_release_artist;
+	}
 
-	//serves dlg
+	pfc::array_t<Artist_ptr> Get_Artists() {
+		return m_find_release_artists;
+	}
+
 	void ShowArtistProfile();
 
 	//

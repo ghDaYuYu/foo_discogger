@@ -4,6 +4,7 @@
 #include "find_artist_list.h"
 
 const size_t TRACER_IMG_NDX = 3;
+const size_t LOADED_RELEASES_IMG_NDX = 6;
 const size_t SHOWING_IMAGE_NDX = 1;
 const size_t LIMIT_ARTISTS = 63;
 
@@ -204,11 +205,26 @@ void CArtistList::set_image_list() {
 bool CArtistList::OnDisplayCellImage(int item, int subitem, int& result) {
 
 	int img_ndx = I_IMAGENONE;
-	bool is_traced = !_idtracer_p->is_multi_artist() && atoi(m_find_release_artists[item]->id) == _idtracer_p->get_artist_id();
+
+	if (CONF.auto_rel_load_on_select) return img_ndx;
+
+	bool is_traced;
+
+	if (_idtracer_p->is_multi_artist()) {
+
+		auto v = _idtracer_p->get_vartist_ids();
+		auto fit = std::find(v.begin(), v.end(), atoi(m_find_release_artists[item]->id));
+		is_traced = fit != v.end();
+	}
+	else {
+		is_traced = atoi(m_find_release_artists[item]->id) == _idtracer_p->get_artist_id();
+	}
+
 	if (is_traced) {
 		img_ndx = TRACER_IMG_NDX;
 	}
 	else {
+
 		size_t artist_pos_showing = m_dlg->get_tree_artist_list_pos();
 		size_t item_rol_pos = m_find_release_artists[item]->search_role_list_pos;
 		if (item_rol_pos == artist_pos_showing) {
@@ -217,6 +233,7 @@ bool CArtistList::OnDisplayCellImage(int item, int subitem, int& result) {
 	}
 
 	result = img_ndx;
+
 	return true;
 }
 
@@ -327,8 +344,6 @@ LRESULT CArtistList::OnGetInfo(WORD /*wNotifyCode*/, LPNMHDR hdr, BOOL& /*bHandl
 
 			int img_ndx;
 
-			// calc tracer image
-
 			if (OnDisplayCellImage(pItem->iItem, 0, img_ndx)) {
 
 				pItem->iImage = img_ndx;				
@@ -425,18 +440,8 @@ LRESULT CArtistList::OnListSelChanged(int i, LPNMHDR hdr, BOOL& bHandled) {
 
 LRESULT CArtistList::OnListSelChanging(int i, LPNMHDR hdr, BOOL& bHandled) {
 
-	//bHandled = true;
-	//NM_LISTVIEW* pNMListView = (NM_LISTVIEW*)hdr;
-	//debug
-
 	return FALSE;
 }
-
-//
-
-// double click
-
-//
 
 LRESULT CArtistList::OnListDoubleClick(int i, LPNMHDR hdr, BOOL& bHandled) {
 

@@ -329,7 +329,6 @@ bool coord_presenters::ShowFormMode(lsmode mode, bool showleft, bool showright) 
 	PFC_ASSERT(/*mode == lsmode::tracks ||*/ mode == lsmode::tracks_ui || mode == lsmode::art);
 
 	bool populate = false;
-
 	if (showleft && !form_mode[mode]->first.IsLoaded()) {
 		form_mode[mode]->first.Load();
 		populate = true;
@@ -358,11 +357,6 @@ bool coord_presenters::ShowFormMode(lsmode mode, bool showleft, bool showright) 
 		ListView_SetItemCount(pres_tracks->GetListView(), pres_tracks->GetDataLvSize());
 		ListView_SetItemCount(pres_files->GetListView(), pres_files->GetDataLvSize());
 	}
-
-#ifdef DEBUG
-	int debugtracks = pres_tracks->GetDataLvSize();
-	int debugfiles = pres_files->GetDataLvSize();
-#endif
 
 	return populate;
 }
@@ -1119,7 +1113,6 @@ void files_artwork_presenter::AddRow(std::any imagefilerow) {
 	const char* ccheck_art_ids = album_art_ids::name_of(ndximginfo.first.second);
 	bool bextend = false;
 	if (!m_vimage_files.size()) {
-	    //todo: rev
 		m_vimage_files.reserve(kMax_Artwork * 2);
 	}
 	m_vimage_files.push_back(ndximginfo);
@@ -1866,7 +1859,6 @@ void coord_presenters::populate_track_ui_mode() {
 			debugrejected++;
 		}
 		else {
-
 			const track_mapping& mapping = m_tag_writer->track_mappings[i];
 			ReleaseDisc_ptr disc;
 			ReleaseTrack_ptr track;

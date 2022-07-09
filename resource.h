@@ -147,6 +147,7 @@
 #define IDC_CHK_ONLY_EXACT_MATCHES      1091
 #define IDC_STATIC_PREV_MODAL_TAG_FOOTNOTE 1091
 #define IDC_CHK_RELEASE_SHOW_PROFILE    1092
+#define IDC_STATIC_VIEW_GROUP           1092
 #define IDC_TAB_CFG                     1093
 #define IDC_TAB_PREVIEW_MODAL           1094
 #define IDC_CHK_SAVE_ARTIST_ART         1095
@@ -194,7 +195,6 @@
 #define IDC_EDIT_FILE_FORMATTING        1155
 #define IDC_PREVIEW_LIST                1156
 #define IDC_EDIT_MASTER_SUB_FORMATTING  1157
-#define IDC_OPTIONS_GROUP               1159
 #define IDC_BTN_PREVIEW_TAGS            1160
 #define IDC_PROMPT_LABEL                1161
 #define IDC_SKIP_PREVIEW_DIALOG         1162
@@ -205,7 +205,6 @@
 #define IDC_VIEW_DIFFERENCE             1170
 #define IDC_VIEW_ORIGINAL               1171
 #define IDC_VIEW_DEBUG                  1172
-#define IDC_VIEW_GROUP                  1173
 #define IDC_PREVIEW_ALL_CHANGES         1174
 #define IDC_UPDATE_RADIO                1175
 #define IDC_WRITE_RADIO                 1176
@@ -245,7 +244,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        207
 #define _APS_NEXT_COMMAND_VALUE         1208
-#define _APS_NEXT_CONTROL_VALUE         1092
+#define _APS_NEXT_CONTROL_VALUE         1094
 #define _APS_NEXT_SYMED_VALUE           140
 #endif
 #endif

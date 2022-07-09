@@ -561,14 +561,15 @@ bool string_encoded_array::_replace_exp(const string_encoded_array& find, const 
 
 	std::regex regex_v;
 	try {
-		regex_v = std::regex(find.value);
+		std::string str = find.print().c_str();
+		regex_v = std::regex(str);
 	}
 	catch (std::regex_error e) {
 		value.set_string(e.what());
 		return false;
 	}
 
-	int occurrences = 0;
+#ifdef DEBUG
 	std::string strval(value.toString());
 	std::sregex_iterator begin = std::sregex_iterator(strval.begin(), strval.end(), regex_v);
 	std::sregex_iterator end = std::sregex_iterator();

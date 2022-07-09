@@ -2143,9 +2143,9 @@ void CFindReleaseTree::context_menu(size_t param_mr, POINT screen_pos) {
 
 	mounted_param myparam(param_mr);
 
-	pfc::string8 sourcepage = myparam.brelease ? "View &release page" : "View mas&ter release page";
-	pfc::string8 copytitle = "Copy &title to clipboard";
-	pfc::string8 copyrow = "Copy to &clipboard";
+	pfc::string8 sourcepage = myparam.brelease ? "Web &release page" : "Web mas&ter release page";
+	pfc::string8 copytitle = "Copy &title";
+	pfc::string8 copyrow = "&Copy";
 	pfc::string8 filterversions = "&filter loaded versions";
 	pfc::string8 clearfilter = "C&lear filter";
 	pfc::string8 mainrole = "&main role";
@@ -2168,7 +2168,8 @@ void CFindReleaseTree::context_menu(size_t param_mr, POINT screen_pos) {
 
 		if (!empty_sel) {
 
-			uAppendMenu(menu, MF_STRING, ID_VIEW_PAGE, sourcepage);
+			uAppendMenu(menu, MF_STRING, ID_CLP_COPY_ROW, copyrow);
+			uAppendMenu(menu, MF_STRING, ID_CLP_COPY_TITLE, copytitle);
 			uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 		}
 
@@ -2176,18 +2177,12 @@ void CFindReleaseTree::context_menu(size_t param_mr, POINT screen_pos) {
 		uAppendMenu(menu, MF_STRING | (enabled_rolemain ? MF_CHECKED : 0), ID_DLG_MAIN_ROLE_TOGGLE, mainrole);
 		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 
-		if (!empty_sel) {
-
-			uAppendMenu(menu, MF_STRING, ID_CLP_COPY_TITLE, copytitle);
-			uAppendMenu(menu, MF_STRING, ID_CLP_COPY_ROW, copyrow);
-		}
+		uAppendMenu(menu, MF_STRING | (enabled_filter ? 0 : MF_DISABLED | MF_GRAYED), ID_DLG_CLEAR_FILTER, clearfilter);
 
 		if (!empty_sel) {
 			uAppendMenu(menu, MF_SEPARATOR, 0, 0);
-
+			uAppendMenu(menu, MF_STRING, ID_VIEW_PAGE, sourcepage);
 		}
-
-		uAppendMenu(menu, MF_STRING | (enabled_filter ? 0 : MF_DISABLED | MF_GRAYED), ID_DLG_CLEAR_FILTER, clearfilter);
 
 		int cmd = TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD,
 			screen_pos.x, screen_pos.y, 0, core_api::get_main_window(), 0);

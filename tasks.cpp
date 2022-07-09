@@ -283,7 +283,6 @@ void download_art_task::safe_run(threaded_process_status &p_status, abort_callba
 	bool bconf_album_save_or_embed = CONF.save_album_art || CONF.embed_album_art;
 	bool bconf_artist_save_or_embed = CONF.save_artist_art || CONF.embed_artist_art;
 
-    //todo: rev
 	att_vcmp cust_cmp(af::alb_sd);
 	bool bcust_album_save = bfile_match || !std::equal(CONF_MULTI_ARTWORK.vuart.begin(), CONF_MULTI_ARTWORK.vuart.end(), multi_uartconf.vuart.begin(), cust_cmp.comp_uart_att);
 	cust_cmp.set(af::alb_emb);

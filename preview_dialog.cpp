@@ -195,6 +195,38 @@ inline bool CPreviewTagsDialog::build_current_cfg() {
 	return bres;
 }
 
+//todo: = track matching
+
+inline bool get_diff_release_name(TagWriter_ptr tag_writer, pfc::string8& rel_desc, pfc::string8& diff_rel_id) {
+
+	bool bdiffid = false;
+	file_info_impl finfo;
+	metadb_handle_ptr item = tag_writer->finfo_manager->items[0];
+	item->get_info(finfo);
+
+	pfc::string8 local_release_id;
+
+	const char* ch_local_rel = finfo.meta_get("DISCOGS_RELEASE_ID", 0);
+	if (ch_local_rel) {
+		local_release_id = ch_local_rel;
+	}
+	bdiffid = (local_release_id.get_length() && !STR_EQUAL(tag_writer->release->id, local_release_id));
+
+	pfc::string8 compact_release;
+	playable_location_impl location;
+	file_info_impl info;
+	titleformat_hook_impl_multiformat hook;
+	hook.set_release(&tag_writer->release);
+	CONF.search_master_sub_format_string->run_hook(location, &info, &hook, compact_release, nullptr);
+
+	diff_rel_id = bdiffid ? "" : tag_writer->release->id;
+	rel_desc = bdiffid ? "!! " : "";
+	rel_desc << ltrim(compact_release);
+
+	return bdiffid;
+
+}
+
 CPreviewTagsDialog::~CPreviewTagsDialog() {
 
 	if (g_discogs->preview_modal_tag_dialog) {
@@ -208,8 +240,6 @@ CPreviewTagsDialog::~CPreviewTagsDialog() {
 }
 
 LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
-
-	multi_uartwork test = CONF_MULTI_ARTWORK;
 
 	SetIcon(g_discogs->icon);
 
@@ -252,6 +282,10 @@ LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	cfg_window_placement_preview_dlg.on_window_creation(m_hWnd, true);
 
 	load_size();
+
+	pfc::string8 rel_desc, rel_diff_id;
+	get_diff_release_name(m_tag_writer, rel_desc, rel_diff_id);
+	uSetDlgItemText(m_hWnd, IDC_STATIC_MATCH_TRACKING_REL_NAME, rel_desc);
 
 	if (conf.edit_tags_dlg_show_tm_stats) {
 		//todo: stats init revision
@@ -345,30 +379,41 @@ bool CPreviewTagsDialog::context_menu_show(HWND wnd, size_t isel, LPARAM lParamP
 		point.y = GET_Y_LPARAM(lParamPos);
 	}
 
+	//todo: = track matching context menu
+
+	pfc::string8 discogs_release_id(m_tag_writer->release->id);
+	pfc::string8 master_release_id(m_tag_writer->release->master_id);
+	pfc::string8 artist_id(m_tag_writer->release->artists[0]->full_artist->id);
+
+	bool hasRelease = discogs_release_id.get_length();
+	bool hasMasterRelease = master_release_id.get_length();
+	bool hasArtist = artist_id.get_length();
+
+	//..
+
 	try {
 
 		HMENU menu = CreatePopupMenu();
 		HMENU _childmenuAlign = CreatePopupMenu();
 
-		int csel = 0;
-		size_t citems = 0;
 		bit_array_bittable selmask(0);
 
 		bool b_result_list = wnd == uGetDlgItem(IDC_PREVIEW_LIST);
-		
+
+		// add menu options
+
+		uAppendMenu(menu, MF_STRING, ID_PREVIEW_CMD_BACK, "&Back");
+		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+
 		if (b_result_list) {
 
-			b_result_list = true;
-			csel = ListView_GetSelectedCount(wnd);
+			size_t citems = 0;
 			citems = ListView_GetItemCount(wnd);
 			selmask.resize(citems);
 			size_t n = ListView_GetFirstSelection(wnd) == -1 ? pfc_infinite : ListView_GetFirstSelection(wnd);
 			for (size_t i = n; i < citems; i++) {
-				selmask.set(i, ListView_IsItemSelected(wnd, i));				
+				selmask.set(i, ListView_IsItemSelected(wnd, i));
 			}
-		}
-
-		if (b_result_list) {
 
 			if (bselection) {
 
@@ -381,9 +426,6 @@ bool CPreviewTagsDialog::context_menu_show(HWND wnd, size_t isel, LPARAM lParamP
 				uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 			}
 		}
-
-		uAppendMenu(menu, MF_STRING, ID_PREVIEW_CMD_BACK, "&Back");
-		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 
 		bool bskip = IsDlgButtonChecked(IDC_CHK_SKIP_ARTWORK);		
 		bool bshowstats = IsDlgButtonChecked(IDC_CHK_PREV_DLG_SHOW_STATS);
@@ -400,6 +442,13 @@ bool CPreviewTagsDialog::context_menu_show(HWND wnd, size_t isel, LPARAM lParamP
 		uAppendMenu(menu, MF_STRING | (bdiff ? MF_CHECKED : 0), ID_PREVIEW_CMD_DIFF_VIEW, "Di&fference view");
 		uAppendMenu(menu, MF_STRING | (bori ? MF_CHECKED : 0), ID_PREVIEW_CMD_ORI_VIEW, "&Original view");
 
+		if (!b_result_list) {
+			uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+			uAppendMenu(menu, MF_STRING | (!hasRelease ? MF_DISABLED | MF_GRAYED : 0), ID_URL_RELEASE, "Web &release page");
+			uAppendMenu(menu, MF_STRING | (!hasMasterRelease ? MF_DISABLED | MF_GRAYED : 0), ID_URL_MASTER_RELEASE, "Web mas&ter release page");
+			uAppendMenu(menu, MF_STRING | (!hasArtist ? MF_DISABLED | MF_GRAYED | MF_GRAYED : 0), ID_URL_ARTIST, "Web &artist page");
+		}
+
 		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 		uAppendMenu(menu, MF_STRING, ID_PREVIEW_CMD_WRITE_TAGS, "&Write tags");
 
@@ -415,6 +464,7 @@ bool CPreviewTagsDialog::context_menu_show(HWND wnd, size_t isel, LPARAM lParamP
 bool CPreviewTagsDialog::context_menu_switch(HWND wnd, POINT point, int cmd, bit_array_bittable selmask) {
 
 	UINT att_id = 0;
+	pfc::string8 url;
 
 	switch (cmd)
 	{
@@ -526,11 +576,26 @@ bool CPreviewTagsDialog::context_menu_switch(HWND wnd, POINT point, int cmd, bit
 		}
 		return true;
 	}
-
+	case ID_URL_RELEASE:
+	{
+		url << "https://www.discogs.com/release/" << m_tag_writer->release->id;
+		break;
+	}
+	case ID_URL_MASTER_RELEASE: {
+		url << "https://www.discogs.com/master/" << m_tag_writer->release->master_id;
+		break;
+	}
+	case ID_URL_ARTIST: {
+		url << "https://www.discogs.com/artist/" << m_tag_writer->release->artists[0]->full_artist->id;
+		break;
+	}
 	default: {
 		return false;
 	}
 	}
+
+	if (url.get_length()) display_url(url);
+
 	return false;
 }
 

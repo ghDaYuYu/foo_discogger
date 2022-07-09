@@ -644,7 +644,7 @@ bool CTrackMatchingDialog::generate_artwork_guids(pfc::array_t<GUID> &my_album_a
 			getimages_file_it getimgfile_it;
 			getimages_it getimg_it;
 
-			size_t cfile = 0;
+			size_t walk_file = 0;
 
 			size_t dc_skipped = 0;
 
@@ -673,7 +673,7 @@ bool CTrackMatchingDialog::generate_artwork_guids(pfc::array_t<GUID> &my_album_a
 					continue;
 				}
 
-				size_t ndx_file_img = m_coord.Get_V_LvRow(lsmode::art, false, cfile + dc_skipped, out);
+				size_t ndx_file_img = m_coord.Get_V_LvRow(lsmode::art, false, walk_file + dc_skipped, out);
 
 				if (ndx_file_img != pfc_infinite) {
 
@@ -681,7 +681,6 @@ bool CTrackMatchingDialog::generate_artwork_guids(pfc::array_t<GUID> &my_album_a
 
 					GUID imgfileguid = getimgfile_it->first.second;
 					bool btype = false;
-					//std guids
 					for (size_t i = 0; i < album_art_ids::num_types(); i++) {
 						if (album_art_ids::query_type(i) == imgfileguid) {
 							btype = true;
@@ -689,7 +688,6 @@ bool CTrackMatchingDialog::generate_artwork_guids(pfc::array_t<GUID> &my_album_a
 						}
 					}
 
-                    //template guids
 					if (!btype) {
 						for (size_t i = 0; i < template_art_ids::num_types(); i++) {
 							if (template_art_ids::query_type(i) == imgfileguid) {
@@ -711,7 +709,7 @@ bool CTrackMatchingDialog::generate_artwork_guids(pfc::array_t<GUID> &my_album_a
 					else
 						my_album_art_ids[ndx_discogs_img] = dc_isalbum ? album_art_ids::cover_front : album_art_ids::artist;
 				}
-				++cfile;
+				++walk_file;
 			}
 		}
 		else {
@@ -1988,7 +1986,6 @@ bool CTrackMatchingDialog::context_menu_track_switch(HWND wnd, POINT point, bool
 
 		pfc::array_t<t_uint8> perm_selection;
 		bit_array_bittable are_albums;
-
 		if (get_mode() == lsmode::art && !is_files) {
 			perm_selection.resize(count);
 			are_albums.resize(count);
@@ -2080,9 +2077,7 @@ bool CTrackMatchingDialog::context_menu_track_switch(HWND wnd, POINT point, bool
 
 		for (size_t i = 0; i < citems; i++) {
 			if (perm_selection[i] != max_items) {		//selected?
-			
 				size_t album_artist_ndx = perm_selection[i];
-				
 				if (!are_albums.get(i)) {			//artist art?
 					album_artist_ndx -= m_tag_writer->release->images.get_count();
 				}
@@ -2112,12 +2107,10 @@ bool CTrackMatchingDialog::context_menu_track_switch(HWND wnd, POINT point, bool
 
 		//image viewer req >= 1.6.2
 		bool has_viewer = core_version_info_v2::get()->test_version(1, 6, 2, 0);
-
 		if (has_viewer) {
 			size_t first_sel = selmask.find_first(true, 0, selmask.size());
 			getimages_file_it out_art_file_it;
 			m_coord.GetFileArtAtLvPos(first_sel, out_art_file_it);
-
 			if (bsel) {
 				ndx_image_file_t ndx_img = out_art_file_it->first;
 				service_ptr_t<fb2k::imageViewer> img_viewer = fb2k::imageViewer::get();
@@ -2164,7 +2157,6 @@ bool CTrackMatchingDialog::context_menu_track_switch(HWND wnd, POINT point, bool
 		}
 		else {
 
-            //todo: bfm_op
 			bool bfile_match = false;
 			CONF_MULTI_ARTWORK = multi_uartwork(CONF);
 			CONF_MULTI_ARTWORK.file_match = bfile_match;

@@ -125,11 +125,11 @@ void CFindReleaseDialog::init_cfged_dialog_controls() {
 	}
 
 	//init artist profile panel
-	if (conf.find_release_dlg_flags & fle_fr::FLG_PROFILE_DLG_SHOW) {
+	if (conf.find_release_dlg_flags & flg_fr::FLG_PROFILE_DLG_SHOW) {
 
 		uButton_SetCheck(m_hWnd, IDC_CHK_RELEASE_SHOW_PROFILE, true);
 
-		if (conf.find_release_dlg_flags & fle_fr::FLG_PROFILE_DLG_ATTACHED) {
+		if (conf.find_release_dlg_flags & flg_fr::FLG_PROFILE_DLG_ATTACHED) {
 
 			if (!g_discogs->find_release_artist_dialog) {
 
@@ -146,7 +146,7 @@ void CFindReleaseDialog::init_cfged_dialog_controls() {
 
 	// tree stats
 
-	if (conf.find_release_dlg_flags & fle_fr::FLG_SHOW_RELEASE_TREE_STATS) {
+	if (conf.find_release_dlg_flags & flg_fr::FLG_SHOW_RELEASE_TREE_STATS) {
 		//do not save
 		print_root_stats(m_row_stats, false);
 	}
@@ -230,7 +230,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	icex.dwICC = ICC_STANDARD_CLASSES | ICC_LISTVIEW_CLASSES | ICC_TREEVIEW_CLASSES;
 	InitCommonControlsEx(&icex);
 
-	m_edit_artist = GetDlgItem(IDC_SEARCH_EDIT);
+	m_edit_artist = GetDlgItem(IDC_EDIT_SEARCH);
 	m_edit_filter = GetDlgItem(IDC_EDIT_FILTER);
 	m_edit_release = GetDlgItem(IDC_RELEASE_URL_TEXT);
 	m_artist_list = GetDlgItem(IDC_ARTIST_LIST);
@@ -266,10 +266,10 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 #ifdef DB_DC
 
 	bool db_ready_to_search = DBFlags(conf.db_dc_flag).IsReady() && DBFlags(conf.db_dc_flag).Search();
-	uButton_SetCheck(m_hWnd, IDC_CHECK_FIND_REL_DB_SEARCH_LIKE, conf.db_dc_flag & DBFlags::DB_SEARCH_LIKE);
-	uButton_SetCheck(m_hWnd, IDC_CHECK_FIND_REL_DB_SEARCH_ANV, conf.db_dc_flag & DBFlags::DB_SEARCH_ANV);
-	::ShowWindow(uGetDlgItem(IDC_CHECK_FIND_REL_DB_SEARCH_LIKE), db_ready_to_search);
-	::ShowWindow(uGetDlgItem(IDC_CHECK_FIND_REL_DB_SEARCH_ANV), db_ready_to_search);
+	uButton_SetCheck(m_hWnd, IDC_CHK_FIND_REL_DB_SEARCH_LIKE, conf.db_dc_flag & DBFlags::DB_SEARCH_LIKE);
+	uButton_SetCheck(m_hWnd, IDC_CHK_FIND_REL_DB_SEARCH_ANV, conf.db_dc_flag & DBFlags::DB_SEARCH_ANV);
+	::ShowWindow(uGetDlgItem(IDC_CHK_FIND_REL_DB_SEARCH_LIKE), db_ready_to_search);
+	::ShowWindow(uGetDlgItem(IDC_CHK_FIND_REL_DB_SEARCH_ANV), db_ready_to_search);
 #else
 	bool db_ready_to_search = false;
 #endif // DB_DC
@@ -387,7 +387,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 				default_button = IDC_BTN_PROCESS_RELEASE;
 			}
 			else if (!artist) {
-				default_button = IDC_SEARCH_EDIT;
+				default_button = IDC_EDIT_SEARCH;
 			}
 			else if (artist) {
 				default_button = IDC_BTN_SEARCH;
@@ -593,8 +593,8 @@ LRESULT CFindReleaseDialog::OnCheckboxBindProfilePanel(WORD /*wNotifyCode*/, WOR
 
 	conf.find_release_dlg_flags =
 		state ?
-			conf.find_release_dlg_flags |  fle_fr::FLG_PROFILE_DLG_ATTACHED
-		:	conf.find_release_dlg_flags & ~fle_fr::FLG_PROFILE_DLG_ATTACHED;
+			conf.find_release_dlg_flags |  flg_fr::FLG_PROFILE_DLG_ATTACHED
+		:	conf.find_release_dlg_flags & ~flg_fr::FLG_PROFILE_DLG_ATTACHED;
 
 	if (state && !g_discogs->find_release_artist_dialog)
 		m_alist.ShowArtistProfile();
@@ -967,8 +967,8 @@ DBFlags CFindReleaseDialog::calc_dbdc_flag() {
 	DBFlags db_dc_flags(conf.db_dc_flag);
 	bool db_isready = DBFlags(conf.db_dc_flag).IsReady();
 
-	bool find_like = IsDlgButtonChecked(IDC_CHECK_FIND_REL_DB_SEARCH_LIKE);
-	bool find_anv = IsDlgButtonChecked(IDC_CHECK_FIND_REL_DB_SEARCH_ANV);
+	bool find_like = IsDlgButtonChecked(IDC_CHK_FIND_REL_DB_SEARCH_LIKE);
+	bool find_anv = IsDlgButtonChecked(IDC_CHK_FIND_REL_DB_SEARCH_ANV);
 	db_dc_flags.SwitchFlag(DBFlags::DB_SEARCH_LIKE, db_isready && find_like);
 	db_dc_flags.SwitchFlag(DBFlags::DB_SEARCH_ANV, db_isready && find_anv);
 
@@ -982,12 +982,13 @@ void CFindReleaseDialog::print_root_stats(rppair root_stats, bool save) {
 	pfc::string8 stat_msg = "";
 
 
-	if (conf.find_release_dlg_flags & fle_fr::FLG_SHOW_RELEASE_TREE_STATS) {
+	if (conf.find_release_dlg_flags & flg_fr::FLG_SHOW_RELEASE_TREE_STATS) {
 
 		//in-dlg
 		int tot = atoi(root_stats.first.first) + atoi(root_stats.first.second);
 		stat_msg << "Found: " << + tot;
-		stat_msg << "- Masters: " << root_stats.first.first;
+		stat_msg << " - Masters: " << root_stats.first.first;
+		//tree_stats << " - nm: " << root_stat.first.second;
 	}
 
 	if (root_stats.second.first.get_length()) {

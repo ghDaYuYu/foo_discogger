@@ -17,7 +17,6 @@ class expand_master_release_process_callback;
 class get_artist_process_callback;
 class search_artist_process_callback;
 
-
 class CFindReleaseDialog : public MyCDialogImpl<CFindReleaseDialog>,
 	public CDialogResize<CFindReleaseDialog> {
 
@@ -303,7 +302,7 @@ public:
 
 	enum { IDD = IDD_DIALOG_FIND_RELEASE };
 
-	enum fle_fr {
+	enum flg_fr {
 		FLG_PROFILE_DLG_SHOW = 1 << 0,
 		FLG_PROFILE_DLG_ATTACHED = 1 << 1,
 		FLG_SHOW_RELEASE_TREE_STATS = 1 << 2

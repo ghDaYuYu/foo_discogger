@@ -99,6 +99,10 @@ public:
 		master_release = m;
 	}
 
+	void set_artist(const Artist_ptr* a) {
+		artist = a;
+	}
+
 	void set_files(file_info_manager_ptr f) {
 		files = f;
 	}

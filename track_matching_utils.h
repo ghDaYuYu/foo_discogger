@@ -391,7 +391,10 @@ const struct multi_uartwork {
 	multi_uartwork(const CConf& conf, Discogs::Release_ptr release) {
 
 		size_t calbum_art = release->images.get_count();
-		size_t cartist_art = release->artists[0]->full_artist->images.get_count();
+		size_t cartist_art = 0;
+		for (auto wra : release->artists) {
+			cartist_art += wra->full_artist->images.get_count();
+		}
 		size_t ctotal_art = calbum_art + cartist_art;
 
 		// album attributes
@@ -475,7 +478,7 @@ inline multi_uartwork CONF_MULTI_ARTWORK;
 const pfc::string8 THUMB_EXTENSION = ".png";
 const size_t FLAG_FIRST_COL = 3;
 
-std::pair<HBITMAP, HBITMAP> MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::string8> cache_path, size_t pos, MemoryBlock small_art);
+std::pair<HBITMAP, HBITMAP> MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::string8> cache_path, MemoryBlock small_art);
 std::pair<HBITMAP, HBITMAP> GenerateTmpBitmapsFromRealSize(pfc::string8 release_id, size_t pos, pfc::string8 source_full_path, std::pair<pfc::string8, pfc::string8> &temp_file_names);
 std::pair<pfc::string8, pfc::string8> ReadDimSizeFromFile(pfc::string8 path, pfc::string8 file_name);
 MemoryBlock MemoryBlockToPngIcon(MemoryBlock buffer);

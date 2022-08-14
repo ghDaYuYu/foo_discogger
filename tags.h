@@ -44,7 +44,7 @@ public:
 		return t;
 	}
 
-	bool equals(const tag_mapping_entry& a) {
+	const bool equals(const tag_mapping_entry& a) {
 		return (STR_EQUAL(tag_name, a.tag_name) &&
 			enable_write == a.enable_write &&
 			enable_update == a.enable_update &&

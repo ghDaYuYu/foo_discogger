@@ -482,17 +482,9 @@ void foo_discogs::save_artist_art(Release_ptr &release, metadb_handle_ptr item,
 	pfc::array_t<int> ids;
 	try {
 
-		//in custom mode we might not have an artist id to hook to (nor multiple artists)
-		if (ada.custom_save_or_embed) {
-
-			str =  release->artists[0]->full_artist->id;
-		}
-		else {
-			CONF.artist_art_id_format_string->run_hook(item->get_location(), (file_info*)&info, &hook, str, nullptr);
-			//artist tag not found, continue with release full artist
-			if (STR_EQUAL(str, "?")) str = release->artists[0]->full_artist->id;
-		}
-
+		formatting_script artists_format_string = "%<ARTISTS_ID>%";
+		artists_format_string->run_hook(item->get_location(), (file_info*)&info, &hook, str, nullptr);
+		if (STR_EQUAL(str, "?")) str = release->artists[0]->full_artist->id;
 		string_encoded_array result(str);
 		if (result.has_array()) {
 			for (size_t walk_res = 0; walk_res < result.get_width(); walk_res++) {
@@ -500,27 +492,25 @@ void foo_discogs::save_artist_art(Release_ptr &release, metadb_handle_ptr item,
 				int num = std::stoi(n.get_ptr());
 				for (size_t j = 0; j < ids.get_size(); j++) {
 					if (ids[j] == num) {
-						num = 0;
-						break;
+						continue;
 					}
 				}
-				if (num != 0) {
-					ids.append_single(num);
-				}
+				ids.append_single(num);
 			}
 		}
 		else {
 			ids.append_single(std::stoi(result.get_pure_cvalue().get_ptr()));
 		}
 
+		pfc::array_t<Artist_ptr>artists;
 		for (size_t walk_id = 0; walk_id < ids.get_size(); walk_id++) {
-			pfc::string8 artist_id;
-			artist_id << ids[walk_id];
-			Artist_ptr artist = discogs_interface->get_artist(artist_id);
+			pfc::string8 artist_id = ids[walk_id];
+			Artist_ptr this_artist = discogs_interface->get_artist(artist_id);
+			artists.append_single(this_artist);
+		}
 
-			if (ada.write_it || ada.embed_it) {
-				save_artist_art(artist, release, item, ada, my_album_art_ids, saved_mask, done_files, p_status, p_abort);
-			}
+		if (ada.write_it || ada.embed_it) {
+				save_artist_art(artists, release, item, ada, my_album_art_ids, saved_mask, done_files, p_status, p_abort);
 		}
 	}
 	catch (foo_discogs_exception &e) {
@@ -531,17 +521,20 @@ void foo_discogs::save_artist_art(Release_ptr &release, metadb_handle_ptr item,
 }
 
 
-void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, metadb_handle_ptr item,
+void foo_discogs::save_artist_art(pfc::array_t<Artist_ptr>& artists, Release_ptr &release, metadb_handle_ptr item,
 	art_download_attribs ada, pfc::array_t<GUID> my_album_art_ids, bit_array_bittable& saved_mask,
 	pfc::array_t<pfc::string8> &done_files, threaded_process_status &p_status, abort_callback &p_abort) {
 
-	if (!artist->images.get_size()) {
-		return;
+	size_t cartist_art = 0;
+
+	for (auto wra : artists) {
+		wra->load(p_status, p_abort);
+		cartist_art += wra->images.get_count();
 	}
 
-	// todo: preload uncached for managed artwork?
-	// ensure artist is loaded (if cached)
-	artist->load(p_status, p_abort);
+	if (!cartist_art) {
+		return;
+	}
 
 	//todo: pfc::GUID_from_text(const char * text) ?
 	pfc::array_t<GUID> tmp_guids;
@@ -554,7 +547,8 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, meta
 
 	pfc::string8 directory;
 	file_info_impl info;
-	titleformat_hook_impl_multiformat hook(p_status, &master, &release, &artist);
+	//todo: artist tag in paths
+	titleformat_hook_impl_multiformat hook(p_status, &master, &release, &artists[0]);
 
 	if (ada.write_it) {
 
@@ -588,7 +582,7 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, meta
 
 	if (!ada.custom_save_or_embed) {
 
-		cimage_batch = ada.fetch_all_it ? artist->images.get_size() : 1;
+		cimage_batch = ada.fetch_all_it ? cartist_art : 1;
 
 		vwrite_it = std::vector<bool>(cimage_batch, ada.write_it);
 		voverwrite_it = std::vector<bool>(cimage_batch, ada.overwrite_it);
@@ -596,7 +590,7 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, meta
 	}
 	else {
 
-		cimage_batch = artist->images.get_size();
+		cimage_batch = cartist_art;
 
 		//init flag vector (0 based for both album and artist)
 		for (size_t wib = 0; wib < cimage_batch; wib++) {
@@ -618,9 +612,28 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, meta
 
 	for (size_t i = 0; i < cimage_batch; i++) {
 
+		Artist_ptr artist;
+		size_t cartist_ndx = 0;
+		size_t artist_img_ndx = i;
+
+        //todo: store prev artist and optimize
+		for (auto wra : artists) {
+			cartist_ndx += wra->images.get_count();
+			if (cartist_ndx > i) {
+				artist = wra;
+				break;
+			}
+			else {
+				artist_img_ndx -= cartist_ndx;
+			}
+		}
+
+		hook.set_artist(&artist);
+
 		if (i == 0) {
 			//multiple artist head check
 			pfc::string8 tmp_str, tmp_file;
+			//todo: artist tag in paths
 			CONF.artist_art_filename_string->run_hook(item->get_location(), &info, &hook, tmp_file, nullptr);
 			tmp_str = extract_max_number(tmp_file, 'z');
 			b_multiple_artist_head = STR_EQUAL(tmp_str, release->artists[0]->full_artist->id);
@@ -632,11 +645,13 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, meta
 		//only embed first album/artist image on non custom jobs, and only on artist head
 		bool embed_req = true & b_multiple_artist_head;
 
+		//todo: move above to next block if possible
+
 		if (write_this) {
 
 			pfc::string8 file;
-			hook.set_custom("IMAGE_NUMBER", i + 1);
-			hook.set_image(&artist->images[i]);
+			hook.set_custom("IMAGE_NUMBER", artist_img_ndx + 1);
+			hook.set_image(&artist->images[artist_img_ndx]);
 
 			if (my_album_art_ids.size() > i + offset) {
 
@@ -732,7 +747,7 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, meta
 		if (write_this) {
 
 			if (voverwrite_it[i] || !foobar2000_io::filesystem::filesystem::g_exists(path, p_abort)) {
-				g_discogs->fetch_image(buffer, artist->images[i], p_abort);
+				g_discogs->fetch_image(buffer, artist->images[artist_img_ndx], p_abort);
 				g_discogs->write_image(buffer, path, p_abort);
 
 				saved_mask.set(i + offset, true);
@@ -760,7 +775,7 @@ void foo_discogs::save_artist_art(Artist_ptr &artist, Release_ptr &release, meta
 				if (!buffer.get_count()) {
 					/* SHOULD BE CACHED */
 					//todo: get it from previously fetched
-					g_discogs->fetch_image(buffer, artist->images[i], p_abort);
+					g_discogs->fetch_image(buffer, artist->images[artist_img_ndx], p_abort);
 				}
 
 				if (this_guid == album_art_ids::icon) {

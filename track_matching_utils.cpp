@@ -262,7 +262,7 @@ namespace tileview_helper {
 }
 
 //generate cache thumbnails files and hbitmaps from artwork preview memoryblock
-std::pair<HBITMAP, HBITMAP> MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::string8> cache_path, size_t pos, MemoryBlock small_art) {
+std::pair<HBITMAP, HBITMAP> MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::string8> cache_path, MemoryBlock small_art) {
 
 	if (!small_art.get_count()) return std::pair(nullptr, nullptr);
 

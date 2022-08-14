@@ -40,9 +40,8 @@ private:
 	lru_cache<pfc::string8, Artist_ptr> *cache_artists;
 	lru_cache<pfc::string8, bool> *cache_deleted_releases;
 
-	ol::ol_cache<pfc::string8, json_t *> *offline_cache_artists;
-	ol::ol_cache<pfc::string8, json_t*> *offline_cache_release;
-	
+	ol::ol_cache offline_cache;
+
 	pfc::string8 username;
 	pfc::array_t<pfc::string8> collection;
 
@@ -91,8 +90,8 @@ public:
 	pfc::array_t<JSONParser_ptr> get_all_pages(pfc::string8 &url, pfc::string8 params, abort_callback &p_abort, const char *msg, threaded_process_status &p_status);
 
 	pfc::array_t<JSONParser_ptr> get_all_pages_offline_cache(ol::GetFrom gpfFrom, pfc::string8 &id, pfc::string8 &secid, pfc::string8 params, abort_callback &p_abort, const char *msg, threaded_process_status &p_status);
-	void get_artist_offline_cache(pfc::string8& id, pfc::string8& html, abort_callback& p_abort, const char* msg, threaded_process_status& p_status);
-	void get_release_offline_cache(pfc::string8& id, pfc::string8& secid, pfc::string8& html, abort_callback& p_abort, const char* msg, threaded_process_status& p_status);
+	
+	void get_entity_offline_cache(ol::GetFrom getfrom, pfc::string8& artist_id, pfc::string8& release_id, pfc::string8& html, abort_callback& p_abort, const char* msg, threaded_process_status& p_status);
 
 	DiscogsInterface() {
 
@@ -101,22 +100,15 @@ public:
 		cache_master_releases = new lru_cache<unsigned long, MasterRelease_ptr>(CONF.cache_max_objects);
 		cache_artists = new lru_cache<pfc::string8, Artist_ptr>(CONF.cache_max_objects);
 		cache_deleted_releases = new lru_cache<pfc::string8, bool>(CONF.cache_max_objects);
-
-		offline_cache_artists = new ol::ol_cache<pfc::string8, json_t*>();
-		offline_cache_release = new ol::ol_cache<pfc::string8, json_t*>();
 	}
 
 	~DiscogsInterface() {
 
 		delete fetcher;
-
 		delete cache_releases;
 		delete cache_master_releases;
 		delete cache_artists;
 		delete cache_deleted_releases;
-
-		delete offline_cache_artists;
-		delete offline_cache_release;
 	}
 
 	inline void reset_master_release_cache() {
@@ -154,13 +146,29 @@ public:
 	}
 
 	inline bool offline_cache_save(pfc::string8 path, json_t* root) {
-		return offline_cache_artists->FDump_JSON(path, root);
+		return offline_cache.Dump_JSON(path, root);
+	}
+
+	bool img_ndx_to_artist(Release_ptr p_release, size_t img_ndx, Artist_ptr& artist, size_t& ndx) {
+
+		ndx = img_ndx;
+		Artist_ptr this_artist;
+		size_t accimg = 0;
+
+		for (auto wra : p_release->artists) {
+			this_artist = wra->full_artist;
+			if (accimg + this_artist->images.get_count() > img_ndx) break;
+			accimg += this_artist->images.get_count();
+		}
+
+		ndx -= accimg;
+		artist = this_artist;
+		return this_artist.get() && ndx < this_artist->images.get_count();
 	}
 
 	bool get_thumbnail_from_cache(Release_ptr release, bool isArtist, size_t img_ndx, MemoryBlock& small_art,
 		threaded_process_status& p_status, abort_callback& p_abort);
 
-		
 	void search_artist(const pfc::string8 &name, pfc::array_t<Artist_ptr> &exact_matches, pfc::array_t<Artist_ptr> &other_matches, threaded_process_status &p_status, abort_callback &p_abort);
 	
 	Release_ptr get_release(const unsigned long lkey, bool bypass_is_cache = true, bool bypass = false);
@@ -172,13 +180,11 @@ public:
 
 	MasterRelease_ptr get_master_release(const pfc::string8 &master_id, threaded_process_status &p_status, abort_callback &p_abort, bool bypass_cache = false, bool throw_all = false);
 	Artist_ptr get_artist(const pfc::string8 &artist_id, bool bypass_cache = false);
-	Artist_ptr get_artist(const pfc::string8 &artist_id, bool load_releases, threaded_process_status &p_status, abort_callback &p_abort, bool bypass_cache = false, bool throw_all = false);
+	Artist_ptr get_artist(const pfc::string8 &artist_id, bool load_releases, threaded_process_status &p_status, abort_callback &p_abort, bool bypass_cache = false, bool throw_all = false, bool throw_404 = true);
 
 	pfc::string8 get_username(threaded_process_status &p_status, abort_callback &p_abort);
 	pfc::string8 load_username(threaded_process_status &p_status, abort_callback &p_abort);
 	pfc::array_t<pfc::string8> get_collection(threaded_process_status &p_status, abort_callback &p_abort);
-
-	//pfc::array_t<pfc::string8> load_profile(threaded_process_status& p_status, abort_callback& p_abort);
 
 	bool delete_artist_cache(const pfc::string8& artist_id);
 };

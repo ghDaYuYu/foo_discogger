@@ -54,8 +54,9 @@ public:
 class generate_tags_task : public foo_discogs_locked_threaded_process_callback
 {
 public:
-	generate_tags_task(CPreviewTagsDialog *preview_dialog, TagWriter_ptr tag_writer, bool use_update_tags);
-	generate_tags_task(CTrackMatchingDialog *release_dialog, TagWriter_ptr tag_writer, bool show_preview_dialog, bool use_update_tags);
+	generate_tags_task(CPreviewTagsDialog *preview_dialog, TagWriter_ptr tag_writer);
+	generate_tags_task(CTrackMatchingDialog *release_dialog, TagWriter_ptr tag_writer, bool show_preview_dialog);
+	generate_tags_task(CTagCreditDialog* credits_dialog, TagWriter_ptr tag_writer, tag_mapping_list_type* alt_mappings);
 	void start();
 
 private:
@@ -189,14 +190,14 @@ class get_artist_process_callback : public foo_discogs_threaded_process_callback
 
 {
 public:
-	get_artist_process_callback(updRelSrc updsrc, const char *artist_id)
-		: m_updsrc(updsrc), m_artist_id(artist_id) {}
+	get_artist_process_callback(cupdRelSrc cupdsrc, const char *artist_id)
+		: m_cupdsrc(cupdsrc), m_artist_id(artist_id) {}
 	void start(HWND parent);
 
 private:
 	pfc::string8 m_artist_id;
 	Artist_ptr m_artist;
-	updRelSrc m_updsrc;
+	cupdRelSrc m_cupdsrc;
 
 	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
@@ -208,14 +209,15 @@ private:
 class get_various_artists_process_callback : public foo_discogs_threaded_process_callback
 {
 public:
-	get_various_artists_process_callback(updRelSrc updsrc, const std::vector<size_t> & artist_ids)
-		: m_updsrc(updsrc), m_artist_ids(artist_ids) {}
+	get_various_artists_process_callback(cupdRelSrc cupdsrc, const std::vector<size_t> & artist_ids)
+		: m_cupdsrc(cupdsrc), m_artist_ids(artist_ids) {}
 	void start(HWND parent);
 
 private:
 	const std::vector<size_t> & m_artist_ids;
 	pfc::array_t<Artist_ptr> m_artists;
-	updRelSrc m_updsrc;
+	Release_ptr m_release;
+	cupdRelSrc m_cupdsrc;
 
 	void safe_run(threaded_process_status& p_status, abort_callback& p_abort) override;
 	void on_success(HWND p_wnd) override;
@@ -239,6 +241,9 @@ private:
 
 	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
+	void on_abort(HWND p_wnd) override;
+	void on_error(HWND p_wnd) override;
+
 };
 
 
@@ -270,7 +275,7 @@ class process_release_callback : public foo_discogs_threaded_process_callback
 #endif // DB_DC
 {
 public:
-	process_release_callback(CFindReleaseDialog *dialog, const pfc::string8 &release_id, const pfc::string8& offline_artist_id, const metadb_handle_list &items);
+	process_release_callback(CFindReleaseDialog *dialog, const pfc::string8 &release_id, const pfc::string8& offline_artist_id, pfc::string8 inno, const metadb_handle_list &items);
 	void start(HWND parent);
 
 private:
@@ -281,30 +286,6 @@ private:
 	CFindReleaseDialog *m_dialog;
 	pfc::string8 m_release_id;
 	pfc::string8 m_offline_artist_id;
-	Release_ptr m_release;
-
-	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
-	void on_success(HWND p_wnd) override;
-	void on_abort(HWND p_wnd) override;
-	void on_error(HWND p_wnd) override;
-};
-
-#ifdef DB_DC
-class process_aside_release_callback : public foo_discogs_with_db_threaded_process_callback
-#else
-class process_aside_release_callback : public foo_discogs_threaded_process_callback
-#endif // DB_DC
-{
-public:
-	process_aside_release_callback(CTagCreditDialog* dialog, const pfc::string8& release_id, const pfc::string8& offline_artist_id, pfc::string8 cat_credit_name,  pfc::string8 inno/*, const metadb_handle_list& items*/);
-	void start(HWND parent);
-
-private:
-
-	CTagCreditDialog* m_dialog;
-	pfc::string8 m_release_id;
-	pfc::string8 m_offline_artist_id;
-	pfc::string8 m_cat_credit_name;
 	pfc::string8 m_inno;
 	Release_ptr m_release;
 
@@ -313,35 +294,6 @@ private:
 	void on_abort(HWND p_wnd) override;
 	void on_error(HWND p_wnd) override;
 };
-
-
-#ifdef CAT_UI
-#ifdef DB_DC
-class process_uielem_release_callback : public foo_discogs_with_db_locked_threaded_process_callback
-#else
-class process_uielem_release_callback : public foo_discogs_locked_threaded_process_callback
-#endif // DB_DC
-{
-public:
-	process_uielem_release_callback(ui_element_instance* uielem, const pfc::string8& release_id, const pfc::string8& offline_artist_id/*, pfc::string8 cat_credit_name, pfc::string8 inno, const metadb_handle_list& items*/);
-	void start(HWND parent);
-
-private:
-
-	ui_element_instance* m_uielem;
-	pfc::string8 m_release_id;
-	pfc::string8 m_offline_artist_id;
-
-	Release_ptr m_release;
-
-	void safe_run(threaded_process_status& p_status, abort_callback& p_abort) override;
-
-	void on_success(HWND p_wnd) override;
-	void on_abort(HWND p_wnd) override;
-	void on_error(HWND p_wnd) override;
-};
-
-#endif //CAT_UI
 
 class process_artwork_preview_callback : public foo_discogs_threaded_process_callback
 {

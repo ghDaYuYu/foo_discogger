@@ -446,8 +446,7 @@ pfc::array_t<pfc::string8> DiscogsInterface::get_collection(threaded_process_sta
 //	return collection;
 //}
 
-bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release,
-	bool isArtist, size_t img_ndx, MemoryBlock& small_art,
+bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release, bool isArtist, size_t img_ndx, MemoryBlock& small_art,
 	threaded_process_status& p_status, abort_callback& p_abort) {
 
 	bool bres = false;
@@ -455,6 +454,7 @@ bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release,
 	pfc::string8 id;
 	pfc::string8 url;
 	pfc::array_t<Image_ptr>* images;
+	size_t local_ndx = img_ndx;
 
 	if (!isArtist) {
 		id = release->id;
@@ -471,11 +471,15 @@ bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release,
 	}
 	else {
 
-		id = release->artists[0]->full_artist->id;
+		Artist_ptr this_artist;
 
-		if (!release->artists.get_size() ||
-			!release->artists[0]->full_artist->images.get_size() ||
-			!release->artists[0]->full_artist->images[img_ndx]->url150.get_length()) {
+		img_ndx_to_artist(release, img_ndx, this_artist, local_ndx);
+
+		id = this_artist->id;
+
+		if (!release->artists.get_size() || !this_artist.get() ||
+			!this_artist->images.get_size() ||
+			!this_artist->images[local_ndx]->url150.get_length()) {
 
 			pfc::string8 msg = "Unable to read thumbnail from cache (artist), url: ";
 			log_msg(msg);
@@ -483,14 +487,14 @@ bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release,
 			return false;
 		}
 		else {
-			images = &release->artists[0]->full_artist->images;
+			images = &this_artist->images;
 		}
 	}
 
 	size_t artist_offset = isArtist ? release->images.get_count() : 0;
 
 	pfc::array_t<pfc::string8> thumb_cache;
-	thumb_cache = ol::get_thumbnail_cache_path_filenames(id, isArtist ? art_src::art : art_src::alb, LVSIL_NORMAL, img_ndx);
+	thumb_cache = ol::get_thumbnail_cache_path_filenames(id, isArtist ? art_src::art : art_src::alb, LVSIL_NORMAL, local_ndx);
 
 	if (thumb_cache.get_count()) {
 

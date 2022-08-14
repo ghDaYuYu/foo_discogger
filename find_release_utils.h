@@ -244,6 +244,34 @@ public:
 			return has_artist() && has_master() && has_release();
 	}
 
+
+	void register_artist(pfc::string8 id, size_t & artist_id, std::vector<size_t>& vartists) {
+
+
+		if (id.get_length() && is_number(id.c_str())) {
+
+			size_t sz_id = atoi(id);
+
+			if (artist_id == ~0) {
+				artist_id = sz_id;
+			}
+			else
+			{
+				if (sz_id == artist_id) return;
+
+				if (vartists.size() == 0) {
+					//add current tmp_artist_id
+					vartists.emplace_back(artist_id);
+				}
+				
+				if (std::find(vartists.begin(), vartists.end(),	sz_id) == vartists.end()) {
+					//add unique artist
+					vartists.emplace_back(sz_id);
+				}
+			}
+		}	
+	}
+
 	bool id_tracer::init_tracker_tags(metadb_handle_list items) {
 
 		pfc::string8 walk_artist_id, master_id, release_id;
@@ -259,28 +287,18 @@ public:
 
 			items[i]->format_title(nullptr, walk_artist_id, g_discogs->dc_artist_id_script, nullptr);
 
-			if (walk_artist_id.get_length()) {
+			std::vector<pfc::string8> vtrack_artists;
+			split(walk_artist_id, ",", 0, vtrack_artists);
 
-				walk_sz_artist_id = atoi(walk_artist_id);
-
-				if (tmp_artist_id == ~0) {
-					tmp_artist_id = walk_sz_artist_id;
+			if (vtrack_artists.size() > 1) {
+				for (auto w : vtrack_artists) {
+					//multiple artists per track
+					register_artist(trim(w), tmp_artist_id, vmulti_artist_ids);
 				}
-				else
-				{
-					if (walk_sz_artist_id == tmp_artist_id) continue;
+			
+			} else if (walk_artist_id.get_length() && is_number(walk_artist_id.c_str())) {
 
-					if (vmulti_artist_ids.size() == 0) {
-						//add tmp artist id
-						vmulti_artist_ids.emplace_back(tmp_artist_id);
-					}
-
-					if (std::find(vmulti_artist_ids.begin(), vmulti_artist_ids.end(),
-						walk_sz_artist_id) == vmulti_artist_ids.end()) {
-
-						vmulti_artist_ids.emplace_back(walk_sz_artist_id);
-					}
-				}					
+				register_artist(walk_artist_id, tmp_artist_id, vmulti_artist_ids);
 			}
 		}
 

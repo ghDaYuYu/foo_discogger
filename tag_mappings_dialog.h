@@ -120,7 +120,6 @@ private:
 	pfc::string8 listGetSubItemText(ctx_t ctx, size_t item, size_t subItem) override {
 
 		pfc::string8 buffer;
-
 		if (item < m_ptag_mappings->get_count()) {
 
 			const tag_mapping_entry* entry = &m_ptag_mappings->get_item_ref(item);
@@ -204,7 +203,8 @@ private:
 			m_tag_list.TableEdit_Start(item, subItem);
 		}
 		if (subItem == 2) {
-			CPoint p = ::GetCursorPos();
+			CPoint p;
+			::GetCursorPos(&p);
 			LPARAM lparam = MAKELPARAM(p.x, p.y);
 			OnContextMenu(this->IDD, (WPARAM)(HWND)m_tag_list, lparam);
 		}
@@ -374,8 +374,6 @@ public:
 	LRESULT OnBtnCreditsClick(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 #endif // CAT_CRED
 
-	
-	//LRESULT OnSplitDropDown(LPNMHDR lParam);
 	LRESULT OnSplitDropDown(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnAddNewTag(UINT, WPARAM, LPARAM);
 	//LRESULT OnAddNew(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);

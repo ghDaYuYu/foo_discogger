@@ -28,7 +28,9 @@ class CUpdateArtDialog;
 class CUpdateTagsDialog;
 class contextmenu_discogs;
 class process_release_callback;
+#ifdef CAT_CRED
 class process_aside_release_callback;
+#endif
 class get_artist_process_callback;
 class get_various_artists_process_callback;
 class search_artist_process_callback;
@@ -62,7 +64,7 @@ public:
 
 	void save_album_art(Release_ptr &release, metadb_handle_ptr item, art_download_attribs ada, pfc::array_t<GUID> album_art_ids, bit_array_bittable &saved_mask, pfc::array_t<pfc::string8> &done_files, threaded_process_status &p_status, abort_callback &p_abort);
 	void save_artist_art(Release_ptr &release, metadb_handle_ptr item, art_download_attribs ada, pfc::array_t<GUID> album_art_ids, bit_array_bittable& saved_mask, pfc::array_t<pfc::string8> &done_files, threaded_process_status &p_status, abort_callback &p_abort);
-	void save_artist_art(Artist_ptr &artist, Release_ptr &release, metadb_handle_ptr item, art_download_attribs ada, pfc::array_t<GUID> album_art_ids, bit_array_bittable& saved_mask, pfc::array_t<pfc::string8> &done_files, threaded_process_status &p_status, abort_callback &p_abort);
+	void save_artist_art(pfc::array_t<Artist_ptr> &artists, Release_ptr &release, metadb_handle_ptr item, art_download_attribs ada, pfc::array_t<GUID> album_art_ids, bit_array_bittable& saved_mask, pfc::array_t<pfc::string8> &done_files, threaded_process_status &p_status, abort_callback &p_abort);
 
 	void fetch_image(MemoryBlock &buffer, Image_ptr &image, abort_callback &p_abort);
 	void write_image(MemoryBlock &buffer, const pfc::string8 &full_path, abort_callback &p_abort);
@@ -89,7 +91,7 @@ public:
 inline bool g_os_is_wine = false;
 inline foo_discogs* g_discogs = nullptr;
 
-enum class PreView :int { kNORMAL = 0, kDIFFERENCE, kORIGINAL, kDEBUG, default = 0 };
+enum class PreView :int { kNORMAL = 0, kDIFFERENCE, kORIGINAL, kDEBUG, kUndef, default = 0 };
 
 enum class updRelSrc { Artist, Releases, Filter, ArtistList, ArtistListCheckExact, ArtistProfile, ArtistSearch, Undef, UndefFast };
 

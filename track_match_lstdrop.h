@@ -32,7 +32,7 @@ public:
 		if (m_bDragging) ZapCapture();
 	}
 
-	std::function<bool(HWND)>stdf_change_notifier = nullptr;
+	std::function<bool(HWND, size_t item)>stdf_change_notifier = nullptr;
 
 	// Initialization on dialog parent OnInitDialog()
 
@@ -53,7 +53,6 @@ public:
 		m_colors[2] = m_color_highlight;
 	}
 
-    //todo: rev proper imp
 	void SetNotifier(std::function<bool(HWND, size_t)>update_notifier) {
 		stdf_change_notifier = update_notifier;
 	}

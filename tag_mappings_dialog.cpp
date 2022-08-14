@@ -8,6 +8,7 @@
 #include "tag_mappings_credits_dlg.h"
 #endif // CAT_CRED
 
+#include "utils_import_export_dialog.h"
 #include "tag_mappings_dialog.h"
 
 static const GUID guid_cfg_window_placement_tag_mapping_dlg = { 0x7056137a, 0x8fe9, 0x4b5e, { 0x89, 0x8e, 0x13, 0x59, 0x83, 0xfd, 0x3, 0x95 } };
@@ -236,30 +237,12 @@ LRESULT CTagMappingDialog::OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*hWn
 }
 
 LRESULT CTagMappingDialog::OnImport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	char filename[MAX_PATH];
-	OPENFILENAMEA ofn;
-	ZeroMemory(&filename, sizeof(filename));
-	ZeroMemory(&ofn, sizeof(ofn));
-	ofn.lStructSize = sizeof(ofn);
-	ofn.hwndOwner = m_hWnd;
-	ofn.lpstrFilter = "Tag Mapping Files (*.tm)\0*.tm\0All Files (*.*)\0*.*\0";
-	ofn.lpstrFile = filename;
-	ofn.nMaxFile = MAX_PATH-1;
-	ofn.lpstrTitle = "Load from file...";
-	ofn.Flags = OFN_DONTADDTORECENT | OFN_FILEMUSTEXIST;
 
-	if (GetOpenFileNameA(&ofn)) {
-		log_msg(filename);
-	}
+	pfc::string8 strFinalName;
+	BOOL bres = OpenImportDlg(m_hWnd, "Tag Mapping Files (*.tm)\0*.tm\0All Files (*.*)\0*.*\0", strFinalName);
+	if (!bres) return FALSE;
 
-	{
-		pfc::string8 tmpFullPath(ofn.lpstrFile);
-		if (!tmpFullPath.length()) {
-			return FALSE;
-		}
-	}
-
-	pfc::stringcvt::string_utf8_from_codepage cvt_utf8(0, ofn.lpstrFile);
+	pfc::stringcvt::string_utf8_from_codepage cvt_utf8(0, strFinalName);
 
 	std::filesystem::path os_file = std::filesystem::u8path(cvt_utf8.get_ptr());
 
@@ -289,36 +272,10 @@ LRESULT CTagMappingDialog::OnImport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndC
 }
 
 LRESULT CTagMappingDialog::OnExport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	char filename[MAX_PATH];
-	OPENFILENAMEA ofn;
-	ZeroMemory(&filename, sizeof(filename));
-	ZeroMemory(&ofn, sizeof(ofn));
-	ofn.lStructSize = sizeof(ofn);
-	ofn.hwndOwner = m_hWnd;
-	ofn.lpstrFilter = "Tag Mapping Files (*.tm)\0*.tm\0All Files (*.*)\0*.*\0";
-	ofn.lpstrFile = filename;
-	ofn.nMaxFile = MAX_PATH;
-	ofn.lpstrTitle = "Save to file...";
-	ofn.Flags = OFN_DONTADDTORECENT;
 
-	GetSaveFileNameA(&ofn);
-
-	pfc::string8 strFinalName(filename);
-	pfc::string8 tmpNoExt(pfc::string_filename(filename).get_ptr());
-	//check also extension without name
-	tmpNoExt.truncate(tmpNoExt.get_length() - pfc::string_extension(filename).length() + (pfc::string_extension(filename).length() ? 1 /*+1 dot ext length*/ : 0) );
-	if (!strFinalName.length() || !tmpNoExt.get_length()) {
-		return FALSE;
-	}
-
-	pfc::string8 outExt;
-	pfc::string8 filterExt = ofn.nFilterIndex == 1 ? ".tm" : "";
-	outExt << "." <<  pfc::string_extension(filename);
-	if (outExt.get_length() == 1) outExt = "";
-
-	if ((ofn.nFilterIndex == 1) && (stricmp_utf8(outExt, ".tm"))) {
-		strFinalName << filterExt;
-	}
+	pfc::string8 strFinalName;
+	BOOL bres = OpenExportDlg(m_hWnd, "Tag Mapping Files (*.tm)\0*.tm\0All Files (*.*)\0*.*\0", strFinalName);
+	if (!bres) return FALSE;
 
 	pfc::stringcvt::string_utf8_from_codepage cvt_utf8(0, strFinalName);
 

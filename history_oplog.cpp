@@ -36,11 +36,10 @@ void history_oplog::zap_vhistory() {
 }
 
 bool history_oplog::add_history_row(oplog_type optype, rppair row) {
-	//rppair row_copy = rppair(row);
 
 	if (!get_row_key(optype, row).get_length()) return false;
 
-	vppair vh =	get_history(optype);
+	vppair& vh = get_history(optype);
 	vppair::iterator fit;
 
 	fit = std::find_if(vh.begin(), vh.end(),

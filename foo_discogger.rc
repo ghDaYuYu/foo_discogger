@@ -7,7 +7,10 @@
 //
 // Generated from the TEXTINCLUDE 2 resource.
 //
-#include "afxres.h"
+#include <windows.h>
+#ifndef IDC_STATIC
+#define IDC_STATIC -1
+#endif
 
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
@@ -32,7 +35,10 @@ END
 
 2 TEXTINCLUDE 
 BEGIN
-    "#include ""afxres.h""\r\n"
+    "#include <windows.h>\r\n"
+    "#ifndef IDC_STATIC\r\n"
+    "#define IDC_STATIC -1\r\n"
+    "#endif\r\n"
     "\0"
 END
 
@@ -335,10 +341,10 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     LTEXT           "Highlight:",IDC_STATIC_TAG_HL,5,7,31,8
     EDITTEXT        IDC_EDIT_TAG_MATCH_HL,38,5,58,12,ES_AUTOHSCROLL | ES_WANTRETURN
-    CTEXT           "?",IDC_SYNTAX_HELP,129,7,8,8,WS_TABSTOP
-    PUSHBUTTON      "&Credits...",IDC_SPLIT_BTN_TAG_CAT_CREDIT,136,4,6,14,NOT WS_VISIBLE
-    PUSHBUTTON      "&Add tag...",IDC_SPLIT_BTN_TAG_ADD_NEW,142,4,50,14
-    PUSHBUTTON      "&Remove",IDC_REMOVE_TAG,195,4,34,14
+    CTEXT           "?",IDC_SYNTAX_HELP,101,7,8,8,WS_TABSTOP
+    PUSHBUTTON      "&Credits...",IDC_SPLIT_BTN_TAG_CAT_CREDIT,110,4,40,14
+    PUSHBUTTON      "&Add tag...",IDC_SPLIT_BTN_TAG_ADD_NEW,150,4,40,14
+    PUSHBUTTON      "&Remove",IDC_REMOVE_TAG,190,4,40,14
     CONTROL         "",IDC_TAG_LIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_CLIPCHILDREN | WS_BORDER | WS_TABSTOP,4,21,225,171
     PUSHBUTTON      "Load/Save...",IDC_SPLIT_BTN_TAG_FILE_DEF,4,195,56,14
     PUSHBUTTON      "OK",IDOK,76,195,50,14

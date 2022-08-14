@@ -312,6 +312,7 @@ size_t coord_presenters::ListUserCmdMOVE(HWND hwnd, lsmode mode, int cmd, bit_ar
 
 	bool bcrop = cmdmod;
 	const size_t count = pres->GetDataLvSize();
+	const size_t cAlbumArt = m_tag_writer->release->images.get_count();
 
     //todo: rev
 	t_size nextfocus = pfc_infinite;
@@ -801,7 +802,13 @@ std::pair<pfc::string8, pfc::string8> artwork_presenter::get_tag_writer_img_finf
 		ndx = list_position;
 	}
 	else {
-		images = m_tag_writer->release->artists[0]->full_artist->images;
+		size_t cartist_art = 0;
+		for (auto wra : m_tag_writer->release->artists) {
+			cartist_art += wra->full_artist->images.get_count();
+			if (cartist_art > list_position) {
+				images = wra->full_artist->images;
+			}
+		}
 		ndx = list_position - m_tag_writer->release->images.get_count();
 	}
 
@@ -1536,10 +1543,14 @@ void discogs_artwork_presenter::Populate() {
 	Reset();
 
 	pfc::array_t<Discogs::ReleaseArtist_ptr> release_artists = m_release->artists;
-	pfc::array_t<Discogs::Image_ptr> main_artist_images = release_artists[0]->full_artist->images;
+
+	size_t cartist_img = 0;
+	for (auto wra : release_artists) {
+		cartist_img += wra->full_artist->images.get_count();
+	}
 
 	size_t count_release_img = m_release->images.get_count();
-	size_t count_artist_img = main_artist_images.get_count();
+	size_t count_artist_img = cartist_img;
 
 	m_vimages.reserve(count_release_img + count_artist_img);
 
@@ -1570,26 +1581,29 @@ void discogs_artwork_presenter::Populate() {
 
 	}
 
-	//artist artwork
-	for (size_t i = count_release_img; i < count_release_img + count_artist_img; i++) {
-		image_info_t imageinfo;
-		Image_ptr pi = main_artist_images[i - count_release_img];
-		if (i == count_release_img) {
-			pfc::string8 fixedprimary = pi->get_type().print().toString();
-			fixPrimary(fixedprimary);
-			imageinfo.emplace_back(fixedprimary);
+	for (auto wra : release_artists) {
+		//artist artwork
+		pfc::array_t<Discogs::Image_ptr> full_artist_images = wra->full_artist->images;
+		for (size_t i = 0; i < full_artist_images.get_count(); i++) {
+			image_info_t imageinfo;
+			Image_ptr pi = full_artist_images[i];
+			if (!i) {
+				pfc::string8 fixedprimary = pi->get_type().print().toString();
+				fixPrimary(fixedprimary);
+				imageinfo.emplace_back(fixedprimary);
+			}
+			else {
+				imageinfo.emplace_back(pi->get_type().print().toString());
+			}
+			imageinfo.emplace_back(pi->get_width().print().toString());
+			imageinfo.emplace_back(pi->get_height().print().toString());
+			imageinfo.emplace_back(pi->get_url().print().toString());
+			imageinfo.emplace_back(pi->get_thumbnail_url().print().toString());
+			ndx_image_t ndx_image((int)art_src::art, pi);
+			ndx_image_info_row_t image_info_row(ndx_image, imageinfo);
+			m_vimages.push_back(image_info_row);
+			m_lvimages.emplace(m_lvimages.end(), std::pair<size_t, getimages_it>(m_lvimages.size(), --m_vimages.end()));
 		}
-		else {
-			imageinfo.emplace_back(pi->get_type().print().toString());
-		}
-		imageinfo.emplace_back(pi->get_width().print().toString());
-		imageinfo.emplace_back(pi->get_height().print().toString());
-		imageinfo.emplace_back(pi->get_url().print().toString());
-		imageinfo.emplace_back(pi->get_thumbnail_url().print().toString());
-		ndx_image_t ndx_image((int)art_src::art, pi);
-		ndx_image_info_row_t image_info_row(ndx_image, imageinfo);
-		m_vimages.push_back(image_info_row);
-		m_lvimages.emplace(m_lvimages.end(), std::pair<size_t, getimages_it>(m_lvimages.size(), --m_vimages.end()));
 	}
 
 	set_row_height(true);
@@ -1662,8 +1676,11 @@ bool discogs_artwork_presenter::AddArtwork(size_t img_ndx, art_src artSrc, Memor
 		id = m_release->id;
 	}
 	else {
-		//list_param_ndx = img_ndx + m_tag_writer->release->images.get_count();
-		id = m_release->artists[0]->full_artist->id;
+		Artist_ptr artist;
+		size_t artist_img_ndx = img_ndx;
+		if (discogs_interface->img_ndx_to_artist(m_release, img_ndx, artist, artist_img_ndx)) {
+			id = artist->id;
+		}
 	}
 
 	pfc::string8 cache_path_small = Offline::get_thumbnail_cache_path_filenames(
@@ -1686,8 +1703,7 @@ bool discogs_artwork_presenter::AddArtwork(size_t img_ndx, art_src artSrc, Memor
 
 	// prepare bitmaps
 
-	std::pair<HBITMAP, HBITMAP> hRES = MemoryBlockToTmpBitmap(std::pair(cache_path_small,	cache_path_mini),
-		img_ndx, small_art);
+	std::pair<HBITMAP, HBITMAP> hRES = MemoryBlockToTmpBitmap(std::pair(cache_path_small, cache_path_mini), small_art);
 
 	//Find lv item with real ndx ej. 4, artist -> look for art & ndx 4
 	//create list to parse ndx lists in next releases
@@ -1842,9 +1858,7 @@ void coord_presenters::populate_track_ui_mode() {
 			item->format_title(nullptr, formatted_length, titleformat_object_wrapper(length_titleformat), nullptr);
 
 			match_info_t file_match_info(display, formatted_length);
-			
 			size_t file_index = -1;
-			
 			if (i < ctracks) {
 				const track_mapping& mapping = m_tag_writer->track_mappings[i];
 				file_index = mapping.file_index;

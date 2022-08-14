@@ -127,8 +127,14 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 		HWND hwndControl = GetDlgItem(IDC_BTN_PREVIEW_TAGS);
 		SendMessage(m_hWnd, WM_NEXTDLGCTL, (WPARAM)hwndControl, TRUE);
 
+		size_t cartist_art = 0;
+
+		for (auto wra : m_tag_writer->release->artists) {
+			cartist_art += wra->full_artist->images.get_count();
+		}
+
 		if (m_tag_writer->release->images.get_count() > kMax_Artwork || 
-			m_tag_writer->release->artists[0]->full_artist->images.get_count() > kMax_Artwork) {
+			cartist_art > kMax_Artwork) {
 
 			HWND hwndManageArt = uGetDlgItem(IDC_CHK_MNG_ARTWORK);
 			::EnableWindow(hwndManageArt, FALSE);
@@ -147,11 +153,13 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 				preview_job pj(false, it, false, it != 0, it == 0 && get_mibs);
 				m_vpreview_jobs.emplace_back(pj);
 			}
-			for (size_t it = 0; it < m_tag_writer->release->artists[0]->full_artist->images.get_count(); it++) {
-
-				preview_job pj(false, it, true, it != 0, false);
-				m_vpreview_jobs.emplace_back(pj);
-
+			size_t acc_ndx = 0;
+			for (auto wra : m_tag_writer->release->artists) {
+				for (size_t it = 0; it < wra->full_artist->images.get_count(); it++) {
+					preview_job pj(false, acc_ndx + it, true, it != 0, false);
+					m_vpreview_jobs.emplace_back(pj);
+				}
+				acc_ndx += wra->full_artist->images.get_count();
 			}
 
 			// 0 front, 1 back, 3 disk, 2 artist
@@ -718,9 +726,14 @@ bool CTrackMatchingDialog::generate_artwork_guids(pfc::array_t<GUID> &my_album_a
 	
 	}
 	else {
-	
+
 		size_t calbum_art = m_tag_writer->release->images.get_count();
-		size_t cartist_art = m_tag_writer->release->artists[0]->full_artist->images.get_count();
+		size_t cartist_art = 0;
+
+		for (auto wra : m_tag_writer->release->artists) {
+			cartist_art += wra->full_artist->images.get_count();
+		}
+		//todo: replace by max(calbum_art, cartist_art)
 		if ((calbum_art + cartist_art) > 0) {
 			my_album_art_ids.resize(m_tag_writer->get_art_count());
 		}
@@ -730,16 +743,12 @@ bool CTrackMatchingDialog::generate_artwork_guids(pfc::array_t<GUID> &my_album_a
 		tmp_guids.resize(1);
 		GUID undef_guid = tmp_guids[0];
 		//..
-
 		pfc::fill_array_t(my_album_art_ids, undef_guid);
-
 		if (calbum_art) {
 			my_album_art_ids[0] = album_art_ids::cover_front;
 		}
-
 		if (cartist_art) {
-		    //note: 0 for no album artwork releases
-			my_album_art_ids[calbum_art] = album_art_ids::artist;
+			my_album_art_ids[calbum_art] = album_art_ids::artist; //may be 0 for no album artwork releases
 		}
 	}
 	return true;

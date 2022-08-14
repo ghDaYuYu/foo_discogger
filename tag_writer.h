@@ -58,8 +58,16 @@ public:
 		force_skip = true;
 	}
 
-	void generate_tags(bool use_update_tags, tag_mapping_list_type* alt_mappings, threaded_process_status& p_status, abort_callback& p_abort);
-	const t_size get_art_count() { return release->images.get_count() + release->artists[0]->full_artist->images.get_count();}
+	void generate_tags(tag_mapping_list_type* alt_mappings, threaded_process_status& p_status, abort_callback& p_abort);
+
+	//todo: param (all, album, art)
+	const t_size get_art_count() {
+		size_t res = release->images.get_count();
+		for (auto wra : release->artists) {
+			res += wra->full_artist->images.get_count();
+		}
+		return res;
+	}
 
 	void write_tags();
 	void write_tags_track_map();

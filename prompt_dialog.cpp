@@ -10,7 +10,7 @@ LRESULT CPromptDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*l
 }
 
 LRESULT CPromptDialog::OnButtonOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	uGetDlgItemText(m_hWnd, IDC_PROMPT_EDIT, *result);
+	uGetDlgItemText(m_hWnd, IDC_EDIT_PROMPT, *result);
 	EndDialog(0);
 	return TRUE;
 }

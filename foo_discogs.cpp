@@ -323,7 +323,7 @@ void foo_discogs::save_album_art(Release_ptr &release, metadb_handle_ptr item,
 		if (write_this) {
 
 			pfc::string8 file;
-			hook.set_custom("IMAGE_NUMBER", i + 1);
+			hook.set_custom("IMAGE_NUMBER", (unsigned)(i + 1));
 			hook.set_image(&release->images[i]);
 
 			if (my_album_art_ids.size() > i + offset) {
@@ -650,7 +650,7 @@ void foo_discogs::save_artist_art(pfc::array_t<Artist_ptr>& artists, Release_ptr
 		if (write_this) {
 
 			pfc::string8 file;
-			hook.set_custom("IMAGE_NUMBER", artist_img_ndx + 1);
+			hook.set_custom("IMAGE_NUMBER", (unsigned)(artist_img_ndx + 1));
 			hook.set_image(&artist->images[artist_img_ndx]);
 
 			if (my_album_art_ids.size() > i + offset) {

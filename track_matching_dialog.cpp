@@ -535,7 +535,7 @@ LRESULT CTrackMatchingDialog::OnColorStatic(UINT /*uMsg*/, WPARAM wParam, LPARAM
 
 			SetBkMode((HDC)wParam, GetSysColor(COLOR_3DFACE));
 			SetTextColor((HDC)wParam, RGB(255, 0, 0));
-			return (BOOL)GetSysColorBrush(COLOR_3DFACE);
+			return (LRESULT)GetSysColorBrush(COLOR_3DFACE);
 		}
 		else {
 			return FALSE;

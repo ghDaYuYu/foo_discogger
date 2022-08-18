@@ -347,7 +347,7 @@ enum {
 };
 
 void InitComboRowStyle(HWND wnd, UINT id, t_size sel) {
-	std::map<int, std::string>rowstylemap;
+	std::map<t_size, std::string>rowstylemap;
 	rowstylemap.emplace((t_size)rowStyleGrid, "Grid");
 	rowstylemap.emplace((t_size)rowStyleFlat, "Flat");
 	rowstylemap.emplace((t_size)rowStylePlaylist, "Playlist");
@@ -869,7 +869,7 @@ void CConfigurationDialog::init_current_tab() {
 	}
 }
 
-BOOL CConfigurationDialog::on_tagging_dialog_message(HWND wnd, UINT msg, WPARAM wp, LPARAM lp) {
+INT_PTR WINAPI CConfigurationDialog::on_tagging_dialog_message(HWND wnd, UINT msg, WPARAM wp, LPARAM lp) {
 	switch (msg) {
 	case WM_INITDIALOG:
 		setting_dlg = true;
@@ -915,11 +915,10 @@ INT_PTR WINAPI CConfigurationDialog::tagging_dialog_proc(HWND hWnd, UINT msg, WP
 
 	if (msg == WM_INITDIALOG) {
 		p_this = (CConfigurationDialog*)(lParam);
-		::uSetWindowLong(hWnd, GWL_USERDATA, (LPARAM)p_this);
+		::SetWindowLongPtr(hWnd, GWLP_USERDATA, (LPARAM)p_this);
 	}
 	else {
-
-		p_this = reinterpret_cast<CConfigurationDialog*>(::uGetWindowLong(hWnd, GWL_USERDATA));
+		p_this = reinterpret_cast<CConfigurationDialog*>(::GetWindowLongPtr(hWnd, GWLP_USERDATA));
 	}
 	return p_this ? p_this->on_tagging_dialog_message(hWnd, msg, wParam, lParam) : FALSE;
 }
@@ -928,16 +927,15 @@ INT_PTR WINAPI CConfigurationDialog::caching_dialog_proc(HWND hWnd, UINT msg, WP
 	CConfigurationDialog * p_this;
 	if (msg == WM_INITDIALOG) {
 		p_this = (CConfigurationDialog*)(lParam);
-		::uSetWindowLong(hWnd, GWL_USERDATA, (LPARAM)p_this);
+		::SetWindowLongPtr(hWnd, GWLP_USERDATA, (LPARAM)p_this);
 	}
 	else {
-
-		p_this = reinterpret_cast<CConfigurationDialog*>(::uGetWindowLong(hWnd, GWL_USERDATA));
+		p_this = reinterpret_cast<CConfigurationDialog*>(::GetWindowLongPtr(hWnd, GWLP_USERDATA));
 	}
 	return p_this ? p_this->on_caching_dialog_message(hWnd, msg, wParam, lParam) : FALSE;
 }
 
-BOOL CConfigurationDialog::on_caching_dialog_message(HWND wnd, UINT msg, WPARAM wp, LPARAM lp) {
+INT_PTR WINAPI CConfigurationDialog::on_caching_dialog_message(HWND wnd, UINT msg, WPARAM wp, LPARAM lp) {
 
 	switch (msg) {
 		case WM_INITDIALOG:
@@ -1064,16 +1062,15 @@ INT_PTR WINAPI CConfigurationDialog::searching_dialog_proc(HWND hWnd, UINT msg, 
 	CConfigurationDialog * p_this;
 	if (msg == WM_INITDIALOG) {
 		p_this = (CConfigurationDialog*)(lParam); //retrieve pointer to class
-		::uSetWindowLong(hWnd, GWL_USERDATA, (LPARAM)p_this); //store it for future use
+		::SetWindowLongPtr(hWnd, GWLP_USERDATA, (LPARAM)p_this); //store it for future use
 	}
 	else {
-
-		p_this = reinterpret_cast<CConfigurationDialog*>(::uGetWindowLong(hWnd, GWL_USERDATA));
+		p_this = reinterpret_cast<CConfigurationDialog*>(::GetWindowLongPtr(hWnd, GWLP_USERDATA));
 	}
 	return p_this ? p_this->on_searching_dialog_message(hWnd, msg, wParam, lParam) : FALSE;
 }
 
-BOOL CConfigurationDialog::on_searching_dialog_message(HWND wnd, UINT msg, WPARAM wp, LPARAM lp) {
+INT_PTR WINAPI CConfigurationDialog::on_searching_dialog_message(HWND wnd, UINT msg, WPARAM wp, LPARAM lp) {
 	switch (msg) {
 		case WM_INITDIALOG:
 			setting_dlg = true;
@@ -1102,16 +1099,16 @@ BOOL CConfigurationDialog::on_searching_dialog_message(HWND wnd, UINT msg, WPARA
 INT_PTR WINAPI CConfigurationDialog::matching_dialog_proc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	CConfigurationDialog * p_this;
 	if (msg == WM_INITDIALOG) {
-		p_this = (CConfigurationDialog*)(lParam); //retrieve pointer to class
-		::uSetWindowLong(hWnd, GWL_USERDATA, (LPARAM)p_this); //store it for future use
+		p_this = (CConfigurationDialog*)(lParam);
+		::SetWindowLongPtr(hWnd, GWLP_USERDATA, (LPARAM)p_this);
 	}
 	else {
-		p_this = reinterpret_cast<CConfigurationDialog*>(::uGetWindowLong(hWnd, GWL_USERDATA));
+		p_this = reinterpret_cast<CConfigurationDialog*>(::GetWindowLongPtr(hWnd, GWLP_USERDATA));
 	}
 	return p_this ? p_this->on_matching_dialog_message(hWnd, msg, wParam, lParam) : FALSE;
 }
 
-BOOL CConfigurationDialog::on_matching_dialog_message(HWND wnd, UINT msg, WPARAM wp, LPARAM lp) {
+INT_PTR WINAPI CConfigurationDialog::on_matching_dialog_message(HWND wnd, UINT msg, WPARAM wp, LPARAM lp) {
 	switch (msg) {
 		case WM_INITDIALOG:
 			setting_dlg = true;
@@ -1136,16 +1133,15 @@ INT_PTR WINAPI CConfigurationDialog::art_dialog_proc(HWND hWnd, UINT msg, WPARAM
 
 	if (msg == WM_INITDIALOG) {
 		p_this = (CConfigurationDialog*)(lParam);
-		::uSetWindowLong(hWnd, GWL_USERDATA, (LPARAM)p_this); //store it for future use
+		::SetWindowLongPtr(hWnd, GWLP_USERDATA, (LPARAM)p_this);
 	}
 	else {
-		// if isnt wm_create, retrieve pointer to class
-		p_this = reinterpret_cast<CConfigurationDialog*>(::uGetWindowLong(hWnd, GWL_USERDATA));
+		p_this = reinterpret_cast<CConfigurationDialog*>(::GetWindowLongPtr(hWnd, GWLP_USERDATA));
 	}
 	return p_this ? p_this->on_art_dialog_message(hWnd, msg, wParam, lParam) : FALSE;
 }
 
-BOOL CConfigurationDialog::on_art_dialog_message(HWND wnd, UINT msg, WPARAM wp, LPARAM lp) {
+INT_PTR WINAPI CConfigurationDialog::on_art_dialog_message(HWND wnd, UINT msg, WPARAM wp, LPARAM lp) {
 	switch (msg) {
 		case WM_INITDIALOG:
 			setting_dlg = true;
@@ -1169,15 +1165,15 @@ INT_PTR WINAPI CConfigurationDialog::ui_dialog_proc(HWND hWnd, UINT msg, WPARAM 
 	CConfigurationDialog* p_this;
 	if (msg == WM_INITDIALOG) {
 		p_this = (CConfigurationDialog*)(lParam);
-		::uSetWindowLong(hWnd, GWL_USERDATA, (LPARAM)p_this);
+		::SetWindowLongPtr(hWnd, GWLP_USERDATA, (LPARAM)p_this);
 	}
 	else {
-		p_this = reinterpret_cast<CConfigurationDialog*>(::uGetWindowLong(hWnd, GWL_USERDATA));
+		p_this = reinterpret_cast<CConfigurationDialog*>(::GetWindowLongPtr(hWnd, GWLP_USERDATA));
 	}
 	return p_this ? p_this->on_ui_dialog_message(hWnd, msg, wParam, lParam) : FALSE;
 }
 
-BOOL CConfigurationDialog::on_ui_dialog_message(HWND wnd, UINT msg, WPARAM wp, LPARAM lp) {
+INT_PTR WINAPI CConfigurationDialog::on_ui_dialog_message(HWND wnd, UINT msg, WPARAM wp, LPARAM lp) {
 
 	switch (msg) {
 		case WM_INITDIALOG:
@@ -1230,16 +1226,15 @@ INT_PTR WINAPI CConfigurationDialog::oauth_dialog_proc(HWND hWnd, UINT msg, WPAR
 
 	if (msg == WM_INITDIALOG) {
 		p_this = (CConfigurationDialog*)(lParam);
-		::uSetWindowLong(hWnd, GWL_USERDATA, (LPARAM)p_this);
+		::SetWindowLongPtr(hWnd, GWLP_USERDATA, (LPARAM)p_this);
 	}
 	else {
-		// if isnt wm_create, retrieve pointer to class
-		p_this = reinterpret_cast<CConfigurationDialog*>(::uGetWindowLong(hWnd, GWL_USERDATA));
+		p_this = reinterpret_cast<CConfigurationDialog*>(::GetWindowLongPtr(hWnd, GWLP_USERDATA));
 	}
 	return p_this ? p_this->on_oauth_dialog_message(hWnd, msg, wParam, lParam) : FALSE;
 }
 
-BOOL CConfigurationDialog::on_oauth_dialog_message(HWND wnd, UINT msg, WPARAM wp, LPARAM lp) {
+INT_PTR WINAPI CConfigurationDialog::on_oauth_dialog_message(HWND wnd, UINT msg, WPARAM wp, LPARAM lp) {
 	pfc::string8 text;
 	switch (msg) {
 		case WM_INITDIALOG:

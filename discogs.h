@@ -13,8 +13,7 @@
 
 namespace Discogs
 {
-	class missing_data_exception : public foo_discogs_exception
-	{};
+	class missing_data_exception : public foo_discogs_exception	{};
 
 	extern pfc::string8 remove_number_suffix(const pfc::string8 &src);
 	extern pfc::string8 move_the_to_start(const pfc::string8 &src);
@@ -34,11 +33,9 @@ namespace Discogs
 		string_encoded_array get_type() const {
 			return type;
 		}
-
 		string_encoded_array get_url() const {
 			return url;
 		}
-
 		string_encoded_array get_thumbnail_url() const {
 			return url150;
 		}
@@ -513,7 +510,7 @@ namespace Discogs
 			return discogs_indextrack_duration_seconds;
 		}
 		string_encoded_array get_total_hidden_tracks() const {
-			return hidden_tracks.get_size();
+			return (unsigned)hidden_tracks.get_size();
 		}
 
 		static ExposedMap<ReleaseTrack> create_tags_map() {
@@ -622,7 +619,7 @@ namespace Discogs
 			return disc_number;
 		}
 		string_encoded_array get_total_tracks() const {
-			return tracks.get_size();
+			return (unsigned)tracks.get_size();
 		}
 
 		static ExposedMap<ReleaseDisc> create_tags_map() {
@@ -901,10 +898,10 @@ namespace Discogs
 			return weight;
 		}
 		string_encoded_array get_total_discs() const {
-			return discs.get_size();
+			return (unsigned)discs.get_size();
 		}
 		string_encoded_array get_total_tracks() const {
-			return get_total_track_count();
+			return (unsigned)get_total_track_count();
 		}
 		string_encoded_array get_members_have() const {
 			return members_have;

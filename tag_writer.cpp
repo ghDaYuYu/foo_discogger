@@ -304,7 +304,7 @@ int TagWriter::order_tracks_by_number(track_mappings_list_type &mappings) {
 	int missing = 0;
 	metadb_handle_ptr item;
 	
-	pfc::array_t<std::pair<int, int>> used;
+	pfc::array_t<std::pair<size_t, size_t>> used;
 
 	file_info_impl finfo;
 	for (size_t i = 0; i < citems; i++) {
@@ -354,7 +354,7 @@ int TagWriter::order_tracks_by_number(track_mappings_list_type &mappings) {
 					mappings[i].discogs_disc = d;
 					mappings[i].discogs_track = j;
 					found = true;
-					used.append_single(std::pair<int, int>(d, j));
+					used.append_single(std::pair<size_t, size_t>(d, j));
 					break;
 				}
 			}

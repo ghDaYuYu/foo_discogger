@@ -354,17 +354,7 @@ LRESULT CTagMappingDialog::OnBtnRemoveTag(WORD /*wNotifyCode*/, WORD wID, HWND /
 }
 
 #ifdef CAT_CRED
-LRESULT CTagMappingDialog::OnBtnCreditsClick(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-
-	if (!g_discogs->tag_credit_dialog) {
-		g_discogs->tag_credit_dialog = fb2k::newDialog<CTagCreditDialog>(core_api::get_main_window()/*, nullptr*/);
-	}
-	else {
-		CDialogImpl* tmdlg = pfc::downcast_guarded<CDialogImpl*>(g_discogs->tag_credit_dialog);
-		::SetFocus(tmdlg->m_hWnd);
-	}
-	return FALSE;
-}
+//..
 #endif // CAT_CRED
 
 LRESULT CTagMappingDialog::OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -691,58 +681,8 @@ LRESULT CTagMappingDialog::OnSplitDropDown(WORD wNotifyCode, WORD wID, HWND hWnd
 	}
 
 #ifdef CAT_CRED
-	//cat credit split button
-	else if (wID == IDC_SPLIT_BTN_TAG_CAT_CREDIT) {
-	//else if (pDropDown->hdr.hwndFrom == GetDlgItem(IDC_SPLIT_BTN_TAG_CAT_CREDIT)) {
-		POINT pt;
-		pt.x = rcButton.left;
-		pt.y = rcButton.bottom;
-
-		enum { MENU_EDIT_CAT_CREDITS = 1, MENU_FIRST_CAT_CREDIT };
-		HMENU hSplitMenu = CreatePopupMenu();
-		AppendMenu(hSplitMenu, MF_STRING, MENU_EDIT_CAT_CREDITS, L"Edit...");
-
-		size_t c = 0;
-		for (auto walk_cat_credit : v_cat_defs) {
-			const pfc::stringcvt::string_os_from_utf8 os_tag_name(walk_cat_credit.first.second);
-			AppendMenu(hSplitMenu, MF_STRING, MENU_FIRST_CAT_CREDIT + c, os_tag_name);
-			++c;
-		}
-
-		int cmd = TrackPopupMenu(hSplitMenu, TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RETURNCMD, pt.x, pt.y, 0, m_hWnd, NULL);
-		DestroyMenu(hSplitMenu);
-
-		if (cmd) {
-
-			if (cmd == 1) {
-				BOOL bDummy;
-				OnBtnCreditsClick(0, wID, NULL, bDummy);
-			}
-			else {
-				auto cat_credit = v_cat_defs.at(cmd - MENU_FIRST_CAT_CREDIT);
-				pfc::string8 tf;
-				tf << PFC_string_formatter() << "%" << cat_credit.second.first << "%";
-				tag_mapping_entry* entry = new tag_mapping_entry();
-				entry->tag_name = cat_credit.first.second;
-				entry->formatting_script = tf;
-				entry->enable_write = true;
-				entry->enable_update = false;
-				entry->freeze_tag_name = false;
-				entry->freeze_update = false;
-				entry->freeze_write = false;
-
-				size_t index = m_ptag_mappings->add_item(*entry);
-				update_tag(m_ptag_mappings->get_count() - 1, entry);
-
-				delete entry;
-
-				m_tag_list.OnItemsInserted(index, 1, true);
-				m_tag_list.EnsureItemVisible(index, true);
-				on_mapping_changed(check_mapping_changed());
-			}
-		}
-	}
-#endif // CAT_CRED
+	//..
+#endif
 
 	return FALSE;
 }

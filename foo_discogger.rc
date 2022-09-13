@@ -552,46 +552,6 @@ IDI_STATIC_OAUTH_ICO_ERROR ICON                    "ico\\alert-32_red.ico"
 
 IDI_STATIC_OAUTH_ICO_OK ICON                    "ico\\check-32_green.ico"
 
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Version
-//
-
-VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,6,0
- PRODUCTVERSION 1,0,6,0
- FILEFLAGSMASK 0x3fL
-#ifdef _DEBUG
- FILEFLAGS 0x1L
-#else
- FILEFLAGS 0x0L
-#endif
- FILEOS 0x40004L
- FILETYPE 0x0L
- FILESUBTYPE 0x0L
-BEGIN
-    BLOCK "StringFileInfo"
-    BEGIN
-        BLOCK "000904b0"
-        BEGIN
-            VALUE "CompanyName", "foo_discogger by da yuyu"
-            VALUE "FileDescription", "A foobar 2000 plugin to access Discogs database"
-            VALUE "FileVersion", "1.0.6.0"
-            VALUE "InternalName", "foo_discogger"
-            VALUE "LegalCopyright", "GNU Lesser General Public License (LGPL) 2021"
-            VALUE "OriginalFilename", "foo_discogger"
-            VALUE "ProductName", "foo_discogger"
-            VALUE "ProductVersion", "1.0.6.0"
-        END
-    END
-    BLOCK "VarFileInfo"
-    BEGIN
-        VALUE "Translation", 0x9, 1200
-    END
-END
-
-
 /////////////////////////////////////////////////////////////////////////////
 //
 // PNG

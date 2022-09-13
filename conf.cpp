@@ -751,7 +751,7 @@ bool CConf::id_to_val_int(int id, const CConf& in_conf, int& out, bool assert) {
 	case CFG_CACHE_MAX_OBJECTS:
 		out = in_conf.cache_max_objects;
 		break;
-	//v200
+    	//v200
 	case CFG_PREVIEW_TAGS_DIALOG_COL1_WIDTH:
 		out = in_conf.preview_tags_dialog_col1_width;
 		break;

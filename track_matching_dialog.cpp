@@ -480,7 +480,7 @@ void CTrackMatchingDialog::insert_track_mappings() {
 		}
 		
 		if (mapping.discogs_disc == -1 && mapping.discogs_track == -1) {
-			//TODO: further testing on more files than discogs tracks
+			//int dbg = 1;
 		}
 		else {
 			const ReleaseDisc_ptr disc = m_tag_writer->release->discs[mapping.discogs_disc];
@@ -502,7 +502,7 @@ void CTrackMatchingDialog::insert_track_mappings() {
 					local_release_id = ch_local_rel;
 				}
 
-				//warn differnt release id
+				//warn different release id
 				bool b_other_id = (local_release_id.get_length() && !STR_EQUAL(m_tag_writer->release->id, local_release_id));
 				//..
 
@@ -661,7 +661,6 @@ bool CTrackMatchingDialog::generate_artwork_guids(pfc::array_t<GUID> &my_album_a
 			getimages_it getimg_it;
 
 			size_t walk_file = 0;
-
 			size_t dc_skipped = 0;
 
 			for (size_t walk = 0; walk < m_coord.GetDiscogsArtRowLvSize(); walk++) {
@@ -682,7 +681,6 @@ bool CTrackMatchingDialog::generate_artwork_guids(pfc::array_t<GUID> &my_album_a
 				b_woe_flag |= CONF_MULTI_ARTWORK.getflag(att, att_pos);
 				att = dc_isalbum ? af::alb_emb : af::art_emb;
 				b_woe_flag |= CONF_MULTI_ARTWORK.getflag(att, att_pos);
-
 
 				if (!b_woe_flag) {
 					++dc_skipped;
@@ -716,7 +714,6 @@ bool CTrackMatchingDialog::generate_artwork_guids(pfc::array_t<GUID> &my_album_a
 						my_album_art_ids[ndx_discogs_img] = imgfileguid;
 						last_guid = imgfileguid;
 					}
-
 				}
 				else {
 					//undef filename, use previous or defaults
@@ -731,7 +728,6 @@ bool CTrackMatchingDialog::generate_artwork_guids(pfc::array_t<GUID> &my_album_a
 		else {
 			return false;
 		}
-	
 	}
 	else {
 
@@ -868,7 +864,6 @@ inline bool CTrackMatchingDialog::build_current_cfg() {
 
 		bres |= true;
 	}
-
 	return bres;
 }
 
@@ -1904,7 +1899,6 @@ bool CTrackMatchingDialog::context_menu_track_show(HWND wnd, int idFrom, LPARAM 
 		}
 		
 		uAppendMenu(menu, MF_STRING | (citems ? 0 : MF_DISABLED | MF_GRAYED), ID_PREVIEW_CMD_WRITE_TAGS, "&Write tags");
-
 
 		int cmd = TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, 0, wnd, 0);
 		DestroyMenu(menu);

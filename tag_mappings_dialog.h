@@ -89,7 +89,7 @@ private:
 	tag_mapping_list_type* m_ptag_mappings = nullptr;
 
 #ifdef CAT_CRED
-	vppair v_cat_defs;
+	//..
 #endif // CAT_CRED
 
 	CTagMappingListControlOwnerData m_tag_list;
@@ -110,7 +110,7 @@ private:
 
 	void applymappings();
 
-// LIBPPUI list: IListControlOwnerDataSource 
+    // LIBPPUI list: IListControlOwnerDataSource 
 
 	//- Get Item Count
 
@@ -237,7 +237,7 @@ private:
 		return (subItem == 0 || subItem == 1);
 	}
 
-//END LIBPPUI list methods
+    // end LIBPPUI list methods
 
 
 	void TableEdit_Finished() {
@@ -286,9 +286,7 @@ public:
 	};
 
 #ifdef CAT_CRED
-	void SetVDefs(vppair v) {
-		v_cat_defs = v;
-	}
+	//..
 #endif // CAT_CRED
 
 	virtual BOOL PreTranslateMessage(MSG* pMsg) override {
@@ -327,7 +325,7 @@ public:
 		COMMAND_ID_HANDLER(IDC_REMOVE_TAG, OnBtnRemoveTag)
 
 #ifdef CAT_CRED
-		COMMAND_ID_HANDLER(IDC_SPLIT_BTN_TAG_CAT_CREDIT, OnBtnCreditsClick)
+		//..
 #endif // CAT_CRED
 
 		MESSAGE_HANDLER_EX(MSG_ADD_NEW, OnAddNewTag)
@@ -376,12 +374,11 @@ public:
 	LRESULT OnExport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnBtnRemoveTag(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 #ifdef CAT_CRED
-	LRESULT OnBtnCreditsClick(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	//..
 #endif // CAT_CRED
 
 	LRESULT OnSplitDropDown(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnAddNewTag(UINT, WPARAM, LPARAM);
-	//LRESULT OnAddNew(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void enable(bool v) override {}
 };

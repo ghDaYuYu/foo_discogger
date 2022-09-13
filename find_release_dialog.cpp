@@ -424,9 +424,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	}
 	else {
 
-		//failed pre-conditions
-		//show empty dialog
-
+		//failed, show empty dialog
 		show();
 	}
 

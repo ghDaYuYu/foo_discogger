@@ -49,9 +49,6 @@ cfg_preview_column_type column_configs[COL_DEF_NCOLS] = {
 	{4, 4, 3,"Update", "",		40.0f, 0x0000, 0, true, false, false, false},
 	{5, 5, 4,"Skip W/U", "",	40.0f, 0x0000, 0, true,false, false, false},
 	{6, 6, 5,"Equal", "",		40.0f, 0x0000, 0, true, false, false, false},
-	{7, 7, 6,"---x", "",		20.0f, 0x0000, 0, false, false, false, false},
-	{8, 8, 7,"---y", "",		50.0f, 0x0000, 0, false, false, false, false},
-	{100, 10, 0,"---z", "",		200.0f, 0x0000, 0, false, false, false, false},
 };
 
 struct cfg_preview_listview_type {

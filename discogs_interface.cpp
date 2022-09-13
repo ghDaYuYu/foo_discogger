@@ -414,6 +414,7 @@ pfc::array_t<pfc::string8> DiscogsInterface::get_collection(threaded_process_sta
 	pfc::string8 username = get_username(p_status, p_abort);
 
 	try {
+
 		pfc::string8 json;
 		pfc::string8 url;
 		url << "https://api.discogs.com/users/" << username << "/collection/folders";		
@@ -438,27 +439,6 @@ pfc::array_t<pfc::string8> DiscogsInterface::get_collection(threaded_process_sta
 	return collection;
 }
 
-//pfc::array_t<pfc::string8> DiscogsInterface::load_profile(threaded_process_status& p_status, abort_callback& p_abort) {
-//
-//	pfc::string8 username = get_username(p_status, p_abort);
-//
-//	try {
-//		pfc::string8 json;
-//		pfc::string8 url;
-//		url << "https://api.discogs.com/users/" << username;
-//		fetcher->fetch_html(url, "", json, p_abort);
-//		JSONParser jp(json);
-//
-//		Profile i;
-//		parseProfile(jp.root, &i);
-//		
-//	}
-//	catch (network_exception&) {
-//		throw;
-//	}
-//	return collection;
-//}
-
 bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release, bool isArtist, size_t img_ndx, MemoryBlock& small_art,
 	threaded_process_status& p_status, abort_callback& p_abort) {
 
@@ -476,7 +456,6 @@ bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release, bool isArti
 			
 			pfc::string8 msg = "Unable to read thumbnail from cache (no artist), url: ";
 			log_msg(msg);
-
 			return false;
 		}
 		else {

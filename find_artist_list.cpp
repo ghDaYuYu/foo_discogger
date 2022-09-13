@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 
 #include "find_release_dialog.h"
 #include "find_artist_list.h"
@@ -57,7 +57,6 @@ void CArtistList::on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist) {
 				if (dlg->m_loading_selection_id == atoi(artist->id) ||
 					dlg->m_loading_selection_id == pfc_infinite) {
 					fill_artist_list(false /*not from dlg*/, true, updsrc);
-
 					set_find_release_artist(artist);
 					dlg->m_loading_selection_id = pfc_infinite;
 				}
@@ -237,9 +236,7 @@ void CArtistList::set_image_list() {
 bool CArtistList::OnDisplayCellImage(int item, int subitem, int& result) const {
 
 	int img_ndx = I_IMAGENONE;
-
 	if (CONF.auto_rel_load_on_select) return img_ndx;
-
 	bool is_traced;
 
 	if (m_idtracer_p->is_multi_artist()) {
@@ -420,7 +417,6 @@ LRESULT CArtistList::OnGetInfo(WORD /*wNotifyCode*/, LPNMHDR hdr, BOOL& /*bHandl
 		}
 	}
 
-
 	//
 
 	// F O C U S: CONVEY ARTIST-PROFILE
@@ -437,7 +433,6 @@ LRESULT CArtistList::OnGetInfo(WORD /*wNotifyCode*/, LPNMHDR hdr, BOOL& /*bHandl
 		CFindReleaseDialog* dlg = dynamic_cast<CFindReleaseDialog*>(m_host);
 		dlg->convey_artist_list_selection(updRelSrc::ArtistProfile);
 	}
-
 	return TRUE;
 }
 
@@ -527,12 +522,9 @@ LRESULT CArtistList::OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL
 	}
 
 	context_menu(list_index, screen_position);
-
 	bHandled = TRUE;
-
 	return FALSE;
 }
-
 
 //
 
@@ -593,16 +585,13 @@ void CArtistList::open_artist_profile(size_t list_index) {
 	}
 
 	if (list_index != pfc_infinite) {
-
 		Artist_ptr artist = get_artist_inlist(list_index);
 		if (artist) {
 			g_discogs->find_release_dialog->UpdateArtistProfile(artist);
 		}		
 	}
-
 	::SetFocus(g_discogs->find_release_artist_dialog->m_hWnd);
 }
-
 
 void CArtistList::context_menu(size_t list_index, POINT screen_pos) {
 	
@@ -611,7 +600,6 @@ void CArtistList::context_menu(size_t list_index, POINT screen_pos) {
 	CFindReleaseDialog* dlg = dynamic_cast<CFindReleaseDialog*>(m_host);
 	Artist_ptr artist;
 	bool isArtistOffline = false;
-
 	if (!empty_sel) {
 		if (artist = get_selected_artist()) {
 			isArtistOffline = artist->loaded_releases_offline;

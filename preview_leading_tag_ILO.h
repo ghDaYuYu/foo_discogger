@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "libPPUI\CListControlOwnerData.h"
 
 class CPreviewLeadingTagDialog;
@@ -22,9 +22,7 @@ public:
 	void SetMode(PreView view_mode);
 
 	//serves preview modal context menu
-	void trigger_action();
-
-	//virtual void listItemAction(ctx_t, size_t) override;
+	void TriggerAction();
 
 private:
 	

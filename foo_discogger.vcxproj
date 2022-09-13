@@ -26,15 +26,6 @@
     <ProjectName>foo_discogger</ProjectName>
   </PropertyGroup>
   <PropertyGroup Label="UserMacros">
-    <FOO_COMPONENT_NAME>foo_discogger</FOO_COMPONENT_NAME>
-    <FOO_USR_FILE>\$(FOO_COMPONENT_NAME)\$(FOO_COMPONENT_NAME).dll</FOO_USR_FILE>
-    <FOO_WORKING_DIR>C:\Foobar\foobar2000.portable</FOO_WORKING_DIR>
-    <FOO_USR_DIR>\user-components</FOO_USR_DIR>
-    <FOO_R_WD>$(FOO_WORKING_DIR)</FOO_R_WD>
-    <FOO_R_USR>$(FOO_USR_DIR)</FOO_R_USR>
-    <FOO_WD>$(FOO_R_WD)</FOO_WD>
-    <FOO_CMD>$(FOO_WD)\foobar2000.exe</FOO_CMD>
-    <FOO_USR>$(FOO_WD)$(FOO_R_USR)</FOO_USR>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">

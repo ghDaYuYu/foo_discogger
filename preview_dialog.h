@@ -1,93 +1,35 @@
 #pragma once
 #include "resource.h"
+#include "helpers/DarkMode.h"
 #include "icon_map.h"
 #include "CGdiPlusBitmap.h"
 #include "foo_discogs.h"
 #include "tag_writer.h"
 
-struct preview_stats {
-	int totalwrites = 0;
-	int totalupdates = 0;
-	int totalsubwrites = 0;
-	int totalsubupdates = 0;
-	int totalskips = 0;
-	int totalequal = 0;
-};
+#include "preview_ILO.h"
+
 
 class CPreviewTagsDialog : public MyCDialogImpl<CPreviewTagsDialog>,
 	public CDialogResize<CPreviewTagsDialog>, public CMessageFilter,
-	private InPlaceEdit::CTableEditHelperV2_ListView
-{
-
-private:
-
-	HWND m_results_list;
-	HBITMAP m_rec_icon;
-	HBITMAP m_preview_bitmap;
-
-	foo_conf conf;
-
-	std::vector<preview_stats> v_stats;
-	std::vector<std::pair<int, int>> vec_icol_subitems;
-
-	bool generating_tags = false;
-	
-	int totalwrites = 0;
-	int totalupdates = 0;
-
-	bool cfg_preview_dialog_show_stats = false;
-
-	TagWriter_ptr m_tag_writer;
-
-	size_t tw_index = 0;
-	size_t tw_skip = 0;
-
-	void reset_default_columns(HWND wndlist, bool breset);
-	void update_sorted_icol_map(bool reset);
-
-	bool init_count();
-
-	void insert_tag_result(int pos, const tag_result_ptr &result, PreView preview_mode);
-
-	void compute_stats(tag_results_list_type tag_results);
-	void compute_stats_track_map();
-
-	void reset_stats () { v_stats.clear(); }
-	void reset_tag_result_stats();
-
-	void set_preview_mode(PreView mode);
-	PreView get_preview_mode();
-
-	bool initialize();
-	void GlobalReplace_ANV(bool state);
-
-	bool is_result_editable(size_t item);
-
-	bool TableEdit_IsColumnEditable(size_t subItem) const override {
-		return subItem == 1;
-	}
-
-	size_t TableEdit_GetColumnCount() const override {
-		return ListView_GetColumnCount(m_results_list);
-	}
-
-	HWND TableEdit_GetParentWnd() const override {
-		return m_results_list;
-	}
-
-	void TableEdit_GetField(size_t item, size_t subItem, pfc::string_base & out, size_t & lineCount) override;
-	void TableEdit_SetField(size_t item, size_t subItem, const char * value) override;
-
-	void trigger_edit(size_t item, size_t sub_item);
-
-	bool delete_selection();
-
-	void set_image_list();
-
-	bool context_menu_show(HWND wnd, size_t isel, LPARAM lParamPos);
-	bool context_menu_switch(HWND wnd, POINT point, int cmd, bit_array_bittable selmask);
+	public ILOD_preview,  private InPlaceEdit::CTableEditHelperV2_ListView, public fb2k::CDarkModeHooks {
 
 public:
+
+	CListControlOwnerData* ilo_get_uilist() override {
+		return dynamic_cast<CListControlOwnerData*>(&m_uilist);
+	}
+
+	CPreviewTagsDialog(HWND p_parent, TagWriter_ptr tag_writer)
+		: m_tag_writer(tag_writer), m_results_list(NULL), m_uilist(this), conf(CONF), m_preview_bitmap(NULL) {
+
+		multi_uartwork test = CONF_MULTI_ARTWORK;
+
+		conf.SetName("PreviewDlg");
+		g_discogs->preview_tags_dialog = this;
+	}
+
+	~CPreviewTagsDialog();
+
 	enum {
 		IDD = IDD_DIALOG_PREVIEW_TAGS,
 		MSG_EDIT = WM_APP + 5000
@@ -124,7 +66,7 @@ public:
 		return ::IsDialogMessage(m_hWnd, pMsg);
 	}
 
-	void load_size();
+	void load_column_layout();
 	bool build_current_cfg();
 	void pushcfg();
 
@@ -152,7 +94,6 @@ public:
 		COMMAND_ID_HANDLER(IDC_VIEW_ORIGINAL, OnChangePreviewMode)
 		COMMAND_ID_HANDLER(IDC_VIEW_DEBUG, OnChangePreviewMode)
 
-		NOTIFY_HANDLER_EX(IDC_PREVIEW_LIST, NM_CLICK, OnListClick)
 		NOTIFY_HANDLER_EX(IDC_PREVIEW_LIST, NM_DBLCLK, OnListDoubleClick)
 		NOTIFY_HANDLER_EX(IDC_PREVIEW_LIST, LVN_KEYDOWN, OnListKeyDown)
 		NOTIFY_HANDLER(IDC_PREVIEW_LIST, NM_CUSTOMDRAW, OnCustomDraw)
@@ -187,20 +128,6 @@ public:
 		CDialogResize<CPreviewTagsDialog>::DlgResize_UpdateLayout(cxWidth, cyHeight);
 	}
 
-	CPreviewTagsDialog(HWND p_parent, TagWriter_ptr tag_writer)
-		: m_tag_writer(tag_writer), m_results_list(NULL), conf(CONF), m_preview_bitmap(NULL) {
-
-		multi_uartwork test = CONF_MULTI_ARTWORK;
-
-		conf.SetName("PreviewDlg");
-		g_discogs->preview_tags_dialog = this;
-
-		m_rec_icon = LoadDpiBitmapResource(Icon::Record);
-
-	}
-
-	~CPreviewTagsDialog();
-
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnButtonWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
@@ -220,7 +147,7 @@ public:
 	LRESULT OnCustomDraw(int idCtrl, LPNMHDR pnmh, BOOL& bHandled);
 
 	void replace_tag_result(size_t item, tag_result_ptr result);
-	void insert_tag_results(bool computestat);
+	void generate_tag_results(bool computestat);
 	void tag_mappings_updated();
 	void cb_generate_tags();
 	void enable(bool v) override { enable(v, true); };
@@ -228,4 +155,64 @@ public:
 	bool check_write_tags_status();
 	void destroy_all();
 	void go_back();
+
+private:
+
+	void reset_default_columns(bool breset, bool bshowstats);
+	void fix_sorted_icol_map(bool reset, bool bshowstats);
+
+	void compute_stats(tag_results_list_type tag_results);
+	void compute_stats_track_map(/*tag_results_list_type tag_results*/);
+
+	void reset_stats() { m_vstats.clear(); }
+	void reset_tag_result_stats();
+
+	void set_preview_mode(PreView mode);
+	PreView get_preview_mode();
+
+	bool init_other_controls_and_results();
+	void GlobalReplace_ANV(bool state);
+
+	bool TableEdit_IsColumnEditable(size_t subItem) const override {
+		return subItem == 1;
+	}
+
+	size_t TableEdit_GetColumnCount() const override {
+		return ListView_GetColumnCount(m_results_list);
+	}
+
+	HWND TableEdit_GetParentWnd() const override {
+		return m_results_list;
+	}
+
+	bool delete_selection();
+
+	void set_image_list();
+
+	bool context_menu_show(HWND wnd, size_t isel, LPARAM lParamPos);
+	bool context_menu_switch(HWND wnd, POINT point, int cmd, bit_array_bittable selmask);
+
+	HWND m_results_list;
+	CListControlOwnerData m_uilist;
+
+	HBITMAP m_preview_bitmap;
+
+	foo_conf conf;
+
+	std::vector<preview_stats> m_vstats;
+	std::vector<std::pair<int, int>> m_vcol_data_subitems;
+
+	bool m_generating_tags = false;
+
+	int m_totalwrites = 0;
+	int m_totalupdates = 0;
+
+	bool m_cfg_bshow_stats = false;
+
+	TagWriter_ptr m_tag_writer;
+
+	size_t m_tw_index = 0;
+	size_t m_tw_skip = 0;
+
+	friend CPreviewList; // context menu
 };

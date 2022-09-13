@@ -6,7 +6,7 @@
 
 namespace ol = Offline;
 
-Release_ptr DiscogsInterface::get_release(const unsigned long lkey, bool bypass_is_cache, bool bypass) {
+Release_ptr DiscogsInterface::get_release(const size_t lkey, bool bypass_is_cache, bool bypass) {
 	pfc::string8 release_id = std::to_string(decode_mr(lkey).second).c_str();
 	assert_release_id_not_deleted(release_id);
 	Release_ptr release = bypass_is_cache && bypass ? nullptr : get_release_from_cache(lkey);
@@ -20,16 +20,15 @@ Release_ptr DiscogsInterface::get_release(const unsigned long lkey, bool bypass_
 	return release;
 }
 
-Release_ptr DiscogsInterface::get_release(const unsigned long lkey, threaded_process_status& p_status, abort_callback& p_abort, bool bypass_cache, bool throw_all) {
+Release_ptr DiscogsInterface::get_release(const size_t lkey, threaded_process_status& p_status, abort_callback& p_abort, bool bypass_cache, bool throw_all) {
 	//todo: depricate-candidates codes use this (ej. bulk updates), 
 	const pfc::string8 dummy_offline_artist_id;
 	return get_release(lkey, dummy_offline_artist_id, p_status, p_abort, bypass_cache, throw_all);
 }
 
-Release_ptr DiscogsInterface::get_release(const unsigned long lkey, const pfc::string8 &offline_artist_id, threaded_process_status &p_status, abort_callback &p_abort, bool bypass_cache, bool throw_all) {
+Release_ptr DiscogsInterface::get_release(const size_t lkey, const pfc::string8 &offline_artist_id, threaded_process_status &p_status, abort_callback &p_abort, bool bypass_cache, bool throw_all) {
 
 	pfc::string8 release_id = std::to_string(decode_mr(lkey).second).c_str();
-
 	assert_release_id_not_deleted(release_id);
 
 	Release_ptr release = bypass_cache ? nullptr : get_release_from_cache(lkey);
@@ -54,7 +53,7 @@ Release_ptr DiscogsInterface::get_release(const unsigned long lkey, const pfc::s
 	return release;
 }
 
-MasterRelease_ptr DiscogsInterface::get_master_release(const unsigned long lkey, bool bypass_cache) {
+MasterRelease_ptr DiscogsInterface::get_master_release(const size_t lkey, bool bypass_cache) {
 
 	MasterRelease_ptr master = bypass_cache ? nullptr : get_master_release_from_cache(lkey/*master_id*/);
 	
@@ -87,7 +86,7 @@ MasterRelease_ptr DiscogsInterface::get_master_release(const pfc::string8& maste
 
 MasterRelease_ptr DiscogsInterface::get_master_release(const pfc::string8& master_id, bool bypass_cache) {
 
-	unsigned long lkey = encode_mr(0, atol(master_id));
+	size_t lkey = encode_mr(0, atol(master_id));
 
 	MasterRelease_ptr master = bypass_cache ? nullptr : get_master_release_from_cache(lkey/*master_id*/);
 	if (!master) {
@@ -101,7 +100,7 @@ MasterRelease_ptr DiscogsInterface::get_master_release(const pfc::string8& maste
 
 MasterRelease_ptr DiscogsInterface::get_master_release(const pfc::string8 &master_id, threaded_process_status &p_status, abort_callback &p_abort, bool bypass_cache, bool throw_all) {
 	
-	unsigned long lkey = encode_mr(0, atol(master_id));
+	size_t lkey = encode_mr(0, atol(master_id));
 	
 	MasterRelease_ptr master = bypass_cache ? nullptr : get_master_release_from_cache(lkey/*master_id*/);
 	if (!master) {
@@ -155,13 +154,14 @@ Artist_ptr DiscogsInterface::get_artist(const pfc::string8 &artist_id, bool _loa
 		}
 	}
 
-	if (_load_releases && !artist->loaded_releases) {
+	if (_load_releases) {
 		artist->load_releases(p_status, p_abort, false, nullptr);
 	}
 	return artist;
 }
 
 void DiscogsInterface::search_artist(const pfc::string8 &query, pfc::array_t<Artist_ptr> &exact_matches, pfc::array_t<Artist_ptr> &other_matches, threaded_process_status &p_status, abort_callback &p_abort) {
+
 	pfc::string8 json;
 
 	exact_matches.force_reset();
@@ -175,9 +175,11 @@ void DiscogsInterface::search_artist(const pfc::string8 &query, pfc::array_t<Art
 	params << "type=artist&q=" << urlEscape(query) << "&per_page=100";
 
 	fetcher->fetch_html("https://api.discogs.com/database/search", params, json, p_abort);
+
 #ifdef _DEBUG
 	log_msg(json);
 #endif
+
 	JSONParser jp(json);
 	parseArtistResults(jp.root, matches);
 
@@ -243,6 +245,7 @@ pfc::array_t<JSONParser_ptr> DiscogsInterface::get_all_pages(pfc::string8 &url, 
 	params << "per_page=100";
 	size_t page = 1;
 	size_t last;
+
 	do {
 		pfc::string8 status(msg);
 		if (page > 1) {
@@ -255,9 +258,12 @@ pfc::array_t<JSONParser_ptr> DiscogsInterface::get_all_pages(pfc::string8 &url, 
 		page_params << "&page=" << page;
 
 		pfc::string8 json;
+
 		fetcher->fetch_html(url, page_params, json, p_abort);
 		JSONParser_ptr jp = pfc::rcnew_t<JSONParser>(json);
+
 		results.append_single(std::move(jp));
+
 		if (page == 1) {
 			last = jp->get_object_int("pagination", "pages");
 		}
@@ -267,6 +273,9 @@ pfc::array_t<JSONParser_ptr> DiscogsInterface::get_all_pages(pfc::string8 &url, 
 
 	return results;
 }
+
+
+//ol::GetFrom::Versions and ol::GetFrom::ArtistReleases
 
 namespace fs =std::filesystem;
 
@@ -287,6 +296,8 @@ pfc::array_t<JSONParser_ptr> DiscogsInterface::get_all_pages_offline_cache(ol::G
 			std::filesystem::directory_iterator dirpos{ os_path_container };
 			size_t msg_pos = 0;
 			for (auto walk_dir : dirpos) {
+
+				//std::string debug = walk_dir.path().string();
 
 				if (walk_dir.is_directory()) {
 
@@ -395,6 +406,7 @@ pfc::string8 DiscogsInterface::load_username(threaded_process_status &p_status, 
 }
 
 pfc::array_t<pfc::string8> DiscogsInterface::get_collection(threaded_process_status &p_status, abort_callback &p_abort) {
+
 	if (collection.get_count()) {
 		return collection;
 	}
@@ -405,6 +417,7 @@ pfc::array_t<pfc::string8> DiscogsInterface::get_collection(threaded_process_sta
 		pfc::string8 json;
 		pfc::string8 url;
 		url << "https://api.discogs.com/users/" << username << "/collection/folders";		
+
 		fetcher->fetch_html(url, "per_page=100", json, p_abort);
 		JSONParser jp(json);
 
@@ -457,6 +470,7 @@ bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release, bool isArti
 	size_t local_ndx = img_ndx;
 
 	if (!isArtist) {
+
 		id = release->id;
 		if (!release->images.get_size() || (!release->images[img_ndx]->url150.get_length())) {
 			
@@ -569,7 +583,7 @@ bool DiscogsInterface::delete_artist_cache(const pfc::string8& artist_id) {
 
 		for (size_t walk = 0; walk < artist->releases.get_count(); walk++) {
 
-			unsigned long lkey = encode_mr(artist->search_role_list_pos, artist->releases[walk]->id);
+			size_t lkey = encode_mr(artist->search_role_list_pos, artist->releases[walk]->id);
 			bdeleted &= cache_releases->remove(lkey);
 		}
 		
@@ -584,7 +598,7 @@ bool DiscogsInterface::delete_artist_cache(const pfc::string8& artist_id) {
 
 			std::error_code ec;
 			std::filesystem::remove_all(os_path, ec);
-			bdeleted &= !ec.value();
+			bdeleted &= !(!!ec.value());
 			
 			return !ec.value();
 		}		

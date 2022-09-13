@@ -32,22 +32,6 @@ class CFindReleaseTree;
 
 class release_tree_cache {
 
-private:
-
-	//bulk cache
-	std::shared_ptr<filter_cache> m_cache_ptr;
-
-	//referenced bulk items
-	std::shared_ptr<vec_t> m_vec_ptr;
-
-	//filter (search_order_master)
-	std::vector<std::pair<int, int>> m_vec_filter;
-
-	CFindReleaseTree* m_rt_manager;
-
-	HIMAGELIST hImageList = NULL;
-
-
 public:
 
 	release_tree_cache(CFindReleaseTree* rt_manager) : m_rt_manager(rt_manager) {
@@ -89,69 +73,33 @@ private:
 	//serves rt manager
 	const std::shared_ptr<vec_t> get_vec() { return m_vec_ptr; }
 	std::shared_ptr<vec_t>& get_vec_ref() { return m_vec_ptr; }
-	const std::vector<std::pair<int, int>> get_filter_vec() { return m_vec_filter; }
+	const std::vector<std::pair<size_t, size_t>> get_filter_vec() { return m_vec_filter; }
 	bool get_cached_find_release_node(int lparam, pfc::string8& item, row_col_data& rowdata);
 	t_size get_level_one_vec_track_count(LPARAM lparam);
 	t_size get_level_two_cache_track_count(LPARAM lparam); //for master releases
 	//..
+
+	//bulk cache
+	std::shared_ptr<filter_cache> m_cache_ptr;
+
+	//referenced bulk items
+	std::shared_ptr<vec_t> m_vec_ptr;
+
+	//filter (search_order_master)
+	std::vector<std::pair<size_t, size_t>> m_vec_filter;
+
+	CFindReleaseTree* m_rt_manager;
+	HIMAGELIST hImageList = NULL;
 
 	friend CFindReleaseTree;
 };
 
 class CFindReleaseTree : public CMessageMap {
 
-private:
-
-	CFindReleaseDialog* m_dlg = nullptr;
-
-	history_oplog* m_oplogger_p;
-
-	id_tracer* _idtracer_p;
-
-	//vectors & maps
-	release_tree_cache m_rt_cache;
-
-	HWND m_hwndParent;
-	HWND m_hwndTreeView;
-	HWND m_edit_release,m_edit_filter;
-
-	HTREEITEM m_tvi_selected = NULL;
-	HTREEITEM m_hit = NULL;
-
-	CImageList m_hImageList;
-	HICON hiconItem;
-
-	Artist_ptr m_find_release_artist;
-	pfc::array_t<Artist_ptr> m_find_release_artists;
-
-	bool m_dispinfo_enabled;
-	size_t m_post_selection_param;
-
-	pfc::string8 m_results_filter;
-	pfc::string8 m_init_master_title;
-	pfc::string8 m_init_release_title;
-
-	std::function<bool(int lparam)>stdf_on_release_selected_notifier;
-	std::function<bool()>stdf_on_ok_notifier;
-
-	pfc::string8 get_param_id(mounted_param myparam);
-	int get_param_id_master(mounted_param myparam);
-
-	size_t test_getselected(TVITEM& out);
-	size_t test_getatcursor(CPoint screen_pos, TVITEM& out);
-	size_t get_autofill_release_id(mounted_param myparam, size_t master_id);
-
-	metadb_handle_list m_items;
-
-	playable_location_impl location;
-	file_info_impl* m_info_p;
-	titleformat_hook_impl_multiformat_ptr m_hook;
-
-
 public:
 
-	CFindReleaseTree(CFindReleaseDialog* dlg)
-		: m_dlg(dlg), m_rt_cache(this) {
+	CFindReleaseTree(CFindReleaseDialog* dlg, id_tracer* idtracer_p)
+		: m_dlg(dlg), m_idtracer_p(idtracer_p), m_rt_cache(this) {
 
 		m_dispinfo_enabled = true;
 		m_post_selection_param = pfc_infinite;
@@ -178,8 +126,7 @@ public:
 
 
 	void Inititalize(HWND treeview, HWND filter_edit, HWND url_edit,
-		id_tracer* idtracer_p, metadb_handle_list items,
-		pfc::string8 filterhint);
+		metadb_handle_list items,	pfc::string8 filterhint);
 
 
 	void on_release_selected(int src_lparam);
@@ -261,7 +208,6 @@ public:
 
 private:
 
-
 	pfc::string8 run_hook_columns(row_col_data& row_data, int item_data);
 
 	//setters/getters...
@@ -304,8 +250,53 @@ private:
 	LRESULT OnRClickRelease(int, LPNMHDR hdr, BOOL&);
 	LRESULT OnClick(WORD /*wNotifyCode*/, LPNMHDR /*lParam*/, BOOL& /*bHandled*/);
 
+	bool on_tree_display_cell_image(size_t item, size_t subitem, size_t id, cache_iterator_t cache_it, int& result);
 	void set_image_list();
-	bool OnTreeDisplayCellImage(size_t item, size_t subitem, size_t id, cache_iterator_t cache_it, int& result);
+
+	CFindReleaseDialog* m_dlg = nullptr;
+	history_oplog* m_oplogger_p;
+	id_tracer* m_idtracer_p;
+
+	//vectors & maps
+	release_tree_cache m_rt_cache;
+
+	HWND m_hwndParent;
+	HWND m_hwndTreeView;
+	HWND m_edit_release;
+	HWND m_edit_filter;
+
+	HTREEITEM m_tvi_selected = NULL;
+	HTREEITEM m_hit = NULL;
+
+	CImageList m_hImageList;
+	HICON hiconItem;
+
+	Artist_ptr m_find_release_artist;
+	pfc::array_t<Artist_ptr> m_find_release_artists;
+
+	bool m_dispinfo_enabled;
+	size_t m_post_selection_param;
+
+	pfc::string8 m_results_filter;
+	pfc::string8 m_init_master_title;
+	pfc::string8 m_init_release_title;
+
+	std::function<bool(int lparam)>stdf_on_release_selected_notifier;
+	std::function<bool()>stdf_on_ok_notifier;
+
+	pfc::string8 get_param_id(mounted_param myparam);
+	int get_param_id_master(mounted_param myparam);
+
+	size_t test_getselected(TVITEM& out);
+	size_t test_getatcursor(CPoint screen_pos, TVITEM& out);
+
+	size_t get_autofill_release_id(mounted_param myparam, size_t master_id);
+
+	metadb_handle_list m_items;
+
+	playable_location_impl location;
+	file_info_impl* m_info_p;
+	titleformat_hook_impl_multiformat_ptr m_hook;
 
 	friend class release_tree_cache;
 };

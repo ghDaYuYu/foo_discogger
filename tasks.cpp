@@ -701,7 +701,6 @@ void get_artist_process_callback::safe_run(threaded_process_status &p_status, ab
 
 	//todo: src rev
 	bool bload_releases = m_cupdsrc != updRelSrc::ArtistProfile && m_cupdsrc != updRelSrc::UndefFast;
-	bload_releases |= m_cupdsrc.extended;
 
 	m_artist = discogs_interface->get_artist(m_artist_id, bload_releases, p_status, p_abort,
         false, false, m_updsrc != updRelSrc::ArtistProfile);

@@ -147,7 +147,7 @@
 //v206 (1.0.8)
 #define CFG_DISCOGS_ARTWORK_INDEX_WIDTH			2135
 #define CFG_MATCH_FILE_ARTWORK_INDEX_WIDTH		2136
-#define CFG_PREVIEW_MODAL_TAGS_DLG_COLS_WIDTH	2137
+#define CFG_PREVIEW_LEADING_TAGS_DLG_COLS_WIDTH	2137
 
 // STRINGS -------------------------------------
 
@@ -451,7 +451,7 @@ public:
 
 		// **** PREVIEW MODAL TAG (preview result modal tag)
 		//v206 (1.0.8)
-		{ asi(cfgFilter::PREVIEW_MODAL), CFG_PREVIEW_MODAL_TAGS_DLG_COLS_WIDTH },
+		{ asi(cfgFilter::PREVIEW_MODAL), CFG_PREVIEW_LEADING_TAGS_DLG_COLS_WIDTH },
 		//..
 
 		// **** TAG (tag_mappings_dialog)
@@ -630,11 +630,11 @@ public:
 	int history_enabled_max = MAKELPARAM(10, 1); //enabled-max20
 	int find_release_dlg_flags = 0;
 	//v206 (1.0.8)
-	int match_discogs_artwork_index_width = MAKELPARAM(2* 10 + 6, 30);	//justify center*10 + index, width
+	int match_discogs_artwork_index_width = MAKELPARAM(2* 10 + 6, 30);
 	int match_file_artwork_index_width = MAKELPARAM(2*10 + 3, 30);
-	int preview_modal_tags_dlg_cols_width = 0;                          //lo #col, hi track col
+	int preview_leading_tags_dlg_cols_width = 0;
 	
-	bool auto_rel_load_on_open = false;
+	bool auto_rel_load_on_open = true;
 	bool auto_rel_load_on_select = false;
 	
 	bool parse_hidden_merge_titles = true;

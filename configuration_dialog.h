@@ -1,6 +1,9 @@
 #pragma once
 #include "resource.h"
 
+#include "helpers/DarkMode.h"
+//#include "libPPUI/DarkMode.h"
+
 #include "guids_discogger.h"
 #include "foo_discogs.h"
 #include "my_tabentry.h"
@@ -52,7 +55,8 @@ public:
 	bool service_query(service_ptr& p_out, const GUID& p_guid) override;
 };
 
-class CConfigurationDialog : public MyCDialogImpl<CConfigurationDialog>, public CMessageFilter, public preferences_page_instance
+class CConfigurationDialog : public MyCDialogImpl<CConfigurationDialog>, public CMessageFilter, public preferences_page_instance,
+	public fb2k::CDarkModeHooks
 {
 private:
 
@@ -182,7 +186,7 @@ public:
 		g_discogs->configuration_dialog = this;
 
 		conf = CConf(CONF); conf.SetName("Cfg");
-		conf_edit = CConf(CONF); conf.SetName("CfgEdit");		
+		conf_edit = CConf(CONF); conf_edit.SetName("CfgEdit");
 	}
 
 	~CConfigurationDialog();
@@ -209,7 +213,7 @@ class preferences_page_myimpl : public preferences_page_impl<CConfigurationDialo
 
 public:
 
-	const char* get_name() { return "discogger Tagger";	}
+	const char* get_name() { return "Discogger";	}
 	GUID get_guid() { return guid_pref_page; }
 	GUID get_parent_guid() { return guid_tagging; }
 };

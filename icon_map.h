@@ -3,7 +3,9 @@
 
 enum class Icon
 {
-	Record	
+	Record,
+	Quian,
+	Quian_Dark
 };
 
 using IconMapping = std::unordered_map<Icon, std::map<int, UINT>>;
@@ -16,8 +18,11 @@ using IconMapping = std::unordered_map<Icon, std::map<int, UINT>>;
 
 // clang-format off
 const IconMapping ICON_RESOURCE_MAPPINGS_COLOR = {
-	{ Icon::Record, { ICON_SIZE_MAPPINGS(IDB_PNG_RECC) } }
+	{ Icon::Record, { ICON_SIZE_MAPPINGS(IDB_PNG_RECC) } },
+	{ Icon::Quian, { ICON_SIZE_MAPPINGS(IDB_PNG_QUIAN) } },
+	{ Icon::Quian_Dark, { ICON_SIZE_MAPPINGS(IDB_PNG_QUIAN_DARK) } }
 };
 // clang-format on
 
-HBITMAP LoadDpiBitmapResource(Icon icon);
+HBITMAP LoadDpiBitmapResource(Icon icon, bool isDark);
+HICON LoadDpiIconResource(Icon icon, bool isDark);

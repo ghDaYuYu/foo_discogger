@@ -22,7 +22,6 @@ CFindReleaseArtistDialog::CFindReleaseArtistDialog(HWND p_parent, size_t SW_FLAG
 
 void CFindReleaseArtistDialog::UpdateProfile(Artist_ptr& artist, pfc::string8 modprofile)
 {
-
 	if (artist) {
 
 		size_t id = atoi(artist->id);
@@ -78,6 +77,10 @@ LRESULT CFindReleaseArtistDialog::OnInitDialog(HWND hWnd, LPARAM lParam)
 	m_resize_helper.process_message(m_hWnd, WM_INITDIALOG, (WPARAM)hWnd, lParam);
 	m_resize_helper.add_sizegrip();
 	cfg_window_placement_find_release_artist_dlg.on_window_creation(m_hWnd, true);
+
+	//darkmode
+	AddDialog(m_hWnd);
+	AddControls(m_hWnd);
 
 	ShowWindow(m_sw_flag);
 	return TRUE;

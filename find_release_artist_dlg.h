@@ -1,10 +1,12 @@
 ﻿#pragma once
 #include "resource.h"
+#include "helpers/DarkMode.h"
+
 #include "foo_discogs.h"
 
 class CFindReleaseArtistDialog :
-	public CDialogImpl<CFindReleaseArtistDialog>, public CMessageFilter
-{
+	public CDialogImpl<CFindReleaseArtistDialog>, public CMessageFilter, public fb2k::CDarkModeHooks {
+
 public:
 	enum { IDD = IDD_DIALOG_FIND_ARTIST };
 	

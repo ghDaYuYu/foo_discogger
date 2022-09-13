@@ -115,7 +115,7 @@ public:
 	}
 
 	size_t id_tracer::get_artist_id_store() {
-		return is_multi_artist() ? ol::k_offline_multi_artists : artist_id;
+		return is_multi_artist() ? vmulti_artist_ids.at(0) : artist_id;
 	}
 
 	void id_tracer::set_artist_id(size_t id) {
@@ -128,11 +128,9 @@ public:
 
 		return get_artist_id_store() != pfc_infinite;
 	}
-	
 	bool id_tracer::has_master() const {
 		return master_id != pfc_infinite;
 	}
-	
 	bool id_tracer::has_release() const {
 		return release_id != pfc_infinite;
 	}
@@ -288,7 +286,8 @@ public:
 			items[i]->format_title(nullptr, walk_artist_id, g_discogs->dc_artist_id_script, nullptr);
 
 			std::vector<pfc::string8> vtrack_artists;
-			split(walk_artist_id, ",", 0, vtrack_artists);
+			walk_artist_id.replace_char(',', ';');
+			split(walk_artist_id, ";", 0, vtrack_artists);
 
 			if (vtrack_artists.size() > 1) {
 				for (auto w : vtrack_artists) {

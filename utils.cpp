@@ -112,6 +112,86 @@ int tokenize(const pfc::string8 &src, const pfc::string8 &delim, pfc::array_t<pf
 	return (int)tokens.get_size();
 }
 
+bool replace_bracketed_commas(pfc::string8& out, pfc::string8 what, pfc::string8 with) {
+
+	//all bracketed commas
+	std::regex regex_v;
+	std::string str_exp(what);
+	//ej. ",(?=((?!\\[).)*?\\])"
+	str_exp.append("(?=((?!\\[).)*?\\])");
+	//try {
+	regex_v = std::regex(str_exp);
+
+	std::string res_no_bracketed_commas(out.c_str());
+	std::sregex_iterator begin = std::sregex_iterator(res_no_bracketed_commas.begin(), res_no_bracketed_commas.end(), regex_v);
+	std::sregex_iterator end = std::sregex_iterator();
+	if (begin != end) {
+
+#ifdef DEBUG
+		int occurrences = 0;
+		for (std::sregex_iterator i = begin; i != end; i++) {
+			occurrences++;
+		}
+#endif
+
+		try {
+			res_no_bracketed_commas = std::regex_replace(res_no_bracketed_commas.c_str(), regex_v, with.c_str());
+			out = res_no_bracketed_commas.c_str();
+			return true;
+		}
+		catch (std::regex_error e) {
+			//res.set_string(e.what());
+			return false;
+		}
+
+	}
+	return false;
+}
+
+int tokenize_non_bracketed(const pfc::string8& src, const pfc::string8& delim, pfc::array_t<pfc::string8>& tokens, bool remove_blanks) {
+
+	tokens.force_reset();
+	if (!src.get_length()) return 0;
+
+	pfc::string8 tmp_src(src);
+
+	if (size_t open_bracket_pos = tmp_src.find_first('[') != pfc_infinite) {
+		replace_bracketed_commas(tmp_src, ",", "%");
+	}
+
+	size_t pos;
+	pfc::string8 tmp = tmp_src;
+	size_t dlength = delim.get_length();
+
+	while ((pos = tmp.find_first(delim)) != pfc::infinite_size) {
+		pfc::string8 token = substr(tmp, 0, pos);
+		if (remove_blanks) {
+			token = trim(token);
+		}
+
+		if (token.find_first('[') != pfc_infinite) {
+			replace_bracketed_commas(token, "%", ",");
+		}
+
+		tokens.append_single(token);
+		tmp = substr(tmp, pos + dlength, tmp.length() - 1);
+	}
+	if (remove_blanks) {
+		tmp = trim(tmp);
+	}
+
+	if (tmp.find_first('[') != pfc_infinite) {
+		//last or unique token
+		replace_bracketed_commas(tmp, "%", ",");
+	}
+	tokens.append_single(tmp);
+
+	//bring back bracketed commas
+
+
+	return (int)tokens.get_size();
+}
+
 int tokenize_multi(const pfc::string8 &src, const pfc::array_t<pfc::string8> &delims, pfc::array_t<pfc::string8> &tokens, bool remove_blanks) {
 	size_t pos, pos2, dlen;
 	tokens.force_reset();

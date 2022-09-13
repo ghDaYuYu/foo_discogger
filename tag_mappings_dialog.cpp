@@ -1,5 +1,7 @@
 #include "stdafx.h"
 
+#include "helpers/DarkMode.h"
+
 #include "tags.h"
 #include "db_fetcher_component.h"
 
@@ -16,7 +18,7 @@ static cfg_window_placement cfg_window_placement_tag_mapping_dlg(guid_cfg_window
 
 #define WRITE_UPDATE_COL_WIDTH  85
 
-inline void CTagMappingDialog::load_size() {
+inline void CTagMappingDialog::load_column_layout() {
 
 	if (conf.edit_tags_dialog_col1_width != 0) {
 		const SIZE DPI = QueryScreenDPIEx();

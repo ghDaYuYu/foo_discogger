@@ -8,7 +8,7 @@
 
 #include "track_matching_dialog.h"
 #include "preview_dialog.h"
-#include "preview_modal_tag_dialog.h"
+#include "preview_leading_tag_dialog.h"
 #include "tag_mappings_dialog.h"
 
 #ifdef CAT_CRED

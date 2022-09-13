@@ -116,7 +116,15 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 
 		init_track_matching_dialog();
 
-		//todo: rev return value - skip if release dialog checked
+		//darkmode
+		AddDialog(m_hWnd);
+		AddControls(m_hWnd, uGetDlgItem(IDC_DISCOGS_TRACK_LIST), uGetDlgItem(IDC_FILE_LIST));
+
+        //todo: dark mode lib
+		AddGIListView(uGetDlgItem(IDC_DISCOGS_TRACK_LIST));
+		AddGIListView(uGetDlgItem(IDC_FILE_LIST));
+
+
 		if (m_tag_writer->match_status == MATCH_SUCCESS && (m_conf.skip_mng_flag & SkipMng::SKIP_RELEASE_DLG_MATCHED)) {
 			generate_track_mappings(m_tag_writer->track_mappings);
 			service_ptr_t<generate_tags_task> task = new service_impl_t<generate_tags_task>(this, m_tag_writer, false);

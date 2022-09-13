@@ -1,5 +1,6 @@
 #pragma once
 
+#include "utils.h"
 #include "db_utils.h"
 
 class history_oplog {

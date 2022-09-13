@@ -5,15 +5,27 @@
 #include "utils.h"
 #include "db_utils.h"
 
-#include "find_release_dialog.h"
-
 static const GUID guid_cfg_window_placement_find_release_dlg = { 0x7342d2f3, 0x235d, 0x4bed, { 0x86, 0x7e, 0x82, 0x7f, 0xa8, 0x8e, 0xd9, 0x87 } };
 static cfg_window_placement cfg_window_placement_find_release_dlg(guid_cfg_window_placement_find_release_dlg);
 
+void load_global_icons() {
+	auto kk = GetSystemMetrics(SM_CXSMICON);
+
+	auto dpiX = QueryScreenDPIEx(core_api::get_main_window()).cx;
+	int colw = MulDiv(17, dpiX, USER_DEFAULT_SCREEN_DPI);
+
+	bool bdark = fb2k::isDarkMode();
+	g_hIcon_quian = LoadDpiIconResource(!bdark ? Icon::Quian : Icon::Quian_Dark, bdark);
+	g_hIcon_rec = LoadDpiBitmapResource(Icon::Record, bdark);
+}
+
 // constructor
 
-CFindReleaseDialog::CFindReleaseDialog(HWND p_parent, metadb_handle_list items, foo_conf cfg) : items(items), conf(cfg),
-cewb_artist_search(), cewb_release_filter(), cewb_release_url(), m_dctree(this), m_alist(this)/*, m_items_callback(this)*/ {
+CFindReleaseDialog::CFindReleaseDialog(HWND p_parent, metadb_handle_list items, foo_conf cfg)
+    : items(items), conf(cfg), cewb_artist_search(), cewb_release_filter(), cewb_release_url(),
+     m_dctree(this, &m_tracer), m_alist(this, &m_tracer) {
+
+	load_global_icons();
 
 	//HWND
 
@@ -225,11 +237,6 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 
 	SetIcon(g_discogs->icon);
 
-	INITCOMMONCONTROLSEX icex;
-	icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
-	icex.dwICC = ICC_STANDARD_CLASSES | ICC_LISTVIEW_CLASSES | ICC_TREEVIEW_CLASSES;
-	InitCommonControlsEx(&icex);
-
 	m_edit_artist = GetDlgItem(IDC_EDIT_SEARCH);
 	m_edit_filter = GetDlgItem(IDC_EDIT_FILTER);
 	m_edit_release = GetDlgItem(IDC_RELEASE_URL_TEXT);
@@ -248,6 +255,9 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	cewb_release_url.SetEnterEscHandlers();
 
 	artist_link.SubclassWindow(GetDlgItem(IDC_STATIC_FIND_REL_STATS));
+	COLORREF lnktx = IsDark() ? GetSysColor(COLOR_MENUHILIGHT) : (COLORREF)(-1);
+	artist_link.m_clrLink = lnktx;
+	artist_link.m_clrVisited = lnktx;
 
 	// init cfged
 
@@ -293,19 +303,30 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	uSetWindowText(m_edit_artist, artist ? artist : "");
 	uSetWindowText(m_edit_release, m_tracer.has_release() ? std::to_string(m_tracer.release_id).c_str() : "");
 
-	// artist & release tree
-	// todo: convert to pointers, etc
-	
+	// dlg resize and dimensions
+
+	DlgResize_Init(mygripp.enabled, true);
+	cfg_window_placement_find_release_dlg.on_window_creation(m_hWnd, true);
+
+	HWND wndReplace = ::GetDlgItem(m_hWnd, IDC_ARTIST_LIST);
+	m_alist.CreateInDialog(*this, IDC_ARTIST_LIST, wndReplace);
+	m_alist.InitializeHeaderCtrl(HDS_HIDDEN);	
+	m_artist_list = m_alist.m_hWnd;
+	m_alist.Inititalize();
+
+	m_dctree.Inititalize(m_release_tree, m_edit_filter, m_edit_release, items, frm_album /*ALBUM*/);
+
 #ifdef VKHOOK
 	SetWindowSubclass(m_artist_list, EnterKeySubclassProc, 0, 0);
 	SetWindowSubclass(m_release_tree, EnterKeySubclassProc, 0, 0);
 #endif
 
-	m_alist.Inititalize(m_artist_list, m_edit_artist, &m_tracer);
-	m_dctree.Inititalize(m_release_tree, m_edit_filter, m_edit_release,
-		&m_tracer, items, frm_album /*ALBUM*/);
+	// dark mode
+	AddDialog(m_hWnd);
+	AddControls(m_hWnd);
 
-	// end controls
+	AddDialog(m_hWnd);
+	AddControls(m_hWnd);
 
 	m_tracer.init_tracker_tags(items);
 
@@ -461,7 +482,7 @@ void CFindReleaseDialog::on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist
 	m_dctree.on_get_artist_done(cupdsrc, artist);
 
 	if (conf.auto_rel_load_on_open) {
-		if (m_dctree.Get_Size() && updsrc == updRelSrc::UndefFast && m_tracer.has_master()) {
+		if (updsrc == updRelSrc::UndefFast && m_dctree.Get_Size() && m_tracer.has_master()) {
 
 			m_dctree.OnInitExpand(mounted_param(m_tracer.master_i, ~0, true, false).lparam());	
 		}
@@ -469,7 +490,7 @@ void CFindReleaseDialog::on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist
 
 }
 
-void CFindReleaseDialog::on_search_artist_done(const pfc::array_t<Artist_ptr>& p_artist_exact_matches, const pfc::array_t<Artist_ptr>& p_artist_other_matches) {
+void CFindReleaseDialog::on_search_artist_done(const pfc::array_t<Artist_ptr>& p_artist_exact_matches, const pfc::array_t<Artist_ptr>& p_artist_other_matches, bool append) {
 
 	bool exact_matches = IsDlgButtonChecked(IDC_CHK_ONLY_EXACT_MATCHES) == BST_CHECKED;
 
@@ -489,14 +510,16 @@ void CFindReleaseDialog::on_search_artist_done(const pfc::array_t<Artist_ptr>& p
 	}
 	
 	if (m_tracer.is_multi_artist()) {
-		m_alist.set_artists(exact_matches, nullptr, p_artist_exact_matches, p_artist_other_matches);
+		m_alist.set_artists(exact_matches, append, nullptr, p_artist_exact_matches, p_artist_other_matches);
 	}
 	else {
-		m_alist.set_artists(exact_matches, nullptr, p_artist_exact_matches, p_artist_other_matches);
+		m_alist.set_artists(exact_matches, append, nullptr, p_artist_exact_matches, p_artist_other_matches);
 	}
 	
 	//spawns on list item selection (not by default)
-	m_alist.fill_artist_list(exact_matches, m_tracer.has_amr(), updRelSrc::ArtistSearch);
+	if (!append) {
+		m_alist.fill_artist_list(exact_matches, m_tracer.has_amr(), updRelSrc::ArtistSearch);
+	}
 }
 
 //returns pair <total root elements, expanded elements> (filtered result stats)
@@ -773,7 +796,7 @@ void CFindReleaseDialog::convey_artist_list_selection(updRelSrc updsrc) {
 
 	PFC_ASSERT(updsrc == updRelSrc::ArtistList || updsrc == updRelSrc::ArtistProfile);
 
-	t_size pos = ListView_GetFirstSelection(m_artist_list);
+	t_size pos = m_alist.GetSingleSel();
 
 	if (pos == ~0 || (updsrc != updRelSrc::ArtistList && updsrc != updRelSrc::ArtistProfile)) {
 
@@ -823,7 +846,6 @@ void CFindReleaseDialog::convey_artist_list_selection(updRelSrc updsrc) {
 		//			update data available
 		
 		UpdateArtistProfile(artist);
-		
 	}
 }
 
@@ -889,8 +911,10 @@ void CFindReleaseDialog::route_artist_search(pfc::string8 artistname, bool dlgbu
 			}
 			
 			//anything other than ArtistProfile will also load releases
-			if (m_tracer.is_multi_artist()) {
-			
+			bool bmulti_artist = !(dlgbutton && idded) && m_tracer.is_multi_artist();
+			if (bmulti_artist) {
+				//commented to fix auto-load multiple artist releases
+				//cupdsrc.extended = false;
 				service_ptr_t<get_various_artists_process_callback> task =
 					new service_impl_t<get_various_artists_process_callback>(cupdsrc, m_tracer.get_vartist_ids());
 

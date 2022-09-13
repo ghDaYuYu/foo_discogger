@@ -24,13 +24,18 @@ public:
 	}
 
 	void RenderHLBackground(CDCHandle p_dc, const CRect& p_itemRect, size_t item, uint32_t bkColor, pfc::string8 str, pfc::string8 hlstr, bool freeze) {
-		
-		const Gdiplus::Color gdiHLColor = Gdiplus::Color(255, 180, 180, 180);
-		const Gdiplus::Color gdiROColor = Gdiplus::Color(255, 240, 240, 240);
+
+		Gdiplus::Color gdiHLColor, gdiROColor;
+		if (IsDark()) {
+			gdiHLColor.SetFromCOLORREF(GetSysColor(COLOR_HOTLIGHT));
+		}
+		else {
+			gdiHLColor = Gdiplus::Color(255, 180, 180, 180);
+		}
 
 		const CRect* rc = &p_itemRect;
 		Gdiplus::Graphics gr(p_dc);
-		Gdiplus::Pen pen(freeze? gdiROColor : gdiHLColor, static_cast<Gdiplus::REAL>(rc->bottom - rc->top));
+		Gdiplus::Pen pen(gdiROColor, static_cast<Gdiplus::REAL>(rc->bottom - rc->top));
 		gr.DrawLine(&pen, rc->left, rc->top + ((rc->bottom - rc->top) / 2), rc->right, rc->top + ((rc->bottom - rc->top) / 2));
 		DeleteObject(&pen);
 		DeleteObject(&gr);
@@ -75,7 +80,7 @@ private:
 };
 
 class CTagMappingDialog : public MyCDialogImpl<CTagMappingDialog>,	public CDialogResize<CTagMappingDialog>,
-	public CMessageFilter,	private IListControlOwnerDataSource
+	public CMessageFilter,	private IListControlOwnerDataSource, public fb2k::CDarkModeHooks
 {
 
 private:

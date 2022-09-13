@@ -43,45 +43,28 @@ struct preview_job {
 
 class CTrackMatchingDialog : public MyCDialogImpl<CTrackMatchingDialog>,
 	public CDialogResize<CTrackMatchingDialog>,	public CMessageFilter,
-	private ILOD_track_matching/*IListControlOwnerDataSource*/ {
-
-private:
-
-	HWND get_ctx_lvlist(int ID) {
-		if (ID != IDC_UI_LIST_DISCOGS && ID != IDC_UI_LIST_FILES) return nullptr;
-		return uGetDlgItem(ID);		
-	}
-
-	lsmode get_mode() {
-		return uButton_GetCheck(m_hWnd, IDC_CHK_MNG_ARTWORK) == TRUE ?
-			lsmode::art : lsmode::default;
-	}
-
-	void load_size();
-	bool build_current_cfg();
-	void pushcfg();
-
-	void insert_track_mappings();
-	void generate_track_mappings(track_mappings_list_type &track_mappings);
-	void fix_multi_artwork_embeds(multi_uartwork &mu);
-	bool generate_artwork_guids(pfc::array_t<GUID>& my_album_art_ids, bool cfg_default);
-
-	void update_list_width(HWND list, bool initialize=false);
-	bool context_menu_form(HWND wnd, LPARAM coords);
-	bool context_menu_track_show(HWND wnd, int idFrom, LPARAM coords);
-	bool context_menu_track_switch(HWND wnd, POINT point, bool isfiles, int cmd, bit_array_bittable selmask, pfc::array_t<t_size> order, CListControlOwnerData* ilist);
-	void context_menu_art_attrib_switch(HWND wnd, af afalbum, af afart, UINT IDATT, lsmode mode);
-	bool context_menu_art_attrib_show(HWND wnd, HMENU* menu);
-
-	virtual coord_presenters* ilo_get_coord() override { return &m_coord; }
-	virtual CListControlOwnerData* ilo_get_idc_list() override { return &m_idc_list; }
-	virtual CListControlOwnerData* ilo_get_ifile_list() override { return &m_ifile_list; }
-
-protected:
-
-	void LibUIAsOwnerData(bool OwnerToLibUi);
+	private ILOD_track_matching, fb2k::CDarkModeHooks {
 
 public:
+
+	// constructor
+
+	CTrackMatchingDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags = false) : ILOD_track_matching(),
+		m_tag_writer(tag_writer), m_list_drop_handler(),
+		m_conf(CONF), m_coord(p_parent, CONF),
+		m_idc_list(this), m_ifile_list(this)
+	{
+		m_conf.SetName("TrackMatchingDlg");
+		g_discogs->track_matching_dialog = this;
+		m_rec_icon = LoadDpiBitmapResource(Icon::Record, IsDark());
+
+	}
+
+	~CTrackMatchingDialog() {
+
+		DeleteObject(m_rec_icon);
+		g_discogs->track_matching_dialog = nullptr;
+	}
 
 	std::function<bool(HWND wndlist, size_t item)>stdf_change_notifier =
 		//todo: revise, modded after cross referenced credit tag mapping
@@ -262,9 +245,43 @@ public:
 
 	void pending_previews_done(size_t n = 1);
 
+protected:
+
+		void LibUIAsOwnerData(bool OwnerToLibUi);
+
 private:
 
+	HWND get_ctx_lvlist(int ID) {
+		if (ID != IDC_UI_LIST_DISCOGS && ID != IDC_UI_LIST_FILES) return nullptr;
+		return uGetDlgItem(ID);
+	}
+
+	lsmode get_mode() {
+		return uButton_GetCheck(m_hWnd, IDC_CHK_MNG_ARTWORK) == TRUE ?
+			lsmode::art : lsmode::default;
+	}
+
+	void load_column_layout();
+	bool build_current_cfg();
+	void pushcfg();
+
+	void insert_track_mappings();
+	void generate_track_mappings(track_mappings_list_type& track_mappings);
+	bool generate_artwork_guids(pfc::array_t<GUID>& my_album_art_ids, bool cfg_default);
+
+	void update_list_width(HWND list, bool initcontrols = false);
+	bool context_menu_form(HWND wnd, LPARAM coords);
+	bool context_menu_track_show(HWND wnd, int idFrom, LPARAM coords);
+	bool context_menu_track_switch(HWND wnd, POINT point, bool isfiles, int cmd, bit_array_bittable selmask, pfc::array_t<t_size> order, CListControlOwnerData* ilist);
+	void context_menu_art_attrib_switch(HWND wnd, af afalbum, af afart, UINT IDATT, lsmode mode);
+	bool context_menu_art_attrib_show(HWND wnd, HMENU* menu);
+
+	virtual coord_presenters* ilo_get_coord() override { return &m_coord; }
+	virtual CListControlOwnerData* ilo_get_idc_list() override { return &m_idc_list; }
+	virtual CListControlOwnerData* ilo_get_ifile_list() override { return &m_ifile_list; }
+
 	foo_conf m_conf;
+	multi_uartwork m_last_run_multi_uart;
 
 	std::vector<preview_job> m_vpreview_jobs;
 	size_t m_pending_previews = 0;
@@ -273,8 +290,8 @@ private:
 
 	TagWriter_ptr m_tag_writer;
 
-	size_t tw_index = 0;
-	size_t tw_skip = 0;
+	size_t m_tw_index = 0;
+	size_t m_tw_skip = 0;
 
 	file_info_impl info;
 	playable_location_impl location;

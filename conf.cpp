@@ -71,9 +71,8 @@ bool prepare_dbf_and_cache(bool bimport = true) {
 
 	bool bres = true;
 
-	pfc::string8 src_path;
+	pfc::string8 src_path = full_usr_components_path();
 	pfc::string8 dst_path;
-	src_path << (core_api::pathInProfile("user-components\\") << core_api::get_my_file_name());
 	src_path << "\\" << dll_db_name();
 	dst_path << core_api::pathInProfile("configuration\\") << dll_db_name();
 
@@ -150,7 +149,7 @@ bool CConf::load() {
 	//vspec v202 { &vec_specs, 28, 29, 14 };
 	//vspec v203 { &vec_specs, 28, 41, 14 };
 	vspec v204{ &vec_specs, 28, 42, 14 }; // 1.0.4
-	vspec v205{ &vec_specs, 24, 39, 15 }; // 1.0.6 + sqlite db
+	vspec v205{ &vec_specs, 24, 39, 15 }; // 1.0.6 + sqlite
 	vspec v206{ &vec_specs, 27, 42, 15 }; // 1.0.8
 
 	vspec* vlast = &vec_specs.at(vec_specs.size() - 1);
@@ -178,7 +177,7 @@ bool CConf::load() {
 		}
 	}
 
-	//ignore bres, depricated values are not there
+	//upgrading, ignore bres for now
 	for (unsigned int i = 0; i < cfg_bool_entries.get_count(); i++) {
 		/*bres &=*/ bool_load(cfg_bool_entries[i]);
 	}
@@ -210,7 +209,7 @@ bool CConf::load() {
 			make_conf_entry(CFG_MATCH_FILE_ARTWORK_INDEX_WIDTH, match_file_artwork_index_width)
 		);
 		cfg_int_entries.add_item(
-			make_conf_entry(CFG_PREVIEW_MODAL_TAGS_DLG_COLS_WIDTH, preview_modal_tags_dlg_cols_width)
+			make_conf_entry(CFG_PREVIEW_LEADING_TAGS_DLG_COLS_WIDTH, preview_leading_tags_dlg_cols_width)
 		);
 	}
 
@@ -518,8 +517,8 @@ bool CConf::int_load(const conf_int_entry& item) {
 	case CFG_MATCH_FILE_ARTWORK_INDEX_WIDTH:
 		match_file_artwork_index_width = item.value;
 		break;
-	case CFG_PREVIEW_MODAL_TAGS_DLG_COLS_WIDTH:
-		preview_modal_tags_dlg_cols_width = item.value;
+	case CFG_PREVIEW_LEADING_TAGS_DLG_COLS_WIDTH:
+		preview_leading_tags_dlg_cols_width = item.value;
 		break;
 	//..
 	default:
@@ -579,9 +578,9 @@ bool CConf::string_load(const conf_string_entry& item) {
 		db_dc_path = item.value;
 		break;
 
-	//..
+		//..
 
-	//..
+		//..
 
 	default:
 		PFC_ASSERT(false);
@@ -863,8 +862,8 @@ bool CConf::id_to_val_int(int id, const CConf& in_conf, int& out, bool assert) {
 	case CFG_MATCH_FILE_ARTWORK_INDEX_WIDTH:
 		out = in_conf.match_file_artwork_index_width;
 		break;
-	case CFG_PREVIEW_MODAL_TAGS_DLG_COLS_WIDTH:
-		out = in_conf.preview_modal_tags_dlg_cols_width;
+	case CFG_PREVIEW_LEADING_TAGS_DLG_COLS_WIDTH:
+		out = in_conf.preview_leading_tags_dlg_cols_width;
 		break;
 
 		//..
@@ -992,7 +991,7 @@ void CConf::save(cfgFilter cfgfilter, const CConf& in_conf) {
 		auto filterok =
 			std::find_if(idarray.begin(), idarray.end(), [&](const std::pair<int, int>& e) {
 			return e.first == asi(cfgfilter) && e.second == id;
-			});
+				});
 
 		if (filterok != std::end(idarray)) {
 			bool val;
@@ -1159,7 +1158,7 @@ void CConf::save() {
 	//v206
 	cfg_int_entries.add_item(make_conf_entry(CFG_DISCOGS_ARTWORK_INDEX_WIDTH, match_discogs_artwork_index_width));
 	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_FILE_ARTWORK_INDEX_WIDTH, match_file_artwork_index_width));
-	cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_MODAL_TAGS_DLG_COLS_WIDTH, this->preview_modal_tags_dlg_cols_width));
+	cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_LEADING_TAGS_DLG_COLS_WIDTH, this->preview_leading_tags_dlg_cols_width));
 
 	//..
 
@@ -1195,15 +1194,15 @@ void CConf::save_active_config_tab(int newtab) {
 	}
 }
 
-void CConf::save_preview_modal_tab_widths(int widths) {
+void CConf::save_preview_modal_tab_widths(int newwidths) {
 
-	const conf_int_entry& entry = make_conf_entry(CFG_PREVIEW_MODAL_TAGS_DLG_COLS_WIDTH, preview_modal_tags_dlg_cols_width);
+	const conf_int_entry& entry = make_conf_entry(CFG_PREVIEW_LEADING_TAGS_DLG_COLS_WIDTH, preview_leading_tags_dlg_cols_width);
 	auto pos = cfg_int_entries.find_item(entry);
 
 	if (pos != pfc_infinite) {
-		conf_int_entry new_entry = make_conf_entry(CFG_PREVIEW_MODAL_TAGS_DLG_COLS_WIDTH, widths);
+		conf_int_entry new_entry = make_conf_entry(CFG_PREVIEW_LEADING_TAGS_DLG_COLS_WIDTH, newwidths);
 		cfg_int_entries.swap_item_with(pos, new_entry);
-		preview_modal_tags_dlg_cols_width = widths;
+		preview_leading_tags_dlg_cols_width = newwidths;
 	}
 }
 

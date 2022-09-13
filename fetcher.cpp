@@ -69,8 +69,16 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 	pfc::string8 request_url = "";
 	pfc::string8 clean_url(url);
 
-	bool isImageUrl = url.find_first("img.discogs.com") != ~0;
-	isImageUrl |= url.find_first("i.discogs.com") != ~0;
+	if (!url.get_length()) {
+		foo_discogs_exception e;
+		e << "(empty url)";		
+		pfc::string8 log_msg("fetching empty url");
+		throw e;
+		return;
+	}
+
+	bool isImageUrl = url.has_prefix("https://img.discogs.com");
+	isImageUrl |= url.has_prefix("https://i.discogs.com");
 
 	if (params.get_length()) clean_url << "?" << params;
 	bool use_api = url.find_first("api") != ~0;
@@ -188,7 +196,7 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 						msg_ratelimits << " - Throttle engaged (" << pfc::string8(human_read_time.str().c_str()) << u8" \u03BCs)";
 					}
 					else {
-						msg_ratelimits << (isImageUrl ? "Not throttling images (img.discogs.com)" : " (Throttle diseng.)");
+						msg_ratelimits << (isImageUrl ? " - not throttling images" : " (Throttle diseng.)");
 					}
 				//}
 

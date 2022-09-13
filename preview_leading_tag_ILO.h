@@ -1,35 +1,25 @@
-﻿#pragma once
+#pragma once
 #include "libPPUI\CListControlOwnerData.h"
 
-class CPreviewModalTagDialog;
+class CPreviewLeadingTagDialog;
 
-inline const size_t LINES_LONGFIELD = 4;
-inline const size_t CHARS_SHORTFIELD = 50;
-
-class ILOD_preview_modal : public IListControlOwnerDataSource {
-
-private:
-
-	PreView m_view_mode;
-	tag_result_ptr m_item_result;
+class ILOD_preview_leading : public IListControlOwnerDataSource {
 
 public:
 
-	typedef CPreviewModalTagDialog TParent;
+	// constructor
 
-	// constructor (item results, view_mode)
-
-	ILOD_preview_modal(tag_result_ptr item_result, PreView view_mode)
-		: m_item_result(item_result), m_view_mode(view_mode) {
+	ILOD_preview_leading(tag_result_ptr item_result, PreView view_mode)
+		: m_ptag_result(item_result), m_viewmode(view_mode) {
 		//..
 	}
 
-	void ReloadItem() {
+	void PullDlgResult() {
 
-		m_item_result = ilo_get_item_result();
+		m_ptag_result = ilo_get_item_result();
 	}
 
-	void set_mode(PreView view_mode);
+	void SetMode(PreView view_mode);
 
 	//serves preview modal context menu
 	void trigger_action();
@@ -56,19 +46,13 @@ private:
 	//get subitems
 	pfc::string8 listGetSubItemText(ctx_t ctx, size_t item, size_t subItem) override;
 
-	//can reorder
-	bool listCanReorderItems(ctx_t) override;
-
-	//reorder
-	bool listReorderItems(ctx_t ctx, const size_t* order, size_t count) override;
-
-	//remove
-	bool listRemoveItems(ctx_t ctx, pfc::bit_array const& mask) override;
-
 	//action, editable, clicked, edit, get/set
 	void listItemAction(ctx_t, size_t item) override;
 	bool listIsColumnEditable(ctx_t, size_t subItem) override;
 	void listSubItemClicked(ctx_t, size_t item, size_t subItem) override;
 	void listSetEditField(ctx_t ctx, size_t item, size_t subItem, const char* val) override;
 	pfc::string8 listGetEditField(ctx_t ctx, size_t item, size_t subItem, size_t& lineCount) override;
+
+	PreView m_viewmode;
+	tag_result_ptr m_ptag_result;
 };

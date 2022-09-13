@@ -4,7 +4,7 @@
 
 #include "foo_discogs.h"
 
-extern std::mutex open_readwrite_mutex;
+inline std::mutex open_readwrite_mutex;
 
 const std::string kcmdHistoryWashup{ "cmd_leave_latest" };
 const std::string kcmdHistoryDeleteAll{ "cmd_delete_all" };
@@ -23,10 +23,32 @@ static int int_type_sqlite3_exec_callback(void* data, int argc, char** argv, cha
 	return 0; //callback status
 }
 
+static int sizet_type_sqlite3_exec_callback(void* data, int argc, char** argv, char** azColName) {
+	size_t& pint_results = *static_cast<size_t*>(data);
+	pint_results = atoi(argv[0]);
+	return 0; //callback status
+}
+
 static pfc::string8 dll_db_name() {
 	pfc::string8 str = core_api::get_my_file_name();
 	str << ".dll.db";
 	return str;
+}
+
+static pfc::string8 full_dll_db_name() {
+	pfc::string8 db_path;
+	db_path << core_api::pathInProfile("configuration\\") << dll_db_name();
+	return db_path;
+}
+
+static pfc::string8 full_usr_components_path() {
+	pfc::string8 path;
+#ifdef _WIN64
+	path << (core_api::pathInProfile("user-components-x64\\") << core_api::get_my_file_name());
+#else
+	path << (core_api::pathInProfile("user-components\\") << core_api::get_my_file_name());
+#endif
+	return path;
 }
 
 // foo_discogger dll.db helper class

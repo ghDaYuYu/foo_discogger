@@ -1222,8 +1222,6 @@ INT_PTR WINAPI CConfigurationDialog::on_ui_dialog_message(HWND wnd, UINT msg, WP
 
 			switch (idFrom) {
 				case IDC_BTN_UI_CLEAR_HISTORY:
-					if (g_discogs->find_release_dialog)
-						g_discogs->find_release_dialog->get_oplogger()->zap_vhistory();
 					on_delete_history(wnd, 0, true);
 					break;
 				case IDC_CMB_CONFIG_LIST_STYLE:
@@ -1381,7 +1379,7 @@ void CConfigurationDialog::on_load_search_formatting(HWND wnd) {
 }
 void CConfigurationDialog::on_delete_history(HWND wnd, size_t max, bool zap) {
 
-	if (!g_discogs->find_release_dialog) {
+	if (g_discogs->find_release_dialog) {
 		g_discogs->find_release_dialog->get_oplogger()->zap_vhistory();
 	}
 

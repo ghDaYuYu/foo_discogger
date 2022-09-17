@@ -1,7 +1,7 @@
 ﻿#include "stdafx.h"
 
 #include <GdiPlus.h>
-
+#include "CGdiPlusBitmap.h"
 #pragma comment(lib, "gdiplus.lib")
 
 #include "ol_cache.h"
@@ -34,47 +34,7 @@ size_t get_extended_style(HWND list) {
 	return static_cast<size_t>(dwStyle);
 }
 
-std::vector<int> build_woas(HWND list) {
-
-	CHeaderCtrl header_ctrl = ListView_GetHeader(list);
-	
-	if (!header_ctrl) return std::vector<int>{};
-
-	std::vector<int> v_woa;
-
-	DWORD dwStyle = ListView_GetExtendedListViewStyle(list);
-	DWORD dwView = ListView_GetView(list);
-	
-	if (dwView == ID_ART_TILE) return std::vector<int>();
-
-	int cCol = ListView_GetColumnCount(list);
-
-	if (cCol == 0) 	return v_woa;
-
-	std::vector<int> vorder; vorder.resize(cCol);
-	ListView_GetColumnOrderArray(list, cCol, &vorder[0]);
-
-	v_woa.resize(cCol);
-
-	for (auto & it_woa = v_woa.begin(); it_woa != v_woa.end(); ++it_woa) {
-
-		int index = std::distance(v_woa.begin(), it_woa);
-		int width = ListView_GetColumnWidth(list, index);
-
-		HDITEM headerItem = { 0 };
-		headerItem.mask = HDI_FORMAT | HDI_WIDTH;
-		//CHeaderCtrl header = ListView_GetHeader(list);
-		header_ctrl.GetItem(index, &headerItem);
-		int justify_mask = (headerItem.fmt & LVCFMT_JUSTIFYMASK);
-		int lwoa = justify_mask * 10 + vorder[index];
-		int hwoa = width; // headerItem.cxy;
-		*it_woa = MAKELPARAM(lwoa, hwoa);
-		//});
-	}
-	return v_woa;
-}
-
-std::vector<int> build_woas_libppui(CListControlOwnerData* ui_list) {
+std::vector<int> build_woas_libppui(CListControlOwnerData* ui_list, double tile_multi) {
 
 	std::vector<int> vw_res = {};
 	CHeaderCtrl header_ctrl = ui_list->GetHeaderCtrl();
@@ -102,6 +62,13 @@ std::vector<int> build_woas_libppui(CListControlOwnerData* ui_list) {
 		int justify_masked = (headerItem.fmt & LVCFMT_JUSTIFYMASK);
 		int lwoa = justify_masked * 10 + v_order[index];
 		int hwoa = ui_list->GetColumnWidthF(index);
+		if (it_woa == vw_res.begin()) {
+
+			hwoa = (double)hwoa * tile_multi;
+		}
+		else {
+			//hwoa = (double)hwoa * (1/tile_multi);
+		}
 
 		//store woa
 		*it_woa = MAKELPARAM(lwoa, hwoa);
@@ -113,7 +80,7 @@ bool isPrimary(pfc::string8 type) {
 	return STR_EQUAL(type, "primary") || STR_EQUAL(type, "secondary+");
 }
 
-//for cases when discogs artwork image list lacks a primary item
+//discogs artwork list, fixes missing primary item
 bool fixPrimary(pfc::string8& type) {
 	if (STR_EQUAL(type, "secondary") && !isPrimary(type)) {
 		type << "+";
@@ -123,7 +90,6 @@ bool fixPrimary(pfc::string8& type) {
 }
 
 //human readable file sizes
-
 double roundOff(double n) {
 	double d = n * 100.0;
 	int i = d + 0.5;
@@ -152,119 +118,10 @@ pfc::string8 round_file_size_units(size_t size) {
 	return result;
 }
 
-//..
-
-namespace listview_helper {
-
-	unsigned insert_column(HWND p_listview, unsigned p_index, const char* p_name, unsigned p_width_dlu, int fmt)
-	{
-		pfc::stringcvt::string_os_from_utf8 os_string_temp(p_name);
-		RECT rect = { 0, 0, static_cast<LONG>(p_width_dlu), 0 };
-		MapDialogRect(GetParent(p_listview), &rect);
-		LVCOLUMN data = {};
-		data.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_FMT;
-		data.fmt = fmt;
-		data.cx = rect.right;
-		data.pszText = const_cast<TCHAR*>(os_string_temp.get_ptr());
-
-		LRESULT ret = uSendMessage(p_listview, LVM_INSERTCOLUMN, p_index, (LPARAM)&data);
-		if (ret < 0) return ~0;
-		else return (unsigned)ret;
-	}
-}
-
-namespace tileview_helper {
-
-	void tv_insert_column(HWND hlist, int icol, pfc::string8 heading, int format,
-		int width, int subitem) {
-
-		//pfc::stringcvt::string_os_from_utf8 labelOS(heading);
-
-		LV_COLUMN lvcol = {};
-
-		TCHAR outBuffer[MAX_PATH + 1] = {};
-		pfc::stringcvt::convert_utf8_to_wide(outBuffer, MAX_PATH,
-			heading.get_ptr(), heading.get_length());
-		_tcscpy_s(lvcol.pszText, lvcol.cchTextMax, const_cast<TCHAR*>(outBuffer));
-
-		lvcol.cx = width;
-		lvcol.fmt = subitem > 1 ? LVCFMT_CENTER : LVCFMT_LEFT;
-		lvcol.iSubItem = subitem;
-		lvcol.mask = LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
-
-		//lvcol.pszText = const_cast<TCHAR*>(labelOS.get_ptr());
-
-		ListView_InsertColumn(hlist, icol, &lvcol);
-	}
-
-	void tv_insert_item_with_image(HWND hlist, int iItem, pfc::string8 strItem, int iImage, LPARAM param) {
-
-		//pfc::stringcvt::string_os_from_utf8 labelOS(strItem);
-		//int fmtColumns[6] = { LVCFMT_TILE_PLACEMENTMASK, LVCFMT_TILE_PLACEMENTMASK, LVCFMT_TILE_PLACEMENTMASK, LVCFMT_TILE_PLACEMENTMASK, LVCFMT_TILE_PLACEMENTMASK, LVCFMT_TILE_PLACEMENTMASK };
-		//int fmtColumns[1] = { LVCFMT_LINE_BREAK/*, LVCFMT_WRAP*/ };
-		
-		LV_ITEM lvitem = {};
-		lvitem.iItem = iItem;
-		lvitem.lParam = param;
-		lvitem.iImage = iImage;
-		lvitem.pszText = LPSTR_TEXTCALLBACK; // const_cast<TCHAR*>(labelOS.get_ptr());
-		lvitem.mask = LVIF_TEXT | LVIF_IMAGE | LVIF_PARAM /*| LVIF_COLFMT*/;
-
-		//lvitem.piColFmt = fmtColumns;
-
-		ListView_InsertItem(hlist, &lvitem);
-	}
-
-	//puColums = select columns(lines) and order, cColumns columns(lines) selected
-	BOOL tv_set_item_tile_lines(HWND hlist, int iItem, UINT* arrColumns, int nLines) {
-
-		//int fmtColumns[6] = { LVCFMT_TILE_PLACEMENTMASK, LVCFMT_TILE_PLACEMENTMASK, LVCFMT_TILE_PLACEMENTMASK, LVCFMT_TILE_PLACEMENTMASK, LVCFMT_TILE_PLACEMENTMASK, LVCFMT_TILE_PLACEMENTMASK };
-
-		LVTILEINFO lvti = { 0 };
-		lvti.cbSize = sizeof(LVTILEINFO);
-		lvti.cColumns = nLines;
-		lvti.iItem = iItem;
-		lvti.puColumns = arrColumns;
-
-		//lvti.piColFmt = /*(UINT *)*/ fmtColumns;// /*PUINT({ LVCFMT_LEFT, LVCFMT_BITMAP_ON_RIGHT,*/ LVCFMT_TILE_PLACEMENTMASK/*})*/;
-
-		return ListView_SetTileInfo(hlist, &lvti);
-	}
-
-	//tile view settings...
-	//lines (LVTVIM_COLUMNS) for each item
-	BOOL tv_tileview_line_count(HWND hlist, int nLines) {
-
-		LVTILEVIEWINFO lvtvwi = { 0 };
-		lvtvwi.cbSize = sizeof(LVTILEVIEWINFO);
-		lvtvwi.dwMask = LVTVIM_COLUMNS /*| LVTVIM_TILESIZE*/;
-
-		//tvi.dwFlags = LVTVIF_FIXEDSIZE;
-		//SIZE tilesize = { 100, 100 };
-		//lvtvwi.sizeTile = tilesize;
-
-		lvtvwi.cLines = nLines;
-
-		return ListView_SetTileViewInfo(hlist, &lvtvwi);
-	}
-
-	BOOL tv_set_tileview_tile_fixed_width(HWND hlist, int nWidth) {
-		LVTILEVIEWINFO lvtvwi = { 0 };
-		lvtvwi.cbSize = sizeof(LVTILEVIEWINFO);
-		lvtvwi.dwMask = LVTVIM_TILESIZE;
-
-		lvtvwi.dwFlags = LVTVIF_FIXEDWIDTH /*| LVTVIF_EXTENDED*/;
-		lvtvwi.sizeTile.cx = nWidth;
-		lvtvwi.sizeTile.cy = 0;
-
-		return ListView_SetTileViewInfo(hlist, &lvtvwi);
-	}
-}
-
 //generate cache thumbnails files and hbitmaps from artwork preview memoryblock
-std::pair<HBITMAP, HBITMAP> MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::string8> cache_path, MemoryBlock small_art) {
+imgpairs MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::string8> cache_path, MemoryBlock small_art) {
 
-	if (!small_art.get_count()) return std::pair(nullptr, nullptr);
+	if (!small_art.get_count()) return imgpairs{ {nullptr, nullptr}, {nullptr, nullptr } };
 
 	pfc::string8 temp_file_small(cache_path.first);
 	extract_native_path(temp_file_small, temp_file_small);
@@ -384,7 +241,8 @@ std::pair<HBITMAP, HBITMAP> MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::
 }
 
 //generate windows %temp% thumbnails (150x150 and 48x48) bitmaps from local artwork
-std::pair<HBITMAP, HBITMAP> GenerateTmpBitmapsFromRealSize(pfc::string8 release_id, size_t pos,
+
+imgpairs GenerateTmpBitmapsFromRealSize(pfc::string8 release_id, size_t pos,
 	pfc::string8 source_full_path, std::pair<pfc::string8, pfc::string8>& temp_file_names) {
 
 	std::filesystem::path os_src_full_path = std::filesystem::u8path(source_full_path.c_str());

@@ -4,22 +4,9 @@
 #include "utils.h"
 #include "libPPUI/CListControlOwnerData.h"
 
-namespace listview_helper {
-	unsigned insert_column(HWND p_listview, unsigned p_index, const char* p_name, unsigned p_width_dlu, int fmt);
-}
-
-namespace tileview_helper {
-	void tv_insert_column(HWND hlist, int icol,	pfc::string8 heading, int format,	int width, int subitem);
-	void tv_insert_item_with_image(HWND hlist, int iItem, pfc::string8 strItem, int iImage, LPARAM param = 0);
-	BOOL tv_set_item_tile_lines(HWND hlist, int iItem, UINT* arrColumns, int nLines);
-	BOOL tv_tileview_line_count(HWND hlist, int nLines);
-	BOOL tv_set_tileview_tile_fixed_width(HWND hlist, int nWidth);
-}
-
 pfc::string8 duration_to_str(int seconds);
 size_t get_extended_style(HWND list);
-std::vector<int> build_woas(HWND list);
-std::vector<int> build_woas_libppui(CListControlOwnerData* uilist);
+std::vector<int> build_woas_libppui(CListControlOwnerData* uilist, double tile_multi);
 
 bool isPrimary(pfc::string8 type);
 bool fixPrimary(pfc::string8& type);
@@ -65,7 +52,6 @@ enum {
 	ID_INVERT_SELECTION,
 	ID_REMOVE,
 	ID_CROP,
-	ID_MOVE,
 	ID_SPACE,
 	ID_SUBMENU_SELECTOR_ALIGN,
 	ID_LEFT_ALIGN,

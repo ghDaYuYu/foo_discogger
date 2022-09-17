@@ -9,20 +9,19 @@ class ILOD_track_matching : public IListControlOwnerDataSource {
 public:
 
 	typedef CTrackMatchingDialog TParent;
-	ILOD_track_matching() {
-	    //..
+
+	ILOD_track_matching(Release_ptr release) : m_release(release) {
+		//..
 	}
 
 private:
 
+	Release_ptr m_release;
+
+private:
+
 	// pure virtual
-	virtual coord_presenters* ilo_get_coord() = 0;	
-	virtual CListControlOwnerData* ilo_get_idc_list() = 0;
-	virtual CListControlOwnerData* ilo_get_ifile_list() = 0;
-
-	//libPPUI IListControlOwnerDataSource overrides
-
-	//get item count
+	virtual coord_presenters* ilo_get_coord() = 0;
 
 	size_t listGetItemCount(ctx_t ctx) override;
 
@@ -48,5 +47,4 @@ private:
 	void listSubItemClicked(ctx_t, size_t item, size_t subItem) override;
 	void listSetEditField(ctx_t ctx, size_t item, size_t subItem, const char* val) override;
 	bool listIsColumnEditable(ctx_t, size_t subItem) override;
-
 };

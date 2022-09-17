@@ -50,7 +50,7 @@ typedef std::vector<ndx_image_info_row_t> getimages_t;
 typedef getimages_t::iterator getimages_it;
 
 //local files images...
-typedef std::pair<int, GUID> ndx_image_file_t;
+typedef std::pair<size_t, GUID> ndx_image_file_t;
 typedef std::pair < ndx_image_file_t, image_info_t> ndx_image_file_info_row_t;
 
 //local images files vector ...
@@ -69,6 +69,7 @@ class presenter {
 
 public:
 
+	std::vector<std::pair<HICON, HICON>> m_vicons;
 	CImageList m_lstimg;
 	CImageList m_lstimg_small;
 	DWORD m_dwHeaderStyle = 0L;
@@ -104,16 +105,15 @@ public:
 	}
 
 	~presenter() {
-        //should be automatic...
-        //BOOL bres = ImageList_Destroy(m_lstimg);
-	}
 
-	void Load();
-	void Unload();
+		for (auto hicon : m_vicons) {
+			DeleteObject(hicon.first);
+			DeleteObject(hicon.second);
+		}
+	}
+	
 	std::vector<int> Woas() { return m_conf_col_woa; }
 
-	bool IsLoaded() { return loaded(); }
-	bool IsTile();
 	bool RowHeigth() { return m_row_height; }
 
 	void Init(HWND hwndDlg, TagWriter_ptr tag_writer, UINT ID);
@@ -145,26 +145,27 @@ public:
   std::vector<pfc::string8>m_vtitles;
 
 	virtual void build_cfg_columns() {};
+	virtual void define_columns() {}
+
+	virtual size_t get_icon_id(size_t iImageList) { return pfc::infinite_size; };
 
 protected:
 
-	virtual void display() {}
 	virtual void create_columns() {}
-	virtual void define_columns() {}
-	virtual void insert_columns() {}
 	virtual void display_columns() {}
 
-  virtual void update_list_width(bool initialize) {}
+    virtual void update_list_width(bool initcontrols) {}
 	virtual void set_row_height(bool assign) {}
 
-	bool loaded() { return m_loaded; }
-
 	foo_conf& get_conf();
+
 	void set_lv_images_lists();
 
 	std::pair<CImageList*, CImageList*> get_imagelists() {
 		return std::pair<CImageList*, CImageList*>(&m_lstimg, &m_lstimg_small);
 	}
+
+	void update_imagelist(size_t img_ndx, size_t max_img, std::pair<HBITMAP, HBITMAP> hRES);
 
 public:
 protected:
@@ -195,6 +196,20 @@ public:
 
 	track_presenter() : m_ui_list(NULL) {}
 
+	virtual bool IsTile() { return m_tile; }
+
+	HICON GetIcon(size_t pos) {
+		if (pos < m_vicons.size()) {
+			if (IsTile()) {
+				return m_vicons.at(pos).first;
+			}
+			else {
+				return m_vicons.at(pos).second;
+			}
+		}
+		return NULL;
+	}
+
 	virtual void AddRow(std::any track) {}
 
 	virtual size_t GetVRow(size_t list_position, var_it_t& out) = 0;
@@ -209,21 +224,25 @@ public:
 	virtual bool SwapMapItem(size_t key1, size_t key2) = 0;
 	virtual void ReorderMapItem(size_t const* order, size_t count) = 0;
 
-	virtual void SetUIList(CListControlOwnerData* uilist);
+	virtual void SetUIList(CListControlOwnerData* uilist = nullptr);
 	void SetHeaderColumnFormat(size_t icol, size_t fmt);
 	size_t GetHeaderColumnFormat(size_t icol);
-	size_t HitTest(CPoint point);
+	size_t columnHitTest(CPoint point);
 
 	void Reset() override {}
+	void ListInvalidate() { m_ui_list->Invalidate(true); }
+
+	//from artwork_presenter
+	virtual size_t get_icon_id(size_t iImageList) { return 0; };
 
 protected:
 
-	void display();
-	void insert_columns() override;
-	void update_list_width(bool initialize);
+	void define_columns() override =  0 ;
+	void update_list_width(bool init_controls);
 	void set_row_height(bool assign) override;
 
-	CListControlOwnerData* m_ui_list;
+	bool m_tile = false;
+	CListControlOwnerData* m_ui_list = nullptr;
 
 private:
 
@@ -369,78 +388,59 @@ private:
 
 };
 
-class artwork_presenter : public presenter {
+class trk_art_presenter : public track_presenter {
 
-public:
+	trk_art_presenter(coord_presenters* coord, const foo_conf& conf) :
+		track_presenter(coord) {
 
-	artwork_presenter(coord_presenters* coord) :
-		presenter(coord) {
-
+		m_multi_uart = multi_uartwork();
+		m_ui_list = NULL;
+		m_vimages = {};
+		m_lvimages = {};
 	}
-
-	artwork_presenter() {}
-
-	virtual size_t get_icon_id(size_t iImageList) = 0;
-
-	virtual void AddRow(std::any track) {}
-
-	virtual size_t GetVRow(size_t list_position, var_it_t& out) = 0;
-	size_t GetVLvRow(size_t list_position, var_it_t& out) = 0;
-
-	size_t GetDataSize() = 0;
-	size_t GetDataLvSize() = 0;
-
-	size_t DeleteLvRow(size_t position) = 0;
-
-	bool SwapMapItem(size_t key1, size_t key2) = 0;
-	void ReorderMapItem(size_t const* order, size_t count) = 0;
-	
-	std::pair<pfc::string8, pfc::string8> TagWriterImgInfo(art_src art_source, size_t pos) {
-		return get_tag_writer_img_finfo(art_source, pos);
-	}
-
-	void Reset() override {}
-
-
-protected:
-
-	void display();
-	void update_imagelist(size_t img_ndx, size_t max_img, std::pair<HBITMAP, HBITMAP> hRES);
-
-	void set_row_height(bool assign) override;
-	void insert_columns() override;
-
-	pfc::string8 get_header_label(pfc::string8 header);
-	pfc::string8 get_tickit_label(af att, bool val);
-
-	std::pair<pfc::string8, pfc::string8> get_tag_writer_img_finfo(art_src src, size_t pos);
 
 private:
 
-
+	multi_uartwork m_multi_uart;
+	uartwork_guids m_uart_guids;
+	getimages_t m_vimages;
+	std::vector<V> m_lvimages;
 };
 
 
-class discogs_artwork_presenter : public artwork_presenter {
+class discogs_artwork_presenter : public track_presenter {
 
 public:
 
 	discogs_artwork_presenter(coord_presenters* coord, const foo_conf & conf) :
-		artwork_presenter(coord) {
+		track_presenter(coord) {
 
 		m_vimages = {};
 		m_lvimages = {};
 
+		m_ui_list = NULL;
+
 		m_multi_uart = multi_uartwork(/*conf*/);
 	}
 
-	discogs_artwork_presenter() {}
+	discogs_artwork_presenter() { m_ui_list = NULL; }
+
+	~discogs_artwork_presenter() {
+		for (auto hicon : m_vicons) {
+			DeleteObject(hicon.first);
+			DeleteObject(hicon.second);
+		}
+		m_vicons.clear();
+	}
+
+	virtual void SetUIList(CListControlOwnerData* uilist = nullptr) override;
+
+	void SetTile(bool enable);
 
 	size_t get_icon_id(size_t iImageList) override;
 
 	void AddRow(std::any track) override;
 
-	//void GetRow(size_t list_position, getimages_it& out) override;
 	size_t GetVRow(size_t list_position, var_it_t& out) override;
 
 	size_t GetVLvRow(size_t list_position, var_it_t& out) {
@@ -476,21 +476,28 @@ public:
 	void PopulateConfArtWork();
 	bool AddArtwork(size_t img_ndx, art_src art_source, MemoryBlock small_art);
 	
-	art_src GetSrcTypeAtPos(size_t list_position) { return get_vimages_src_type_at_pos(list_position); }
+	art_src GetSrcTypeAtPos(size_t list_position) {
+		return get_vimages_src_type_at_pos(list_position);
+	}
 	
 	multi_uartwork SetUartwork(multi_uartwork multi_uart) { m_multi_uart = multi_uart; }
 	multi_uartwork* GetUartwork() { return &m_multi_uart; }
 	multi_uartwork SetUartwork_guids(uartwork_guids uart_guids) { m_uart_guids = uart_guids; }
 	uartwork_guids* GetUartwork_guids() { return &m_uart_guids; }
 
-	void Reset() override { m_vimages.clear(); m_lvimages.clear(); m_multi_uart = multi_uartwork(/*m_conf, m_tag_writer->release*/); }
+	void Reset() override {
+		bool bmatch_file = m_multi_uart.file_match;
+		m_vimages.clear(); m_lvimages.clear();
+		m_multi_uart = multi_uartwork();
+		m_multi_uart.file_match = bmatch_file;
+	}
 
 protected:
 
 	void define_columns() override;
-	void update_list_width(bool initialize) override;
+	void update_list_width(bool initcontrols) override;
 	void display_columns() override;
-	void build_cfg_columns() override;
+	void build_cfg_columns(bool next_tile);
 
 	art_src get_vimages_src_type_at_pos(size_t pos);
 	size_t get_ndx_at_pos(size_t pos);
@@ -507,29 +514,38 @@ private:
 };
 
 
-class files_artwork_presenter : public artwork_presenter {
+class files_artwork_presenter : public track_presenter {
 
 public:
 
 	files_artwork_presenter(coord_presenters* coord) :
-		artwork_presenter(coord) {
+		track_presenter(coord) {
 
 		m_vimage_files = {};
 		m_lvimage_files = {};
 
 		m_vtemp_files.resize(album_art_ids::num_types());
-
 	}
 
 	files_artwork_presenter() {}
 
 	~files_artwork_presenter() {
 
+		for (auto hicon : m_vicons) {
+			DeleteObject(hicon.first);
+			DeleteObject(hicon.second);
+		}
+		
+		m_vicons.clear();
+		
 		for (auto tmp_pair : m_vtemp_files) {
 			uDeleteFile(tmp_pair.first);
 			uDeleteFile(tmp_pair.second);
 		}
 	}
+	
+	virtual bool IsTile() { return m_tile; }
+	void SetTile(bool enable) {};
 
 	size_t get_icon_id(size_t iImageList) override;
 
@@ -580,7 +596,7 @@ public:
 	void Populate();
 	void Add_template(GUID template_guid, size_t template_size);
 	size_t AddFileArtwork(size_t img_ndx, art_src art_source,
-		std::pair<HBITMAP, HBITMAP> callback_mb, std::pair<pfc::string8, pfc::string8> temp_file_names);
+		imgpairs callback_mb, std::pair<pfc::string8, pfc::string8> temp_file_names);
 
 protected:
 
@@ -607,8 +623,7 @@ public:
 	coord_presenters(HWND hparent, const foo_conf & discogs_conf) :
 
 		m_hWnd(hparent),
-		//note: member constructors below need m_conf being set
-		m_conf(CConf(discogs_conf))
+		m_conf(CConf(discogs_conf)),
 		m_discogs_track_libui_presenter(this),
 		m_file_track_libui_presenter(this),
 		m_discogs_art_presenter(this, discogs_conf),
@@ -622,8 +637,7 @@ public:
 
 	~coord_presenters() {
 		for (auto bin : form_mode) {
-			bin.second->first.Unload();
-			bin.second->second.Unload();
+            //..
 		}
 	}
 
@@ -637,17 +651,17 @@ public:
 	void populate_artwork_mode(size_t select = 0);
 	bool template_artwork_mode(GUID template_guid, size_t template_size, size_t lv_pos, bool check_reqs);
 
-	//
-	size_t GetTileMode() { return m_cImageTileMode; }
-	//
-	void SetTileMode(int mode) {}
+	lsmode GetCtrIDMode(int ID) {
+		return ID == IDC_UI_LIST_DISCOGS || ID == IDC_UI_LIST_FILES ? lsmode::tracks_ui :
+			ID == IDC_UI_DC_ARTWORK_LIST || ID == IDC_UI_FILE_ARTWORK_LIST ? lsmode::art : lsmode::unknown;
+	}
 
-	void ListUserCmd(HWND hwnd, lsmode mode, int cmd, bit_array_bittable cmdmask, bit_array_bittable are_albums, bool cmdmod = false);
-	void ListUserCmd(HWND hwnd, lsmode mode, int cmd, bit_array_bittable cmdmask, bit_array_bittable are_albums, pfc::array_t<size_t> order, bool cmdmod = false);
+	size_t ListUserCmd(HWND hwnd, lsmode mode, int cmd, bit_array_bittable cmdmask, bit_array_bittable are_albums, pfc::array_t<size_t> order, bool cmdmod = false);
 	size_t ListUserCmdDELETE(HWND hwnd, lsmode mode, int cmd, bit_array_bittable cmdmask, bit_array_bittable are_albums, bool cmdmod = false);
 	size_t ListUserCmdMOVE(HWND hwnd, lsmode mode, int cmd, bit_array_bittable cmdmask, bit_array_bittable are_albums, pfc::array_t<size_t> order, bool cmdmod = false);
 
 	void PullConf(lsmode mode, bool tracks, foo_conf* out_conf);
+	void PushConf(lsmode mode, bool tracks, bool loadwoas);
 
 	multi_uartwork* GetUartwork() {
 		return m_discogs_art_presenter.GetUartwork();
@@ -689,6 +703,8 @@ public:
 
 	size_t GetDiscogsTrackUiAtLvPos(size_t list_position, track_it& out);
 	size_t GetFileTrackUiAtLvPos(size_t list_position, file_it& out);
+	
+	size_t GetTrackArtAtLvPos(size_t list_position, getimages_it& out);
 	size_t GetFileArtAtLvPos(size_t list_position, getimages_file_it& out);
 
 	size_t GetLvFileArtRow(size_t list_position, getimages_file_it& out) {
@@ -699,15 +715,23 @@ public:
 		return m_discogs_art_presenter.GetSrcTypeAtPos(list_position);
 	}
 
+	CImageList GetDiscogsArtList(bool bsmall) { return bsmall ? m_discogs_art_presenter.m_lstimg_small : m_discogs_art_presenter.m_lstimg; }
+	CImageList GetFileArtList(bool bsmall) { return bsmall ? m_file_art_presenter.m_lstimg_small : m_file_art_presenter.m_lstimg; }
+	HICON GetDiscogsArtVIcons(size_t pos) { return m_discogs_art_presenter.GetIcon(pos); }
+	HICON GetFileArtVIcons(size_t pos) { return m_file_art_presenter.GetIcon(pos); }
+
 	void SetTagWriter(TagWriter_ptr tag_writer);
 	TagWriter_ptr GetTagWriter() { return m_tag_writer; }
 
 	void Initialize(HWND hparent, const foo_conf & dcconf);
 	void SetMode(lsmode mode);
 	bool Show(bool showleft = true, bool showright = true);
+	bool Invalidate(bool showleft = true, bool showright = true);
+	void SetModeTile(bool enable);
+	bool isTile();
 
 	void InitUiList(HWND hwnd, lsmode mode, bool tracks, CListControlOwnerData* uilist);
-	std::pair<size_t, presenter*> HitUiTest(CPoint point);
+	std::pair<size_t, presenter*> columnHitTest(CPoint point);
 	void SetUiColumnFormat(size_t icol, presenter* pres, size_t fmt);
 	size_t GetUiColumnFormat(size_t icol, presenter* pres);
 
@@ -718,7 +742,7 @@ public:
 	void InitFormMode(lsmode mode, UINT lvleft, UINT lvright);
 
 	bool show_artwork_preview(size_t image_ndx, art_src art_source, MemoryBlock small_art);
-	bool show_file_artwork_preview(size_t image_ndx, art_src art_source, std::pair<HBITMAP, HBITMAP> callback_mb,
+	bool add_file_artwork_preview(size_t image_ndx, art_src art_source, std::pair<std::pair<HICON, HBITMAP>, std::pair<HICON, HBITMAP>> callback_mb,
 		std::pair<pfc::string8, pfc::string8> temp_file_names);
 
 	const foo_conf& Get_Conf();
@@ -731,7 +755,7 @@ private:
 		return m_conf;
 	}
 
-	bool ShowFormMode(lsmode mode, bool showleft, bool showright);
+	bool ShowFormMode(lsmode mode, bool showleft, bool showright, bool populate = true, bool invalidate = false);
 
 private:
 

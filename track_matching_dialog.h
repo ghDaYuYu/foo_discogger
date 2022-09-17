@@ -1,13 +1,13 @@
 #pragma once
 #include "resource.h"
 
+#include "libPPUI/CListControlOwnerData.h"
+#include "helpers/DarkMode.h"
 
 #include "icon_map.h"
 #include "track_matching_dialog_presenter.h"
-#include "track_match_lstdrop.h"
-
 #include "track_matching_ILO.h"
-#include "libPPUI\CListControlOwnerData.h"
+#include "artwork_list.h"
 
 using namespace Discogs;
 
@@ -49,38 +49,24 @@ public:
 
 	// constructor
 
-	CTrackMatchingDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags = false) : ILOD_track_matching(),
-		m_tag_writer(tag_writer), m_list_drop_handler(),
-		m_conf(CONF), m_coord(p_parent, CONF),
-		m_idc_list(this), m_ifile_list(this)
+	CTrackMatchingDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags = false) : ILOD_track_matching(tag_writer->release),
+		m_tag_writer(tag_writer),	m_conf(CONF), m_coord(p_parent, CONF),
+		m_idc_list(this), m_ifile_list(this), m_ida_list(this), m_ifa_list(this)
 	{
 		m_conf.SetName("TrackMatchingDlg");
 		g_discogs->track_matching_dialog = this;
-		m_rec_icon = LoadDpiBitmapResource(Icon::Record, IsDark());
-
 	}
 
 	~CTrackMatchingDialog() {
 
-		DeleteObject(m_rec_icon);
 		g_discogs->track_matching_dialog = nullptr;
 	}
-
-	std::function<bool(HWND wndlist, size_t item)>stdf_change_notifier =
-		//todo: revise, modded after cross referenced credit tag mapping
-		[this](HWND x, size_t i) -> bool {
-
-
-		NMLVKEYDOWN info;
-		info.wVKey = 0x9F;
-		info.flags = i;
-		list_key_down(x, (LPNMHDR)&info);
-
-		return true; };
 
 	virtual BOOL PreTranslateMessage(MSG* pMsg) override {
 		return ::IsDialogMessage(m_hWnd, pMsg);
 	}
+
+	enum { IDD = IDD_DIALOG_MATCH_TRACKS };
 
 #pragma warning( push )
 #pragma warning( disable : 26454 )
@@ -97,34 +83,23 @@ public:
 		COMMAND_ID_HANDLER(IDC_CHK_MNG_ARTWORK, OnCheckManageArtwork)
 		COMMAND_ID_HANDLER(IDC_CHK_ARTWORK_FILEMATCH, OnCheckArtworkFileMatch)
 
-		NOTIFY_HANDLER_EX(IDC_FILE_LIST, NM_DBLCLK, OnListDoubleClick)
-		NOTIFY_HANDLER_EX(IDC_DISCOGS_TRACK_LIST, NM_DBLCLK, OnListDoubleClick)
-
-		NOTIFY_HANDLER_EX(IDC_FILE_LIST, LVN_KEYDOWN, OnListKeyDown)
-		NOTIFY_HANDLER_EX(IDC_DISCOGS_TRACK_LIST, LVN_KEYDOWN, OnListKeyDown)
-
-		NOTIFY_HANDLER_EX(IDC_FILE_LIST, LVN_GETDISPINFO, OnDiscogListGetDispInfo)
-		NOTIFY_HANDLER_EX(IDC_DISCOGS_TRACK_LIST, LVN_GETDISPINFO, OnDiscogListGetDispInfo)
-
 		COMMAND_ID_HANDLER(IDC_BTN_BACK, OnButtonBack)
 		COMMAND_ID_HANDLER(IDC_BTN_WRITE_TAGS, OnButtonWriteTags)
 		COMMAND_ID_HANDLER(IDC_BTN_PREVIEW_TAGS, OnButtonPreviewTags)
 		COMMAND_ID_HANDLER(IDC_BTN_WRITE_ARTWORK, OnButtonWriteArtwork)
 
-
-		CHAIN_MSG_MAP_MEMBER(m_list_drop_handler)
 		CHAIN_MSG_MAP(CDialogResize<CTrackMatchingDialog>)
 	MY_END_MSG_MAP()
 
 #pragma warning( pop )
 
 	BEGIN_DLGRESIZE_MAP(CTrackMatchingDialog)
-		DLGRESIZE_CONTROL(IDC_DISCOGS_TRACK_LIST, DLSZ_SIZE_Y)
-		DLGRESIZE_CONTROL(IDC_FILE_LIST, DLSZ_SIZE_Y)
+		DLGRESIZE_CONTROL(IDC_UI_DC_ARTWORK_LIST, DLSZ_SIZE_Y)
+		DLGRESIZE_CONTROL(IDC_UI_FILE_ARTWORK_LIST, DLSZ_SIZE_Y)
 		DLGRESIZE_CONTROL(IDC_STATIC_MATCH_TRACKING_REL_NAME, DLSZ_MOVE_Y)
 		BEGIN_DLGRESIZE_GROUP()
-		DLGRESIZE_CONTROL(IDC_DISCOGS_TRACK_LIST, DLSZ_SIZE_X)
-		DLGRESIZE_CONTROL(IDC_FILE_LIST, DLSZ_SIZE_X)
+		DLGRESIZE_CONTROL(IDC_UI_DC_ARTWORK_LIST, DLSZ_SIZE_X)
+		DLGRESIZE_CONTROL(IDC_UI_FILE_ARTWORK_LIST, DLSZ_SIZE_X)
 		END_DLGRESIZE_GROUP()
 		DLGRESIZE_CONTROL(IDC_STATIC_MATCH_TRACKING_REL_NAME, DLSZ_SIZE_X)
 		DLGRESIZE_CONTROL(IDC_STATIC_MATCH_TRACKS_MSG, DLSZ_MOVE_X | DLSZ_MOVE_Y)
@@ -143,9 +118,9 @@ public:
 		if (!::IsWindowVisible(uGetDlgItem(IDC_UI_LIST_DISCOGS))) return;
 
 		CRect rc_dcList;
-		::GetWindowRect(uGetDlgItem(IDC_DISCOGS_TRACK_LIST), &rc_dcList);
+		::GetWindowRect(uGetDlgItem(IDC_UI_DC_ARTWORK_LIST), &rc_dcList);
 		CRect rc_fileList;
-		::GetWindowRect(uGetDlgItem(IDC_FILE_LIST), &rc_fileList);
+		::GetWindowRect(uGetDlgItem(IDC_UI_FILE_ARTWORK_LIST), &rc_fileList);
 
 		ScreenToClient(&rc_dcList);
 		::SetWindowPos(uGetDlgItem(IDC_UI_LIST_DISCOGS), HWND_TOP, rc_dcList.left, rc_dcList.top,
@@ -155,37 +130,9 @@ public:
 			rc_fileList.Width(), rc_fileList.Height(), SWP_NOACTIVATE | SWP_SHOWWINDOW);
 	}
 
-
-	// constructor
-
-	CTrackMatchingDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags = false) : ILOD_track_matching(),
-		m_tag_writer(tag_writer), m_list_drop_handler(),
-		m_conf(CONF), m_coord(p_parent, CONF),
-		m_idc_list(this), m_ifile_list(this)
-	{
-		m_conf.SetName("TrackMatchingDlg");
-		g_discogs->track_matching_dialog = this;
-		m_rec_icon = LoadDpiBitmapResource(Icon::Record);
-
-	}
-
-	~CTrackMatchingDialog() {
-
-#ifdef DEBUG
-		log_msg("Cleaning ~ matching dlg");
-#endif
-		
-		//DeleteObject(m_hImageList);
-		DeleteObject(m_rec_icon);
-		g_discogs->track_matching_dialog = nullptr;
-	}
-
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
-
 	LRESULT OnColorStatic(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
-	LRESULT OnMoveTrackUp(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnMoveTrackDown(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 
 	LRESULT OnButtonPreviewTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnButtonBack(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
@@ -199,19 +146,12 @@ public:
 	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 
-	LRESULT OnDiscogListGetDispInfo(LPNMHDR lParam);
-	LRESULT DiscogTrackGetDispInfo(LPNMHDR lParam);
-	LRESULT DiscogArtGetDispInfo(LPNMHDR lParam);
-
-	LRESULT OnListKeyDown(LPNMHDR lParam);
-	LRESULT OnListDoubleClick(LPNMHDR lParam);
-
-	LRESULT list_key_down(HWND wnd, LPNMHDR lParam);
-
 	void match_message_update(pfc::string8 local_msg = "");
 
 	//serves credit preview
 	pfc::string8 get_discogs_release_id() { return m_tag_writer->release->id; };
+
+	const metadb_handle_list get_tag_writer_items() {return m_tag_writer->finfo_manager->items; }
 
 	void enable(bool v) override;
 	void destroy_all();
@@ -226,12 +166,10 @@ public:
 	void request_file_preview(size_t img_ndx, bool artist_art);
 
 	void process_artwork_preview_done(size_t img_ndx, bool artist_art, MemoryBlock callback_mb, musicbrainz_info musicbrainz_mibs);
-	void process_file_artwork_preview_done(size_t img_ndx, bool artist_art, std::pair<HBITMAP, HBITMAP> callback_pair_hbitmaps, std::pair<pfc::string8, pfc::string8> temp_file_names);
+	void process_file_artwork_preview_done(size_t img_ndx, bool artist_art, imgpairs callback_pair_hbitmaps, std::pair<pfc::string8, pfc::string8> temp_file_names);
 	void process_download_art_paths_done(pfc::string8 callback_release_id, std::shared_ptr<std::vector<std::pair<pfc::string8, bit_array_bittable>>> vres,pfc::array_t<GUID> album_art_ids);
 
 	void set_image_list();
-
-public:
 
 	const TCHAR m_szArtist[50] = _T("Artist");
 	const TCHAR m_szAlbum[50] = _T("Album");
@@ -239,21 +177,33 @@ public:
 	const TCHAR m_szOverwrite[50] = _T("Overwrite");
 	const TCHAR m_szEmbed[50] = _T("Embed");
 
-	enum { IDD = IDD_DIALOG_MATCH_TRACKS };
-
 	std::shared_ptr<std::vector<pfc::string8>> vres;
 
 	void pending_previews_done(size_t n = 1);
 
 protected:
 
-		void LibUIAsOwnerData(bool OwnerToLibUi);
+		void LibUIAsTrackList(bool OwnerToLibUi);
 
 private:
 
 	HWND get_ctx_lvlist(int ID) {
-		if (ID != IDC_UI_LIST_DISCOGS && ID != IDC_UI_LIST_FILES) return nullptr;
+		if (ID != IDC_UI_LIST_DISCOGS && ID != IDC_UI_LIST_FILES
+			&& ID != IDC_UI_DC_ARTWORK_LIST && ID != IDC_UI_FILE_ARTWORK_LIST) return nullptr;
 		return uGetDlgItem(ID);
+	}
+
+	CListControlOwnerData* GetUIListById(UINT listID) {
+		if (listID == IDC_UI_LIST_DISCOGS) return (CListControlOwnerData*)&m_idc_list;
+		else if (listID == IDC_UI_LIST_FILES) return (CListControlOwnerData*)&m_ifile_list;
+		else if (listID == IDC_UI_DC_ARTWORK_LIST) return (CListControlOwnerData*)&m_ida_list;
+		else if (listID == IDC_UI_FILE_ARTWORK_LIST) return (CListControlOwnerData*)&m_ifa_list;
+		else return nullptr;
+	}
+
+	CListControlOwnerData* GetUIListByWnd(HWND hwnd) {
+		UINT ID = ::GetWindowLong(hwnd, GWL_ID);
+		return GetUIListById(ID);
 	}
 
 	lsmode get_mode() {
@@ -261,31 +211,27 @@ private:
 			lsmode::art : lsmode::default;
 	}
 
-	void load_column_layout();
 	bool build_current_cfg();
 	void pushcfg();
 
-	void insert_track_mappings();
 	void generate_track_mappings(track_mappings_list_type& track_mappings);
 	bool generate_artwork_guids(pfc::array_t<GUID>& my_album_art_ids, bool cfg_default);
 
-	void update_list_width(HWND list, bool initcontrols = false);
 	bool context_menu_form(HWND wnd, LPARAM coords);
 	bool context_menu_track_show(HWND wnd, int idFrom, LPARAM coords);
-	bool context_menu_track_switch(HWND wnd, POINT point, bool isfiles, int cmd, bit_array_bittable selmask, pfc::array_t<t_size> order, CListControlOwnerData* ilist);
+	bool context_menu_track_switch(HWND wnd, POINT point, bool isfiles, int cmd,
+		bit_array_bittable selmask, pfc::array_t<t_size> order);
 	void context_menu_art_attrib_switch(HWND wnd, af afalbum, af afart, UINT IDATT, lsmode mode);
 	bool context_menu_art_attrib_show(HWND wnd, HMENU* menu);
 
 	virtual coord_presenters* ilo_get_coord() override { return &m_coord; }
-	virtual CListControlOwnerData* ilo_get_idc_list() override { return &m_idc_list; }
-	virtual CListControlOwnerData* ilo_get_ifile_list() override { return &m_ifile_list; }
 
 	foo_conf m_conf;
 	multi_uartwork m_last_run_multi_uart;
 
-	std::vector<preview_job> m_vpreview_jobs;
 	size_t m_pending_previews = 0;
 	std::mutex m_mx_pending_previews_mod;
+	std::vector<preview_job> m_vpreview_jobs;
 	void add_pending_previews(size_t n);
 
 	TagWriter_ptr m_tag_writer;
@@ -297,15 +243,17 @@ private:
 	playable_location_impl location;
 	titleformat_hook_impl_multiformat hook;
 
-	MatchListDropHandler m_list_drop_handler;
-
 	CListControlOwnerData m_idc_list;
 	CListControlOwnerData m_ifile_list;
 
+	CArtworkList					m_ida_list;
+	CArtworkList					m_ifa_list;
+
 	coord_presenters m_coord;
 
-	HBITMAP m_rec_icon;
 	CImageList m_hImageList;
 
 	musicbrainz_info m_musicbrainz_mibs;
+
+	friend CArtworkList;
 };

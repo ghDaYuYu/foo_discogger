@@ -199,9 +199,11 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,59,256,10
     CONTROL         "Display artist release counter",IDC_CHK_FIND_RELEASE_STATS,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,74,127,10
-    GROUPBOX        "Other options",IDC_GRP_STATIC_CFG_OTHER,6,99,308,40
+    GROUPBOX        "List options",IDC_GRP_STATIC_CFG_OTHER,6,99,308,61
     LTEXT           "List style (where applicable):",IDC_STATIC_CFG_LIST_STYLE,15,112,106,8
     COMBOBOX        IDC_CMB_CONFIG_LIST_STYLE,128,110,109,57,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Adjust content area font",IDC_CHK_CFG_CUSTOM_FONT_ENABLE,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,132,100,10
 END
 
 IDD_DIALOG_CONF_DATABASE DIALOGEX 0, 0, 319, 204

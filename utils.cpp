@@ -1,5 +1,7 @@
 #include "stdafx.h"
 
+#include "foo_discogs.h"
+
 #include "utils.h"
 #include <algorithm>
 #include <regex>
@@ -20,10 +22,27 @@ dll_deflateInit_ dlldeflateInit = NULL;
 dll_deflate dlldeflate = NULL;
 dll_deflateEnd dlldeflateEnd = NULL;
 
+dll_adler32 dlladler32 = NULL;
+
 HINSTANCE hGetProcIDDLL = NULL;
 
 const int IMAGELIST_OFFLINE_CACHE_NDX = 8;
 const int IMAGELIST_OFFLINE_DB_NDX = 9;
+
+//todo:
+inline pfc::string EscapeWin(pfc::string8 keyWord) {
+	pfc::string8 out_keyWord(keyWord);
+	//out_keyWord.replace_string("/", "//");
+	//out_keyWord.replace_string("'", "''");
+	//out_keyWord.replace_string("[", "/[");
+	//out_keyWord.replace_string("]", "/]");
+	//out_keyWord.replace_string("%", "/%");
+	out_keyWord.replace_string("&", "&&");
+	//out_keyWord.replace_string("_", "/_");
+	//out_keyWord.replace_string("(", "/(");
+	//out_keyWord.replace_string(")", "/)");
+	return out_keyWord;
+}
 
 inline pfc::string8 trim(const pfc::string8 &str, const char *ch) {
 	return ltrim(rtrim(str, ch), ch);
@@ -43,32 +62,40 @@ inline pfc::string8 rtrim(const pfc::string8 &str, const char *ch) {
 	return pfc::string8(dest.c_str());
 }
 
+extern void szcstr(size_t n, pfc::string8& out) {
+	out = std::to_string(n).c_str();	
+}
+
 bool is_number(const std::string& s)
 {
 	return !s.empty() && std::find_if(s.begin(),
 		s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
 }
 
-unsigned long encode_mr(const int a, const unsigned long b) {
+size_t encode_mr(const int a, const unsigned long b) {
 	//search artists array ndx (last 6)
-	unsigned long enc_a = a << 26;
+	size_t enc_a = (size_t)a << 26;
 	//marter id (first 26)	
-	unsigned long coded = enc_a | b;
+	size_t coded = enc_a | b;
 	return coded;
 }
 
-unsigned long encode_mr(const int a, pfc::string8& sb) {
+size_t encode_mr(const int a, pfc::string8& sb) {
 	return encode_mr(a, atoi(sb));
 }
 
-std::pair<int,unsigned long> decode_mr(const unsigned long coded) {
-	//search artists array ndx (last 6)
-	unsigned long dec_a = (coded >> 26) & ((1 << 6) - 1);
-	
-	//marter id (first 26)
+std::pair<int,unsigned long> decode_mr(const size_t coded) {
+#ifdef _WIN64
+	size_t dec_a = (coded >> 26);
+	dec_a &= (1ULL << 38/*(64-26)*/) - 1;
+	//master id (first 26)
 	unsigned long dec_b = coded & ((1 << 26) - 1);
-	
-	return std::pair(dec_a, dec_b);
+#else
+	size_t dec_a = (coded >> 26) & ((1 << (32-26)) - 1);
+	unsigned long dec_b = coded & ((1 << 26) - 1);
+#endif
+
+	return std::pair((int)dec_a, dec_b);
 }
 
 pfc::string8 lowercase(pfc::string8 str) {
@@ -370,7 +397,7 @@ void load_dlls()
 	dllinflateInit2 = (dll_inflateInit2)GetProcAddress(hGetProcIDDLL, "inflateInit2_");
 	dllinflate = (dll_inflate)GetProcAddress(hGetProcIDDLL, "inflate");
 	dllinflateEnd = (dll_inflateEnd)GetProcAddress(hGetProcIDDLL, "inflateEnd");
-
+	dlladler32 = (dll_adler32)GetProcAddress(hGetProcIDDLL, "adler32");
 }
 
 
@@ -595,6 +622,24 @@ void CenterWindow(HWND hwnd, CRect rcCfg, HWND hwndCenter, LPARAM lparamLeftTop)
 	
 	// Map screen coordinates to child coordinates.
 	
+}
+void CustomFont(HWND hwndParent, bool enabled, bool enableedits) {
+	if (enabled) {
+		for (HWND walk = ::GetWindow(hwndParent, GW_CHILD); walk != NULL; ) {
+			wchar_t buffer[128] = {};
+			::GetClassName(walk, buffer, (int)(std::size(buffer) - 1));
+			const wchar_t* cls = buffer;
+			HWND next = ::GetWindow(walk, GW_HWNDNEXT);
+			if (next && ::IsWindow(next)) {
+				if (g_hFont && (((_wcsnicmp(cls, L"libPPUI:", 8) == 0) || (_wcsnicmp(cls, L"SysTreeV", 8) == 0))
+					|| (enableedits && ((_wcsnicmp(cls, L"Edit", 4) == 0))))) {
+					CWindow* cwnd = &CWindow(walk);
+					cwnd->SetFont(g_hFont);
+				}
+			}
+			walk = next;
+		}
+	}
 }
 
 bool sortByVal(const std::pair<int, int>& a, const std::pair<int, int>& b)

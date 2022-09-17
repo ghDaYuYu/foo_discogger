@@ -75,7 +75,7 @@ struct cfg_preview_listview_type {
 					column_configs[it].enabled,
 					column_configs[it].defuser,
 				};
-				colmap.emplace(colmap.size(), tmp_cfgcol);
+				colmap.emplace((int32_t)colmap.size(), tmp_cfgcol);
 			}
 		}
 	}
@@ -108,8 +108,8 @@ bool CPreviewTagsDialog::build_current_cfg() {
 		bres |= true;
 	}
 
-	int colwidth1 = ListView_GetColumnWidth(GetDlgItem(IDC_PREVIEW_LIST), 0);
-	int colwidth2 = ListView_GetColumnWidth(GetDlgItem(IDC_PREVIEW_LIST), 1);
+	int colwidth1 = m_uilist.GetColumnWidthF(0);
+	int colwidth2 = m_uilist.GetColumnWidthF(1);
 	
 	//columns
 	if (colwidth1 != conf.preview_tags_dialog_col1_width || colwidth2 != conf.preview_tags_dialog_col2_width) {
@@ -271,9 +271,11 @@ LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 
 	m_results_list = GetDlgItem(IDC_PREVIEW_LIST);
 
-	ListView_SetExtendedListViewStyleEx(m_results_list,
-		LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES | LVS_EX_INFOTIP | LVS_EX_LABELTIP, LVS_EX_FULLROWSELECT |
-		(conf.list_style != 1 ? LVS_EX_GRIDLINES : 0) | LVS_EX_INFOTIP | LVS_EX_LABELTIP);
+	m_uilist.CreateInDialog(m_hWnd, IDC_PREVIEW_LIST, m_results_list);
+	m_results_list = m_uilist.m_hWnd;
+	
+	m_uilist.InitializeHeaderCtrl(HDS_FULLDRAG);
+	m_uilist.SetRowStyle(conf.list_style);
 
 	HWND hwndHeader = ListView_GetHeader(m_results_list);
 
@@ -283,6 +285,8 @@ LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	::ShowWindow(uGetDlgItem(IDC_BTN_BACK), true);
 	::ShowWindow(uGetDlgItem(IDC_BTN_SKIP), false);
 	::ShowWindow(uGetDlgItem(IDCANCEL), true);
+
+	CustomFont(m_hWnd, HIWORD(conf.custom_font));
 
 	// dlg resize and dimensions
 
@@ -557,7 +561,7 @@ bool CPreviewTagsDialog::context_menu_switch(HWND wnd, POINT point, int cmd, bit
 
 		if (isel < selmask.size()) {
 			if (!g_discogs->preview_modal_tag_dialog) {
-				fb2k::newDialog <CPreviewLeadingTagDialog>(core_api::get_main_window(), m_tag_writer, isel, get_preview_mode());
+				fb2k::newDialog <CPreviewLeadingTagDialog>(core_api::get_main_window(), m_tag_writer, isel, get_preview_mode(),HIWORD(conf.custom_font));
 			}
 			else {
 				::SetFocus(g_discogs->preview_modal_tag_dialog->m_hWnd);

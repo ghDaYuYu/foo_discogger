@@ -442,7 +442,11 @@ void coord_presenters::PushConf(lsmode mode, bool tracks, bool loadwoas) {
 
 //	PRESENTER
 
-foo_conf & presenter::get_conf() {
+presenter::presenter(coord_presenters* coord) : presenter() {
+
+	mm_hWnd = NULL;
+	m_coord = coord;
+	mp_conf = coord->get_conf();
 
 	return	m_coord->get_conf();
 }
@@ -530,8 +534,8 @@ void discogs_track_libui_presenter::define_columns() {
 
 	m_vtitles = { "Discogs Track", "Length" };
 	m_conf_col_woa.clear();
-	m_conf_col_woa.push_back(m_conf.match_tracks_discogs_col1_width);
-	m_conf_col_woa.push_back(m_conf.match_tracks_discogs_col2_width);
+	m_conf_col_woa.push_back(mp_conf->match_tracks_discogs_col1_width);
+	m_conf_col_woa.push_back(mp_conf->match_tracks_discogs_col2_width);
 }
 
 void discogs_track_libui_presenter::build_cfg_columns() {
@@ -542,10 +546,10 @@ void discogs_track_libui_presenter::build_cfg_columns() {
 
 	if (m_conf_col_woa.size()) {
 
-		conf.match_tracks_discogs_col1_width = m_conf_col_woa.at(0);
-		conf.match_tracks_discogs_col2_width = m_conf_col_woa.at(1);
+		mp_conf->match_tracks_discogs_col1_width = m_conf_col_woa.at(0);
+		mp_conf->match_tracks_discogs_col2_width = m_conf_col_woa.at(1);
 		size_t icomp = get_extended_style(GetListView());
-		conf.match_tracks_discogs_style = icomp;
+		mp_conf->match_tracks_discogs_style = icomp;
 	}
 }
 
@@ -576,8 +580,8 @@ void file_track_libui_presenter::define_columns() {
 
 	m_vtitles = { "Local File", "Length" };
 	m_conf_col_woa.clear();
-	m_conf_col_woa.push_back(m_conf.match_tracks_files_col1_width);
-	m_conf_col_woa.push_back(m_conf.match_tracks_files_col2_width);
+	m_conf_col_woa.push_back(mp_conf->match_tracks_files_col1_width);
+	m_conf_col_woa.push_back(mp_conf->match_tracks_files_col2_width);
 }
 
 void file_track_libui_presenter::build_cfg_columns() {
@@ -588,12 +592,12 @@ void file_track_libui_presenter::build_cfg_columns() {
 
 	if (m_conf_col_woa.size()) {
 
-		conf.match_tracks_files_col1_width = m_conf_col_woa.at(0);
-		conf.match_tracks_files_col2_width = m_conf_col_woa.at(1);
+		mp_conf->match_tracks_files_col1_width = m_conf_col_woa.at(0);
+		mp_conf->match_tracks_files_col2_width = m_conf_col_woa.at(1);
 
 	}
 	size_t icomp = get_extended_style(GetListView());
-	conf.match_tracks_files_style = icomp;
+	mp_conf->match_tracks_files_style = icomp;
 
 }
 
@@ -692,8 +696,6 @@ void track_presenter::SetUIList(CListControlOwnerData* ui_replace_list) {
 
 	LPARAM woa;
 	size_t col_align, col_width;
-	
-	auto DPI = QueryScreenDPIEx(mm_hWnd);
 
 	std::vector<int> vorder;
 	vorder.resize(m_vtitles.size());
@@ -782,11 +784,12 @@ size_t track_presenter::columnHitTest(CPoint point) {
 
 void discogs_artwork_presenter::SetTile(bool enable) {
 	//build before applying new mode
-	build_cfg_columns(enable);
+	build_cfg_columns();
 	m_tile = enable;
 	//delete
 	this->m_ui_list->DeleteColumns(bit_array_true(), false);
 	//restore applying new factor (x or 1/x)
+	define_columns();
 	SetUIList();
 	m_ui_list->Invalidate(true);
 }
@@ -849,16 +852,10 @@ void discogs_artwork_presenter::SetUIList(CListControlOwnerData* ui_replace_list
 
 		col_width = HIWORD(woa);
 		if (walk == 0) {
-			col_width = (double)col_width * (m_tile ? 150 / 48 : 1);
-		}
-		else {
-			//col_width = (double)col_width * (m_tile ? 48 / 150 : 1);
-		}
-
-		//set first col to auto-width
-		if (walk == 0 && col_width == 0) {
-			col_width = m_tile ? 150 : 48;
-			//col_width = UINT32_MAX;
+			if (col_width == 0) {
+				auto scw = GetSystemMetrics(SM_CXVSCROLL);
+				col_width = m_tile ? (150 + scw) : (48 + 2*scw);
+			}
 		}
 		else {
 			if (col_width == 0) {
@@ -885,38 +882,60 @@ void discogs_artwork_presenter::define_columns() {
 	m_vtitles = { "", "Type", "Dim", "Save", "Overwrite", "Embed", "#"};
 
 	m_conf_col_woa.clear();
-	m_conf_col_woa.push_back(m_conf.match_discogs_artwork_ra_width);
-	m_conf_col_woa.push_back(m_conf.match_discogs_artwork_type_width);
-	m_conf_col_woa.push_back(m_conf.match_discogs_artwork_dim_width);
-	m_conf_col_woa.push_back(m_conf.match_discogs_artwork_save_width);
-	m_conf_col_woa.push_back(m_conf.match_discogs_artwork_ovr_width);
-	m_conf_col_woa.push_back(m_conf.match_discogs_artwork_embed_width);
-	m_conf_col_woa.push_back(m_conf.match_discogs_artwork_index_width);
+
+	if (!m_tile) {
+		m_conf_col_woa.push_back(mp_conf->match_discogs_artwork_ra_width);
+		m_conf_col_woa.push_back(mp_conf->match_discogs_artwork_type_width);
+		m_conf_col_woa.push_back(mp_conf->match_discogs_artwork_dim_width);
+		m_conf_col_woa.push_back(mp_conf->match_discogs_artwork_save_width);
+		m_conf_col_woa.push_back(mp_conf->match_discogs_artwork_ovr_width);
+		m_conf_col_woa.push_back(mp_conf->match_discogs_artwork_embed_width);
+		m_conf_col_woa.push_back(mp_conf->match_discogs_artwork_index_width);
+	}
+	else {
+		m_conf_col_woa.push_back(mp_conf->match_discogs_artwork_tl_ra_width);
+		m_conf_col_woa.push_back(mp_conf->match_discogs_artwork_tl_type_width);
+		m_conf_col_woa.push_back(mp_conf->match_discogs_artwork_tl_dim_width);
+		m_conf_col_woa.push_back(mp_conf->match_discogs_artwork_tl_save_width);
+		m_conf_col_woa.push_back(mp_conf->match_discogs_artwork_tl_ovr_width);
+		m_conf_col_woa.push_back(mp_conf->match_discogs_artwork_tl_embed_width);
+		m_conf_col_woa.push_back(mp_conf->match_discogs_artwork_tl_index_width);
+	}
+
 
 	m_dwHeaderStyle = LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | /*LVS_EX_SUBITEMIMAGES |*/ LVS_REPORT | LVS_OWNERDATA | LVS_ICON;
 	
-	if (m_conf.match_discogs_artwork_art_style != 0)
-		m_dwHeaderStyle |= static_cast<DWORD>(m_conf.match_discogs_artwork_art_style);
+	if (mp_conf->match_discogs_artwork_art_style != 0)
+		m_dwHeaderStyle |= static_cast<DWORD>(mp_conf->match_discogs_artwork_art_style);
 }
 
-void discogs_artwork_presenter::build_cfg_columns(bool next_tile) {
+void discogs_artwork_presenter::build_cfg_columns() {
 
-	foo_conf & conf = get_conf();
-    m_conf_col_woa = build_woas_libppui(m_ui_list, m_tile ? (double)48 / 150 : 1.0);
+    m_conf_col_woa = build_woas_libppui(m_ui_list, 1.0);
 
 	if (m_conf_col_woa.size()) {
 
-		conf.match_discogs_artwork_ra_width = m_conf_col_woa.at(0);
-		conf.match_discogs_artwork_type_width = m_conf_col_woa.at(1);
-		conf.match_discogs_artwork_dim_width = m_conf_col_woa.at(2);
-		conf.match_discogs_artwork_save_width = m_conf_col_woa.at(3);
-		conf.match_discogs_artwork_ovr_width = m_conf_col_woa.at(4);
-		conf.match_discogs_artwork_embed_width = m_conf_col_woa.at(5);
-		conf.match_discogs_artwork_index_width = m_conf_col_woa.at(6);
-
+		if (!m_tile) {
+			mp_conf->match_discogs_artwork_ra_width = m_conf_col_woa.at(0);
+			mp_conf->match_discogs_artwork_type_width = m_conf_col_woa.at(1);
+			mp_conf->match_discogs_artwork_dim_width = m_conf_col_woa.at(2);
+			mp_conf->match_discogs_artwork_save_width = m_conf_col_woa.at(3);
+			mp_conf->match_discogs_artwork_ovr_width = m_conf_col_woa.at(4);
+			mp_conf->match_discogs_artwork_embed_width = m_conf_col_woa.at(5);
+			mp_conf->match_discogs_artwork_index_width = m_conf_col_woa.at(6);
+		}
+		else {
+			mp_conf->match_discogs_artwork_tl_ra_width = m_conf_col_woa.at(0);
+			mp_conf->match_discogs_artwork_tl_type_width = m_conf_col_woa.at(1);
+			mp_conf->match_discogs_artwork_tl_dim_width = m_conf_col_woa.at(2);
+			mp_conf->match_discogs_artwork_tl_save_width = m_conf_col_woa.at(3);
+			mp_conf->match_discogs_artwork_tl_ovr_width = m_conf_col_woa.at(4);
+			mp_conf->match_discogs_artwork_tl_embed_width = m_conf_col_woa.at(5);
+			mp_conf->match_discogs_artwork_tl_index_width = m_conf_col_woa.at(6);
+		}
 	}
 	size_t icomp = get_extended_style(GetListView());
-	conf.match_discogs_artwork_art_style = icomp;
+	mp_conf->match_discogs_artwork_art_style = icomp;
 
 }
 
@@ -953,32 +972,30 @@ void files_artwork_presenter::define_columns() {
 
 	m_vtitles = { "Cover Name", "Dim", "Size", "#"};
 	m_conf_col_woa.clear();
-	m_conf_col_woa.push_back(m_conf.match_file_artwork_name_width);
-	m_conf_col_woa.push_back(m_conf.match_file_artwork_dim_width);
-	m_conf_col_woa.push_back(m_conf.match_file_artwork_size_width);
-	m_conf_col_woa.push_back(m_conf.match_file_artwork_index_width);
+	m_conf_col_woa.push_back(mp_conf->match_file_artwork_name_width);
+	m_conf_col_woa.push_back(mp_conf->match_file_artwork_dim_width);
+	m_conf_col_woa.push_back(mp_conf->match_file_artwork_size_width);
+	m_conf_col_woa.push_back(mp_conf->match_file_artwork_index_width);
 
 	m_dwHeaderStyle = LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | /*LVS_EX_SUBITEMIMAGES |*/ LVS_REPORT | LVS_OWNERDATA | LVS_ICON;
 
-	if (m_conf.match_file_artworks_art_style != 0)
-		m_dwHeaderStyle |= static_cast<DWORD>(m_conf.match_file_artworks_art_style);
+	if (mp_conf->match_file_artworks_art_style != 0)
+		m_dwHeaderStyle |= static_cast<DWORD>(mp_conf->match_file_artworks_art_style);
 }
 
 void files_artwork_presenter::build_cfg_columns() {
 
-	foo_conf& conf = get_conf();
-
-	build_woas_libppui(m_ui_list, m_tile ? 150 / 48 : 1);
+	build_woas_libppui(m_ui_list,1);
 
 	if (m_conf_col_woa.size()) {
 
-		conf.match_file_artwork_name_width = m_conf_col_woa.at(0);
-		conf.match_file_artwork_dim_width = m_conf_col_woa.at(1);
-		conf.match_file_artwork_size_width = m_conf_col_woa.at(2);
-		conf.match_file_artwork_index_width = m_conf_col_woa.at(3);
+		mp_conf->match_file_artwork_name_width = m_conf_col_woa.at(0);
+		mp_conf->match_file_artwork_dim_width = m_conf_col_woa.at(1);
+		mp_conf->match_file_artwork_size_width = m_conf_col_woa.at(2);
+		mp_conf->match_file_artwork_index_width = m_conf_col_woa.at(3);
 	}
 	size_t icomp = get_extended_style(GetListView());
-	conf.match_file_artworks_art_style = icomp;
+	mp_conf->match_file_artworks_art_style = icomp;
 }
 
 void files_artwork_presenter::update_list_width(bool initcontrols = false) {

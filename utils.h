@@ -20,6 +20,8 @@ typedef int(_cdecl* dll_deflateInit_)(z_stream*, int, const char*, int);
 typedef int(_cdecl* dll_deflate)(z_stream*, int);
 typedef int(_cdecl* dll_deflateEnd)(z_stream*);
 
+typedef uLong(_cdecl* dll_adler32)(uLong adler, const Bytef* buf, uInt len);
+
 extern bool cfg_preview_dialog_track_map;
 extern bool cfg_find_release_dialog_idtracker;
 
@@ -33,6 +35,8 @@ extern dll_inflateEnd dllinflateEnd;
 extern dll_deflateInit_ dlldeflateInit;
 extern dll_deflate dlldeflate;
 extern dll_deflateEnd dlldeflateEnd;
+
+extern dll_adler32 dlladler32;
 
 extern HINSTANCE hGetProcIDDLL;
 
@@ -81,16 +85,24 @@ static const pfc::string8 match_manual("...");
 
 typedef pfc::array_t<t_uint8> MemoryBlock;
 
+extern inline pfc::string EscapeWin(pfc::string8 keyWord);
+
 // Trim whitespace from strings
 extern inline pfc::string8 trim(const pfc::string8 &str, const char *ch = whitespace);
 extern inline pfc::string8 ltrim(const pfc::string8 &str, const char *ch = whitespace);
 extern inline pfc::string8 rtrim(const pfc::string8 &str, const char *ch = whitespace);
 
 extern bool is_number(const std::string& s);
+// Replace one alpha by dot
+extern bool replace_last_alpha_by_dot(std::string& s);
 
-unsigned long encode_mr(const int a, const unsigned long b);
-unsigned long encode_mr(const int a, pfc::string8& sb);
-std::pair<int, unsigned long> decode_mr(const unsigned long coded);
+extern size_t split(pfc::string8 str, pfc::string8 token, size_t index, std::vector<pfc::string8>& out);
+
+size_t encode_mr(const int a, const unsigned long b);
+size_t encode_mr(const int a, pfc::string8& sb);
+std::pair<int, unsigned long> decode_mr(const size_t coded);
+
+extern void szcstr(size_t n, pfc::string8& out);
 
 // Make strings lowercase
 extern pfc::string8 lowercase(pfc::string8 str);
@@ -135,6 +147,7 @@ void erase(pfc::array_t<T> &ar, unsigned int index) {
 extern bool tokenize_filter(pfc::string8 filter, pfc::array_t<pfc::string>& out_filter_words_lowercase);
 
 extern void CenterWindow(HWND hwnd, CRect rcCfg, HWND hwndCenter, LPARAM lefttop = 0);
+extern void CustomFont(HWND hwndParent, bool enable, bool enable_cedit = false);
 
 extern bool sortByVal(const std::pair<int, int>& a, const std::pair<int, int>& b);
 
@@ -148,9 +161,6 @@ namespace listview_helper {
 
 extern const int IMAGELIST_OFFLINE_CACHE_NDX;
 extern const int IMAGELIST_OFFLINE_DB_NDX;
-
-inline const size_t LINES_LONGFIELD = 4;
-inline const size_t CHARS_SHORTFIELD = 50;
 
 inline const size_t LINES_LONGFIELD = 4;
 inline const size_t CHARS_SHORTFIELD = 50;

@@ -149,6 +149,18 @@
 #define CFG_MATCH_FILE_ARTWORK_INDEX_WIDTH		2136
 #define CFG_PREVIEW_LEADING_TAGS_DLG_COLS_WIDTH	2137
 
+//v207 (1.0.13)
+#define CFG_DISCOGS_ARTWORK_TL_RA_WIDTH				2138
+#define CFG_DISCOGS_ARTWORK_TL_TYPE_WIDTH			2139
+#define CFG_DISCOGS_ARTWORK_TL_DIM_WIDTH			2140
+#define CFG_DISCOGS_ARTWORK_TL_SAVE_WIDTH			2141
+#define CFG_DISCOGS_ARTWORK_TL_OVR_WIDTH			2142
+#define CFG_DISCOGS_ARTWORK_TL_EMBED_WIDTH		2143
+#define CFG_DISCOGS_ARTWORK_TL_INDEX_WIDTH		2144
+
+#define CFG_CUSTOM_FONT												2145
+
+
 // STRINGS -------------------------------------
 
 #define CFG_EDIT_TAGS_DIALOG_HL_KEYWORD			2201
@@ -418,6 +430,8 @@ public:
 		{ asi(cfgFilter::CONF), CFG_AUTO_REL_LOAD_ON_OPEN},
 		{ asi(cfgFilter::CONF), CFG_AUTO_REL_LOAD_ON_SELECT},
 		{ asi(cfgFilter::CONF), CFG_PARSE_HIDDEN_MERGE_TITLES},
+		//v207
+		{ asi(cfgFilter::CONF), CFG_CUSTOM_FONT},
 		//..
 
 		// **** FIND (find_release_dialog)
@@ -487,7 +501,14 @@ public:
 		//V206
 		{ asi(cfgFilter::TRACK), CFG_DISCOGS_ARTWORK_INDEX_WIDTH },
 		{ asi(cfgFilter::TRACK), CFG_MATCH_FILE_ARTWORK_INDEX_WIDTH },
-		
+		//v207
+		{ asi(cfgFilter::TRACK), CFG_DISCOGS_ARTWORK_TL_RA_WIDTH },
+		{ asi(cfgFilter::TRACK), CFG_DISCOGS_ARTWORK_TL_TYPE_WIDTH },
+		{ asi(cfgFilter::TRACK), CFG_DISCOGS_ARTWORK_TL_DIM_WIDTH },
+		{ asi(cfgFilter::TRACK), CFG_DISCOGS_ARTWORK_TL_SAVE_WIDTH },
+		{ asi(cfgFilter::TRACK), CFG_DISCOGS_ARTWORK_TL_OVR_WIDTH },
+		{ asi(cfgFilter::TRACK), CFG_DISCOGS_ARTWORK_TL_EMBED_WIDTH },
+		{ asi(cfgFilter::TRACK), CFG_DISCOGS_ARTWORK_TL_INDEX_WIDTH },
 		//..
 
 		// **** UPDATE_ART (update_art_dialog)
@@ -633,7 +654,17 @@ public:
 	int match_discogs_artwork_index_width = MAKELPARAM(2* 10 + 6, 30);
 	int match_file_artwork_index_width = MAKELPARAM(2*10 + 3, 30);
 	int preview_leading_tags_dlg_cols_width = 0;
-	
+	//v207 (1.0.13)
+	int match_discogs_artwork_tl_ra_width = 0;
+	int match_discogs_artwork_tl_type_width = 0;
+	int match_discogs_artwork_tl_dim_width = 0;
+	int match_discogs_artwork_tl_save_width = 0;
+	int match_discogs_artwork_tl_ovr_width = 0;
+	int match_discogs_artwork_tl_embed_width = 0;
+	int match_discogs_artwork_tl_index_width = 0;
+
+	int custom_font = 0;
+
 	bool auto_rel_load_on_open = true;
 	bool auto_rel_load_on_select = false;
 	

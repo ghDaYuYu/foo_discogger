@@ -1,6 +1,6 @@
 ﻿#include "stdafx.h"
 #include "resource.h"
-
+#include "conf.h"
 #include "find_release_artist_dlg.h"
 
 static const GUID guid_cfg_window_placement_find_release_artist_dlg = { 0xbe0df069, 0x3e52, 0x4570, { 0xba, 0xbc, 0x59, 0xbe, 0x75, 0xb8, 0xe0, 0x45 } };
@@ -14,7 +14,7 @@ dialog_resize_helper::param CFindReleaseArtistDialog::m_resize_helper_table[] =
 	{IDCANCEL,    dialog_resize_helper::XY_MOVE},
 };
 
-CFindReleaseArtistDialog::CFindReleaseArtistDialog(HWND p_parent, size_t SW_FLAG) : m_sw_flag(SW_FLAG),
+CFindReleaseArtistDialog::CFindReleaseArtistDialog(HWND p_parent, size_t SW_FLAG, bool custfont) : m_sw_flag(SW_FLAG), m_customfont(custfont),
 	m_resize_helper(m_resize_helper_table, tabsize(m_resize_helper_table), 235, 94, 0, 0)
 {
     //
@@ -81,6 +81,8 @@ LRESULT CFindReleaseArtistDialog::OnInitDialog(HWND hWnd, LPARAM lParam)
 	//darkmode
 	AddDialog(m_hWnd);
 	AddControls(m_hWnd);
+
+	CustomFont(m_hWnd, m_customfont, true);
 
 	ShowWindow(m_sw_flag);
 	return TRUE;

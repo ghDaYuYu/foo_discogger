@@ -183,6 +183,7 @@
 #define IDC_TAB_PREVIEW_MODAL           1094
 #define IDC_BTN_SPLIT_CREDIT_FILES      1094
 #define IDC_CHK_SAVE_ARTIST_ART         1095
+#define IDC_CHK_CFG_CUSTOM_FONT_ENABLE  1096
 #define IDC_BTN_CONFIGURE               1108
 #define IDC_EDIT_OAUTH_TOKEN            1108
 #define IDC_EDIT_OAUTH_SECRET           1109

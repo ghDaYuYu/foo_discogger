@@ -11,7 +11,7 @@
 #include "foo_discogs.h"
 #include "file_info_manager.h"
 #include "tag_writer.h"
-#include "track_matching_lv_helpers.h"
+
 #include "track_matching_utils.h"
 
 #include "preview_dialog.h"
@@ -108,8 +108,6 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 
 		cfg_window_placement_track_matching_dlg.on_window_creation(m_hWnd, true);
 
-		LibUIAsOwnerData(true);
-
 		LibUIAsTrackList(true);
 
 		::ShowWindow(uGetDlgItem(IDC_UI_DC_ARTWORK_LIST), SW_HIDE);
@@ -123,6 +121,8 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 		//darkmode
 		AddDialog(m_hWnd);
 		AddControls(m_hWnd);
+		
+		CustomFont(m_hWnd, HIWORD(m_conf.custom_font));
 
 		// TODO: revise return value - skip if release dialog checked
 		if (/*!multi_mode &&*/ m_tag_writer->match_status == MATCH_SUCCESS && (m_conf.skip_mng_flag & SkipMng::SKIP_RELEASE_DLG_MATCHED)) {

@@ -151,6 +151,7 @@ bool CConf::load() {
 	vspec v204{ &vec_specs, 28, 42, 14 }; // 1.0.4
 	vspec v205{ &vec_specs, 24, 39, 15 }; // 1.0.6 + sqlite
 	vspec v206{ &vec_specs, 27, 42, 15 }; // 1.0.8
+	vspec v207{ &vec_specs, 27, 50, 15 }; // 1.0.12.2
 
 	vspec* vlast = &vec_specs.at(vec_specs.size() - 1);
 	vspec vLoad = { nullptr,
@@ -210,6 +211,34 @@ bool CConf::load() {
 		);
 		cfg_int_entries.add_item(
 			make_conf_entry(CFG_PREVIEW_LEADING_TAGS_DLG_COLS_WIDTH, preview_leading_tags_dlg_cols_width)
+		);
+	}
+
+	if (vLoad < v207) {
+
+		cfg_int_entries.add_item(
+			make_conf_entry(CFG_DISCOGS_ARTWORK_TL_RA_WIDTH, match_discogs_artwork_tl_ra_width)
+		);
+		cfg_int_entries.add_item(
+			make_conf_entry(CFG_DISCOGS_ARTWORK_TL_TYPE_WIDTH, match_discogs_artwork_tl_type_width)
+		);
+		cfg_int_entries.add_item(
+			make_conf_entry(CFG_DISCOGS_ARTWORK_TL_DIM_WIDTH, match_discogs_artwork_tl_dim_width)
+		);
+		cfg_int_entries.add_item(
+			make_conf_entry(CFG_DISCOGS_ARTWORK_TL_SAVE_WIDTH, match_discogs_artwork_tl_save_width)
+		);
+		cfg_int_entries.add_item(
+			make_conf_entry(CFG_DISCOGS_ARTWORK_TL_OVR_WIDTH, match_discogs_artwork_tl_ovr_width)
+		);
+		cfg_int_entries.add_item(
+			make_conf_entry(CFG_DISCOGS_ARTWORK_TL_EMBED_WIDTH, match_discogs_artwork_tl_embed_width)
+		);
+		cfg_int_entries.add_item(
+			make_conf_entry(CFG_DISCOGS_ARTWORK_TL_INDEX_WIDTH, match_discogs_artwork_tl_index_width)
+		);
+		cfg_int_entries.add_item(
+			make_conf_entry(CFG_CUSTOM_FONT, custom_font)
 		);
 	}
 
@@ -520,6 +549,34 @@ bool CConf::int_load(const conf_int_entry& item) {
 	case CFG_PREVIEW_LEADING_TAGS_DLG_COLS_WIDTH:
 		preview_leading_tags_dlg_cols_width = item.value;
 		break;
+
+	//v207
+	case CFG_DISCOGS_ARTWORK_TL_RA_WIDTH:
+		match_discogs_artwork_tl_ra_width = item.value;
+		break;
+	case CFG_DISCOGS_ARTWORK_TL_TYPE_WIDTH:
+		match_discogs_artwork_tl_type_width = item.value;
+		break;
+	case CFG_DISCOGS_ARTWORK_TL_DIM_WIDTH:
+		match_discogs_artwork_tl_dim_width = item.value;
+		break;
+	case CFG_DISCOGS_ARTWORK_TL_SAVE_WIDTH:
+		match_discogs_artwork_tl_save_width = item.value;
+		break;
+	case CFG_DISCOGS_ARTWORK_TL_OVR_WIDTH:
+		match_discogs_artwork_tl_ovr_width = item.value;
+		break;
+	case CFG_DISCOGS_ARTWORK_TL_EMBED_WIDTH:
+		match_discogs_artwork_tl_embed_width = item.value;
+		break;
+	case CFG_DISCOGS_ARTWORK_TL_INDEX_WIDTH:
+		match_discogs_artwork_tl_index_width = item.value;
+		break;
+	
+	case CFG_CUSTOM_FONT:
+		custom_font = item.value;
+		break;
+
 	//..
 	default:
 		return false;
@@ -865,6 +922,32 @@ bool CConf::id_to_val_int(int id, const CConf& in_conf, int& out, bool assert) {
 	case CFG_PREVIEW_LEADING_TAGS_DLG_COLS_WIDTH:
 		out = in_conf.preview_leading_tags_dlg_cols_width;
 		break;
+	//v207
+	case CFG_DISCOGS_ARTWORK_TL_RA_WIDTH:
+		out = in_conf.match_discogs_artwork_tl_ra_width;
+		break;
+	case CFG_DISCOGS_ARTWORK_TL_TYPE_WIDTH:
+		out = in_conf.match_discogs_artwork_tl_type_width;
+		break;
+	case CFG_DISCOGS_ARTWORK_TL_DIM_WIDTH:
+		out = in_conf.match_discogs_artwork_tl_dim_width;
+		break;
+	case CFG_DISCOGS_ARTWORK_TL_SAVE_WIDTH:
+		out = in_conf.match_discogs_artwork_tl_save_width;
+		break;
+	case CFG_DISCOGS_ARTWORK_TL_OVR_WIDTH:
+		out = in_conf.match_discogs_artwork_tl_ovr_width;
+		break;
+	case CFG_DISCOGS_ARTWORK_TL_EMBED_WIDTH:
+		out = in_conf.match_discogs_artwork_tl_embed_width;
+		break;
+	case CFG_DISCOGS_ARTWORK_TL_INDEX_WIDTH:
+		out = in_conf.match_discogs_artwork_tl_index_width;
+		break;
+
+	case CFG_CUSTOM_FONT:
+		out = in_conf.custom_font;
+		break;
 
 		//..
 	default:
@@ -1159,6 +1242,17 @@ void CConf::save() {
 	cfg_int_entries.add_item(make_conf_entry(CFG_DISCOGS_ARTWORK_INDEX_WIDTH, match_discogs_artwork_index_width));
 	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_FILE_ARTWORK_INDEX_WIDTH, match_file_artwork_index_width));
 	cfg_int_entries.add_item(make_conf_entry(CFG_PREVIEW_LEADING_TAGS_DLG_COLS_WIDTH, this->preview_leading_tags_dlg_cols_width));
+	//v207
+	cfg_int_entries.add_item(make_conf_entry(CFG_DISCOGS_ARTWORK_TL_RA_WIDTH, match_discogs_artwork_tl_ra_width));
+	cfg_int_entries.add_item(make_conf_entry(CFG_DISCOGS_ARTWORK_TL_TYPE_WIDTH, match_discogs_artwork_tl_type_width));
+	cfg_int_entries.add_item(make_conf_entry(CFG_DISCOGS_ARTWORK_TL_DIM_WIDTH, match_discogs_artwork_tl_dim_width));
+	cfg_int_entries.add_item(make_conf_entry(CFG_DISCOGS_ARTWORK_TL_SAVE_WIDTH, match_discogs_artwork_tl_save_width));
+	cfg_int_entries.add_item(make_conf_entry(CFG_DISCOGS_ARTWORK_TL_OVR_WIDTH, match_discogs_artwork_tl_ovr_width));
+	cfg_int_entries.add_item(make_conf_entry(CFG_DISCOGS_ARTWORK_TL_EMBED_WIDTH, match_discogs_artwork_tl_embed_width));
+	cfg_int_entries.add_item(make_conf_entry(CFG_DISCOGS_ARTWORK_TL_INDEX_WIDTH, match_discogs_artwork_tl_index_width));
+
+	cfg_int_entries.add_item(make_conf_entry(CFG_CUSTOM_FONT, custom_font));
+
 
 	//..
 

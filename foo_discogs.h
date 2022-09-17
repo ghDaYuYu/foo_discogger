@@ -93,6 +93,7 @@ inline foo_discogs* g_discogs = nullptr;
 
 inline HICON g_hIcon_quian;
 inline HBITMAP g_hIcon_rec;
+inline HFONT g_hFont;
 
 enum class PreView :int { Normal = 0, Diff, Original, Dbg, Undef, default = 0 };
 

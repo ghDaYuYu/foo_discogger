@@ -76,27 +76,10 @@ public:
 
 public:
 
-	presenter(coord_presenters* coord) : presenter() {
-
-		mm_hWnd = NULL;
-		m_coord = coord;
-
-		m_listID = 0;
-		m_loaded = false;
-		m_dwHeaderStyle = 0L;
-		m_row_height = false;
-
-		m_tag_writer = nullptr;
-		m_release = nullptr;
-		m_conf_col_woa = {};
-		
-	}
+	presenter(coord_presenters* coord);
 	presenter() : mm_hWnd(NULL),
 		m_coord(), m_listID(0), m_loaded(false),
 		m_dwHeaderStyle(0L), m_row_height(false)  {
-
-		m_conf = CConf(CONF);
-		m_conf.SetName("Presenter");
 
 		m_tag_writer = nullptr;
 		m_release = nullptr;
@@ -173,7 +156,7 @@ protected:
 	HWND mm_hWnd;
 	bool m_loaded;
 
-	foo_conf m_conf;
+	foo_conf* mp_conf;
 	TagWriter_ptr m_tag_writer;
 	Release_ptr m_release;
 
@@ -497,7 +480,7 @@ protected:
 	void define_columns() override;
 	void update_list_width(bool initcontrols) override;
 	void display_columns() override;
-	void build_cfg_columns(bool next_tile);
+	void build_cfg_columns() override;
 
 	art_src get_vimages_src_type_at_pos(size_t pos);
 	size_t get_ndx_at_pos(size_t pos);
@@ -750,10 +733,6 @@ public:
 
 
 private:
-
-	foo_conf& get_conf() {
-		return m_conf;
-	}
 
 	bool ShowFormMode(lsmode mode, bool showleft, bool showright, bool populate = true, bool invalidate = false);
 

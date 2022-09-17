@@ -503,6 +503,8 @@ void CConfigurationDialog::init_art_dialog(HWND wnd) {
 	uSetDlgItemText(wnd, IDC_EDIT_ARTIST_ART_DIR, conf.artist_art_directory_string);
 	uSetDlgItemText(wnd, IDC_EDIT_ARTIST_ART_PREFIX, conf.artist_art_filename_string);
 	uButton_SetCheck(wnd, IDC_CHK_ARTIST_ART_OVERWRITE, conf.artist_art_overwrite);
+
+	AddControls(wnd);
 }
 
 void CConfigurationDialog::init_ui_dialog(HWND wnd) {
@@ -523,6 +525,8 @@ void CConfigurationDialog::init_ui_dialog(HWND wnd) {
 
 
 	//list style
+	uButton_SetCheck(wnd, IDC_CHK_CFG_CUSTOM_FONT_ENABLE, HIWORD(conf.custom_font));
+
 	InitComboRowStyle(wnd, IDC_CMB_CONFIG_LIST_STYLE, conf.list_style);
 	HWND hcmb = ::uGetDlgItem(wnd, IDC_CMB_CONFIG_LIST_STYLE);
 
@@ -830,6 +834,9 @@ void CConfigurationDialog::save_ui_dialog(HWND wnd, bool dlgbind) {
 	conf_ptr->GetFlagVar(CFG_FIND_RELEASE_DIALOG_FLAG, fv_stats);
 	bool val = fv_stats.SetFlag(wnd, IDC_CHK_FIND_RELEASE_STATS, CFindReleaseDialog::FLG_SHOW_RELEASE_TREE_STATS); //pass control val to var
 
+	bool custom_font_enabled = uButton_GetCheck(wnd, IDC_CHK_CFG_CUSTOM_FONT_ENABLE);
+	conf_ptr->custom_font = MAKELPARAM(0, custom_font_enabled);
+
 	//todo: move this to on apply
 	if (g_discogs->find_release_dialog) {
 		g_discogs->find_release_dialog->Set_Config_Flag(fv_stats.id(), CFindReleaseDialog::FLG_SHOW_RELEASE_TREE_STATS, val);
@@ -843,6 +850,7 @@ bool CConfigurationDialog::cfg_ui_has_changed() {
 	bres |= conf.history_enabled_max != conf_edit.history_enabled_max;
 	bres |= conf.release_enter_key_override != conf_edit.release_enter_key_override;
 	bres |= conf.list_style != conf_edit.list_style;
+	bres |= conf.custom_font != conf_edit.custom_font;
 
 	bres |= (conf.find_release_dlg_flags & CFindReleaseDialog::FLG_SHOW_RELEASE_TREE_STATS) != (conf_edit.find_release_dlg_flags & CFindReleaseDialog::FLG_SHOW_RELEASE_TREE_STATS);
 

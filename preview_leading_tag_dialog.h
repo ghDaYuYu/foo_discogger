@@ -28,8 +28,8 @@ public:
 
 	//constructor
 
-	CPreviewLeadingTagDialog(HWND p_parent, TagWriter_ptr tag_writer, size_t isel, PreView parent_preview_mode)
-		: m_tag_writer(tag_writer), m_isel(isel), m_parent_preview_mode(parent_preview_mode), m_ui_list(this),
+	CPreviewLeadingTagDialog(HWND p_parent, TagWriter_ptr tag_writer, size_t isel, PreView parent_preview_mode, bool customfont)
+		: m_tag_writer(tag_writer), m_isel(isel), m_parent_preview_mode(parent_preview_mode), m_customfont(customfont), m_ui_list(this),
 		ILOD_preview_leading(tag_writer->tag_results[isel], parent_preview_mode) {
 
 		g_discogs->preview_modal_tag_dialog = this;
@@ -114,6 +114,7 @@ private:
 	CListControlOwnerData m_ui_list;
 
 	PreView m_parent_preview_mode;
+	bool m_customfont;
 
 	TagWriter_ptr m_tag_writer;
 	service_ptr_t<titleformat_object> m_track_desc_script;

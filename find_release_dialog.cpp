@@ -5,6 +5,8 @@
 #include "utils.h"
 #include "db_utils.h"
 
+#include "find_release_dialog.h"
+
 static const GUID guid_cfg_window_placement_find_release_dlg = { 0x7342d2f3, 0x235d, 0x4bed, { 0x86, 0x7e, 0x82, 0x7f, 0xa8, 0x8e, 0xd9, 0x87 } };
 static cfg_window_placement cfg_window_placement_find_release_dlg(guid_cfg_window_placement_find_release_dlg);
 
@@ -17,6 +19,12 @@ void load_global_icons() {
 	bool bdark = fb2k::isDarkMode();
 	g_hIcon_quian = LoadDpiIconResource(!bdark ? Icon::Quian : Icon::Quian_Dark, bdark);
 	g_hIcon_rec = LoadDpiBitmapResource(Icon::Record, bdark);
+
+	LOGFONTW lf;
+    CWindowDC dc(core_api::get_main_window());
+    HTHEME theme = OpenThemeData(core_api::get_main_window(), VSCLASS_AEROWIZARD);
+    GetThemeFont(theme, dc, AW_CONTENTAREA, 0, TMT_FONT, &lf);
+    g_hFont = CreateFontIndirectW(&lf);
 }
 
 // constructor
@@ -48,7 +56,11 @@ CFindReleaseDialog::CFindReleaseDialog(HWND p_parent, metadb_handle_list items, 
 
 CFindReleaseDialog::~CFindReleaseDialog() {
 
-	g_discogs->find_release_dialog = nullptr;
+	DeleteObject(g_hIcon_quian);
+	DeleteObject(g_hIcon_rec);
+	DeleteObject(g_hFont);
+
+    g_discogs->find_release_dialog = nullptr;
 }
 
 //override
@@ -147,7 +159,7 @@ void CFindReleaseDialog::init_cfged_dialog_controls() {
 
 				// new profile dlg
 				g_discogs->find_release_artist_dialog = 
-					fb2k::newDialog<CFindReleaseArtistDialog>(core_api::get_main_window(), SW_HIDE);
+					fb2k::newDialog<CFindReleaseArtistDialog>(core_api::get_main_window(), SW_HIDE, HIWORD(conf.custom_font));
 			}
 		}
 		else {
@@ -325,10 +337,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	AddDialog(m_hWnd);
 	AddControls(m_hWnd);
 
-	AddDialog(m_hWnd);
-	AddControls(m_hWnd);
-
-	m_tracer.init_tracker_tags(items);
+	CustomFont(m_hWnd, HIWORD(conf.custom_font));
 
 	bool bvisible_dlg;
 

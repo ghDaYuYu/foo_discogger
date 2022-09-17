@@ -188,9 +188,11 @@ protected:
 private:
 
 	HWND get_ctx_lvlist(int ID) {
-		if (ID != IDC_UI_LIST_DISCOGS && ID != IDC_UI_LIST_FILES
-			&& ID != IDC_UI_DC_ARTWORK_LIST && ID != IDC_UI_FILE_ARTWORK_LIST) return nullptr;
-		return uGetDlgItem(ID);
+
+		if (m_coord.GetCtrIDMode(ID) != lsmode::unknown)
+			return uGetDlgItem(ID);
+		else
+			return nullptr;
 	}
 
 	CListControlOwnerData* GetUIListById(UINT listID) {

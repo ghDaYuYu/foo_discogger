@@ -19,7 +19,7 @@ public:
 		COMMAND_HANDLER_EX(IDCANCEL, BN_CLICKED, OnCancel)
 	END_MSG_MAP()
 
-	CFindReleaseArtistDialog(HWND p_parent, size_t SW_FLAG);
+	CFindReleaseArtistDialog(HWND p_parent, size_t SW_FLAG, bool customfont);
 
 	~CFindReleaseArtistDialog() {
 		g_discogs->find_release_artist_dialog = nullptr;
@@ -36,6 +36,7 @@ private:
 	size_t m_sw_flag;
 	size_t m_id = pfc_infinite;
 	bool m_loaded = false;
+	bool m_customfont = false;
 
 	LRESULT OnInitDialog(HWND hWnd, LPARAM lParam);
 	void OnDestroy();

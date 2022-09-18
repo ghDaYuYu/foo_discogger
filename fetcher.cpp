@@ -86,7 +86,9 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 
 	//log: url and oauth status
 	log_msg(clean_url);
-	log_msg(use_oauth ? "Url OAuth enabled" : "Url OAuth disabled");
+	if (use_oauth) {
+		log_msg("Url OAuth enabled");
+	}
 
 	if (use_api /*&& m_throttling*/) {
 		chrono::steady_clock::time_point time_now = chrono::steady_clock::now();
@@ -188,17 +190,11 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 					msg_ratelimits << " - Remaining: " << rate_header_buffer;
 				}
 
-				//log: throttle and rate limits
-				//if (m_throttling) {
-					if (m_throttle_delta) {
-						std::stringstream human_read_time;
-						human_read_time << std::setprecision(3) << m_throttle_delta;
-						msg_ratelimits << " - Throttle engaged (" << pfc::string8(human_read_time.str().c_str()) << u8" \u03BCs)";
-					}
-					else {
-						msg_ratelimits << (isImageUrl ? " - not throttling images" : " (Throttle diseng.)");
-					}
-				//}
+                if (m_throttle_delta) {
+                    std::stringstream human_read_time;
+                    human_read_time << std::setprecision(3) << m_throttle_delta;
+                    msg_ratelimits << " - Throttle engaged (" << pfc::string8(human_read_time.str().c_str()) << u8" \u03BCs)";
+                }
 
 				if (msg_ratelimits.length())
 					log_msg(msg_ratelimits);

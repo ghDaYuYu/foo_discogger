@@ -38,6 +38,10 @@ void ILOD_artist_list::listItemAction(ctx_t, size_t) {
 
 void ILOD_artist_list::listSelChanged(ctx_t) {
 
-	auto dlg = dynamic_cast<CFindReleaseDialog*>(this);
-	dlg->convey_artist_list_selection(updRelSrc::ArtistProfile);
+	bool full_cache = ol::can_read() && ol::can_write();
+	cupdRelSrc in_cupdsrc(updRelSrc::ArtistProfile);
+	in_cupdsrc.extended = full_cache && CONF.auto_rel_load_on_select;
+
+    auto dlg = dynamic_cast<CFindReleaseDialog*>(this);
+	dlg->convey_artist_list_selection(in_cupdsrc);
 }

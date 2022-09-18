@@ -288,7 +288,7 @@ private:
 
 	// get/search artists service callbacks
 
-	void on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist);
+	void on_get_artist_done(cupdRelSrc updsrc, Artist_ptr& artist);
 	void on_search_artist_done(const pfc::array_t<Artist_ptr>& p_artist_exact_matches, const pfc::array_t<Artist_ptr>& p_artist_other_matches, bool append);
 
 	// route artist search
@@ -305,7 +305,7 @@ private:
 
 	bool full_olcache() { return ol::can_read() && ol::can_write(); };
 
-	void convey_artist_list_selection(updRelSrc updsrc);
+	void convey_artist_list_selection(cupdRelSrc in_cupdsrc);
 
 	// on write tags
 

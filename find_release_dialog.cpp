@@ -480,18 +480,24 @@ LRESULT CFindReleaseDialog::OnButtonSearch(WORD /*wNotifyCode*/, WORD wID, HWND 
 void CFindReleaseDialog::on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist) {
 
 	m_alist.on_get_artist_done(updsrc, artist);
+	
+	if (m_dctree.Get_Artist().get() && atoi(m_dctree.Get_Artist()->id) == atoi(artist->id)) {
+
+		return;
+	}
 
 	cupdRelSrc cupdsrc = updsrc;
 	if (cupdsrc == updRelSrc::ArtistProfile) {
 		cupdsrc.extended = full_olcache() && conf.auto_rel_load_on_select;
 	}
+	if (cupdsrc.oninit || (!cupdsrc.oninit && cupdsrc == updRelSrc::ArtistProfile && cupdsrc.extended)) {
+		m_dctree.on_get_artist_done(cupdsrc, artist);
 
-	m_dctree.on_get_artist_done(cupdsrc, artist);
+		if (conf.auto_rel_load_on_open) {
+			if (updsrc == updRelSrc::UndefFast && m_dctree.Get_Size() && m_tracer.has_master()) {
 
-	if (conf.auto_rel_load_on_open) {
-		if (updsrc == updRelSrc::UndefFast && m_dctree.Get_Size() && m_tracer.has_master()) {
-
-			m_dctree.OnInitExpand(mounted_param(m_tracer.master_i, ~0, true, false).lparam());	
+				m_dctree.OnInitExpand(mounted_param(m_tracer.master_i, ~0, true, false).lparam());	
+			}
 		}
 	}
 
@@ -797,15 +803,15 @@ void CFindReleaseDialog::call_expand_master_service(MasterRelease_ptr& release, 
 
 // convey artist-list and artist-profile actions
 
-void CFindReleaseDialog::convey_artist_list_selection(updRelSrc updsrc) {
+void CFindReleaseDialog::convey_artist_list_selection(cupdRelSrc cupdsrc) {
 
 	//from Default action (ArtistList) or List selection (ArtistProfile)
 
-	PFC_ASSERT(updsrc == updRelSrc::ArtistList || updsrc == updRelSrc::ArtistProfile);
+	PFC_ASSERT(cupdsrc == updRelSrc::ArtistList || cupdsrc == updRelSrc::ArtistProfile);
 
 	t_size pos = m_alist.GetSingleSel();
 
-	if (pos == ~0 || (updsrc != updRelSrc::ArtistList && updsrc != updRelSrc::ArtistProfile)) {
+	if (pos == ~0 || (cupdsrc != updRelSrc::ArtistList && cupdsrc != updRelSrc::ArtistProfile)) {
 
 		return;
 	}
@@ -813,17 +819,17 @@ void CFindReleaseDialog::convey_artist_list_selection(updRelSrc updsrc) {
 
 	Artist_ptr artist = m_alist.Get_Artists()[pos];
 
-	bool need_releases = updsrc == updRelSrc::ArtistList  && !artist->loaded_releases;
+	bool need_releases = cupdsrc == updRelSrc::ArtistList  && !artist->loaded_releases;
 
 	bool need_data = !(artist->loaded_preview || artist->loaded);
 
 	need_data |= need_releases;
 
-	if (full_olcache() && updsrc == updRelSrc::ArtistProfile && conf.auto_rel_load_on_select) {
+	if (full_olcache() && cupdsrc == updRelSrc::ArtistProfile && conf.auto_rel_load_on_select) {
 		need_data = true;
 	}
 
-	if (need_data || updsrc == updRelSrc::UndefFast || updsrc == updRelSrc::ArtistList)
+	if (need_data || cupdsrc == updRelSrc::UndefFast || cupdsrc == updRelSrc::ArtistList)
 	{
 		{
 			std::lock_guard<std::mutex> guard(m_loading_selection_rw_mutex);
@@ -831,11 +837,12 @@ void CFindReleaseDialog::convey_artist_list_selection(updRelSrc updsrc) {
 			m_loading_selection_id = atoi(artist.get()->id);
 		}
 
-		//			artist will continue 'on_get_artist_done'(updSrc::ArtistProfile)
+		//			artist will land on 'on_get_artist_done' with updSrc::ArtistProfile
 		//			and refresh ui from there
 
-		cupdRelSrc cupdsrc(updsrc);
-		cupdsrc.extended = full_olcache() && conf.auto_rel_load_on_select;
+		//moved to onselectchanged
+		//cupdRelSrc cupdsrc(updsrc);
+		//cupdsrc.extended = full_olcache() && conf.auto_rel_load_on_select;
 
 		service_ptr_t<get_artist_process_callback> task =
 			new service_impl_t<get_artist_process_callback>(cupdsrc, artist->id.get_ptr());
@@ -928,7 +935,7 @@ void CFindReleaseDialog::route_artist_search(pfc::string8 artistname, bool dlgbu
 				task->start(m_hWnd);
 			}
 			else {
-			
+				cupdsrc.extended = false;
 				service_ptr_t<get_artist_process_callback> task =
 					new service_impl_t<get_artist_process_callback>(cupdsrc, artist_id);
 

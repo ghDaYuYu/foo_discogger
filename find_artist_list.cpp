@@ -18,7 +18,7 @@ size_t CArtistList::get_next_role_pos() {
 	return ++m_last_role_pos;
 }
 
-void CArtistList::on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist) {
+void CArtistList::on_get_artist_done(cupdRelSrc updsrc, Artist_ptr& artist) {
 
 	if (updsrc == updRelSrc::Undef || updsrc == updRelSrc::UndefFast) {
 
@@ -219,11 +219,10 @@ void CArtistList::switch_find_releases(size_t op, bool append) {
 	CFindReleaseDialog* dlg = dynamic_cast<CFindReleaseDialog*>(m_host);
 	Invalidate();
 
-	if (get_size())
+	if (CONF.enable_autosearch && op == 3 && citems == 1) {
 	{
-		SetSelection(pfc::bit_array_true(), pfc::bit_array_false());
+		//load releases on artist searches when only one item as result 
 		SetSelectionAt(0, true);
-
 	}
 }
 
@@ -560,7 +559,12 @@ bool CArtistList::RenderCellImageTest(size_t item, size_t subItem) const {
 }
 
 void CArtistList::RenderCellImage(size_t item, size_t subItem, CDCHandle dc, const CRect& rc) const  {
-	dc.DrawIconEx(CPoint(rc.TopLeft().x, rc.TopLeft().y)/*(rc.TopLeft()*/, g_hIcon_quian, CSize(rc.Width()-1, rc.Height()-1));
+
+	ICONINFO ii;
+	auto res = GetIconInfo(g_hIcon_quian, &ii);
+	BITMAP bm;
+	res = GetObject(ii.hbmMask, sizeof(bm), &bm) == sizeof(bm);
+		dc.DrawIconEx(CPoint(rc.TopLeft().x, rc.TopLeft().y), g_hIcon_quian, CSize(bm.bmWidth, bm.bmWidth));
 }
 
 
@@ -581,7 +585,7 @@ void CArtistList::ShowArtistProfile() {
 void CArtistList::open_artist_profile(size_t list_index) {
 
 	if (!g_discogs->find_release_artist_dialog) {
-		g_discogs->find_release_artist_dialog = fb2k::newDialog<CFindReleaseArtistDialog>(core_api::get_main_window(), SW_SHOW);
+		g_discogs->find_release_artist_dialog = fb2k::newDialog<CFindReleaseArtistDialog>(core_api::get_main_window(), SW_SHOW, HIWORD(CONF.custom_font));
 	}
 
 	if (list_index != pfc_infinite) {

@@ -150,6 +150,7 @@ public:
 
 	titleformat_hook_impl_multiformat_ptr get_hook() { return m_hook; }
 
+	const Artist_ptr Get_Artist();
 	size_t Get_Artist_List_Position();
 	size_t Get_Size();
 

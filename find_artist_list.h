@@ -23,7 +23,7 @@ public:
 	void ShowArtistProfile();
 
 	// updrelsrc
-	void on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist);
+	void on_get_artist_done(cupdRelSrc updsrc, Artist_ptr& artist);
 	void fill_artist_list(bool dlgexcact, bool force_exact, updRelSrc updsrc);
 
 	size_t get_artist_id(size_t pos);

@@ -181,12 +181,14 @@ public:
 
 	virtual bool IsTile() { return m_tile; }
 
-	HICON GetIcon(size_t pos) {
+	HICON GetIcon(size_t pos, CRect &rc) {
 		if (pos < m_vicons.size()) {
 			if (IsTile()) {
+				rc = { 0,0,150,150 };
 				return m_vicons.at(pos).first;
 			}
 			else {
+				rc = { 0,0,48,48 };
 				return m_vicons.at(pos).second;
 			}
 		}
@@ -700,8 +702,8 @@ public:
 
 	CImageList GetDiscogsArtList(bool bsmall) { return bsmall ? m_discogs_art_presenter.m_lstimg_small : m_discogs_art_presenter.m_lstimg; }
 	CImageList GetFileArtList(bool bsmall) { return bsmall ? m_file_art_presenter.m_lstimg_small : m_file_art_presenter.m_lstimg; }
-	HICON GetDiscogsArtVIcons(size_t pos) { return m_discogs_art_presenter.GetIcon(pos); }
-	HICON GetFileArtVIcons(size_t pos) { return m_file_art_presenter.GetIcon(pos); }
+	HICON GetDiscogsArtVIcons(size_t pos, CRect &rc) { return m_discogs_art_presenter.GetIcon(pos, rc); }
+	HICON GetFileArtVIcons(size_t pos, CRect &rc) { return m_file_art_presenter.GetIcon(pos, rc); }
 
 	void SetTagWriter(TagWriter_ptr tag_writer);
 	TagWriter_ptr GetTagWriter() { return m_tag_writer; }

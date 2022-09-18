@@ -155,7 +155,7 @@ public:
 		return offline_cache.Dump_JSON(path, root);
 	}
 
-	bool img_ndx_to_artist(Release_ptr p_release, size_t img_ndx, Artist_ptr& artist, size_t& ndx) {
+	bool img_artists_ndx_to_artist(Release_ptr p_release, size_t img_ndx, Artist_ptr& artist, size_t& ndx) {
 
 		ndx = img_ndx;
 		Artist_ptr this_artist;

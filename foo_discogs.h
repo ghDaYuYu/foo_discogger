@@ -112,12 +112,11 @@ public:
 	operator updRelSrc() const { return src; }
 
 	bool extended;
+	bool oninit;
 
 private:
 
 	updRelSrc src;
-
-	bool oninit;
 
 };
 

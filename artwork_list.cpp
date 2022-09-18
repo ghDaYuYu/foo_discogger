@@ -50,18 +50,19 @@ void CArtworkList::RenderCellImage(size_t item, size_t subItem, CDCHandle dc, co
 	auto ida_list = dlg->get_ctx_lvlist(IDC_UI_DC_ARTWORK_LIST);
 		
 	HICON hIcon;
-	
+	CRect rcIcon;
+
 	if (m_hWnd == ida_list) {
 	
         var_it_t out;
 		getimages_it imginfo;
-		
+
 		size_t ndxpos = dlg->m_coord.Get_V_LvRow(lsmode::art, true, item, out);
 		imginfo = std::get<2>(*out).second;
-		
+
 		if (ndxpos == pfc_infinite) return;
-		
-		hIcon = dlg->m_coord.GetDiscogsArtVIcons(ndxpos);		
+
+		hIcon = dlg->m_coord.GetDiscogsArtVIcons(ndxpos, rcIcon);		
 	}
 	else {
 	
@@ -73,11 +74,11 @@ void CArtworkList::RenderCellImage(size_t item, size_t subItem, CDCHandle dc, co
 
 		if (ndxpos == pfc_infinite) return;
 
-		hIcon = dlg->m_coord.GetFileArtVIcons(ndxpos);
+		hIcon = dlg->m_coord.GetFileArtVIcons(ndxpos, rcIcon);
 	}
 
 	if (hIcon) {
 
-		dc.DrawIconEx(CPoint(rc.TopLeft().x, rc.TopLeft().y)/*(rc.TopLeft()*/, hIcon/*vicons.at(ndxpos)*//*hIcon*/ /*g_hIcon_quian*/, CSize(rc.Width() - 1, rc.Height() - 1));
+		dc.DrawIconEx(CPoint(rc.TopLeft().x, rc.TopLeft().y), hIcon, CSize(rcIcon.Width(), rcIcon.Height()));
 	}
 }

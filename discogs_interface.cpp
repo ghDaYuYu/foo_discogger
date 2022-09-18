@@ -466,7 +466,7 @@ bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release, bool isArti
 
 		Artist_ptr this_artist;
 
-		img_ndx_to_artist(release, img_ndx, this_artist, local_ndx);
+		img_artists_ndx_to_artist(release, img_ndx, this_artist, local_ndx);
 
 		id = this_artist->id;
 

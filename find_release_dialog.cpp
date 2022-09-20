@@ -11,20 +11,18 @@ static const GUID guid_cfg_window_placement_find_release_dlg = { 0x7342d2f3, 0x2
 static cfg_window_placement cfg_window_placement_find_release_dlg(guid_cfg_window_placement_find_release_dlg);
 
 void load_global_icons() {
-	auto kk = GetSystemMetrics(SM_CXSMICON);
-
+	
 	auto dpiX = QueryScreenDPIEx(core_api::get_main_window()).cx;
-	int colw = MulDiv(17, dpiX, USER_DEFAULT_SCREEN_DPI);
-
 	bool bdark = fb2k::isDarkMode();
-	g_hIcon_quian = LoadDpiIconResource(!bdark ? Icon::Quian : Icon::Quian_Dark, bdark);
+	g_hIcon_quian = LoadDpiIconResource(!bdark ? Icon::Quian : Icon::Quian_Dark, dpiX);
 	g_hIcon_rec = LoadDpiBitmapResource(Icon::Record, bdark);
 
 	LOGFONTW lf;
-    CWindowDC dc(core_api::get_main_window());
-    HTHEME theme = OpenThemeData(core_api::get_main_window(), VSCLASS_AEROWIZARD);
-    GetThemeFont(theme, dc, AW_CONTENTAREA, 0, TMT_FONT, &lf);
-    g_hFont = CreateFontIndirectW(&lf);
+	CWindowDC dc(core_api::get_main_window());
+	HTHEME theme = OpenThemeDataForDpi(core_api::get_main_window(), L"TEXTSTYLE" , dpiX);
+	GetThemeFont(theme, dc, TEXT_EXPANDED, 0, TMT_FONT, &lf);
+
+	g_hFont = CreateFontIndirectW(&lf);
 }
 
 // constructor
@@ -490,7 +488,7 @@ void CFindReleaseDialog::on_get_artist_done(cupdRelSrc updsrc, Artist_ptr& artis
 	if (cupdsrc == updRelSrc::ArtistProfile) {
 		cupdsrc.extended |= full_olcache() && conf.auto_rel_load_on_select;
 	}
-	if (cupdsrc.oninit || (!cupdsrc.oninit && cupdsrc == updRelSrc::ArtistProfile && cupdsrc.extended)) {
+	if (cupdsrc.oninit || cupdsrc == updRelSrc::ArtistList || (!cupdsrc.oninit && cupdsrc == updRelSrc::ArtistProfile && cupdsrc.extended)) {
 		m_dctree.on_get_artist_done(cupdsrc, artist);
 
 		if (conf.auto_rel_load_on_open) {

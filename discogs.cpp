@@ -456,13 +456,13 @@ pfc::string8 Discogs::format_track_number(int tracknumber) {
 	return buf;
 }
 
-ReleaseArtist_ptr Discogs::parseReleaseArtist(json_t *element) {
+ReleaseArtist_ptr Discogs::parseReleaseArtist(json_t *element, bool extload) {
 	assert_is_object(element);
 	pfc::string8 artist_id = JSONAttributeString(element, "id");
 	pfc::string8 name = JSONAttributeString(element, "name");
 	pfc::string8 anv = JSONAttributeString(element, "anv");
 	auto full_artist = discogs_interface->get_artist(artist_id);
-	ReleaseArtist_ptr artist(new ReleaseArtist(artist_id, full_artist));
+	ReleaseArtist_ptr artist(new ReleaseArtist(artist_id, full_artist, extload));
 	artist->loaded = true;
 	artist->name = name;
 	artist->anv = anv;
@@ -481,11 +481,11 @@ ReleaseArtist_ptr Discogs::parseReleaseArtist(json_t *element) {
 	return std::move(artist);
 }
 
-void Discogs::parseReleaseArtists(json_t *element, pfc::array_t<ReleaseArtist_ptr> &artists) {
+void Discogs::parseReleaseArtists(json_t *element, pfc::array_t<ReleaseArtist_ptr> &artists, bool extload) {
 	assert_is_array(element);
 	for (size_t i = 0; i < json_array_size(element); i++) {
 		json_t *artist = json_array_get(element, i);
-		artists.append_single(parseReleaseArtist(artist));
+		artists.append_single(parseReleaseArtist(artist, extload));
 	}
 }
 
@@ -1164,7 +1164,7 @@ void Discogs::parseRelease(Release *release, json_t *root) {
 	parseReleaseFormats(formats, release->formats);
 
 	json_t *artists = json_object_get(root, "artists");
-	parseReleaseArtists(artists, release->artists);
+	parseReleaseArtists(artists, release->artists, true/*extended load*/);
 
 	if (!release->artists.get_size()) {
 		parser_exception ex;
@@ -1472,11 +1472,10 @@ void initialize_null_artist(Artist *artist) {
 }
 
 void Discogs::ReleaseArtist::load(threaded_process_status& p_status, abort_callback& p_abort, bool throw_all) {
-	//todo: trace loaded
-	//if (loaded) {	return; }
+	
+	if (!extload) { loaded = true; return; }
 
-	//originally to make artist artwork info available to the track/artwork match panel 
-	//todo: rev 404, there may be other invalid or unreferenced ids
+	//todo: rev 404, other invalid or unreferenced ids,...
 	Artist_ptr artist;
 	if (id.get_length() && !id.equals("0")) {
 		artist = discogs_interface->get_artist(id, false, p_status, p_abort, false, throw_all, false);

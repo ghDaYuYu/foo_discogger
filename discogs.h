@@ -225,12 +225,15 @@ namespace Discogs
 		void load(threaded_process_status& p_status, abort_callback& p_abort, bool throw_all = false) override;
 		string_encoded_array get_data(pfc::string8 &tag_name, threaded_process_status &p_status, abort_callback &p_abort) override;
 
-		ReleaseArtist(const char *id, Artist_ptr &full_artist) : full_artist(full_artist), id(id) {
+		ReleaseArtist(const char *id, Artist_ptr &full_artist, bool extload = false) : full_artist(full_artist), id(id), preload(preload) {
 		}
 
 		bool has_anv() const {
 			return anv.get_length() != 0;
 		}
+
+	private:
+		bool extload = false;
 	};
 	typedef std::shared_ptr<ReleaseArtist> ReleaseArtist_ptr;
 
@@ -1055,8 +1058,8 @@ namespace Discogs
 	extern void parseArtistReleases(json_t *element, Artist *artist);
 	extern void parseMasterVersions(json_t *element, MasterRelease *master_release);
 
-	extern ReleaseArtist_ptr parseReleaseArtist(json_t *element);
-	extern void parseReleaseArtists(json_t *element, pfc::array_t<ReleaseArtist_ptr> &artists);
+	extern ReleaseArtist_ptr parseReleaseArtist(json_t *element, bool extload = false);
+	extern void parseReleaseArtists(json_t *element, pfc::array_t<ReleaseArtist_ptr> &artists, bool extload = false);
 	extern void parseReleaseCredits(json_t* element, pfc::array_t<ReleaseCredit_ptr> &credits, Release *release);
 	extern void addReleaseTrackCredits(const pfc::string8 &tracks, ReleaseCredit_ptr &credit, Release *release);
 

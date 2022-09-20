@@ -219,22 +219,15 @@ void CArtistList::switch_find_releases(size_t op, bool append) {
 	CFindReleaseDialog* dlg = dynamic_cast<CFindReleaseDialog*>(m_host);
 	Invalidate();
 
+	auto citems = get_size();
+	bool bskip_idded_release_dlg = CONF.skip_mng_flag & SkipMng::SKIP_RELEASE_DLG_IDED;
 	
-    //new auto-load artist releases on unique exact searches
-    //new configuration options may be required (exact search):
-    //  (op == 0 && citems == 1 && append == false)
-    
-    //first artist in a multi-artist result:
-    //  (CONF.enable_autosearch && op == 3 && citems == 1)
-    
-    //normal idded release autoload:
-    //  (CONF.auto_rel_load_on_open && op == 1 && citems == 1)
- 
-    auto citems = get_size();
-	if ((CONF.enable_autosearch && op == 3 && citems == 1) ||
-		(CONF.auto_rel_load_on_open && op == 1 && citems == 1) /*||
-		(op == 0 && citems == 1 && append == false)*/)
-	{
+	//todo: fine tune (op, citems, ...
+	if (!bskip_idded_release_dlg && !append &&
+	    ((CONF.enable_autosearch && op == 3 && citems == 1) ||
+	    (CONF.auto_rel_load_on_open && op == 1 && citems == 1) || 
+	    (/*debug*/false)))
+	{		
 		SetSelectionAt(0, true);
 	}
 }

@@ -103,7 +103,7 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 		//log: average and last delta
 		msg_average << "Avg >= " << m_fetch_wait_rolling_avg;
 		if (time_span != chrono::steady_clock::duration::zero()) {
-			msg_average << ", Lapse: ";
+			msg_average << "Lapse: ";
 			//double microsecs = time_span.count();
 			pfc::string8 msg_delta;
 			if (m_throttle_delta) {
@@ -180,14 +180,14 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 				if (r->get_http_header("X-Discogs-Ratelimit", rate_header_buffer)) {
 					m_ratelimit_max = atoi(rate_header_buffer); //currently 60, discoggs may update these rate limits at any time
 					m_ratelimit_threshold = m_ratelimit_max - RL_REMAINING_THRESHOLD; //max - 30
-					msg_ratelimits << "RateLimit: " << rate_header_buffer;
+					msg_ratelimits << "RL: " << rate_header_buffer;
 				}
 				if (r->get_http_header("X-Discogs-Ratelimit-Used", rate_header_buffer)) {
 					msg_ratelimits << " - Used: " << rate_header_buffer;
 				}
 				if (r->get_http_header("X-Discogs-Ratelimit-Remaining", rate_header_buffer)) {
 					m_ratelimit_remaining = atoi(rate_header_buffer);
-					msg_ratelimits << " - Remaining: " << rate_header_buffer;
+					msg_ratelimits << " - RMNG: " << rate_header_buffer;
 				}
 
                 if (m_throttle_delta) {

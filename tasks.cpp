@@ -759,28 +759,36 @@ void get_various_artists_process_callback::safe_run(threaded_process_status& p_s
 	//todo: src revisions
 
 	bool bload_releases = m_cupdsrc != updRelSrc::ArtistProfile && m_cupdsrc != updRelSrc::UndefFast;
-	bload_releases |= m_cupdsrc.extended;
-
+	size_t count = 0;
 	for (auto artist_id : m_artist_ids) {
 
 		pfc::string8 status_title("Get various artists... ");
-		status_title << (PFC_string_formatter() << ++count << " of " << m_artist_ids.size()).c_str();
+		status_title << (PFC_string_formatter() << count + 1 << " of " << m_artist_ids.size()).c_str();
 		p_status.set_title(status_title);
 
-		Artist_ptr artist = discogs_interface->get_artist(std::to_string(artist_id).c_str(), bload_releases, p_status, p_abort,
+		Artist_ptr artist = discogs_interface->get_artist(std::to_string(artist_id).c_str(), !count++ ? m_cupdsrc.extended : bload_releases, p_status, p_abort,
 			false, false, m_cupdsrc != updRelSrc::ArtistProfile);
 		
 		m_artists.add_item(std::move(artist));
 	}
 
-	pfc::string8 status_msg = "Formatting artists preview...";
-	p_status.set_item(status_msg);
+	p_status.set_item(Formatting artist preview...");
 }
 
 void get_various_artists_process_callback::on_success(HWND p_wnd) {
 
 	if (m_artists.get_count()) {
-		g_discogs->find_release_dialog->on_search_artist_done(m_artists, pfc::array_t<Artist_ptr>());
+			m_cupdsrc.oninit = true;
+			g_discogs->find_release_dialog->on_get_artist_done(m_cupdsrc, m_artists[0]);
+			if (m_artists.get_count() > 1) {
+				pfc::array_t<Artist_ptr>tail; tail.resize(m_artists.get_count() - 1);
+				int c = 1;
+				for (auto & ti : tail) {
+					ti.swap(m_artists[c++]);
+				}
+				m_artists.force_reset();
+				g_discogs->find_release_dialog->on_search_artist_done(tail, pfc::array_t<Artist_ptr>(), true);
+			}
 	}
 }
 
@@ -838,7 +846,8 @@ void search_artist_process_callback::on_success(HWND p_wnd) {
 			m_artist_exact_matches[0]->id, m_artist_exact_matches[0]->name);
 	}
 
-	find_dlg->on_search_artist_done(m_artist_exact_matches, m_artist_other_matches);
+	find_dlg->on_search_artist_done(m_artist_exact_matches, m_artist_other_matches, false);
+	
 }
 
 void search_artist_process_callback::on_abort(HWND p_wnd) {
@@ -1131,7 +1140,7 @@ void process_artwork_preview_callback::safe_run(threaded_process_status& p_statu
 					if (m_bartist) {
 						Artist_ptr artist;
 						size_t artist_img_ndx;
-						if (discogs_interface->img_ndx_to_artist(m_release, m_img_ndx, artist, artist_img_ndx)) {
+						if (discogs_interface->img_artists_ndx_to_artist(m_release, m_img_ndx, artist, artist_img_ndx)) {
 							images = artist->images;
 							discogs_interface->fetcher->fetch_url(images[artist_img_ndx]->url150, "", m_small_art, p_abort, false);
 						}

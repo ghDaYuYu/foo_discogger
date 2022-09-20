@@ -295,7 +295,8 @@ void ILOD_track_matching::listItemAction(ctx_t ctx, size_t item) {
 			bval = !bval;
 			multi_uart->setflag(att, perm_pos, bval);
 			CListControlOwnerData* uilist = (CListControlOwnerData*)ctx;
-			uilist->UpdateItem(item);			
+			uilist->UpdateItem(item);
+			uSendMessage(((TParent*)this)->m_hWnd, WM_CUST_UPDATE_SKIP_BUTTON, 0, 0);
 		}
 		break;
 	}

@@ -545,7 +545,7 @@ bool DiscogsInterface::delete_artist_cache(const pfc::string8& artist_id) {
 
 		// cache memory
 
-		bool bdeleted = cache_artists->remove(artist_id);
+		bool dbg_deleted = cache_artists->remove(artist_id);
 
 		for (size_t walk = 0; walk < artist->master_releases.get_count(); walk++) {
 			
@@ -557,13 +557,13 @@ bool DiscogsInterface::delete_artist_cache(const pfc::string8& artist_id) {
 
 			/* rev */
 
-			bdeleted &= cache_master_releases->remove(lkey/*artist->master_releases[walk]->id*/);
+			dbg_deleted &= cache_master_releases->remove(lkey/*artist->master_releases[walk]->id*/);
 		}
 
 		for (size_t walk = 0; walk < artist->releases.get_count(); walk++) {
 
 			size_t lkey = encode_mr(artist->search_role_list_pos, artist->releases[walk]->id);
-			bdeleted &= cache_releases->remove(lkey);
+			dbg_deleted &= cache_releases->remove(lkey);
 		}
 		
 		// disk cache
@@ -577,7 +577,7 @@ bool DiscogsInterface::delete_artist_cache(const pfc::string8& artist_id) {
 
 			std::error_code ec;
 			std::filesystem::remove_all(os_path, ec);
-			bdeleted &= !(!!ec.value());
+			dbg_deleted &= !(!!ec.value());
 			
 			return !ec.value();
 		}		

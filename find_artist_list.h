@@ -53,31 +53,20 @@ public:
 		AddColumnEx("Artist", colw, LVCFMT_LEFT, true);
 	}
 
+	bool OnDisplayCellImage(int item, int subitem, int& result) const;
+    	
+   	// CListControlOwnerData overrides
+   	bool RenderCellImageTest(size_t item, size_t subItem) const override;
+   	void RenderCellImage(size_t item, size_t subItem, CDCHandle, const CRect&) const override;
 	void Default_Artist_Action();
 
-	bool OnDisplayCellImage(int item, int subitem, int& result) const;
-	
-	// CListControlOwnerData overrides
-	bool RenderCellImageTest(size_t item, size_t subItem) const override;
-	void RenderCellImage(size_t item, size_t subItem, CDCHandle, const CRect&) const override;
-	
-#pragma warning( push )
-#pragma warning( disable : 26454 )
 	typedef CListControlOwnerData TParent;
 	BEGIN_MSG_MAP(CArtistList)
 		MESSAGE_HANDLER(WM_CONTEXTMENU, OnContextMenu)
-		NOTIFY_HANDLER(IDC_ARTIST_LIST, LVN_ITEMCHANGED, OnListSelChanged)
-		NOTIFY_HANDLER(IDC_ARTIST_LIST, LVN_ITEMCHANGING, OnListSelChanging)
-		NOTIFY_HANDLER(IDC_ARTIST_LIST, NM_DBLCLK, OnListDoubleClick)
 		CHAIN_MSG_MAP(TParent)
 	END_MSG_MAP()
 
-#pragma warning(pop)
-
-	LRESULT OnListSelChanged(int, LPNMHDR hdr, BOOL& bHandled);
-	LRESULT OnListSelChanging(int, LPNMHDR hdr, BOOL& bHandled);
 	LRESULT OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
-	LRESULT OnListDoubleClick(int, LPNMHDR hdr, BOOL& bHandled);
 
 private:
 

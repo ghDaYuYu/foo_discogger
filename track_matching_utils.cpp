@@ -4,10 +4,100 @@
 #include "CGdiPlusBitmap.h"
 #pragma comment(lib, "gdiplus.lib")
 
+#include "discogs_interface.h"
 #include "ol_cache.h"
 #include "track_matching_utils.h"
 
 using namespace Gdiplus;
+
+multi_uartwork::multi_uartwork(const CConf& conf, Discogs::Release_ptr release) {
+
+	size_t calbum_art = release->images.get_count();
+	size_t cartist_art = 0;
+
+	for (auto wra : release->artists) {
+		cartist_art += wra->full_artist->images.get_count();
+	}
+
+	size_t ctotal_art = calbum_art + cartist_art;
+
+	// album attributes
+
+	if (calbum_art) {
+
+		if (conf.save_album_art) {
+
+			setflag(af::alb_sd, 0, true);
+
+			//ovr
+			if (conf.album_art_overwrite)
+
+				setflag(af::alb_ovr, 0, true);
+		}
+
+		if (conf.embed_album_art) {
+
+			setflag(af::alb_emb, 0, true);
+
+			//todo: ovr flag
+			//if (conf.album_art_overwrite)
+			//	setflag(af::alb_ovr, 0, true);
+		}
+
+		if (conf.album_art_fetch_all && conf.save_album_art) {
+
+			setbitflag_range(af::alb_sd, true, 0, calbum_art);
+
+			//ovr
+			if (conf.album_art_overwrite)
+				setbitflag_range(af::alb_ovr, true, 0, calbum_art);
+		}
+	}
+
+
+	// artist attributes
+
+	if (cartist_art) {
+
+		if (conf.save_artist_art) {
+			Discogs::Artist_ptr artist;
+			size_t walk_artists_ndx = 0;
+			size_t ndx;
+			while (walk_artists_ndx < cartist_art) {
+				
+				if (discogs_interface->img_artists_ndx_to_artist(release, walk_artists_ndx, artist, ndx)) {
+					if (ndx == 0) {
+						setflag(af::art_sd, walk_artists_ndx, true);
+						walk_artists_ndx += artist->images.get_count() -1;
+					}
+				}
+				walk_artists_ndx++;
+			}
+
+			//ovr
+			if (conf.artist_art_overwrite)
+				setflag(af::art_ovr, 0, true);
+		}
+
+		if (conf.embed_artist_art) {
+
+			setflag(af::art_emb, 0, true);
+
+			//todo: ovr flag
+			//if (conf.artist_art_overwrite)
+			//	setflag(af::art_ovr, 0, true);
+		}
+
+		if (conf.artist_art_fetch_all && conf.save_artist_art) {
+
+			setbitflag_range(af::art_sd, true, 0, cartist_art);
+
+			//ovr
+			if (conf.artist_art_overwrite)
+				setbitflag_range(af::art_ovr, true, 0, cartist_art);
+		}
+	}
+}
 
 pfc::string8 duration_to_str(int seconds) {
 	int hours = seconds / 3600;

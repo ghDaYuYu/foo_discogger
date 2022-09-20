@@ -222,6 +222,7 @@ namespace Discogs
 			return m;
 		}
 
+		void load(threaded_process_status& p_status, abort_callback& p_abort, bool throw_all = false) override;
 		string_encoded_array get_data(pfc::string8 &tag_name, threaded_process_status &p_status, abort_callback &p_abort) override;
 
 		ReleaseArtist(const char *id, Artist_ptr &full_artist) : full_artist(full_artist), id(id) {
@@ -250,7 +251,6 @@ namespace Discogs
 
 		virtual ~HasArtists() {}
 	};
-
 
 	class ReleaseCredit : public HasRoles, public HasArtists, public ExposedTags<ReleaseCredit>
 	{
@@ -1036,9 +1036,6 @@ namespace Discogs
 		pfc::string8 username;
 		pfc::string8 consumer_name;
 	};
-
-
-	void appendCredit(pfc::string8 &dst, const pfc::string8 &src);
 
 	extern void parseIdentity(json_t *root, Identity *identity);
 	extern void parseCollection(json_t *root, pfc::array_t<pfc::string8> &collection);

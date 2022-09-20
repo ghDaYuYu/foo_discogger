@@ -62,9 +62,15 @@ public:
 
 	size_t locked_operation = 0;
 
-	void save_album_art(Release_ptr &release, metadb_handle_ptr item, art_download_attribs ada, pfc::array_t<GUID> album_art_ids, bit_array_bittable &saved_mask, pfc::array_t<pfc::string8> &done_files, threaded_process_status &p_status, abort_callback &p_abort);
-	void save_artist_art(Release_ptr &release, metadb_handle_ptr item, art_download_attribs ada, pfc::array_t<GUID> album_art_ids, bit_array_bittable& saved_mask, pfc::array_t<pfc::string8> &done_files, threaded_process_status &p_status, abort_callback &p_abort);
-	void save_artist_art(pfc::array_t<Artist_ptr> &artists, Release_ptr &release, metadb_handle_ptr item, art_download_attribs ada, pfc::array_t<GUID> album_art_ids, bit_array_bittable& saved_mask, pfc::array_t<pfc::string8> &done_files, threaded_process_status &p_status, abort_callback &p_abort);
+	void save_album_art(Release_ptr &release, metadb_handle_ptr item, art_download_attribs ada, pfc::array_t<GUID> album_art_ids, bit_array_bittable &saved_mask,
+	    pfc::array_t<pfc::string8> &done_files, std::map<pfc::string8, MemoryBlock> &done_fetches,
+	    threaded_process_status &p_status, abort_callback &p_abort);
+	void save_artist_art(Release_ptr &release, metadb_handle_ptr item, art_download_attribs ada, pfc::array_t<GUID> album_art_ids, bit_array_bittable& saved_mask,
+	    pfc::array_t<pfc::string8> &done_files, std::map<pfc::string8, MemoryBlock>& done_fetches,
+	    threaded_process_status &p_status, abort_callback &p_abort);
+	void save_artist_art(pfc::array_t<Artist_ptr> &artists, Release_ptr &release, metadb_handle_ptr item, art_download_attribs ada, pfc::array_t<GUID> album_art_ids,
+	    bit_array_bittable& saved_mask, pfc::array_t<pfc::string8> &done_files, std::map<pfc::string8, MemoryBlock>& done_fetches,
+	    threaded_process_status &p_status, abort_callback &p_abort);
 
 	void fetch_image(MemoryBlock &buffer, Image_ptr &image, abort_callback &p_abort);
 	void write_image(MemoryBlock &buffer, const pfc::string8 &full_path, abort_callback &p_abort);

@@ -4,6 +4,8 @@
 class CTrackMatchingDialog;
 class coord_presenters;
 
+inline const UINT WM_CUST_UPDATE_SKIP_BUTTON = WM_USER + 3000;
+
 class ILOD_track_matching : public IListControlOwnerDataSource {
 
 public:

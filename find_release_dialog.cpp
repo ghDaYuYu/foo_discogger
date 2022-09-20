@@ -477,7 +477,7 @@ LRESULT CFindReleaseDialog::OnButtonSearch(WORD /*wNotifyCode*/, WORD wID, HWND 
 	return FALSE;
 }
 
-void CFindReleaseDialog::on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist) {
+void CFindReleaseDialog::on_get_artist_done(cupdRelSrc updsrc, Artist_ptr& artist) {
 
 	m_alist.on_get_artist_done(updsrc, artist);
 	
@@ -488,7 +488,7 @@ void CFindReleaseDialog::on_get_artist_done(updRelSrc updsrc, Artist_ptr& artist
 
 	cupdRelSrc cupdsrc = updsrc;
 	if (cupdsrc == updRelSrc::ArtistProfile) {
-		cupdsrc.extended = full_olcache() && conf.auto_rel_load_on_select;
+		cupdsrc.extended |= full_olcache() && conf.auto_rel_load_on_select;
 	}
 	if (cupdsrc.oninit || (!cupdsrc.oninit && cupdsrc == updRelSrc::ArtistProfile && cupdsrc.extended)) {
 		m_dctree.on_get_artist_done(cupdsrc, artist);
@@ -917,6 +917,8 @@ void CFindReleaseDialog::route_artist_search(pfc::string8 artistname, bool dlgbu
 		if (by_id) {
 
 			cupdRelSrc cupdsrc(updsrc);
+			cupdsrc.oninit = !dlgbutton;
+
 			if (updsrc == updRelSrc::UndefFast) {
 				cupdsrc.extended |= conf.auto_rel_load_on_open;
 			}

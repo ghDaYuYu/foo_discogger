@@ -219,9 +219,22 @@ void CArtistList::switch_find_releases(size_t op, bool append) {
 	CFindReleaseDialog* dlg = dynamic_cast<CFindReleaseDialog*>(m_host);
 	Invalidate();
 
-	if (CONF.enable_autosearch && op == 3 && citems == 1) {
+	
+    //new auto-load artist releases on unique exact searches
+    //new configuration options may be required (exact search):
+    //  (op == 0 && citems == 1 && append == false)
+    
+    //first artist in a multi-artist result:
+    //  (CONF.enable_autosearch && op == 3 && citems == 1)
+    
+    //normal idded release autoload:
+    //  (CONF.auto_rel_load_on_open && op == 1 && citems == 1)
+ 
+    auto citems = get_size();
+	if ((CONF.enable_autosearch && op == 3 && citems == 1) ||
+		(CONF.auto_rel_load_on_open && op == 1 && citems == 1) /*||
+		(op == 0 && citems == 1 && append == false)*/)
 	{
-		//load releases on artist searches when only one item as result 
 		SetSelectionAt(0, true);
 	}
 }
@@ -235,7 +248,6 @@ void CArtistList::set_image_list() {
 bool CArtistList::OnDisplayCellImage(int item, int subitem, int& result) const {
 
 	int img_ndx = I_IMAGENONE;
-	if (CONF.auto_rel_load_on_select) return img_ndx;
 	bool is_traced;
 
 	if (m_idtracer_p->is_multi_artist()) {
@@ -325,179 +337,7 @@ size_t CArtistList::get_artist_role_pos(size_t szartist_id) {
 	return ~0;
 }
 
-
-//
-
-// on get info, list changing, list changed
-
-//
-
-LRESULT CArtistList::OnGetInfo(WORD /*wNotifyCode*/, LPNMHDR hdr, BOOL& /*bHandled*/) {
-
-	NM_LISTVIEW* pNMListView = (NM_LISTVIEW*)hdr;
-	LV_DISPINFO* plvdi = (LV_DISPINFO*)hdr;
-
-
-	bool req = m_find_release_artists.get_count() > plvdi->item.iItem;
-
-	if (!req) {
-
-		return FALSE;
-	}
-
-	//note write access
-
-	LV_ITEM* pItem = &(plvdi)->item;
-
-	if (pItem->mask & LVIF_TEXT)
-	{
-		if (pItem->iSubItem == 0) {
-
-			pfc::string8 nodetext(m_find_release_artists[pItem->iItem]->name);
-
-			if (OnDisplayCellString(pItem->iItem, 0, nodetext)) {
-
-				TCHAR outBuffer[MAX_PATH + 1] = {};
-
-				pfc::stringcvt::convert_utf8_to_wide(outBuffer, MAX_PATH,
-					nodetext.get_ptr(), nodetext.get_length());
-
-				_tcscpy_s(pItem->pszText, pItem->cchTextMax, const_cast<TCHAR*>(outBuffer));
-			}
-			else
-				pItem->pszText = LPSTR_TEXTCALLBACK;
-		}
-	}
-
-	if (pItem->mask & LVIF_IMAGE)
-	{
-		if (pItem->iSubItem == 0) {
-
-			int img_ndx;
-
-			// calc tracert image
-
-			if (OnDisplayCellImage(pItem->iItem, 0, img_ndx)) {
-
-				pItem->iImage = img_ndx;				
-			}
-			else {
-
-				pItem->iImage = I_IMAGECALLBACK;
-			}
-		}
-	}
-
-	//
-
-	// L O S T		S E L E C T I O N
-
-	//
-
-	if ((pNMListView->uChanged & LVIF_STATE) && (pNMListView->uOldState & LVNI_SELECTED) && !(pNMListView->uNewState & LVNI_SELECTED)) {
-
-		// lost selection
-
-		int pos = pNMListView->iItem;
-
-		if (pos == -1 || pos >= m_find_release_artists.get_count()) {
-
-			return 0;
-		}
-
-		//todo: mutex unselect
-		if (m_find_release_artists.get_count()) {
-
-			//m_lost_selection_id = atoi(m_find_release_artists[pNMListView->iItem]->id);
-		}
-		else {
-
-			//m_lost_selection_id = atoi(m_find_release_artist->id);
-		}
-	}
-
-	//
-
-	// F O C U S: CONVEY ARTIST-PROFILE
-
-	//
-
-	if ((pNMListView->uChanged & LVIF_STATE) && (!(pNMListView->uOldState & LVNI_FOCUSED)) && (pNMListView->uNewState & LVNI_FOCUSED)) {
-
-		// get focus, for example pressing search button an not selecting any items
-
-		if (pNMListView->iItem == -1) return 0;
-
-		// convey artist profile
-		CFindReleaseDialog* dlg = dynamic_cast<CFindReleaseDialog*>(m_host);
-		dlg->convey_artist_list_selection(updRelSrc::ArtistProfile);
-	}
-	return TRUE;
-}
-
-//
-
-// artist item status changed
-
-//
-
-LRESULT CArtistList::OnListSelChanged(int i, LPNMHDR hdr, BOOL& bHandled) {
-
-	bHandled = true;
-
-	NM_LISTVIEW* pNMListView = (NM_LISTVIEW*)hdr;
-
-	if ((pNMListView->uChanged & LVIF_STATE) && (pNMListView->uNewState & LVNI_SELECTED) && !((pNMListView->uOldState & LVNI_SELECTED) == LVNI_SELECTED)) {
-
-		// becomes selected
-
-		if (pNMListView->iItem == -1) return 0;
-
-		size_t pos = pNMListView->iItem;
-
-		// 
-
-		// ** artist SELECTED, may spawm. collects and displays
-
-		// C O N V E Y		A R T I S T - P R O F I L E
-
-		CFindReleaseDialog* dlg = dynamic_cast<CFindReleaseDialog*>(m_host);
-		dlg->convey_artist_list_selection(updRelSrc::ArtistProfile);
-
-	}
-	return FALSE;
-}
-
-//
-
-// double click
-
-//
-
-LRESULT CArtistList::OnListDoubleClick(int i, LPNMHDR hdr, BOOL& bHandled) {
-
-	bHandled = TRUE;
-
-	if (hdr->code == NM_DBLCLK) {
-
-		NM_LISTVIEW* pNMListView = (NM_LISTVIEW*)hdr;
-
-		if (pNMListView->iItem == -1) return 0;
-
-		// artist default action (ArtistList)
-
-		Default_Artist_Action();
-
-		//
-	}
-	return 0;
-}
-
-//
-
 // on context menu
-
-//
 
 LRESULT CArtistList::OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) {
 
@@ -507,7 +347,7 @@ LRESULT CArtistList::OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL
 	CFindReleaseDialog* dlg = dynamic_cast<CFindReleaseDialog*>(m_host);
 	if (hwndCtrl != this->m_hWnd) return FALSE;
 
-	CPoint screen_position, p;
+	CPoint screen_position;
 
 	size_t list_index = GetSingleSel();
 
@@ -517,7 +357,6 @@ LRESULT CArtistList::OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL
 	}
 	else {
 		::GetCursorPos(&screen_position);
-		}
 	}
 
 	context_menu(list_index, screen_position);
@@ -525,11 +364,7 @@ LRESULT CArtistList::OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL
 	return FALSE;
 }
 
-//
-
 //default action for artist list item
-
-//
 
 void CArtistList::Default_Artist_Action() {
 
@@ -567,27 +402,18 @@ void CArtistList::RenderCellImage(size_t item, size_t subItem, CDCHandle dc, con
 		dc.DrawIconEx(CPoint(rc.TopLeft().x, rc.TopLeft().y), g_hIcon_quian, CSize(bm.bmWidth, bm.bmWidth));
 }
 
-
-//
-
-// open artist profile panel
-
-//
-
 void CArtistList::ShowArtistProfile() {
 	
 	//serves dlg bind panel checkbox
-	size_t pos = GetSingleSel();
+	size_t pos = GetFirstSelected();
 	open_artist_profile(pos);
 }
-
 
 void CArtistList::open_artist_profile(size_t list_index) {
 
 	if (!g_discogs->find_release_artist_dialog) {
 		g_discogs->find_release_artist_dialog = fb2k::newDialog<CFindReleaseArtistDialog>(core_api::get_main_window(), SW_SHOW, HIWORD(CONF.custom_font));
 	}
-
 	if (list_index != pfc_infinite) {
 		Artist_ptr artist = get_artist_inlist(list_index);
 		if (artist) {
@@ -600,7 +426,6 @@ void CArtistList::open_artist_profile(size_t list_index) {
 void CArtistList::context_menu(size_t list_index, POINT screen_pos) {
 	
 	bool empty_sel = (list_index == ~0);
-
 	CFindReleaseDialog* dlg = dynamic_cast<CFindReleaseDialog*>(m_host);
 	Artist_ptr artist;
 	bool isArtistOffline = false;
@@ -608,14 +433,12 @@ void CArtistList::context_menu(size_t list_index, POINT screen_pos) {
 		if (artist = get_selected_artist()) {
 			isArtistOffline = artist->loaded_releases_offline;
 		}
-
 	}
 
 	pfc::string8 sourcepage = "&Web artist page";
 	pfc::string8 copyrow = "&Copy";
 
 	try {
-
 		enum { ID_CMD_LOAD_RELEASES = 1, ID_VIEW_PAGE, ID_CLP_COPY_ROW, ID_ARTIST_DEL_CACHE, ID_ARTIST_EXACT_MATCHES, ID_ARTIST_PROFILE };
 		HMENU menu = CreatePopupMenu();
 

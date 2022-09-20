@@ -665,10 +665,7 @@ bool CTrackMatchingDialog::generate_artwork_guids(pfc::array_t<GUID> &my_album_a
             my_album_art_ids.resize(m_tag_writer->get_art_count());
         }
 
-        pfc::array_t<GUID> tmp_guids;
-        tmp_guids.resize(1);
-        GUID undef_guid = tmp_guids[0];
-        //..
+			static const GUID undef_guid = { 0xCDCDCDCD, 0xCDCD, 0xCDCD, { 0xCD, 0xCD, 0xCD, 0xCD, 0xCD, 0xCD, 0xCD, 0xCD } };
 
         pfc::fill_array_t(my_album_art_ids, undef_guid);
 
@@ -1114,7 +1111,7 @@ bool CTrackMatchingDialog::context_menu_track_show(HWND wnd, int idFrom, LPARAM 
 				if (csel) {
 					uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 					uAppendMenu(menu, MF_STRING, ID_ART_PREVIEW, "Thumbnail preview\tCtrl+P");
-					bool check_template_requirement = m_coord.template_artwork_mode(template_art_ids::inlay_card, 0, ListView_GetFirstSelection(wnd), true);
+					bool check_template_requirement = m_coord.template_artwork_mode(template_art_ids::inlay_card, 0, p_uilist->GetFirstSelected(), true);
 					if (csel && check_template_requirement) {
 						uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 						// display submenu
@@ -1130,7 +1127,7 @@ bool CTrackMatchingDialog::context_menu_track_show(HWND wnd, int idFrom, LPARAM 
 			else {
 				//artwork mode - local artwork panel
 				uAppendMenu(menu, MF_SEPARATOR, 0, 0);
-				uAppendMenu(menu, MF_STRING , ID_ART_RESET, "Reset\tCtrl+R");				
+				uAppendMenu(menu, MF_STRING, ID_ART_RESET, "Reset\tCtrl+R");				
 			}
 		}
 
@@ -1452,10 +1449,10 @@ bool CTrackMatchingDialog::context_menu_track_switch(HWND wnd, POINT point, bool
 	default: {
 		if (cmd == 0) return false;
 		size_t iTempl = cmd - ID_ART_TEMPLATE1;
-		if (iTempl >= 0 && iTempl < template_art_ids::num_types() && ListView_GetSelectedCount(wnd) > 0) {
-			bool check_template_requirement = m_coord.template_artwork_mode(template_art_ids::query_type(iTempl), ListView_GetSelectedCount(wnd), ListView_GetFirstSelection(wnd), false);
-			HWND lvfiles = uGetDlgItem(IDC_UI_FILE_ARTWORK_LIST);
-			ListView_SetItemCount(lvfiles, m_coord.GetFileArtRowLvSize());
+		if (iTempl >= 0 && iTempl < template_art_ids::num_types() && p_uilist->GetSelectedCount() > 0) {
+			bool check_template_requirement = m_coord.template_artwork_mode(template_art_ids::query_type(iTempl), p_uilist->GetSelectedCount(), p_uilist->GetFirstSelected(), false);
+			auto p_dest_uilist = GetUIListById(IDC_UI_FILE_ARTWORK_LIST);
+			p_dest_uilist->ReloadItems(bit_array_true());
 			return true;
 		}
 	}
@@ -1710,6 +1707,12 @@ void CTrackMatchingDialog::go_back() {
 LRESULT CTrackMatchingDialog::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 
 	destroy_all();
+	return TRUE;
+}
+
+LRESULT CTrackMatchingDialog::OnUpdateSkipButton(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) {
+
+	init_track_matching_dialog();
 	return TRUE;
 }
 

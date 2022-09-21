@@ -368,6 +368,7 @@ void foo_discogs::save_album_art(Release_ptr& release, metadb_handle_ptr item,
 				log_msg("Invalid index found generating artist artwork filename");
 			}
 
+            //todo: ? 
 			if (!file.get_length() || !ada.file_match) {
 				if (!file.get_length() && !ada.file_match) {
 					embed_req = true; //req is ok, vembed_it[i] decides
@@ -680,11 +681,13 @@ void foo_discogs::save_artist_art(pfc::array_t<Artist_ptr>& artists, Release_ptr
 				log_msg("Invalid index found generating artist artwork filename");
 			}
 
-			if (!file.get_length() && !ada.file_match) {
-				embed_req = true; //req ok, vembed_it[i] decides
+            //todo: ? 
+            if (!file.get_length() || !ada.file_match) {
+				if (!file.get_length() && !ada.file_match) {
+					embed_req = true; //req ok, vembed_it[i] decides
+				}
+				CONF.artist_art_filename_string->run_hook(item->get_location(), &info, &hook, file, nullptr);
 			}
-
-			CONF.artist_art_filename_string->run_hook(item->get_location(), &info, &hook, file, nullptr);
 
 			if (STR_EQUAL(file, "nullptr") || STR_EQUAL(file, "")) {
 				log_msg("empty file path... skipping artist art writing or embedding");

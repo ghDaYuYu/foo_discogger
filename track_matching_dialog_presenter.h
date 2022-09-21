@@ -459,6 +459,7 @@ public:
 
 	void Populate();
 	void PopulateConfArtWork();
+	void GetAreAlbumMask(bit_array_bittable& mask);
 	bool AddArtwork(size_t img_ndx, art_src art_source, MemoryBlock small_art);
 	
 	art_src GetSrcTypeAtPos(size_t list_position) {

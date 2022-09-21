@@ -228,6 +228,16 @@ size_t coord_presenters::ListUserCmdDELETE(HWND hwnd, lsmode mode, int cmd, bit_
 		pres = &bin->second;
 	else return nextfocus;
 
+    //todo: rev fix
+	if (mode == lsmode::art) {
+		if (hwnd == bin->first.GetListView()) {
+			if (!are_albums.size()) {
+				// delete key pressed on discogs artwork list			
+				((discogs_artwork_presenter*)pres)->GetAreAlbumMask(are_albums);
+			}
+		}	
+	}
+
 	bool bcrop = cmdmod;
 	const size_t count = pres->GetDataLvSize();
 	const size_t cAlbumArt = m_tag_writer->release->images.get_count();
@@ -1413,6 +1423,15 @@ void discogs_artwork_presenter::Populate() {
 	set_row_height(true);
 
 	PopulateConfArtWork();
+}
+
+void discogs_artwork_presenter::GetAreAlbumMask(bit_array_bittable &mask) {
+	mask.resize(m_vimages.size());
+	for (getimages_t::iterator wit = m_vimages.begin(); wit < m_vimages.end(); wit++ ) {
+		bool balbum = wit->first.first == (int)art_src::alb;
+		mask.set(std::distance(m_vimages.begin(), wit), balbum);
+	}
+	return;
 }
 
 void discogs_artwork_presenter::PopulateConfArtWork(/*uartwork uartt*/) {

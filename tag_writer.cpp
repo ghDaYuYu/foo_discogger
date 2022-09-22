@@ -3,6 +3,7 @@
 #include "multiformat.h"
 
 TagWriter::TagWriter(file_info_manager_ptr finfo_manager, Release_ptr release) : finfo_manager(finfo_manager), release(release) {
+	release_art_count = get_art_count();
 }
 
 const std::vector<int(TagWriter::*)(track_mappings_list_type &)> TagWriter::matching_functions = {
@@ -406,7 +407,7 @@ void TagWriter::generate_tags(tag_mapping_list_type* alt_mappings, threaded_proc
 	}
 	persistent_store prompt_store;
 
-	unsigned long lkey = encode_mr(0, atoi(release->master_id));
+	size_t lkey = encode_mr(0, atoi(release->master_id));
 
 	MasterRelease_ptr master = discogs_interface->get_master_release(lkey);
 

@@ -251,7 +251,7 @@ void ILOD_track_matching::listItemAction(ctx_t ctx, size_t item) {
 		header.HitTest(&lptest);
 
 		//calculate subItem by hittest
-		int subItem = 0;
+		int subItem = -1;
 		if (lptest.flags == HHT_ONHEADER) {
 			subItem = lptest.iItem;
 		}

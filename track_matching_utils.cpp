@@ -97,6 +97,7 @@ multi_uartwork::multi_uartwork(const CConf& conf, Discogs::Release_ptr release) 
 				setbitflag_range(af::art_ovr, true, 0, cartist_art);
 		}
 	}
+	m_init = true;
 }
 
 pfc::string8 duration_to_str(int seconds) {

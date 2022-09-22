@@ -575,7 +575,7 @@ bool CTrackMatchingDialog::generate_artwork_guids(pfc::array_t<GUID> &my_album_a
 			CONF_ARTWORK_GUIDS = *m_coord.GetUartwork_GUIDS();
 
 			my_album_art_ids = pfc::array_t<GUID>();
-			my_album_art_ids.resize(m_tag_writer->get_art_count());
+			my_album_art_ids.resize(m_tag_writer->GetArtCount());
 
 			GUID last_guid({ 0,0,0,0 });
 			pfc::fill_array_t(my_album_art_ids, last_guid);
@@ -662,7 +662,7 @@ bool CTrackMatchingDialog::generate_artwork_guids(pfc::array_t<GUID> &my_album_a
         }
 
         if ((calbum_art + cartist_art) > 0) {
-            my_album_art_ids.resize(m_tag_writer->get_art_count());
+            my_album_art_ids.resize(m_tag_writer->GetArtCount());
         }
 
 			static const GUID undef_guid = { 0xCDCDCDCD, 0xCDCD, 0xCDCD, { 0xCD, 0xCD, 0xCD, 0xCD, 0xCD, 0xCD, 0xCD, 0xCD } };
@@ -862,7 +862,7 @@ size_t CTrackMatchingDialog::get_art_perm_selection(HWND hwndList, bool flagsele
 	return selcount;
 }
 
-void CTrackMatchingDialog::context_menu_art_attrib_switch(HWND wnd, af att_album, af att_art, UINT att_id, lsmode mode) {
+void CTrackMatchingDialog::context_menu_art_attrib_switch(HWND wnd, af att_album, af att_art, UINT att_id, bool mixattr) {
 	
 	multi_uartwork* multi_uart = m_coord.GetUartwork();
 	auto uilist = GetUIListByWnd(wnd);
@@ -871,12 +871,10 @@ void CTrackMatchingDialog::context_menu_art_attrib_switch(HWND wnd, af att_album
 	perm_selection.resize(citems);
 	bit_array_bittable are_albums(citems);
 
-	const size_t max_items = m_tag_writer->get_art_count();
+	const size_t max_items = m_tag_writer->GetArtCount();
 	const t_uint8 cAlbumArt = static_cast<t_uint8>(m_tag_writer->release->images.get_count());
 
 	size_t perm_csel = get_art_perm_selection(wnd, true, max_items, perm_selection, are_albums);
-	
-	size_t firstval = ~0;
 
 	for (size_t i = 0; i < citems && perm_csel; i++) {
 
@@ -890,9 +888,9 @@ void CTrackMatchingDialog::context_menu_art_attrib_switch(HWND wnd, af att_album
 			af att = are_albums.get(i) ? att_album : att_art;
 			dc_ndx = are_albums.get(i) ? dc_ndx : dc_ndx - cAlbumArt;
 			
-			bool val = multi_uart->getflag(att, dc_ndx);
-			if (firstval == ~0) firstval = !val;
-			multi_uart->setflag(att, dc_ndx, firstval);
+			bool val = mixattr ? false : !multi_uart->getflag(att, dc_ndx);
+			multi_uart->setflag(att, dc_ndx, val);
+
 			perm_csel--;
 
 			uilist->ReloadItem(i);
@@ -943,6 +941,8 @@ bool CTrackMatchingDialog::context_menu_form(HWND wnd, LPARAM lParamPos) {
 	discogs_release_info << discogs_release_id;
 	if (local_release_id.get_length())
 		local_release_info << "Files Release Id: " << local_release_id;
+
+	bit_array_bittable mixedvals;
 
 	try {
 
@@ -1036,7 +1036,7 @@ bool CTrackMatchingDialog::context_menu_form(HWND wnd, LPARAM lParamPos) {
 		case ID_PREVIEW_CMD_WRITE_TAGS:
 			[[fallthrough]];
 		case ID_PREVIEW_CMD_WRITE_ARTWORK:
-			context_menu_track_switch(NULL, point, false, cmd, pfc::bit_array_bittable(), pfc::array_t<size_t>());
+			context_menu_track_switch(NULL, point, false, cmd, pfc::bit_array_bittable(), mixedvals);
 			break;
 		}
 
@@ -1097,6 +1097,8 @@ bool CTrackMatchingDialog::context_menu_track_show(HWND wnd, int idFrom, LPARAM 
 		bit_array_bittable selmask = is_uilist ? p_uilist->GetSelectionMask() : bit_array_bittable();
 		bool bsel = selmask.find_first(true, 0, selmask.size()) != selmask.size();
 
+		bit_array_bittable mixedvals;
+
 		uAppendMenu(menu, MF_STRING, ID_PREVIEW_CMD_BACK, "&Back");
 		uAppendMenu(menu, MF_STRING, ID_PREVIEW_CMD_PREVIEW, "&Preview");
 		if (is_files) {
@@ -1122,7 +1124,7 @@ bool CTrackMatchingDialog::context_menu_track_show(HWND wnd, int idFrom, LPARAM 
 					}
 				}
 				//attribs
-				context_menu_art_attrib_show(wnd, &menu);
+				context_menu_art_attrib_show(wnd, &menu, mixedvals);
 			}
 			else {
 				//artwork mode - local artwork panel
@@ -1165,14 +1167,14 @@ bool CTrackMatchingDialog::context_menu_track_show(HWND wnd, int idFrom, LPARAM 
 		int cmd = TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, 0, wnd, 0);
 		DestroyMenu(menu);
 
-		context_menu_track_switch(wnd, point, is_files, cmd, selmask, pfc::array_t<t_size>());
+		context_menu_track_switch(wnd, point, is_files, cmd, selmask, mixedvals);
 	}
 	catch (...) {}
 	return FALSE;
 }
 
-bool CTrackMatchingDialog::context_menu_track_switch(HWND wnd, POINT point, bool is_files, int cmd, bit_array_bittable selmask, pfc::array_t<t_size> order) {
-	
+bool CTrackMatchingDialog::context_menu_track_switch(HWND wnd, POINT point, bool is_files, int cmd, bit_array_bittable selmask, bit_array_bittable mixedvals) {
+
 	auto p_uilist = GetUIListByWnd(wnd);
 
 	UINT att_id = 0;
@@ -1230,7 +1232,7 @@ bool CTrackMatchingDialog::context_menu_track_switch(HWND wnd, POINT point, bool
 			if (get_mode() == lsmode::art && !is_files) {
 				perm_selection.resize(count);
 				are_albums.resize(count);
-				const size_t max_items = m_tag_writer->get_art_count();
+				const size_t max_items = m_tag_writer->GetArtCount();
 				size_t csel = get_art_perm_selection(wnd, true, max_items, perm_selection, are_albums);		
 			}
 
@@ -1275,8 +1277,8 @@ bool CTrackMatchingDialog::context_menu_track_switch(HWND wnd, POINT point, bool
 				pfc::array_t<t_uint8> x_selection;
 				x_selection.resize(selmask.size());
 				are_albums.resize(selmask.size());
-				const size_t max_items = m_tag_writer->get_art_count();
-				size_t csel = get_art_perm_selection(p_uilist->m_hWnd, true, max_items, x_selection, are_albums);
+				const size_t max_items = m_tag_writer->GetArtCount();
+				size_t csel = get_art_perm_selection(p_uilist->m_hWnd/*wnd*/, true, max_items, x_selection, are_albums);
 			}
 
 			if (p_uilist) {
@@ -1318,7 +1320,7 @@ bool CTrackMatchingDialog::context_menu_track_switch(HWND wnd, POINT point, bool
 		perm_selection.resize(citems);
 		bit_array_bittable are_albums(citems);
 
-		const size_t max_items = m_tag_writer->get_art_count();
+		const size_t max_items = m_tag_writer->GetArtCount();
 		size_t csel = get_art_perm_selection(wndlist, true, max_items, perm_selection, are_albums);
 
 		size_t chk = perm_selection[0];
@@ -1379,21 +1381,21 @@ bool CTrackMatchingDialog::context_menu_track_switch(HWND wnd, POINT point, bool
 		att_art = af::art_ovr;
 		att_id = ID_ART_OVR;
 		context_menu_art_attrib_switch(wnd, att_album, att_art,
-			att_id, mode);
+			att_id, mixedvals.get(1));
 		break;
 	case ID_ART_EMBED:
 		att_album = af::alb_emb;
 		att_art = af::art_emb;
 		att_id = ID_ART_EMBED;
 		context_menu_art_attrib_switch(wnd, att_album, att_art,
-			att_id, mode);
+			att_id, mixedvals.get(2));
 		break;
 	case ID_ART_WRITE:
 		att_album = af::alb_sd;
 		att_art = af::art_sd;
 		att_id = ID_ART_WRITE;
 		context_menu_art_attrib_switch(wnd, att_album, att_art,
-			att_id, mode);
+			att_id, mixedvals.get(0));
 		break;
 	case ID_ART_TILE:
 		m_coord.SetModeTile(!m_coord.isTile());
@@ -1460,7 +1462,7 @@ bool CTrackMatchingDialog::context_menu_track_switch(HWND wnd, POINT point, bool
 	return false;
 }
 
-bool CTrackMatchingDialog::context_menu_art_attrib_show(HWND wndlist, HMENU* menu) {
+bool CTrackMatchingDialog::context_menu_art_attrib_show(HWND wndlist, HMENU* menu, bit_array_bittable &mixedvals) {
 	
 	lsmode mode = get_mode();
 
@@ -1488,43 +1490,49 @@ bool CTrackMatchingDialog::context_menu_art_attrib_show(HWND wndlist, HMENU* men
 
 		bool mixedwrite = false, write = false;
 
-		for (size_t i = 0; i < citems; i++) {
+		for (size_t i = 0; !mixedwrite && i < citems; i++) {
 			if (perm_selection[i] != max_items) {
 				size_t dc_ndx = perm_selection[i];
 				af att = are_albums.get(i) ? af::alb_sd : af::art_sd;
 				dc_ndx = are_albums.get(i) ? dc_ndx : dc_ndx - cAlbumArt;
 				bool val = uartw->getflag(att, dc_ndx);
-				write |= val;
-				if (write != val) mixedwrite = true;			
+				if (!i) write = val;
+				else if (write != val) mixedwrite = true;			
 			}
 		}
 		bool mixedovr = false, ovr = false;
-		for (size_t i = 0; i < citems; i++) {
+		for (size_t i = 0; !mixedovr && i < citems; i++) {
 			if (perm_selection[i] != citems) {
 				size_t dc_ndx = perm_selection[i];
 				af att = are_albums.get(i) ? af::alb_ovr : af::art_ovr;
 				dc_ndx = are_albums.get(i) ? dc_ndx : dc_ndx - cAlbumArt;
 				bool val = uartw->getflag(att, dc_ndx);
-				ovr |= val;
-				if (ovr != val) mixedovr = true;
+				if (!i) ovr = val;
+				else if (ovr != val) mixedovr = true;
 			}
 		}
 		bool mixedembed = false, embed = false;
-		for (size_t i = 0; i < citems; i++) {
+		for (size_t i = 0; !mixedembed && i < citems; i++) {
 			if (perm_selection[i] != citems) {
 				size_t dc_ndx = perm_selection[i];
 				af att = are_albums.get(i) ? af::alb_emb : af::art_emb;
 				dc_ndx = are_albums.get(i) ? dc_ndx : dc_ndx - cAlbumArt;
 				bool val = uartw->getflag(att, dc_ndx);
-				embed |= val;
-				if (write != val) mixedembed = true;
+				if (!i) embed = val;
+				else if (embed != val) mixedembed = true;
 			}
 		}
+
+		mixedvals.resize(3);
+		mixedvals.set(0, mixedwrite);
+		mixedvals.set(1, mixedovr);
+		mixedvals.set(2, mixedembed);
+
 		bool bitems = p_uilist->GetItemCount();
 		uAppendMenu(*menu, MF_SEPARATOR, (bselection ? 0 : MF_DISABLED | MF_GRAYED), 0);
-		uAppendMenu(*menu, MF_STRING | (bselection ? 0 : MF_DISABLED | MF_GRAYED) | (write ? mixedwrite? MF_CHECKED | MF_UNCHECKED : MF_CHECKED : 0), ID_ART_WRITE, "Write\tCtrl+W");
-		uAppendMenu(*menu, MF_STRING | (bselection ? 0 : MF_DISABLED | MF_GRAYED) | (ovr ? mixedovr? MF_CHECKED | MF_UNCHECKED : MF_CHECKED : 0), ID_ART_OVR, "Overwrite\tCtrl+O");
-		uAppendMenu(*menu, MF_STRING | (bselection ? 0 : MF_DISABLED | MF_GRAYED) | (embed ? mixedembed? MF_CHECKED | MF_UNCHECKED : MF_CHECKED : 0), ID_ART_EMBED, "Embed\tCtrl+E");
+		uAppendMenu(*menu, MF_STRING | (bselection ? 0 : MF_DISABLED | MF_GRAYED) | (write || mixedwrite? MF_CHECKED | MF_UNCHECKED : 0), ID_ART_WRITE, "Write\tCtrl+W");
+		uAppendMenu(*menu, MF_STRING | (bselection ? 0 : MF_DISABLED | MF_GRAYED) | (ovr || mixedovr? MF_CHECKED | MF_UNCHECKED : 0), ID_ART_OVR, "Overwrite\tCtrl+O");
+		uAppendMenu(*menu, MF_STRING | (bselection ? 0 : MF_DISABLED | MF_GRAYED) | (embed || mixedembed? MF_CHECKED | MF_UNCHECKED : 0), ID_ART_EMBED, "Embed\tCtrl+E");
 		uAppendMenu(*menu, MF_STRING , ID_ART_RESET, "Reset\tCtrl+R");
 
 		uAppendMenu(*menu, MF_SEPARATOR, (bitems ? 0 : MF_DISABLED | MF_GRAYED), 0);
@@ -1591,43 +1599,38 @@ void CTrackMatchingDialog::init_track_matching_dialog() {
 	multi_uartwork multi_defaults = multi_uartwork(CONF, m_tag_writer->release);
 	
 	bool managed_artwork = !(multi_current == multi_defaults);
+	bool user_wants_skip = HIWORD(m_conf.album_art_skip_default_cust) & ARTSAVE_SKIP_USER_FLAG;
+	if (managed_artwork && !user_wants_skip) {
+        ::CheckDlgButton(m_hWnd, IDC_CHK_SKIP_ARTWORK, BST_INDETERMINATE);
 
-    bool user_wants_skip = HIWORD(m_conf.album_art_skip_default_cust) & ARTSAVE_SKIP_USER_FLAG;
+        SendMessage(GetDlgItem(IDC_CHK_SKIP_ARTWORK)
+            , BM_SETSTYLE
+            , (WPARAM)0
+            , (LPARAM)0);
 
-    if (user_wants_skip) {
-        //..
+        SendMessage(GetDlgItem(IDC_CHK_SKIP_ARTWORK)
+            , BM_SETSTYLE
+            , (WPARAM)BS_AUTO3STATE | BS_CHECKBOX | BS_FLAT
+            , (LPARAM)0);
+
+        ::CheckDlgButton(m_hWnd, IDC_CHK_SKIP_ARTWORK, BST_INDETERMINATE);
     }
     else {
-        if (managed_artwork) {
 
-            ::CheckDlgButton(m_hWnd, IDC_CHK_SKIP_ARTWORK, BST_INDETERMINATE);
+        ::CheckDlgButton(m_hWnd, IDC_CHK_SKIP_ARTWORK, BST_UNCHECKED);
 
-            SendMessage(GetDlgItem(IDC_CHK_SKIP_ARTWORK)
-                , BM_SETSTYLE
-                , (WPARAM)0
-                , (LPARAM)0);
+        SendMessage(GetDlgItem(IDC_CHK_SKIP_ARTWORK)
+            , BM_SETSTYLE
+            , (WPARAM)0
+            , (LPARAM)0);
 
-            SendMessage(GetDlgItem(IDC_CHK_SKIP_ARTWORK)
-                , BM_SETSTYLE
-                , (WPARAM)BS_AUTO3STATE | BS_CHECKBOX | BS_FLAT
-                , (LPARAM)0);
+        SendMessage(GetDlgItem(IDC_CHK_SKIP_ARTWORK)
+            , BM_SETSTYLE
+            , (WPARAM)BS_CHECKBOX | BS_AUTOCHECKBOX
+            , (LPARAM)0);
 
-            ::CheckDlgButton(m_hWnd, IDC_CHK_SKIP_ARTWORK, BST_INDETERMINATE);
-        }
-        else {
-
-            ::CheckDlgButton(m_hWnd, IDC_CHK_SKIP_ARTWORK, BST_UNCHECKED);
-
-            SendMessage(GetDlgItem(IDC_CHK_SKIP_ARTWORK)
-                , BM_SETSTYLE
-                , (WPARAM)0
-                , (LPARAM)0);
-
-            SendMessage(GetDlgItem(IDC_CHK_SKIP_ARTWORK)
-                , BM_SETSTYLE
-                , (WPARAM)BS_CHECKBOX | BS_AUTOCHECKBOX
-                , (LPARAM)0);
-        }
+        ::CheckDlgButton(m_hWnd, IDC_CHK_SKIP_ARTWORK,
+            user_wants_skip ? BST_CHECKED : BST_UNCHECKED);
     }
 	return;
 }
@@ -1711,7 +1714,10 @@ LRESULT CTrackMatchingDialog::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hW
 }
 
 LRESULT CTrackMatchingDialog::OnUpdateSkipButton(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) {
-
+	int not_user_skip = HIWORD(m_conf.album_art_skip_default_cust);
+	not_user_skip &= ~ARTSAVE_SKIP_USER_FLAG;
+	m_conf.album_art_skip_default_cust =
+		MAKELPARAM(LOWORD(m_conf.album_art_skip_default_cust), not_user_skip);
 	init_track_matching_dialog();
 	return TRUE;
 }

@@ -90,7 +90,8 @@ const struct uartwork {
 	t_uint32 ucfg_art_save_all;
 	t_uint32 ucfg_art_ovr;
 
-	bool populated;
+	const bool *pinit;
+	const bool init_done() { return pinit && *pinit; }
 
 	t_uint32 setbitflag(t_uint32& key, size_t pos, bool val) {
 		t_uint32 bitmask = 1 << pos;
@@ -130,11 +131,15 @@ const struct uartwork {
 		if (fl == af::alb_emb)			{ setbitflag(ucfg_album_embed, pos, val); }
 		else if (fl == af::alb_sd)		{ setbitflag(ucfg_album_save_to_dir, pos, val);
 											if (!val) setflag(af::alb_ovr, pos, false); }
-		else if (fl == af::alb_ovr)		{ setbitflag(ucfg_album_ovr, pos, ucfg_album_save_to_dir && val); }
+		else if (fl == af::alb_ovr)		{
+			setbitflag(ucfg_album_ovr, pos, (ucfg_album_save_to_dir || init_done()) && val);
+		}
 		else if (fl == af::art_emb)		{ setbitflag(ucfg_art_embed, pos, val); }
 		else if (fl == af::art_sd)		{ setbitflag(ucfg_art_save_to_dir, pos, val); 
 											if (!val) setflag(af::art_ovr, pos, false); }
-		else if (fl == af::art_ovr)		{ setbitflag(ucfg_art_ovr, pos, ucfg_art_save_to_dir && val); }
+		else if (fl == af::art_ovr)		{
+			setbitflag(ucfg_art_ovr, pos, (ucfg_art_save_to_dir || init_done()) && val);
+		}
 	}
 
 	void setflag_range(af an_af, bool val, size_t from, size_t to) {
@@ -162,10 +167,10 @@ const struct uartwork {
 		bool cfg_art_embed,
 		bool cfg_art_save_to_dir,
 		bool cfg_art_save_all,
-		bool cfg_art_ovr
-	) {
-
-		populated = false;
+		bool cfg_art_ovr,
+		bool *pinit
+	) : pinit(pinit) {
+		
 		ucfg_album_embed = 0;
 		ucfg_album_save_to_dir = 0;
 		ucfg_album_save_all = 0;
@@ -199,8 +204,7 @@ const struct uartwork {
 		ucfg_art_save_to_dir = 0;
 		ucfg_art_save_all = 0;
 		ucfg_art_ovr = 0;
-
-		populated = false;
+		pinit = nullptr;
 	}
 
 	inline bool operator==(const uartwork& rhs) {
@@ -211,7 +215,8 @@ const struct uartwork {
 			ucfg_art_embed == rhs.ucfg_art_embed &&
 			ucfg_art_save_to_dir == rhs.ucfg_art_save_to_dir &&
 			ucfg_art_save_all == rhs.ucfg_art_save_all &&
-			ucfg_art_ovr == rhs.ucfg_art_ovr);
+			ucfg_art_ovr == rhs.ucfg_art_ovr &&
+			pinit == rhs.pinit);
 	}
 
 	uartwork(const CConf & conf) {
@@ -224,7 +229,8 @@ const struct uartwork {
 			conf.embed_artist_art,
 			conf.save_artist_art,
 			conf.artist_art_fetch_all,
-			conf.artist_art_overwrite
+			conf.artist_art_overwrite,
+			nullptr
 		);
 	}
 
@@ -244,9 +250,7 @@ const struct multi_uartwork {
 
 	std::vector<uartwork> vuart;
 	bool file_match = false;
-
-	//todo: remove
-	bool populated = false;
+	bool m_init = false;
 
 	void prep_block(size_t ndx) { if (vuart.size() < ndx + 1) vuart.emplace_back(uartwork()); }
 
@@ -340,14 +344,14 @@ const struct multi_uartwork {
 			cfg_art_embed,
 			cfg_art_save_to_dir,
 			0/*cfg_art_save_all*/,
-			cfg_art_ovr));
+			cfg_art_ovr, &m_init));
 
-		populated = false;
+		m_init = true;
 	}
 
 	multi_uartwork() {
 
-		populated = false;
+		m_init = false;
 	};
 
 	inline bool operator==(const multi_uartwork& rhs) {
@@ -371,7 +375,7 @@ const struct multi_uartwork {
 		conf.save_artist_art,
 		conf.artist_art_overwrite
 	) {
-		//..
+		m_init = true;
 	}
 
 	multi_uartwork(const CConf& conf, Discogs::Release_ptr release);

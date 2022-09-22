@@ -463,7 +463,6 @@ ReleaseArtist_ptr Discogs::parseReleaseArtist(json_t *element, bool extload) {
 	pfc::string8 anv = JSONAttributeString(element, "anv");
 	auto full_artist = discogs_interface->get_artist(artist_id);
 	ReleaseArtist_ptr artist(new ReleaseArtist(artist_id, full_artist, extload));
-	artist->loaded = true;
 	artist->name = name;
 	artist->anv = anv;
 	artist->raw_roles = JSONAttributeString(element, "role");
@@ -1473,7 +1472,7 @@ void initialize_null_artist(Artist *artist) {
 
 void Discogs::ReleaseArtist::load(threaded_process_status& p_status, abort_callback& p_abort, bool throw_all) {
 	
-	if (!extload) { loaded = true; return; }
+	if (!extload || loaded) { loaded = true; return; }
 
 	//todo: rev 404, other invalid or unreferenced ids,...
 	Artist_ptr artist;

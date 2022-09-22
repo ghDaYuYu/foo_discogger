@@ -51,22 +51,20 @@ public:
 	tag_results_list_type tag_results;
 
 	Release_ptr release;
+	size_t release_art_count = 0;
 
 	TagWriter(file_info_manager_ptr finfo_manager, Release_ptr release);
 	TagWriter(file_info_manager_ptr finfo_manager, pfc::string8 p_error) : finfo_manager(finfo_manager), release(nullptr), error(p_error) {
 		skip = true;
 		force_skip = true;
+		release_art_count = get_art_count();
 	}
 
 	void generate_tags(tag_mapping_list_type* alt_mappings, threaded_process_status& p_status, abort_callback& p_abort);
 
 	//todo: param (all, album, art)
-	const t_size get_art_count() {
-		size_t res = release->images.get_count();
-		for (auto wra : release->artists) {
-			res += wra->full_artist->images.get_count();
-		}
-		return res;
+	const t_size GetArtCount() {
+		return release_art_count;
 	}
 
 	void write_tags();
@@ -92,5 +90,13 @@ private:
 	int order_tracks_by_assumption(track_mappings_list_type &mappings);
 
 	const static std::vector<int(TagWriter::*)(track_mappings_list_type &)> matching_functions;
+
+	const t_size get_art_count() {
+		size_t res = release->images.get_count();
+		for (auto wra : release->artists) {
+			res += wra->full_artist->images.get_count();
+		}
+		return res;
+	}
 };
 typedef std::shared_ptr<TagWriter> TagWriter_ptr;

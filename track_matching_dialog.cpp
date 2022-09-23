@@ -141,13 +141,13 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 			cartist_art += wra->full_artist->images.get_count();
 		}
 
-		if (m_tag_writer->release->images.get_count() > kMax_Artwork || 
+		if (CONF_MULTI_ARTWORK.isEmpty() || m_tag_writer->release->images.get_count() > kMax_Artwork || 
 			cartist_art > kMax_Artwork) {
 
-			HWND hwndManageArt = uGetDlgItem(IDC_CHK_MNG_ARTWORK);
-			::EnableWindow(hwndManageArt, FALSE);
+			HWND hwndBtn = uGetDlgItem(IDC_CHK_MNG_ARTWORK);
+			::EnableWindow(hwndBtn, FALSE);
 
-			// request single preview
+			m_tristate.Init(BST_CHECKED, FALSE);
 
 			preview_job pj(false, 0, false, false, false);
 			m_vpreview_jobs.emplace_back(pj);
@@ -217,16 +217,7 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 
 LRESULT CTrackMatchingDialog::OnCheckSkipArtwork(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 
-	SendMessage(GetDlgItem(IDC_CHK_SKIP_ARTWORK)
-		, BM_SETSTYLE
-		, (WPARAM)0
-		, (LPARAM)0);
-
-	SendMessage(GetDlgItem(IDC_CHK_SKIP_ARTWORK)
-		, BM_SETSTYLE
-		, (WPARAM)BS_CHECKBOX | BS_AUTOCHECKBOX
-		, (LPARAM)0);
-
+	m_tristate.SetBistate();
 	return FALSE;
 }
 
@@ -249,22 +240,11 @@ LRESULT CTrackMatchingDialog::OnCheckManageArtwork(WORD wNotifyCode, WORD wID, H
 			bool bmanaged = (uButton_GetCheck(m_hWnd, IDC_CHK_MNG_ARTWORK) == TRUE);
 			bool bfile_match = CONF_MULTI_ARTWORK.file_match;
 
-			//backup columns definitions
-			m_coord.PullConf(bmanaged ? lsmode::tracks_ui : lsmode::art, true, &m_conf);
-			m_coord.PullConf(bmanaged ? lsmode::tracks_ui : lsmode::art, false, &m_conf);
-			m_coord.PushConf(bmanaged ? lsmode::art : lsmode::tracks_ui, true, true);
-			m_coord.PushConf(bmanaged ? lsmode::art : lsmode::tracks_ui, false, true);
-
 			if (bmanaged) {
 
 				LibUIAsTrackList(false);
 
 				auto ida_cols = m_ida_list.GetColumnCount();
-				if (!ida_cols) {
-					m_coord.InitUiList(m_ida_list.m_hWnd, lsmode::art, true, &m_ida_list);
-					m_coord.InitUiList(m_ifa_list.m_hWnd, lsmode::art, false, &m_ifa_list);
-				}
-
 
 				::ShowWindow(uGetDlgItem(IDC_UI_DC_ARTWORK_LIST), SW_SHOW);
 				::ShowWindow(uGetDlgItem(IDC_UI_FILE_ARTWORK_LIST), SW_SHOW);
@@ -276,9 +256,6 @@ LRESULT CTrackMatchingDialog::OnCheckManageArtwork(WORD wNotifyCode, WORD wID, H
 				::ShowWindow(uGetDlgItem(IDC_CHK_ARTWORK_FILEMATCH), SW_SHOW);
 				::ShowWindow(uGetDlgItem(IDC_BTN_WRITE_TAGS), SW_HIDE);
 
-				m_idc_list.DeleteColumns(bit_array_true(), false);
-				m_ifile_list.DeleteColumns(bit_array_true(), false);
-
 				::ShowWindow(uGetDlgItem(IDC_UI_LIST_DISCOGS), SW_HIDE);
 				::ShowWindow(uGetDlgItem(IDC_UI_LIST_FILES), SW_HIDE);
 
@@ -289,20 +266,10 @@ LRESULT CTrackMatchingDialog::OnCheckManageArtwork(WORD wNotifyCode, WORD wID, H
 
 				LibUIAsTrackList(true);
 
-				if (!m_idc_list.GetColumnCount()) {
-					m_coord.InitUiList(m_idc_list.m_hWnd, lsmode::tracks_ui, true, &m_idc_list);
-					m_coord.InitUiList(m_ifile_list.m_hWnd, lsmode::tracks_ui, false, &m_ifile_list);
-				}
-
 				::ShowWindow(uGetDlgItem(IDC_UI_LIST_DISCOGS), SW_SHOW);
 				::ShowWindow(uGetDlgItem(IDC_UI_LIST_FILES), SW_SHOW);
 				::EnableWindow(uGetDlgItem(IDC_UI_LIST_DISCOGS), true);
 				::EnableWindow(uGetDlgItem(IDC_UI_LIST_FILES), true);
-
-				if (m_ida_list.GetColumnCount()) {
-					m_ida_list.DeleteColumns(bit_array_true(), false);
-					m_ifa_list.DeleteColumns(bit_array_true(), false);
-				}
 
 				::ShowWindow(uGetDlgItem(IDC_UI_DC_ARTWORK_LIST), SW_HIDE);
 				::ShowWindow(uGetDlgItem(IDC_UI_FILE_ARTWORK_LIST), SW_HIDE);
@@ -316,6 +283,8 @@ LRESULT CTrackMatchingDialog::OnCheckManageArtwork(WORD wNotifyCode, WORD wID, H
 			}
 
 			m_coord.SetMode(bmanaged ? lsmode::art : lsmode::tracks_ui);
+			
+			m_coord.Show();
 
 			::ShowScrollBar(uGetDlgItem(IDC_UI_DC_ARTWORK_LIST), SB_HORZ, FALSE);
 		}
@@ -539,10 +508,13 @@ LRESULT CTrackMatchingDialog::OnButtonBack(WORD /*wNotifyCode*/, WORD wID, HWND 
 
 	m_idc_list.TooltipRemove();
 	m_ifile_list.TooltipRemove();
+	m_ida_list.TooltipRemove();
+	m_ifa_list.TooltipRemove();
 
 	cfg_window_placement_track_matching_dlg.read_from_window(m_hWnd);
 
 	go_back();
+
 	return TRUE;
 }
 
@@ -586,7 +558,9 @@ bool CTrackMatchingDialog::generate_artwork_guids(pfc::array_t<GUID> &my_album_a
 			size_t walk_file = 0;
 			size_t dc_skipped = 0;
 
-			for (size_t walk = 0; walk < m_coord.GetDiscogsArtRowLvSize(); walk++) {
+			auto csrcfiles = m_coord.GetDiscogsArtRowLvSize();
+			auto ctargetfiles = m_coord.GetFileArtRowLvSize();
+			for (size_t walk = 0; walk < ctargetfiles && walk < csrcfiles; walk++) {
 
 				var_it_t out;
 				size_t ndx_discogs_img = m_coord.Get_V_LvRow(lsmode::art, true, walk, out);
@@ -682,6 +656,10 @@ bool CTrackMatchingDialog::generate_artwork_guids(pfc::array_t<GUID> &my_album_a
 
 LRESULT CTrackMatchingDialog::OnButtonWriteArtwork(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 
+	bool b_user_skip_artwork = IsDlgButtonChecked(IDC_CHK_SKIP_ARTWORK);
+
+	if (CONF_MULTI_ARTWORK.isEmpty()) return TRUE;
+
 	pfc::array_t<GUID> my_album_art_ids;
 	bool bfile_match = CONF_MULTI_ARTWORK.file_match;
 	if (!generate_artwork_guids(my_album_art_ids, bfile_match)) return false;
@@ -700,8 +678,21 @@ LRESULT CTrackMatchingDialog::OnButtonWriteArtwork(WORD /*wNotifyCode*/, WORD wI
 
 LRESULT CTrackMatchingDialog::OnButtonPreviewTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 
-	bool bfile_match = CONF_MULTI_ARTWORK.file_match;
-	if (!generate_artwork_guids(CONF_ARTWORK_GUIDS, bfile_match)) return FALSE;
+	auto user_wants_skip = HIWORD(m_conf.album_art_skip_default_cust);
+
+	bool user_skip_artwork = IsDlgButtonChecked(IDC_CHK_SKIP_ARTWORK);
+	if (buser_skip_artwork)  user_wants_skip |= ARTSAVE_SKIP_USER_FLAG;
+	else user_wants_skip &= ~ARTSAVE_SKIP_USER_FLAG;
+
+	m_conf.album_art_skip_default_cust = MAKELPARAM(LOWORD(m_conf.album_art_skip_default_cust), user_wants_skip);
+
+	bool save_artwork = m_conf.save_album_art || m_conf.save_artist_art || m_conf.embed_album_art || m_conf.embed_artist_art;
+	if (!buser_skip_artwork && save_artwork) {
+		bool bfile_match = CONF_MULTI_ARTWORK.file_match;
+		if (!generate_artwork_guids(CONF_ARTWORK_GUIDS, bfile_match)) {
+			return FALSE;
+		}
+	}
 
 	pushcfg();
 
@@ -713,9 +704,23 @@ LRESULT CTrackMatchingDialog::OnButtonPreviewTags(WORD /*wNotifyCode*/, WORD wID
 
 LRESULT CTrackMatchingDialog::OnButtonWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 
-	bool bfile_match = CONF_MULTI_ARTWORK.file_match;
-	if (!generate_artwork_guids(CONF_ARTWORK_GUIDS, bfile_match)) return FALSE;
-	
+	auto user_wants_skip = HIWORD(m_conf.album_art_skip_default_cust);
+    
+    bool buser_skip_artwork = IsDlgButtonChecked(IDC_CHK_SKIP_ARTWORK);
+    if (buser_skip_artwork)  user_wants_skip |= ARTSAVE_SKIP_USER_FLAG;
+    else user_wants_skip &= ~ARTSAVE_SKIP_USER_FLAG;
+    
+    m_conf.album_art_skip_default_cust = MAKELPARAM(LOWORD(m_conf.album_art_skip_default_cust), user_wants_skip);
+
+    bool save_artwork = m_conf.save_album_art || m_conf.save_artist_art || m_conf.embed_album_art || m_conf.embed_artist_art;
+
+	if (!user_wants_skip && save_artwork) {
+		bool bfile_match = CONF_MULTI_ARTWORK.file_match;
+		if (!generate_artwork_guids(CONF_ARTWORK_GUIDS, bfile_match)) {
+			return FALSE;
+		}
+	}
+
 	generate_track_mappings(m_tag_writer->track_mappings);
 	service_ptr_t<generate_tags_task> task = new service_impl_t<generate_tags_task>(this, m_tag_writer, false);
 	task->start();
@@ -769,18 +774,18 @@ inline bool CTrackMatchingDialog::build_current_cfg() {
 
 	//skip artwork
 
-	auto checkstate = SendDlgItemMessage(IDC_CHK_SKIP_ARTWORK, BM_GETSTATE, (WPARAM)0, (LPARAM)0);
-	if (checkstate == BST_INDETERMINATE)
-	{
-		m_conf.album_art_skip_default_cust = MAKELPARAM(ARTSAVE_SKIP_CUST_FLAG, ARTSAVE_SKIP_CUST_FLAG);
-	}
-	else if (checkstate == BST_CHECKED) {
+	int skip_art = 0;
+	auto checkstate = m_tristate.GetState();
 
-		m_conf.album_art_skip_default_cust = MAKELPARAM(ARTSAVE_SKIP_USER_FLAG, ARTSAVE_SKIP_USER_FLAG);
-	}		
-	else {
-		m_conf.album_art_skip_default_cust = MAKELPARAM(0, 0);
+	if (checkstate == BST_INDETERMINATE) {
+		skip_art |= BST_INDETERMINATE;
+	} else if (checkstate == BST_CHECKED) {
+		skip_art |= ARTSAVE_SKIP_USER_FLAG;
+	}else {
+		//..
 	}
+
+	m_conf.album_art_skip_default_cust = MAKELPARAM(LOWORD(m_conf.album_art_skip_default_cust), skip_art);
 
 	if (CONF.album_art_skip_default_cust != m_conf.album_art_skip_default_cust) {
 
@@ -956,7 +961,7 @@ bool CTrackMatchingDialog::context_menu_form(HWND wnd, LPARAM lParamPos) {
 		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 
 		uAppendMenu(menu, MF_STRING | (get_mode() == lsmode::default ? MF_UNCHECKED : MF_CHECKED),
-			ID_ART_TOOGLE_TRACK_ART_MODES, "&manage artwork\tCtrl+T");
+			ID_ART_TOOGLE_TRACK_ART_MODES, "&manage artwork");
 
 		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 
@@ -1052,23 +1057,13 @@ bool CTrackMatchingDialog::context_menu_track_show(HWND wnd, int idFrom, LPARAM 
 	bool bvk_apps = lParamPos == -1;
 
 	CListControlOwnerData* p_uilist = GetUIListByWnd(wnd);
+
+	CPoint point = p_uilist->GetContextMenuPoint(lParamPos);
+
 	bool is_uilist = p_uilist;
 	bool is_files = ::GetWindowLong(wnd, GWL_ID) == IDC_UI_FILE_ARTWORK_LIST ||
 		::GetWindowLong(wnd, GWL_ID) == IDC_UI_LIST_FILES;
 
-	POINT point;
-
-	if (bvk_apps) {
-		CRect rect;
-		CWindow(wnd).GetWindowRect(&rect);
-		point = rect.CenterPoint();
-	}
-	else {
-
-		point.x = GET_X_LPARAM(lParamPos);
-		point.y = GET_Y_LPARAM(lParamPos);
-	}
-		
 	try {
 		HMENU menu = CreatePopupMenu();
 		
@@ -1106,7 +1101,7 @@ bool CTrackMatchingDialog::context_menu_track_show(HWND wnd, int idFrom, LPARAM 
 		}
 		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 		uAppendMenu(menu, MF_STRING	| (get_mode() == lsmode::default ? MF_UNCHECKED : MF_CHECKED),
-			ID_ART_TOOGLE_TRACK_ART_MODES, "&manage artwork\tCtrl+T");
+			ID_ART_TOOGLE_TRACK_ART_MODES, "&manage artwork");
 
 		if (get_mode() == lsmode::art) {
 			if (!is_files) {
@@ -1129,15 +1124,15 @@ bool CTrackMatchingDialog::context_menu_track_show(HWND wnd, int idFrom, LPARAM 
 			else {
 				//artwork mode - local artwork panel
 				uAppendMenu(menu, MF_SEPARATOR, 0, 0);
-				uAppendMenu(menu, MF_STRING, ID_ART_RESET, "Reset\tCtrl+R");				
+				uAppendMenu(menu, MF_STRING, ID_ART_RESET, "Reset");				
 			}
 		}
 
 		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
-		uAppendMenu(menu, MF_STRING | (citems? 0 : MF_DISABLED | MF_GRAYED), ID_SELECT_ALL, "Select all\tCtrl+A");
-		uAppendMenu(menu, MF_STRING | (csel? 0 : MF_DISABLED | MF_GRAYED), ID_INVERT_SELECTION, "Invert selection\tCtrl+Shift+A");
-		uAppendMenu(menu, MF_STRING | (csel? 0 : MF_DISABLED | MF_GRAYED), ID_REMOVE, "Remove\tDel");
-		uAppendMenu(menu, MF_STRING | (csel? 0 : MF_DISABLED | MF_GRAYED), ID_CROP, "Crop\tCtrl+C");
+		uAppendMenu(menu, MF_STRING | (citems? 0 : MF_DISABLED | MF_GRAYED), ID_SELECT_ALL, "Select all");
+		uAppendMenu(menu, MF_STRING | (csel? 0 : MF_DISABLED | MF_GRAYED), ID_INVERT_SELECTION, "Invert selection");
+		uAppendMenu(menu, MF_STRING | (csel? 0 : MF_DISABLED | MF_GRAYED), ID_REMOVE, "Remove");
+		uAppendMenu(menu, MF_STRING | (csel? 0 : MF_DISABLED | MF_GRAYED), ID_CROP, "Crop");
 
 		if (is_uilist) {
 			std::pair<size_t, presenter*> icol_hit = m_coord.columnHitTest(point);
@@ -1530,10 +1525,10 @@ bool CTrackMatchingDialog::context_menu_art_attrib_show(HWND wndlist, HMENU* men
 
 		bool bitems = p_uilist->GetItemCount();
 		uAppendMenu(*menu, MF_SEPARATOR, (bselection ? 0 : MF_DISABLED | MF_GRAYED), 0);
-		uAppendMenu(*menu, MF_STRING | (bselection ? 0 : MF_DISABLED | MF_GRAYED) | (write || mixedwrite? MF_CHECKED | MF_UNCHECKED : 0), ID_ART_WRITE, "Write\tCtrl+W");
-		uAppendMenu(*menu, MF_STRING | (bselection ? 0 : MF_DISABLED | MF_GRAYED) | (ovr || mixedovr? MF_CHECKED | MF_UNCHECKED : 0), ID_ART_OVR, "Overwrite\tCtrl+O");
-		uAppendMenu(*menu, MF_STRING | (bselection ? 0 : MF_DISABLED | MF_GRAYED) | (embed || mixedembed? MF_CHECKED | MF_UNCHECKED : 0), ID_ART_EMBED, "Embed\tCtrl+E");
-		uAppendMenu(*menu, MF_STRING , ID_ART_RESET, "Reset\tCtrl+R");
+		uAppendMenu(*menu, MF_STRING | (bselection ? 0 : MF_DISABLED | MF_GRAYED) | (write || mixedwrite? MF_CHECKED | MF_UNCHECKED : 0), ID_ART_WRITE, "Write");
+		uAppendMenu(*menu, MF_STRING | (bselection ? 0 : MF_DISABLED | MF_GRAYED) | (ovr || mixedovr? MF_CHECKED | MF_UNCHECKED : 0), ID_ART_OVR, "Overwrite");
+		uAppendMenu(*menu, MF_STRING | (bselection ? 0 : MF_DISABLED | MF_GRAYED) | (embed || mixedembed? MF_CHECKED | MF_UNCHECKED : 0), ID_ART_EMBED, "Embed");
+		uAppendMenu(*menu, MF_STRING, ID_ART_RESET, "Reset");
 
 		uAppendMenu(*menu, MF_SEPARATOR, (bitems ? 0 : MF_DISABLED | MF_GRAYED), 0);
 		uAppendMenu(*menu, MF_STRING | (is_tile ? MF_CHECKED : 0) | (bitems && !is_tile ? 0 : MF_DISABLED | MF_GRAYED), ID_ART_TILE, "Tile");
@@ -1595,43 +1590,18 @@ void CTrackMatchingDialog::init_track_matching_dialog() {
 		multi_current = CONF_MULTI_ARTWORK;
 	}
 	
-
 	multi_uartwork multi_defaults = multi_uartwork(CONF, m_tag_writer->release);
 	
 	bool managed_artwork = !(multi_current == multi_defaults);
 	bool user_wants_skip = HIWORD(m_conf.album_art_skip_default_cust) & ARTSAVE_SKIP_USER_FLAG;
+
 	if (managed_artwork && !user_wants_skip) {
-        ::CheckDlgButton(m_hWnd, IDC_CHK_SKIP_ARTWORK, BST_INDETERMINATE);
-
-        SendMessage(GetDlgItem(IDC_CHK_SKIP_ARTWORK)
-            , BM_SETSTYLE
-            , (WPARAM)0
-            , (LPARAM)0);
-
-        SendMessage(GetDlgItem(IDC_CHK_SKIP_ARTWORK)
-            , BM_SETSTYLE
-            , (WPARAM)BS_AUTO3STATE | BS_CHECKBOX | BS_FLAT
-            , (LPARAM)0);
-
-        ::CheckDlgButton(m_hWnd, IDC_CHK_SKIP_ARTWORK, BST_INDETERMINATE);
-    }
-    else {
-
-        ::CheckDlgButton(m_hWnd, IDC_CHK_SKIP_ARTWORK, BST_UNCHECKED);
-
-        SendMessage(GetDlgItem(IDC_CHK_SKIP_ARTWORK)
-            , BM_SETSTYLE
-            , (WPARAM)0
-            , (LPARAM)0);
-
-        SendMessage(GetDlgItem(IDC_CHK_SKIP_ARTWORK)
-            , BM_SETSTYLE
-            , (WPARAM)BS_CHECKBOX | BS_AUTOCHECKBOX
-            , (LPARAM)0);
-
-        ::CheckDlgButton(m_hWnd, IDC_CHK_SKIP_ARTWORK,
-            user_wants_skip ? BST_CHECKED : BST_UNCHECKED);
-    }
+		m_tristate.SetTristate(BST_INDETERMINATE, BST_INDETERMINATE);
+	}
+	else {
+		m_tristate.RemoveTristate();
+		m_tristate.SetBistate(user_wants_skip ? BST_CHECKED : BST_UNCHECKED);
+	}
 	return;
 }
 

@@ -249,6 +249,7 @@ void foo_discogs::save_album_art(Release_ptr& release, metadb_handle_ptr item,
 	}
 
 	static const GUID undef_guid = { 0xCDCDCDCD, 0xCDCD, 0xCDCD, { 0xCD, 0xCD, 0xCD, 0xCD, 0xCD, 0xCD, 0xCD, 0xCD } };
+	static const GUID zero_guid = { 0, 0, 0, 0 };
 
 	pfc::string8 formatted_release_name;
 	item->format_title(nullptr, formatted_release_name, g_discogs->release_name_script, nullptr);
@@ -325,6 +326,11 @@ void foo_discogs::save_album_art(Release_ptr& release, metadb_handle_ptr item,
 		bool embed_req = true; //only embed first album/artist image on non custom jobs
 
 		if (write_this) {
+
+			//skip file match zeroed guids
+			if (i + offset >= my_album_art_ids.get_count() || my_album_art_ids[i + offset] == zero_guid) {
+				continue;
+			}
 
 			pfc::string8 file;
 			hook.set_custom("IMAGE_NUMBER", (unsigned)(i + 1));
@@ -476,7 +482,7 @@ void foo_discogs::save_album_art(Release_ptr& release, metadb_handle_ptr item,
 
 void foo_discogs::save_artist_art(Release_ptr &release, metadb_handle_ptr item,
 	art_download_attribs ada, pfc::array_t<GUID> my_album_art_ids, bit_array_bittable& saved_mask,
-	pfc::array_t<pfc::string8> &done_files, threaded_process_status &p_status, abort_callback &p_abort) {
+	pfc::array_t<pfc::string8> &done_files, std::map<pfc::string8, MemoryBlock>& done_fetches, threaded_process_status &p_status, abort_callback &p_abort) {
 
 	// ensure release is loaded
 	release->load(p_status, p_abort);
@@ -553,6 +559,7 @@ void foo_discogs::save_artist_art(pfc::array_t<Artist_ptr>& artists, Release_ptr
 	}
 
 	static const GUID undef_guid = { 0xCDCDCDCD, 0xCDCD, 0xCDCD, { 0xCD, 0xCD, 0xCD, 0xCD, 0xCD, 0xCD, 0xCD, 0xCD } };
+	static const GUID zero_guid = { 0, 0, 0, 0 };
 
 	size_t lkey = encode_mr(0, atol(release->master_id));
 	MasterRelease_ptr master = discogs_interface->get_master_release(lkey/*release->master_id*/);
@@ -635,6 +642,11 @@ void foo_discogs::save_artist_art(pfc::array_t<Artist_ptr>& artists, Release_ptr
 		bool embed_req = true;
 
 		if (write_this) {
+
+			//skip file match zeroed guids			
+			if (i + offset >= my_album_art_ids.get_count() || my_album_art_ids[i + offset] == zero_guid) {
+				continue;
+			}
 
 			pfc::string8 file;
 			hook.set_custom("IMAGE_NUMBER", (unsigned)(artist_img_ndx + 1));
@@ -743,27 +755,8 @@ void foo_discogs::save_artist_art(pfc::array_t<Artist_ptr>& artists, Release_ptr
 			}
 			last_path = path;
 		}
-		
-        MemoryBlock buffer;
 
-		if (write_this) {
-
-			if (voverwrite_it[i] || !foobar2000_io::filesystem::g_exists(path, p_abort)) {
-				
-				buffer = done_fetches[artist->images[artist_img_ndx]->url];
-				if (!buffer.get_ptr()) {					
-					auto& mbmi = done_fetches.emplace(artist->images[artist_img_ndx]->url, buffer);
-					g_discogs->fetch_image(mbmi.first->second, artist->images[artist_img_ndx], p_abort);
-					buffer = mbmi.first->second;
-				}
-							
-				g_discogs->write_image(buffer, path, p_abort);
-				saved_mask.set(i, true);
-			}
-			last_path = path;
-		}
-
-        //embed
+		//embeds do not check overwrites (always writes)
 
 		if (vembed_it[i] && embed_req) {
 

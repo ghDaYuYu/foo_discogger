@@ -858,6 +858,7 @@ void discogs_artwork_presenter::SetUIList(CListControlOwnerData* ui_replace_list
 		LPARAM woa = m_conf_col_woa[walk];
 		vorder[walk] = LOWORD(woa) % 10;
 		col_align = LOWORD(woa) / 10;
+		if (col_align == 0 && walk > 1) col_align = HDF_CENTER;
 		auto dbg = HIWORD(woa);
 
 		col_width = HIWORD(woa);
@@ -980,7 +981,7 @@ size_t files_artwork_presenter::GetVRow(size_t list_position, var_it_t& out) {
 
 void files_artwork_presenter::define_columns() {
 
-	m_vtitles = { "Cover Name", "Dim", "Size", "#"};
+	m_vtitles = { "File name", "Dim", "Size", "#"};
 	m_conf_col_woa.clear();
 	m_conf_col_woa.push_back(mp_conf->match_file_artwork_name_width);
 	m_conf_col_woa.push_back(mp_conf->match_file_artwork_dim_width);
@@ -1099,12 +1100,15 @@ void files_artwork_presenter::GetExistingArtwork() {
 void files_artwork_presenter::Populate() {
 	
 	PFC_ASSERT(m_release->id.get_length());
+
 	Reset();
 
 	GetExistingArtwork();
 	set_row_height(true);
 
 	set_lv_images_lists();
+
+	populated = true;
 }
 
 void files_artwork_presenter::Add_template(GUID template_guid, size_t template_size) {
@@ -1420,6 +1424,8 @@ void discogs_artwork_presenter::Populate() {
 		}
 	}
 
+	populated = true;
+
 	set_row_height(true);
 
 	PopulateConfArtWork();
@@ -1490,13 +1496,16 @@ void discogs_artwork_presenter::PopulateConfArtWork(/*uartwork uartt*/) {
 bool discogs_artwork_presenter::AddArtwork(size_t img_ndx, art_src artSrc, MemoryBlock small_art) {
 
 	pfc::string8 id;
+	size_t thumb_index= ~0;;
+
 	if (artSrc == art_src::alb) {
 		id = m_release->id;
+		thumb_index = img_ndx;
 	}
 	else {
 		Artist_ptr artist;
-		size_t artist_img_ndx = img_ndx;
-		if (discogs_interface->img_ndx_to_artist(m_release, img_ndx, artist, artist_img_ndx)) {
+		thumb_index = img_ndx;
+		if (discogs_interface->img_artists_ndx_to_artist(m_release, img_ndx, artist, thumb_index)) {
 			id = artist->id;
 		}
 	}
@@ -1506,8 +1515,8 @@ bool discogs_artwork_presenter::AddArtwork(size_t img_ndx, art_src artSrc, Memor
 	pfc::string8 cache_path_mini = Offline::get_thumbnail_cache_path_filenames(
 		id, artSrc, LVSIL_SMALL, pfc_infinite)[0];
 
-	cache_path_small << img_ndx << THUMB_EXTENSION;
-	cache_path_mini << img_ndx << THUMB_EXTENSION;
+	cache_path_small << thumb_index << THUMB_EXTENSION;
+	cache_path_mini << thumb_index << THUMB_EXTENSION;
 
 	bool bfolder_ready = Offline::create_offline_subpage_folder(id, artSrc, pfc_infinite, Offline::GetFrom::ArtistReleases, "", true);
 
@@ -1636,6 +1645,11 @@ void coord_presenters::populate_track_ui_mode() {
 	presenter& pres_tracks = binomial->first;
 	presenter& pres_files = binomial->second;
 
+	if (m_discogs_track_libui_presenter.GetPopulated() &&
+		m_file_track_libui_presenter.GetPopulated()) {
+		return;
+	}
+
 	m_discogs_track_libui_presenter.Reset();
 	m_file_track_libui_presenter.Reset();
 
@@ -1689,13 +1703,15 @@ void coord_presenters::populate_track_ui_mode() {
 			ReleaseTrack_ptr track;
 
 			if (mapping.discogs_disc == -1 || mapping.discogs_track == -1) {
+
+				//should be rejecting -1s unless related to json track parsing
 				int d, t;
 				if (!m_tag_writer->release->find_disc_track(i, &d, &t)) {
 					continue;
 				}
 				
-				ReleaseDisc_ptr disc = m_tag_writer->release->discs[d];
-				ReleaseTrack_ptr track = disc->tracks[t];
+				disc = m_tag_writer->release->discs[d];
+				track = disc->tracks[t];
 			}
 			else {
 				disc = m_tag_writer->release->discs[mapping.discogs_disc];
@@ -1756,6 +1772,11 @@ void coord_presenters::populate_artwork_mode(size_t select) {
 	binomials_it binomial = form_mode[lsmode::art];
 	presenter& pres_tracks = binomial->first;
 	presenter& pres_files = binomial->second;
+
+	if (m_discogs_art_presenter.GetPopulated() &&
+		m_file_art_presenter.GetPopulated()) {
+		return;
+	}
 
 	if (select == 0 || select == 1)
 	{

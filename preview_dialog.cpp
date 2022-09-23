@@ -326,39 +326,37 @@ LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 		}
 	}
 
-	//skip start
-	bool managed_artwork = !(CONF_MULTI_ARTWORK == multi_uartwork(CONF, m_tag_writer->release));
-	LPARAM lpskip = conf.album_art_skip_default_cust;
+	bool user_wants_skip = (HIWORD(conf.album_art_skip_default_cust) & ARTSAVE_SKIP_USER_FLAG) != 0;
+	bool save_artwork = conf.save_album_art || conf.save_album_art || conf.embed_album_art || conf.embed_artist_art;
 
-	bool user_skip_artwork = HIWORD(lpskip) & ARTSAVE_SKIP_USER_FLAG;
-	bool cust_skip_artwork = HIWORD(lpskip) & ARTSAVE_SKIP_CUST_FLAG;
-
-	if (user_skip_artwork) {
-
-		//Nothing to do
-		::CheckDlgButton(m_hWnd, IDC_CHK_SKIP_ARTWORK, BST_CHECKED);;
+	if (!save_artwork) {
+		m_tristate.Init(BST_CHECKED, FALSE);
 	}
-	else {
-	
-		if (cust_skip_artwork) {
-			::CheckDlgButton(m_hWnd, IDC_CHK_SKIP_ARTWORK, BST_INDETERMINATE);;
+	else
+	{
+		//skip start
+		bool managed_artwork = !(CONF_MULTI_ARTWORK == multi_uartwork(CONF, m_tag_writer->release));
+		LPARAM lpskip = conf.album_art_skip_default_cust;
+
+		bool user_skip_artwork = HIWORD(lpskip) & ARTSAVE_SKIP_USER_FLAG;
+		bool ind_skip_artwork = HIWORD(lpskip) & BST_INDETERMINATE;
+
+		if (user_skip_artwork) {
+
+			::CheckDlgButton(m_hWnd, IDC_CHK_SKIP_ARTWORK, BST_CHECKED);
 		}
 		else {
-			::CheckDlgButton(m_hWnd, IDC_CHK_SKIP_ARTWORK, BST_UNCHECKED);;
+
+			if (ind_skip_artwork) {
+				::CheckDlgButton(m_hWnd, IDC_CHK_SKIP_ARTWORK, BST_INDETERMINATE);;
+			}
+			else {
+				::CheckDlgButton(m_hWnd, IDC_CHK_SKIP_ARTWORK, BST_UNCHECKED);;
+			}
 		}
+
+		m_tristate.SetBistate();
 	}
-
-	//..REMOVE TRI-STATE
-	SendMessage(GetDlgItem(IDC_CHK_SKIP_ARTWORK)
-		, BM_SETSTYLE
-		, (WPARAM)0
-		, (LPARAM)0);
-
-	SendMessage(GetDlgItem(IDC_CHK_SKIP_ARTWORK)
-		, BM_SETSTYLE
-		, (WPARAM)BS_CHECKBOX | BS_AUTOCHECKBOX
-		, (LPARAM)0);//true redraws button
-	//..end REMOVE TRI-STATE
 
 	bool write_button_enabled = check_write_tags_status();
 	::EnableWindow(GetDlgItem(IDC_BTN_WRITE_TAGS), write_button_enabled);
@@ -383,7 +381,9 @@ LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 LRESULT CPreviewTagsDialog::OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) {
 
 	HWND hwndCtrl = (HWND)wParam;
-	size_t iItem = ListView_GetFirstSelection(m_results_list);
+	size_t iItem = m_uilist.GetFirstSelected();
+		
+	m_uilist.GetContextMenuPoint(lParam);
 
 	context_menu_show(hwndCtrl, iItem, lParam /*Coords*/);
 	return FALSE;
@@ -608,12 +608,11 @@ bool CPreviewTagsDialog::context_menu_switch(HWND wnd, POINT point, int cmd, bit
 
 bool CPreviewTagsDialog::check_write_tags_status() {
 	
-	auto checkstate = SendDlgItemMessage(IDC_CHK_SKIP_ARTWORK, BM_GETSTATE, (WPARAM)0, (LPARAM)0);
+	auto checkstate = m_tristate.GetState();
 	bool skip_art = checkstate == BST_CHECKED;
 
 	bool bres = m_tag_writer->will_modify;
 	bres |= !skip_art && (CONF.save_album_art || CONF.save_artist_art || CONF.embed_album_art || CONF.embed_artist_art);
-
 	return bres;
 }
 
@@ -627,11 +626,10 @@ bool CPreviewTagsDialog::init_other_controls_and_results() {
 	CheckDlgButton(IDC_CHK_REPLACE_ANV, release_has_anv && conf.replace_ANVs);
 	CheckDlgButton(IDC_CHK_PREV_DLG_DIFF_TRACKS, cfg_preview_dialog_track_map);
 
+	auto thumbs = Offline::get_thumbnail_cache_path_filenames(m_tag_writer->release->id, art_src::alb, LVSIL_NORMAL, 0);
 	// Album art
-	if (m_tag_writer->release->small_art.get_size() > 0 && (conf.save_album_art || conf.embed_album_art)) {
-
-		pfc::string8 cache_path_small = Offline::get_thumbnail_cache_path_filenames(
-			m_tag_writer->release->id, art_src::alb, LVSIL_NORMAL, 0)[0];
+	if (thumbs.get_count()) {
+		pfc::string8 cache_path_small = thumbs[0];
 
 		extract_native_path(cache_path_small, cache_path_small);
 
@@ -701,17 +699,7 @@ LRESULT CPreviewTagsDialog::OnCheckReplaceANVs(WORD /*wNotifyCode*/, WORD wID, H
 
 LRESULT CPreviewTagsDialog::OnCheckSkipArtwork(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 
-	// REMOVE TRI-STATE STYLE
-	SendMessage(GetDlgItem(IDC_CHK_SKIP_ARTWORK)
-		, BM_SETSTYLE
-		, (WPARAM)0
-		, (LPARAM)0);
-
-	SendMessage(GetDlgItem(IDC_CHK_SKIP_ARTWORK)
-		, BM_SETSTYLE
-		, (WPARAM)BS_CHECKBOX | BS_AUTOCHECKBOX
-		, (LPARAM)0);
-
+	m_tristate.SetBistate();
 	return FALSE;
 }
 
@@ -1133,6 +1121,7 @@ void CPreviewTagsDialog::go_back() {
 		CTrackMatchingDialog* dlg = g_discogs->track_matching_dialog;
 		HWND hwndButton = ::GetDlgItem(dlg->m_hWnd, IDC_BTN_PREVIEW_TAGS);
 		::PostMessage(dlg->m_hWnd, WM_NEXTDLGCTL, (WPARAM)hwndButton, TRUE);
+
 		dlg->show();
 	}
 }

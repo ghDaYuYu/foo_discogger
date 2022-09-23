@@ -215,12 +215,16 @@ public:
 	size_t columnHitTest(CPoint point);
 
 	void Reset() override {}
+	bool GetPopulated() { return populated; }
+
 	void ListInvalidate() { m_ui_list->Invalidate(true); }
 
 	//from artwork_presenter
 	virtual size_t get_icon_id(size_t iImageList) { return 0; };
 
 protected:
+
+	bool populated = false;
 
 	void define_columns() override =  0 ;
 	void update_list_width(bool init_controls);
@@ -734,6 +738,9 @@ public:
 	const foo_conf& Get_Conf();
 	void Set_Conf(foo_conf cfg);
 
+	foo_conf* get_conf() {
+		return &m_conf;
+	}
 
 private:
 

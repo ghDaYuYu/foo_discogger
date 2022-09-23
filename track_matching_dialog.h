@@ -8,6 +8,7 @@
 #include "track_matching_dialog_presenter.h"
 #include "track_matching_ILO.h"
 #include "artwork_list.h"
+#include "tristate_skip_artwork.h"
 
 using namespace Discogs;
 
@@ -51,7 +52,7 @@ public:
 
 	CTrackMatchingDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags = false) : ILOD_track_matching(tag_writer->release),
 		m_tag_writer(tag_writer),	m_conf(CONF), m_coord(p_parent, CONF),
-		m_idc_list(this), m_ifile_list(this), m_ida_list(this), m_ifa_list(this)
+		m_idc_list(this), m_ifile_list(this), m_ida_list(this), m_ifa_list(this), m_tristate(this)
 	{
 		m_conf.SetName("TrackMatchingDlg");
 		g_discogs->track_matching_dialog = this;
@@ -252,6 +253,8 @@ private:
 
 	CArtworkList					m_ida_list;
 	CArtworkList					m_ifa_list;
+
+	CTristate							m_tristate;
 
 	coord_presenters m_coord;
 

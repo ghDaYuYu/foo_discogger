@@ -57,15 +57,19 @@
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="PlatformPropertySheet.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="PlatformPropertySheet.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="PlatformPropertySheet_64.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="PlatformPropertySheet_64.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
@@ -232,7 +236,7 @@
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>
       </DataExecutionPrevention>
-      <AdditionalDependencies>../shared/shared-$(Platform).lib;kernel32.lib;user32.lib;gdi32.lib;comctl32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;$(SolutionDir)$(Platform)\$(Configuration)\jansson.lib;..\discogger libs\sqlite-ama l-336\$(Platform)\$(Configuration)\sqlite3.lib;$(SolutionDir)$(Platform)\$(Configuration)\oauthcpp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>../shared/shared-$(Platform).lib;kernel32.lib;user32.lib;gdi32.lib;comctl32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;$(SolutionDir)$(Platform)\$(Configuration)\jansson.lib;..\discogger libs\sqlite-amal-336\$(Platform)\$(Configuration)\sqlite3.lib;$(SolutionDir)$(Platform)\$(Configuration)\oauthcpp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>%(AdditionalOptions)</AdditionalOptions>
       <IgnoreSpecificDefaultLibraries>LIBCMT;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <LinkTimeCodeGeneration>UseFastLinkTimeCodeGeneration</LinkTimeCodeGeneration>
@@ -243,12 +247,18 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="artwork_list.cpp" />
     <ClCompile Include="art_download_attribs.cpp" />
+    <ClCompile Include="conf_flag_mng.cpp" />
     <ClCompile Include="find_artist_list.cpp" />
+    <ClCompile Include="find_artist_list_ILO.cpp" />
     <ClCompile Include="history_oplog.cpp" />
-    <ClCompile Include="preview_modal_tag_dialog.cpp" />
-    <ClCompile Include="preview_modal_tag_ILO.cpp" />
+    <ClCompile Include="preview_ILO.cpp" />
+    <ClCompile Include="preview_list.cpp" />
+    <ClCompile Include="preview_leading_tag_dialog.cpp" />
+    <ClCompile Include="preview_leading_tag_ILO.cpp" />
     <ClCompile Include="track_matching_ILO.cpp" />
+    <ClCompile Include="tristate_skip_artwork.cpp" />
     <ClCompile Include="conf.cpp" />
     <ClCompile Include="configuration_dialog.cpp" />
     <ClCompile Include="db_fetcher.cpp" />
@@ -287,20 +297,24 @@
     <ClCompile Include="tasks.cpp" />
     <ClCompile Include="track_matching_dialog.cpp" />
     <ClCompile Include="track_matching_dialog_presenter.cpp" />
-    <ClCompile Include="track_matching_lv_helpers.cpp" />
     <ClCompile Include="track_matching_utils.cpp" />
-    <ClCompile Include="track_match_lstdrop.cpp" />
     <ClCompile Include="utils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="artwork_list.h" />
     <ClInclude Include="art_download_attribs.h" />
     <ClInclude Include="cache.h" />
+    <ClInclude Include="conf_flag_mng.h" />
     <ClInclude Include="find_artist_list.h" />
+    <ClInclude Include="find_artist_list_ILO.h" />
     <ClInclude Include="history_oplog.h" />
     <ClInclude Include="my_tabentry.h" />
-    <ClInclude Include="preview_modal_tag_dialog.h" />
-    <ClInclude Include="preview_modal_tag_ILO.h" />
+    <ClInclude Include="preview_ILO.h" />
+    <ClInclude Include="preview_list.h" />
+    <ClInclude Include="preview_leading_tag_dialog.h" />
+    <ClInclude Include="preview_leading_tag_ILO.h" />
     <ClInclude Include="track_matching_ILO.h" />
+    <ClInclude Include="tristate_skip_artwork.h" />
     <ClInclude Include="my_editwithbuttons.h" />
     <ClInclude Include="CGdiPlusBitmap.h" />
     <ClInclude Include="conf.h" />
@@ -343,9 +357,7 @@
     <ClInclude Include="tasks.h" />
     <ClInclude Include="track_matching_dialog.h" />
     <ClInclude Include="track_matching_dialog_presenter.h" />
-    <ClInclude Include="track_matching_lv_helpers.h" />
     <ClInclude Include="track_matching_utils.h" />
-    <ClInclude Include="track_match_lstdrop.h" />
     <ClInclude Include="utils.h" />
     <ClInclude Include="utils_import_export_dialog.h" />
     <ClInclude Include="version.h" />
@@ -380,6 +392,15 @@
     <Image Include="ico\bitmap_tracer.bmp" />
     <Image Include="ico\bitmap_tracer_ext.bmp" />
     <Image Include="ico\png_dc_32_c.png" />
+    <Image Include="ico\png_ic_quian_16c.png" />
+    <Image Include="ico\png_ic_quian_24c.png" />
+    <Image Include="ico\png_ic_quian_32c.png" />
+    <Image Include="ico\png_ic_quian_48c.png" />
+    <Image Include="ico\png_ic_quian_dark_16c.png" />
+    <Image Include="ico\png_ic_quian_dark_24c.png" />
+    <Image Include="ico\png_ic_quian_dark_32c.png" />
+    <Image Include="ico\png_ic_quian_dark_48c.png" />
+    <Image Include="ico\png_recc.png" />
     <Image Include="ico\png_rec_16c.png" />
     <Image Include="ico\png_rec_24c.png" />
     <Image Include="ico\png_rec_32c.png" />

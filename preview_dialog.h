@@ -7,7 +7,7 @@
 #include "tag_writer.h"
 
 #include "preview_ILO.h"
-
+#include "tristate_skip_artwork.h"
 
 class CPreviewTagsDialog : public MyCDialogImpl<CPreviewTagsDialog>,
 	public CDialogResize<CPreviewTagsDialog>, public CMessageFilter,
@@ -20,7 +20,7 @@ public:
 	}
 
 	CPreviewTagsDialog(HWND p_parent, TagWriter_ptr tag_writer)
-		: m_tag_writer(tag_writer), m_results_list(NULL), m_uilist(this), conf(CONF), m_preview_bitmap(NULL) {
+		: m_tag_writer(tag_writer), m_results_list(NULL), m_uilist(this), m_tristate(this), conf(CONF), m_preview_bitmap(NULL) {
 
 		multi_uartwork test = CONF_MULTI_ARTWORK;
 
@@ -194,6 +194,7 @@ private:
 
 	HWND m_results_list;
 	CListControlOwnerData m_uilist;
+	CTristate m_tristate;
 
 	HBITMAP m_preview_bitmap;
 

@@ -9,7 +9,6 @@
 
 #include "discogs.h"
 #include "discogs_interface.h"
-#include "discogs_db_interface.h"
 
 #include "history_oplog.h"
 #include "find_release_utils.h"
@@ -18,12 +17,10 @@
 #include "icon_map.h"
 
 using namespace Discogs;
-
-//#define DEBUG_TREE
-
 enum FilterFlag { 
 	
-	Versions = 1 << 0,	RoleMain = 1 << 4,
+	Versions = 1 << 0,
+	RoleMain = 1 << 4,
 	
 };
 
@@ -134,29 +131,35 @@ public:
 
 	void expand_releases(const pfc::string8& filter, t_size master_index, t_size master_list_pos);
 	void on_expand_master_release_done(const MasterRelease_ptr& master_release, int list_index, threaded_process_status& p_status, abort_callback& p_abort);
+	
+	//artist done, update releases & apply filter
 
+	// -- UPDRELSRC
 	//
 	
 	void on_get_artist_done(cupdRelSrc cupdsrc, Artist_ptr& artist);
 	std::pair<rppair_t, rppair_t> update_releases(const pfc::string8& filter, updRelSrc updsrc, bool init_expand, bool brolemain_filter);
 	
 	//
+	// -- UPDRELSRC
 
 	LRESULT apply_filter(pfc::string8 strFilter, bool force_redraw, bool force_rebuild);
+
 
 	void set_selected_notifier(std::function<bool(int)>stdf_notifier) {
 		stdf_on_release_selected_notifier = stdf_notifier;
 	}
-
 	titleformat_hook_impl_multiformat_ptr get_hook() { return m_hook; }
 
 	const Artist_ptr Get_Artist();
 	size_t Get_Artist_List_Position();
 	size_t Get_Size();
+	size_t Get_Visible_Count();
 
-	// serves find release dlg
+	// public, do not use as private/protected member
 	void OnInitExpand(int lparam);
-	
+	//
+
 	void SetHit(int lparam) {
 		
 		CTreeViewCtrl tree(m_hwndTreeView);
@@ -201,7 +204,6 @@ public:
 		NOTIFY_HANDLER(IDC_RELEASE_TREE, TVN_ITEMEXPANDING, OnReleaseTreeExpanding)
 		NOTIFY_HANDLER(IDC_RELEASE_TREE, TVN_SELCHANGING, OnReleaseTreeSelChanging)
 		NOTIFY_HANDLER(IDC_RELEASE_TREE, TVN_SELCHANGED, OnReleaseTreeSelChanged)
-		NOTIFY_HANDLER(IDC_RELEASE_TREE, NM_RCLICK, OnRClickRelease)
 	END_MSG_MAP()
 
 #pragma warning(pop)
@@ -247,9 +249,6 @@ private:
 	LRESULT OnReleaseTreeSelChanged(int, LPNMHDR hdr, BOOL& bHandled);
 	LRESULT OnReleaseTreeDoubleClickRelease(int, LPNMHDR hdr, BOOL&);
 	LRESULT OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
-	LRESULT OnRClickRelease(int, LPNMHDR hdr, BOOL&);
-	LRESULT OnClick(WORD /*wNotifyCode*/, LPNMHDR /*lParam*/, BOOL& /*bHandled*/);
-
 	bool on_tree_display_cell_image(size_t item, size_t subitem, size_t id, cache_iterator_t cache_it, int& result);
 	void set_image_list();
 
@@ -257,7 +256,6 @@ private:
 	history_oplog* m_oplogger_p;
 	id_tracer* m_idtracer_p;
 
-	//vectors & maps
 	release_tree_cache m_rt_cache;
 
 	HWND m_hwndParent;

@@ -6,6 +6,25 @@
 
 const int kDataCol = 2;
 
+void ILOD_preview_leading::CopyFromOriginal() {
+
+	pfc::array_t<string_encoded_array>* arr_sea_val = &m_ptag_result->value;
+	pfc::array_t<string_encoded_array>* cmp_old_sea_val =  &m_ptag_result->old_value;
+
+	bool oldvalarray = m_ptag_result->old_value[0].has_array();
+	bool valarray = m_ptag_result->value[0].has_array();
+
+	for (size_t w = 0; w < cmp_old_sea_val->get_count(); w++) {
+		arr_sea_val[w] = cmp_old_sea_val[w];
+		bool oldvalarray = cmp_old_sea_val[w].get_ptr()->has_array();
+		bool valarray = arr_sea_val[w].get_ptr()->has_array();
+		bool tavalarray = m_ptag_result->value[0].has_array();
+		valarray = valarray;
+
+	}
+	ilo_get_ui_list()->UpdateItemsAll();
+}
+
 void ILOD_preview_leading::TriggerAction() {
 
 	if (ilo_get_ui_list()->GetSelectedCount()) {
@@ -14,15 +33,15 @@ void ILOD_preview_leading::TriggerAction() {
 }
 
 size_t ILOD_preview_leading::listGetItemCount(ctx_t ctx) {
-	//todo: use finfo count to manually fill non matched extra files
 	return ilo_get_vtracks_desc().size();
 }
 
 // fb2k lib - get subitems
 
 pfc::string8 ILOD_preview_leading::listGetSubItemText(ctx_t ctx, size_t item, size_t subItem) {
-	//todo: use finfo count to manually fill non matched extra files
-	if (item >= ilo_get_finfo_count()) return "";
+	if (item >= ilo_get_finfo_count()) {
+		return "";
+	}
 
 	if (subItem == 0) {
 	
@@ -51,37 +70,20 @@ pfc::string8 ILOD_preview_leading::listGetSubItemText(ctx_t ctx, size_t item, si
 			arr_sea_val = &m_ptag_result->value;
 		}
 
-		if (item >= ilo_get_finfo_count()) {
-
-			return "";
-		}
+		//need to split (no edits) or already multi
+		size_t moditem = item >= arr_sea_val->get_count() ? 0 : item;
 
 		pfc::string8 buffer;
 		pfc::string8 cmp_old_buffer;
 
-		if (arr_sea_val->size() == 1) {
-
-			buffer = (*arr_sea_val)[0].print();
-		}
-		else {
-			buffer = (*arr_sea_val)[item].print();
-		}
+		buffer = (*arr_sea_val)[moditem].print();
+		
 
 		if (get_mode() == PreView::Diff) {
 
-			if (item >= ilo_get_finfo_count()) {
-
-				return "";
-			}
-
 			if (cmp_old_sea_val) {
-				if (cmp_old_sea_val->size() == 1) {
-
-					cmp_old_buffer = (*cmp_old_sea_val)[0].print();
-				}
-				else {
-					cmp_old_buffer = (*cmp_old_sea_val)[item].print();
-				}
+				size_t moditem_cmp = item >= cmp_old_sea_val->get_count() ? 0 : item;
+				cmp_old_buffer = (*cmp_old_sea_val)[moditem_cmp].print();
 
 				if (STR_EQUAL(buffer, cmp_old_buffer)) {
 					buffer = "";
@@ -97,7 +99,6 @@ pfc::string8 ILOD_preview_leading::listGetSubItemText(ctx_t ctx, size_t item, si
 		return "na";
 	}
 }
-
 // fb2k lib - action
 
 void ILOD_preview_leading::listItemAction(ctx_t ctx, size_t item) {
@@ -133,47 +134,47 @@ pfc::string8 ILOD_preview_leading::listGetEditField(ctx_t ctx, size_t item, size
 
 void ILOD_preview_leading::listSetEditField(ctx_t ctx, size_t item, size_t subItem, const char* val) {
 
-	pfc::chain_list_v2_t<pfc::string8> splitval;
-	pfc::splitStringByChar(splitval, val, ';');
+	auto c = m_ptag_result->value.get_count();
+	string_encoded_array* value = &(m_ptag_result->value[0]);
+
+	bool was_array = value->has_array();
 
 	string_encoded_array sea_val;
+	if (was_array) {
 
-	for (auto it = splitval.first(); it.is_valid(); it++) {
-		pfc::string8 buffer = *it;
-		sea_val.append_item(buffer);
-		
+		std::vector<pfc::string8>vsplit;
+		split(val, ";", 0, vsplit);
+		for (auto w : vsplit) {
+			sea_val.append_item(w.trim(' '));
+		}
+		sea_val.encode();
+		bool bcheck = sea_val.has_array();
+		bcheck = bcheck;
 	}
-
-	sea_val.encode();
-
+	else {
+		sea_val = val;
+	}
 	if (m_ptag_result->value.get_count() == 1) {
 
 		//src common to all tracks ?
 
-		if (~STR_EQUAL(sea_val, m_ptag_result->value[0].print())) {
+		if (!STR_EQUAL(sea_val.print(), m_ptag_result->value[0].print())) {
 
 			//build per track values
 
 			size_t newcount = ilo_get_ui_list()->GetItemCount();
 
-			pfc::string8 prevstring = m_ptag_result->value[0].print();
+			string_encoded_array previtem = m_ptag_result->value[0];
 
 			m_ptag_result->value.force_reset();
 
 			for (size_t it = 0; it < newcount; it++) {
-				string_encoded_array previtem(prevstring);
-				previtem.encode();
 				m_ptag_result->value.add_item(previtem);
 			}
-
-			// replace common value by per track
-
-			m_ptag_result->value[item] = sea_val;
 		}
 	}
-	else {
-		m_ptag_result->value[item] = sea_val;
-	}
+	m_ptag_result->value[item] = sea_val;
+
 }
 
 // column editable

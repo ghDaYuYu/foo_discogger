@@ -1,7 +1,7 @@
 #pragma once
 
 #include "utils.h"
-#include "db_utils.h"
+#include "utils_db.h"
 
 class history_oplog {
 
@@ -53,9 +53,9 @@ private:
 	// menu
 
 	pfc::string8 get_menu_label(oplog_type optype, rppair* row) {
-		if (optype == oplog_type::artist)		return ((PFC_string_formatter() << row->second.first << "\t" << row->second.second).c_str());
+		if (optype == oplog_type::artist)		return ((PFC_string_formatter() << row->second.first << "\t" << EscapeWin(row->second.second)).c_str());
 		else if (optype == oplog_type::release)	return ((PFC_string_formatter() << row->first.first << "\t" << row->first.second).c_str());
-		else if (optype == oplog_type::filter)	return row->first.first;
+		else if (optype == oplog_type::filter)	return EscapeWin(row->first.first);
 		return "";
 	}
 };

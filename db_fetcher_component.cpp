@@ -1,10 +1,7 @@
 #include "stdafx.h"
 
-#include "db_utils.h"
+#include "utils_db.h"
 
-#ifdef CAT_CRED
-#include "tag_mapping_credit_utils.h"
-#endif
 
 #include "db_fetcher_component.h"
 
@@ -22,7 +19,7 @@ int db_fetcher_component::insert_history(sqldb* db, oplog_type optype, std::stri
 		artist_name = out.second.second;
 	}
 	else {
-		//filter is saved as cmd param
+		//filter saved as cmd param
 		filter = cmd_param = out.first.first;
 	}
 
@@ -35,7 +32,7 @@ int db_fetcher_component::insert_history(sqldb* db, oplog_type optype, std::stri
 
 	do {
 
-		ret = db->open(dll_db_name(), SQLITE_OPEN_READWRITE);
+		ret = db->open(dll_db_filename(), SQLITE_OPEN_READWRITE);
 
 		if (!db->debug_sql_return(ret, "open", "foo_discogger", "", 0, err_msg)) break;
 
@@ -43,10 +40,8 @@ int db_fetcher_component::insert_history(sqldb* db, oplog_type optype, std::stri
 
 		if (ret == SQLITE_OK) {
 
-//#ifdef DO_TRANSACTIONS
 			ret = sqlite3_exec(db->db_handle(), "BEGIN TRANSACTION;", NULL, NULL, NULL);
 			in_transaction = true;
-//#endif      
 
 			cmd = "insert";
 
@@ -61,9 +56,6 @@ int db_fetcher_component::insert_history(sqldb* db, oplog_type optype, std::stri
 			query << "\'" << db_dbl_apos(artist_name) << "\'";
 			query << ");";
 
-#ifdef DEBUG
-			log_msg(query);
-#endif 
 
 			char* err;
 			ret = sqlite3_exec(pDb, query, int_type_sqlite3_exec_callback, &inc_insert, &err);
@@ -72,15 +64,11 @@ int db_fetcher_component::insert_history(sqldb* db, oplog_type optype, std::stri
 			if (!db->debug_sql_return(ret, cmd, "add history details", "", 0, err_msg)) break;
 			//
 		}
-
-		;
-
 	} while (false);
 
-//#ifdef DO_TRANSACTIONS
-	if (in_transaction)
+	if (in_transaction) {
 		ret = sqlite3_exec(db->db_handle(), "END TRANSACTION;", NULL, NULL, NULL);
-//#endif
+	}
 
 	if (err_msg.get_length()) {
 		db->close();
@@ -102,7 +90,7 @@ bool db_fetcher_component::recharge_history(sqldb* db, std::string delete_cmd, s
 
 	if (!delete_cmd.compare(kcmdHistoryDeleteAll)) {
 
-		ret =  db->open(dll_db_name(), SQLITE_OPEN_READWRITE);
+		ret =  db->open(dll_db_filename(), SQLITE_OPEN_READWRITE);
 		bool check_ret = db->debug_sql_return(ret, "open", "foo_discogger - on init history update", "", 0, err_msg);
 		if (check_ret)	ret = sqlite3_exec(db->db_handle(), "DELETE FROM history_releases;", NULL, NULL, NULL);
 
@@ -126,9 +114,6 @@ bool db_fetcher_component::recharge_history(sqldb* db, std::string delete_cmd, s
 	task_map.emplace(oplog_type::artist, kHistorySearchArtist);
 	task_map.emplace(oplog_type::release, kHistoryProccessRelease);
 	task_map.emplace(oplog_type::filter, kHistoryFilterButton);
-
-	//todo: tidy up
-
 	std::string artist_sec_task = kHistoryGetArtist;
 
 	pfc::string8 keep_top_artist =
@@ -188,8 +173,7 @@ bool db_fetcher_component::recharge_history(sqldb* db, std::string delete_cmd, s
 	query_map.emplace(oplog_type::artist, query_artist);
 	query_map.emplace(oplog_type::filter, query_filter);
 
-
-	ret = db->open(dll_db_name(), SQLITE_OPEN_READWRITE);
+	ret = db->open(full_dll_db_name(), SQLITE_OPEN_READWRITE);
 
 	//
 	if (!db->debug_sql_return(ret, "open", "foo_discogger - on init history update", "", 0, err_msg)) return false;
@@ -197,15 +181,13 @@ bool db_fetcher_component::recharge_history(sqldb* db, std::string delete_cmd, s
 
 	pDb = db->db_handle();
 
-//#ifdef DO_TRANSACTIONS		
 	ret = sqlite3_exec(pDb, "BEGIN TRANSACTION;", NULL, NULL, NULL);
 	in_transaction = true;
-//#endif
-
 
 	for (auto walk_flush : flush_map) {
 
 		oplog_type thistype = walk_flush.first;
+
 
 		const char* param_pop_tops = "@param_pop_tops";
 
@@ -218,11 +200,6 @@ bool db_fetcher_component::recharge_history(sqldb* db, std::string delete_cmd, s
 				int top_rows = cmd_param;
 
 				ret = sqlite3_prepare_v2(db->db_handle(), walk_flush.second.c_str(), -1, &stmt_lk, NULL);
-
-				//
-				//if (!db->debug_sql_return(ret, "prepare", PFC_string_formatter() << "foo_discogger - prepare history", "", 0, err_msg)) break;
-				//
-
 				int param_ndx;
 				std::string cmd_label;
 
@@ -254,6 +231,7 @@ bool db_fetcher_component::recharge_history(sqldb* db, std::string delete_cmd, s
 
 					cmd = "prepare";
 
+
 					ret = sqlite3_prepare_v2(pDb, query_gq.c_str(), -1, &stmt_read, NULL);
 					//
 					if (!db->debug_sql_return(ret, "prepare", PFC_string_formatter() << "foo_discogger - load releases history", "", 0, err_msg)) break;
@@ -266,16 +244,19 @@ bool db_fetcher_component::recharge_history(sqldb* db, std::string delete_cmd, s
 					ret = sqlite3_bind_int(stmt_read, param_ndx, top_rows);
 
 					cmd_idparam = task_map.at(thistype);
-					param_ndx = sqlite3_bind_parameter_index(stmt_read, "@cmd_id");			
-					ret = sqlite3_bind_text(stmt_read, param_ndx, cmd_idparam.c_str(), cmd_idparam.size(), NULL);
-
 					if (thistype == oplog_type::artist) {
-						std::string cmd_idparam_sec = artist_sec_task;
-						param_ndx = sqlite3_bind_parameter_index(stmt_read, "@cmd_id_sec");
-						if (param_ndx) {
-							ret = sqlite3_bind_text(stmt_read, param_ndx, cmd_idparam_sec.c_str(), cmd_idparam_sec.size(), NULL);
-						}
+						
+						param_ndx = sqlite3_bind_parameter_index(stmt_read, "@cmd_id");
+						sqlite3_bind_text(stmt_read, 1, task_map.at(thistype).c_str(), -1, nullptr);
+						sqlite3_bind_text(stmt_read, 2, artist_sec_task.c_str(), -1, nullptr);
 					}
+					else {
+						cmd_idparam = task_map.at(thistype);
+						cmd_idparam = task_map.at(thistype);
+						param_ndx = sqlite3_bind_parameter_index(stmt_read, "@cmd_id");
+						ret = sqlite3_bind_text(stmt_read, param_ndx, cmd_idparam.c_str(), cmd_idparam.size(), NULL);
+					}
+
 					//
 					if (!db->debug_sql_return(ret, "bind", PFC_string_formatter() << "foo_discogger - load releases history", "", 0, err_msg)) break;
 					//
@@ -331,11 +312,10 @@ bool db_fetcher_component::recharge_history(sqldb* db, std::string delete_cmd, s
 
 	} // end optype loop
 
-//#ifdef DO_TRANSACTIONS
-	if (in_transaction)
+	if (in_transaction) {
 		ret = sqlite3_exec(pDb, "END TRANSACTION;", NULL, NULL, NULL);
-//#endif
-	
+	}
+
 	if (err_msg.get_length()) {
 		sqlite3_finalize(stmt_lk);
 		sqlite3_finalize(stmt_read);
@@ -348,10 +328,3 @@ bool db_fetcher_component::recharge_history(sqldb* db, std::string delete_cmd, s
 
 	return true;
 }
-
-#ifdef DB_DC
-#include "db_fecher_component_db_dc.cpp"
-#endif
-#ifdef CAT_CRED
-#include "db_fetcher_component_cat_cred.cpp"
-#endif

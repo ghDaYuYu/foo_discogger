@@ -14,7 +14,6 @@ const size_t RL_REMAINING_THRESHOLD = 30;
 #include <ostream>
 #include <iostream>
 
-//https://stackoverflow.com/questions/22590821/convert-stdduration-to-human-readable-time
 std::ostream& operator<<(std::ostream& os, std::chrono::nanoseconds ns)
 {
 	using namespace std::chrono;
@@ -27,8 +26,6 @@ std::ostream& operator<<(std::ostream& os, std::chrono::nanoseconds ns)
 	ns -= m;
 	auto s = duration_cast<seconds>(ns);
 	ns -= s;
-
-	//modded type int to u_uint32 & cast
 	std::optional<t_uint32> fs_count;
 	switch (os.precision()) {
 	case 9: fs_count = (t_uint32)ns.count();
@@ -71,8 +68,8 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 
 	if (!url.get_length()) {
 		foo_discogs_exception e;
-		e << "(empty url)";		
-		pfc::string8 log_msg("fetching empty url");
+		e << "(empty url)";
+		pfc::string8 log_msg("trying to fetch empty url");
 		throw e;
 		return;
 	}
@@ -90,7 +87,7 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 		log_msg("Url OAuth enabled");
 	}
 
-	if (use_api /*&& m_throttling*/) {
+	if (use_api) {
 		chrono::steady_clock::time_point time_now = chrono::steady_clock::now();
 		chrono::duration<double> time_span = time_now - m_last_fetch;
 
@@ -101,7 +98,6 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 		m_last_fetch = time_now;
 
 		//log: average and last delta
-		msg_average << "Avg >= " << m_fetch_wait_rolling_avg;
 		if (time_span != chrono::steady_clock::duration::zero()) {
 			msg_average << "Lapse: ";
 			//double microsecs = time_span.count();
@@ -119,7 +115,7 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 			msg_average << pfc::string8(human_read_time.str().c_str()) << msg_delta;
 		}
 
-		if (!isImageUrl /*&& m_throttling*/)
+		if (!isImageUrl)
 			log_msg(msg_average);
 
 		//reset when rate remaining reaches max m_value again
@@ -148,9 +144,9 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 
 		//OAuth header
 		if (use_oauth) {
-			request->add_header(oauth_sign_url_header(url, params));			
+			request->add_header(oauth_sign_url_header(url, params));
 		}
-		 
+
 		//Accept-Encoding header
 		request->add_header(dllinflateInit2 != NULL ? "Accept-Encoding: gzip, deflate" : "Accept-Encoding: identity");
 
@@ -159,9 +155,8 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 		pfc::string8 accept_header;
 		accept_header << "Accept: " << content_type;
 		request->add_header(accept_header);
-	
+
 		int tries = 1; //3x on error loading resource
-		
 
 		while (1) {
 
@@ -190,12 +185,11 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 					msg_ratelimits << " - RMNG: " << rate_header_buffer;
 				}
 
-                if (m_throttle_delta) {
-                    std::stringstream human_read_time;
-                    human_read_time << std::setprecision(3) << m_throttle_delta;
-                    msg_ratelimits << " - Throttle engaged (" << pfc::string8(human_read_time.str().c_str()) << u8" \u03BCs)";
-                }
-
+					if (m_throttle_delta) {
+						std::stringstream human_read_time;
+						human_read_time << std::setprecision(3) << m_throttle_delta;
+						msg_ratelimits << " - Throttle engaged (" << pfc::string8(human_read_time.str().c_str()) << u8" \u03BCs)";
+					}
 				if (msg_ratelimits.length())
 					log_msg(msg_ratelimits);
 				else {
@@ -213,9 +207,9 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 					switch (error_code) {
 					case 404:
 						throw http_404_exception();
-					case 401: //unauthorized				
-						throw http_401_exception();				
-					case 429: //too many requests (need to wait for remaining 60 or slow to 1 req/sec)						
+					case 401: //unauthorized
+						throw http_401_exception();
+					case 429: //too many requests (need to wait for remaining 60 or slow to 1 req/sec)
 						throw http_429_exception();
 					default:
 						throw http_exception(error_code);

@@ -27,7 +27,7 @@ int CArtworkList::GetItemHeight() const {
 
 bool CArtworkList::IsSubItemGrayed(size_t item, size_t subItem) {
 
-	CTrackMatchingDialog* dlg = (CTrackMatchingDialog*)(m_host);
+	CTrackMatchingDialog* dlg = static_cast<CTrackMatchingDialog*>(m_host);
 	auto uilist = dlg->get_ctx_lvlist(IDC_UI_FILE_ARTWORK_LIST);
 	
 	if (m_hWnd == uilist) {
@@ -44,7 +44,7 @@ bool CArtworkList::RenderCellImageTest(size_t item, size_t subItem) const {
 
 void CArtworkList::RenderCellImage(size_t item, size_t subItem, CDCHandle dc, const CRect& rc) const {
 
-	CTrackMatchingDialog* dlg = (CTrackMatchingDialog*)(m_host);
+	CTrackMatchingDialog* dlg = static_cast<CTrackMatchingDialog*>(m_host);
 
 	bool isTile = dlg->m_coord.isTile();
 	auto ida_list = dlg->get_ctx_lvlist(IDC_UI_DC_ARTWORK_LIST);
@@ -53,20 +53,19 @@ void CArtworkList::RenderCellImage(size_t item, size_t subItem, CDCHandle dc, co
 	CRect rcIcon;
 
 	if (m_hWnd == ida_list) {
-	
-        var_it_t out;
+
+		var_it_t out;
 		getimages_it imginfo;
 
 		size_t ndxpos = dlg->m_coord.Get_V_LvRow(lsmode::art, true, item, out);
 		imginfo = std::get<2>(*out).second;
 
 		if (ndxpos == pfc_infinite) return;
-
 		hIcon = dlg->m_coord.GetDiscogsArtVIcons(ndxpos, rcIcon);		
 	}
 	else {
-	
-        var_it_t out;
+
+		var_it_t out;
 		getimages_file_it imginfo;
 
 		size_t ndxpos = dlg->m_coord.Get_V_LvRow(lsmode::art, false, item, out);

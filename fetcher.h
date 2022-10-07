@@ -4,7 +4,6 @@
 #include "liboauthcpp\liboauthcpp.h"
 #include <chrono>
 
-
 #define CONSUMER_KEY "<<key>>"
 #define CONSUMER_SECRET "<<counsumer_secret>>"
 #define REQUEST_TOKEN_URL "https://api.discogs.com/oauth/request_token"
@@ -58,21 +57,6 @@ class http_429_exception : public http_exception
 public:
 	http_429_exception() : http_exception(429, "Too Many Requests (429) [Discogs API rate-limit reached.]") {}
 };
-
-/*
-struct oauth_sign_header_info {
-	std::pair<pfc::string8, pfc::string8> oauth_consumer_kv;		    // = "XXXX",
-	std::pair<pfc::string8, pfc::string8> oauth_nonce_kv;				// = "aaaa72369a07cdcd1ceeae5d1373f70fd04d2f24",
-	std::pair<pfc::string8, pfc::string8> oauth_signature_kv;			// = "jijifYh273eQJoFAfaQlDag29q0%3D",
-	std::pair<pfc::string8, pfc::string8> oauth_signature_method_kv;	// = "HMAC-SHA1",
-	std::pair<pfc::string8, pfc::string8> oauth_timestamp_kv;			// = "1409069083",
-	std::pair<pfc::string8, pfc::string8> oauth_token_kv;				// = "XXXX",
-	std::pair<pfc::string8, pfc::string8> oauth_version_kv;				// = "1.0"
-	pfc::string8 formatted_header;
-	pfc::string8 url_param;					                            // url param, all of the above
-};
-*/
-
 class Fetcher
 {
 private:
@@ -84,7 +68,6 @@ private:
 	pfc::string8 oauth_token_secret;
 	OAuth::Token *request_token;
 
-	//bool m_throttling;
 	chrono::steady_clock::time_point m_last_fetch;
 	double m_fetch_wait_rolling_avg;
 	size_t m_ratelimit_max;
@@ -102,7 +85,6 @@ public:
 		access_token = nullptr;
 		request_token = nullptr;
 
-		//m_throttling = true;
 		m_last_fetch = chrono::steady_clock::now();
 		m_fetch_wait_rolling_avg = 1;
 		m_ratelimit_max = 60;
@@ -112,7 +94,7 @@ public:
 		m_throttle_delta = 0.0;
 		
 		int n = 0;
-		// No clue what this does
+		// ?
 		while (!service_enum_t<http_client>().first(client)) {
 			log_msg("Waiting a little for http_client...");
 			Sleep(200);
@@ -152,7 +134,7 @@ public:
 		bool throw_abort = true,
 		const pfc::string8& content_type = "application/xml,text/html" /*, image / jpeg"*/);
 
-	// OAUTH STUFF
+	// OAuth stuff
 	void set_oauth(const pfc::string8 &token, const pfc::string8 &token_secret);
 	void init_oauth();
 	void update_oauth(const pfc::string8 &token, const pfc::string8 &token_secret);

@@ -18,12 +18,10 @@ public:
 	CHAIN_MSG_MAP(TParent)
 	END_MSG_MAP()
 
-	CMyEditWithButtons() : CEditWithButtons(),
-			m_stdf_call_history(nullptr)
+	CMyEditWithButtons() : CEditWithButtons(), m_stdf_call_history(nullptr)
 	{
 		m_bMsgHandled = true;
 	}
-
 	void OnSetFocus(HWND hWnd)
 	{
 		DefWindowProc();
@@ -67,7 +65,6 @@ public:
 		};
 
 		std::wstring clearValCopy(L"");
-
 		auto handler_onClearKey = [this, clearValCopy] {
 			this->SetWindowText(clearValCopy.c_str());
 			return false;
@@ -78,12 +75,11 @@ public:
 		};
 
 		this->onEnterKey = handler_onEnterKey;
-
 		AddButton(L"clear", handler_onClearKey, condition_clear, L"\x00D7");
 	}
 
 	void FocusClear() {
-		HWND wnd = this->GetNextDlgTabItem(FALSE);
+		HWND wnd = this->GetNextDlgTabItem(m_hWnd, FALSE);
 		if (wnd)
 			::SetFocus(wnd);
 	}

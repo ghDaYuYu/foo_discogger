@@ -11,10 +11,6 @@
 #include "preview_leading_tag_dialog.h"
 #include "tag_mappings_dialog.h"
 
-#ifdef CAT_CRED
-#include "tag_mappings_credits_dlg.h"
-#endif // CAT_CRED
-
 #include "configuration_dialog.h"
 #include "find_release_dialog.h"
 #include "find_release_artist_dlg.h"
@@ -24,14 +20,7 @@
 
 using namespace std;
 
-bool g_os_is_wine = false;
-foo_discogs *g_discogs = nullptr;
-DiscogsInterface *discogs_interface = nullptr;
 HICON g_icon = nullptr;
-
-#ifdef DB_DC
-Discogs_DB_Interface* discogs_db_interface = nullptr;
-#endif
 
 static const char* ERROR_IMAGE_NUMBER_REQUIRED = "Cannot save multiple images with the same name. Use %IMAGE_NUMBER% when forming image names.";
 
@@ -51,11 +40,15 @@ class initquit_discogs : public initquit
 			return;
 		}
 
+		for (size_t w = 0; w < cfg_tag_mappings.get_count(); w++) {
+
+			auto & e = cfg_tag_mappings[w];
+			e.is_multival_meta = is_multivalue_meta(e.tag_name);
+		
+		}
+		init_tag_mappings();
 		discogs_interface = new DiscogsInterface();
 
-#ifdef DB_DC
-		discogs_db_interface = new Discogs_DB_Interface();
-#endif
 
 		g_discogs = new foo_discogs();
 		g_os_is_wine = check_os_wine();
@@ -66,9 +59,6 @@ class initquit_discogs : public initquit
 		DeleteObject(g_discogs->icon);
 		delete g_discogs;				//(1)
 		delete discogs_interface;		//(2)
-#ifdef DB_DC
-		delete discogs_db_interface;
-#endif
 
 		unload_dlls();
 	}
@@ -80,17 +70,17 @@ foo_discogs::foo_discogs() {
 
 	icon = GdiplusLoadPNGIcon(IDB_PNG_DC_32C, CSize(32,32));
 
-	init_tag_mappings();
 	discogs_interface->fetcher->set_oauth(CONF.oauth_token, CONF.oauth_token_secret);
 
 	static_api_ptr_t<titleformat_compiler>()->compile_force(release_name_script, "[%album artist%] - [%album%]");
 	static_api_ptr_t<titleformat_compiler>()->compile_force(dc_artist_id_script, (PFC_string_formatter() << "[%" << TAG_ARTIST_ID << "%]").c_str());
 	static_api_ptr_t<titleformat_compiler>()->compile_force(dc_release_id_script, (PFC_string_formatter() << "[%" << TAG_RELEASE_ID << "%]").c_str());
-	
+
 	gave_oauth_warning = false;
 }
 
 foo_discogs::~foo_discogs() {
+
 	if (find_release_dialog)  {
 		find_release_dialog->destroy();
 	}
@@ -114,15 +104,6 @@ foo_discogs::~foo_discogs() {
 		tag_mappings_dialog->destroy();
 	}
 
-#ifdef CAT_CRED
-	if (tag_credit_dialog) {
-		tag_credit_dialog->destroy();
-	}
-#endif // CAT_CRED
-
-	//if (configuration_dialog) {
-	//	configuration_dialog->destroy();
-	//}
 }
 
 void foo_discogs::item_display_web_page(const metadb_handle_ptr item, discog_web_page web_page) {
@@ -241,15 +222,14 @@ typedef std::map<pfc::string8, MemoryBlock>::iterator done_fetches_it;
 
 void foo_discogs::save_album_art(Release_ptr& release, metadb_handle_ptr item,
 	art_download_attribs ada, pfc::array_t<GUID> my_album_art_ids, bit_array_bittable& saved_mask,
-	pfc::array_t<pfc::string8> &done_files, std::map<pfc::string8, MemoryBlock>& done_fetches,
-	threaded_process_status &p_status, abort_callback &p_abort) {
-
+	pfc::array_t<pfc::string8>& done_files, std::map<pfc::string8, MemoryBlock>& done_fetches, threaded_process_status& p_status, abort_callback& p_abort) {
 	if (!release->images.get_size()) {
 		return;
 	}
-
 	static const GUID undef_guid = { 0xCDCDCDCD, 0xCDCD, 0xCDCD, { 0xCD, 0xCD, 0xCD, 0xCD, 0xCD, 0xCD, 0xCD, 0xCD } };
 	static const GUID zero_guid = { 0, 0, 0, 0 };
+	
+	//..
 
 	pfc::string8 formatted_release_name;
 	item->format_title(nullptr, formatted_release_name, g_discogs->release_name_script, nullptr);
@@ -302,15 +282,11 @@ void foo_discogs::save_album_art(Release_ptr& release, metadb_handle_ptr item,
 	else {
 
 		cimage_batch = release->images.get_count();
-
-		//init flag vector (0 based for both album and artist)
 		for (size_t wib = 0; wib < cimage_batch; wib++) {
 
 			vwrite_it.resize(cimage_batch);
 			voverwrite_it.resize(cimage_batch);
 			vembed_it.resize(cimage_batch);
-
-			//todo: run on multiple art saving threads (per track)
 			vwrite_it[wib]		= CONF_MULTI_ARTWORK.getflag(af::alb_sd, wib /*+ offset*/);
 			voverwrite_it[wib]	= CONF_MULTI_ARTWORK.getflag(af::alb_ovr, wib /*+ offset*/);
 			vembed_it[wib]		= CONF_MULTI_ARTWORK.getflag(af::alb_emb, wib /*+ offset*/);
@@ -320,14 +296,13 @@ void foo_discogs::save_album_art(Release_ptr& release, metadb_handle_ptr item,
 	std::vector<GUID> vembeded_guids;
 
 	for (size_t i = 0; i < cimage_batch; i++) {
-
 		pfc::string8 path = directory;
 		bool write_this = vwrite_it[i];
 		bool embed_req = true; //only embed first album/artist image on non custom jobs
 
 		if (write_this) {
 
-			//skip file match zeroed guids
+			//skip file match zero guids
 			if (i + offset >= my_album_art_ids.get_count() || my_album_art_ids[i + offset] == zero_guid) {
 				continue;
 			}
@@ -337,7 +312,6 @@ void foo_discogs::save_album_art(Release_ptr& release, metadb_handle_ptr item,
 			hook.set_image(&release->images[i]);
 
 			if (my_album_art_ids.size() > i + offset) {
-
 				const char* art_id_name = album_art_ids::name_of(my_album_art_ids[i + offset]);
 				size_t postfix = 0;
 				if (art_id_name == nullptr) {
@@ -346,7 +320,6 @@ void foo_discogs::save_album_art(Release_ptr& release, metadb_handle_ptr item,
 
 					art_id_name = template_art_ids::name_of(my_album_art_ids[i + offset]);
 					if (art_id_name != nullptr) {
-						//tmpl src rows might be non-continuous
 						for (size_t walk_vw = 0; walk_vw < vwrite_it.size(); walk_vw++) {
 							if (vwrite_it[walk_vw]) {
 								if (walk_vw == i /*+ offset*/) break;
@@ -374,10 +347,9 @@ void foo_discogs::save_album_art(Release_ptr& release, metadb_handle_ptr item,
 				log_msg("Invalid index found generating artist artwork filename");
 			}
 
-            //todo: ? 
 			if (!file.get_length() || !ada.file_match) {
 				if (!file.get_length() && !ada.file_match) {
-					embed_req = true; //req is ok, vembed_it[i] decides
+					embed_req = true; //req is ok, vembed_it[i] will decide
 				}
 				CONF.album_art_filename_string->run_hook(item->get_location(), &info, &hook, file, nullptr);
 			}
@@ -418,66 +390,66 @@ void foo_discogs::save_album_art(Release_ptr& release, metadb_handle_ptr item,
 
 		MemoryBlock buffer;
 
-        if (write_this) {
+		if (write_this) {
 
-            if (voverwrite_it[i] || !foobar2000_io::filesystem::g_exists(path, p_abort)) {
-                buffer = done_fetches[release->images[i]->url];
-                if (!buffer.get_ptr()) {					
-                    auto& mbmi = done_fetches.emplace(release->images[i]->url, buffer);
-                    g_discogs->fetch_image(mbmi.first->second, release->images[i], p_abort);
-                    buffer = mbmi.first->second;
-                }
-                g_discogs->write_image(buffer, path, p_abort);
+			if (voverwrite_it[i] || !foobar2000_io::filesystem::g_exists(path, p_abort)) {
+				buffer = done_fetches[release->images[i]->url];
+				if (!buffer.get_ptr()) {					
+					auto& mbmi = done_fetches.emplace(release->images[i]->url, buffer);
+					g_discogs->fetch_image(mbmi.first->second, release->images[i], p_abort);
+					buffer = mbmi.first->second;
+				}			
+				g_discogs->write_image(buffer, path, p_abort);
 
-                saved_mask.set(i, true);
-            }
-            last_path = path;
-        }
+				saved_mask.set(i, true);
+			}
+			last_path = path;
+		}
 
 		//embeds
-	
-        if (vembed_it[i] && embed_req) {
 
-            if (my_album_art_ids.size() > i + offset) {
+		if (vembed_it[i] && embed_req) {
 
-                GUID this_guid = my_album_art_ids[i + offset];				
-                
-                this_guid = IsEqualGUID(this_guid, undef_guid) ? album_art_ids::cover_front : this_guid;
+			if (my_album_art_ids.size() > i + offset) {
 
-                auto guid_it = std::find_if(vembeded_guids.begin(), vembeded_guids.end(), [=](const auto &w) {
-                    return IsEqualGUID(w, this_guid);
-                    });
+				GUID this_guid = my_album_art_ids[i + offset];
+				
+				this_guid = IsEqualGUID(this_guid, undef_guid) ? album_art_ids::cover_front : this_guid;
 
-                if (guid_it != std::end(vembeded_guids)) continue;
+				auto guid_it = std::find_if(vembeded_guids.begin(), vembeded_guids.end(), [=](const auto &w) {
+					return IsEqualGUID(w, this_guid);
+					});
 
-                if (!buffer.get_count()) {
+				if (guid_it != std::end(vembeded_guids)) continue;
 
-                    buffer = done_fetches[release->images[i]->url];
+				if (!buffer.get_count()) {
 
-                    if (!buffer.get_ptr()) {
-                        auto &mbmi = done_fetches.emplace(release->images[i]->url, buffer);
-                        g_discogs->fetch_image(mbmi.first->second, release->images[i], p_abort);
-                        buffer = mbmi.first->second;
-                    }
-                }
+					buffer = done_fetches[release->images[i]->url];
 
-                if (this_guid == album_art_ids::icon) {
+					if (!buffer.get_ptr()) {
+						auto &mbmi = done_fetches.emplace(release->images[i]->url, buffer);
+						g_discogs->fetch_image(mbmi.first->second, release->images[i], p_abort);
+						buffer = mbmi.first->second;
+					}
+				}
 
-                    MemoryBlock iconbuffer = MemoryBlockToPngIcon(buffer);
-                    g_discogs->embed_image(iconbuffer, item, this_guid, p_abort);
-                }
-                else {
-                    if (buffer.get_ptr()) {
-                        g_discogs->embed_image(buffer, item, this_guid, p_abort);
-                    }
-                }
-                vembeded_guids.emplace_back(this_guid);
-            }
-            else {
-                log_msg("Invalid index found embeding artist artwork");
-            }
-        }
-    }
+				if (this_guid == album_art_ids::icon) {
+
+					MemoryBlock iconbuffer = MemoryBlockToPngIcon(buffer);
+					g_discogs->embed_image(iconbuffer, item, this_guid, p_abort);
+				}
+				else {
+					if (buffer.get_ptr()) {
+						g_discogs->embed_image(buffer, item, this_guid, p_abort);
+					}
+				}
+				vembeded_guids.emplace_back(this_guid);
+			}
+			else {
+				log_msg("Invalid index found embeding artist artwork");
+			}
+		}
+	}
 }
 
 void foo_discogs::save_artist_art(Release_ptr &release, metadb_handle_ptr item,
@@ -500,11 +472,9 @@ void foo_discogs::save_artist_art(Release_ptr &release, metadb_handle_ptr item,
 	pfc::string8 str;
 	pfc::array_t<int> ids;
 	try {
-
 		formatting_script artists_format_string = "%<ARTISTS_ID>%";
 		artists_format_string->run_hook(item->get_location(), (file_info*)&info, &hook, str, nullptr);
 		if (STR_EQUAL(str, "?")) str = release->artists[0]->full_artist->id;
-		
 		string_encoded_array result(str);
 		if (result.has_array()) {
 			for (size_t walk_res = 0; walk_res < result.get_width(); walk_res++) {
@@ -544,8 +514,7 @@ void foo_discogs::save_artist_art(Release_ptr &release, metadb_handle_ptr item,
 
 void foo_discogs::save_artist_art(pfc::array_t<Artist_ptr>& artists, Release_ptr &release, metadb_handle_ptr item,
 	art_download_attribs ada, pfc::array_t<GUID> my_album_art_ids, bit_array_bittable& saved_mask,
-	pfc::array_t<pfc::string8> &done_files, std::map<pfc::string8, MemoryBlock>& done_fetches,
-	threaded_process_status &p_status, abort_callback &p_abort) {
+	pfc::array_t<pfc::string8> &done_files, std::map<pfc::string8, MemoryBlock>& done_fetches, threaded_process_status &p_status, abort_callback &p_abort) {
 
 	size_t cartist_art = 0;
 
@@ -586,7 +555,6 @@ void foo_discogs::save_artist_art(pfc::array_t<Artist_ptr>& artists, Release_ptr
 
 	if (!ada.write_it && !ada.embed_it) {
 		log_msg("missing data... skipping artist art writing or embedding");
-		//if (ada.to_path_only) ada.vpaths.emplace_back("missing data... skipping artist art writing or embedding");
 		return;
 	}
 
@@ -609,20 +577,18 @@ void foo_discogs::save_artist_art(pfc::array_t<Artist_ptr>& artists, Release_ptr
 	else {
 
 		cimage_batch = cartist_art;
-
-		//init flag vector (0 based for both album and artist)
 		for (size_t wib = 0; wib < cimage_batch; wib++) {
 
 			vwrite_it.resize(cimage_batch);
 			voverwrite_it.resize(cimage_batch);
 			vembed_it.resize(cimage_batch);
-
-			//todo: run on multiple art saving threads (per track)
 			vwrite_it[wib] = CONF_MULTI_ARTWORK.getflag(af::art_sd, wib /*+ offset*/);
 			voverwrite_it[wib] = CONF_MULTI_ARTWORK.getflag(af::art_ovr, wib /*+ offset*/);
 			vembed_it[wib] = CONF_MULTI_ARTWORK.getflag(af::art_emb, wib /*+ offset*/);
 		}
 	}
+
+	bool b_multiple_artist_head = false;
 
 	std::vector<GUID> vembeded_guids;
 
@@ -631,19 +597,23 @@ void foo_discogs::save_artist_art(pfc::array_t<Artist_ptr>& artists, Release_ptr
 	for (size_t i = 0; i < cimage_batch; i++) {
 
 		Artist_ptr artist;
-		size_t artist_img_ndx;
+		size_t artist_img_ndx = ~0;
 		discogs_interface->img_artists_ndx_to_artist(release, i, artist, artist_img_ndx);
 
 		hook.set_artist(&artist);
 
+		if (i == 0) {
+			pfc::string8 tmp_str, tmp_file;
+			CONF.artist_art_filename_string->run_hook(item->get_location(), &info, &hook, tmp_file, nullptr);
+			tmp_str = extract_max_number(tmp_file, 'z');
+			b_multiple_artist_head = STR_EQUAL(tmp_str, release->artists[0]->full_artist->id);
+		}
+
 		pfc::string8 path = directory;
 		bool write_this = vwrite_it[i];
-
-		bool embed_req = true;
+		bool embed_req = true & b_multiple_artist_head;
 
 		if (write_this) {
-
-			//skip file match zeroed guids			
 			if (i + offset >= my_album_art_ids.get_count() || my_album_art_ids[i + offset] == zero_guid) {
 				continue;
 			}
@@ -653,7 +623,6 @@ void foo_discogs::save_artist_art(pfc::array_t<Artist_ptr>& artists, Release_ptr
 			hook.set_image(&artist->images[artist_img_ndx]);
 
 			if (my_album_art_ids.size() > i + offset) {
-
 				const char* art_id_name = album_art_ids::name_of(my_album_art_ids[i + offset]);
 				
 				size_t postfix = 0;
@@ -664,7 +633,6 @@ void foo_discogs::save_artist_art(pfc::array_t<Artist_ptr>& artists, Release_ptr
 
 					art_id_name = template_art_ids::name_of(my_album_art_ids[i + offset]);
 					if (art_id_name != nullptr) {
-						//tmpl src rows might be non-continuous
 						for (size_t walk_vw = 0; walk_vw < vwrite_it.size(); walk_vw++) {
 							if (vwrite_it[walk_vw]) {
 								if (walk_vw == i /*+ album_offset*/) break;
@@ -685,6 +653,8 @@ void foo_discogs::save_artist_art(pfc::array_t<Artist_ptr>& artists, Release_ptr
 						file << "_" << postfix;
 				}
 
+				//--
+
 				pfc::chain_list_v2_t<pfc::string8> splitfile;
 				pfc::splitStringByChar(splitfile, file.get_ptr(), ' ');
 				if (splitfile.get_count()) file = *splitfile.first();
@@ -692,11 +662,9 @@ void foo_discogs::save_artist_art(pfc::array_t<Artist_ptr>& artists, Release_ptr
 			else {
 				log_msg("Invalid index found generating artist artwork filename");
 			}
-
-            //todo: ? 
-            if (!file.get_length() || !ada.file_match) {
+			if (!file.get_length() || !ada.file_match || !b_multiple_artist_head) {
 				if (!file.get_length() && !ada.file_match) {
-					embed_req = true; //req ok, vembed_it[i] decides
+					embed_req = true;
 				}
 				CONF.artist_art_filename_string->run_hook(item->get_location(), &info, &hook, file, nullptr);
 			}
@@ -720,7 +688,6 @@ void foo_discogs::save_artist_art(pfc::array_t<Artist_ptr>& artists, Release_ptr
 			for (size_t walk_done = 0; walk_done < done_files.get_count(); walk_done++) {
 				if (done_files[walk_done].equals(path)) {
 					write_this = false;
-					//todo: embed overwrites
 					break;
 				}
 			}
@@ -763,6 +730,7 @@ void foo_discogs::save_artist_art(pfc::array_t<Artist_ptr>& artists, Release_ptr
 			if (my_album_art_ids.size() > i + offset) {
 			
 				GUID this_guid = my_album_art_ids[i + offset];
+				//default to artist
 				this_guid = IsEqualGUID(this_guid, undef_guid) ? album_art_ids::artist : this_guid;
 
 				auto guid_it = std::find_if(vembeded_guids.begin(), vembeded_guids.end(), [=](const auto& w) {

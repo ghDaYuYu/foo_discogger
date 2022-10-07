@@ -20,5 +20,5 @@ public:
 	void RenderCellImage(size_t item, size_t subItem, CDCHandle, const CRect&) const override;
 
 private:
-
+	//..
 };

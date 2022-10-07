@@ -85,8 +85,9 @@ public:
 	bool release_tag = false;
 
 	bool is_multi_artist() {
+
 		return vmulti_artist_ids.size();
-	}	
+	}
 	const std::vector<size_t> & get_vartist_ids() { return vmulti_artist_ids; }
 
 	size_t artist_i = pfc_infinite;
@@ -125,7 +126,6 @@ public:
 	// has
 
 	bool id_tracer::has_artist() {
-
 		return get_artist_id_store() != pfc_infinite;
 	}
 	bool id_tracer::has_master() const {
@@ -173,7 +173,7 @@ public:
 		release_pos = pfc_infinite;
 	}
 
-	// checks
+	// check
 
 	bool id_tracer::artist_check(const pfc::string8 currentid, int currentndx) {
 		if (need_artist()) {
@@ -242,9 +242,7 @@ public:
 			return has_artist() && has_master() && has_release();
 	}
 
-
 	void register_artist(pfc::string8 id, size_t & artist_id, std::vector<size_t>& vartists) {
-
 
 		if (id.get_length() && is_number(id.c_str())) {
 
@@ -294,7 +292,6 @@ public:
 					//multiple artists per track
 					register_artist(trim(w), tmp_artist_id, vmulti_artist_ids);
 				}
-			
 			} else if (walk_artist_id.get_length() && is_number(walk_artist_id.c_str())) {
 
 				register_artist(walk_artist_id, tmp_artist_id, vmulti_artist_ids);
@@ -309,12 +306,16 @@ public:
 			artist_tag = true;
 		}
 		if (g_discogs->file_info_get_tag(item, finfo, TAG_MASTER_RELEASE_ID, master_id)) {
-			this->master_id = atoi(master_id);
-			master_tag = true;
+			if (is_number(master_id.c_str())) {
+				this->master_id = is_number(master_id.c_str()) ? atoi(master_id) : ~0;
+				master_tag = true;
+			}
 		}
 		if (g_discogs->file_info_get_tag(item, finfo, TAG_RELEASE_ID, release_id)) {
-			this->release_id = atoi(release_id);
-			release_tag = true;
+			if (is_number(release_id.c_str())) {
+				this->release_id = is_number(release_id.c_str()) ? atoi(release_id) : ~0;
+				release_tag = true;
+			}
 		}
 		
 		return has_amr();
@@ -325,12 +326,6 @@ public:
 
 #ifndef ROW_COLUMN_DATA_H
 #define ROW_COLUMN_DATA_H
-
-//
-//struct row_subitem {
-//	int col;
-//	pfc::string8 strContent;
-//};
 
 struct row_col_data {
 	int id = -1;	//master id or release id
@@ -399,7 +394,6 @@ struct filter_cache {
 				bres = true;
 			}
 			else {
-				//fr.flag &= ~INDEXTOSTATEIMAGEMASK(flag);
 				bres = false;
 			}
 
@@ -426,7 +420,6 @@ struct filter_cache {
 				bval = true;
 			}
 			else {
-				//fr.flag &= ~INDEXTOSTATEIMAGEMASK(flag);
 				bval = false;
 			}
 
@@ -452,7 +445,6 @@ struct filter_cache {
 				val = true;
 			}
 			else {
-				//fr.flag &= ~INDEXTOSTATEIMAGEMASK(flag);
 				val = false;
 			}
 
@@ -540,11 +532,7 @@ struct filter_cache {
 				break;
 			}
 
-			/*if (val == -1) {
-				fr.flag ^= INDEXTOSTATEIMAGEMASK((int)flagtype);
-				val = (fr.flag & INDEXTOSTATEIMAGEMASK((int)flagtype)) == INDEXTOSTATEIMAGEMASK((int)flagtype);
-			}
-			else*/ if (val) {
+			if (val) {
 				fr.flag |= INDEXTOSTATEIMAGEMASK((int)flagtype);
 			}
 			else {
@@ -575,7 +563,7 @@ struct filter_cache {
 				break;
 			case 2:
 				break;
-			case (int)NodeFlag::spawn: //4 (downloaded?)
+			case (int)NodeFlag::spawn: //4 (downloaded)
 				break;
 			case (int)NodeFlag::expanded: //8
 				break;
@@ -608,4 +596,4 @@ struct filter_cache {
 	}
 };
 
-#endif //FILTERCACHE_H
+#endif

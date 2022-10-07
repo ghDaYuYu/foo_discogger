@@ -17,7 +17,7 @@ dialog_resize_helper::param CFindReleaseArtistDialog::m_resize_helper_table[] =
 CFindReleaseArtistDialog::CFindReleaseArtistDialog(HWND p_parent, size_t SW_FLAG, bool custfont) : m_sw_flag(SW_FLAG), m_customfont(custfont),
 	m_resize_helper(m_resize_helper_table, tabsize(m_resize_helper_table), 235, 94, 0, 0)
 {
-    //
+    //..
 }
 
 void CFindReleaseArtistDialog::UpdateProfile(Artist_ptr& artist, pfc::string8 modprofile)
@@ -32,29 +32,26 @@ void CFindReleaseArtistDialog::UpdateProfile(Artist_ptr& artist, pfc::string8 mo
 			pfc::string8 name = artist->name;
 			pfc::string8 profile= modprofile;
 			pfc::string8 realname = artist->realname;
-			pfc::string8 tmp;
+			pfc::string8 buffer;
 
-			//caption
-			tmp << "Artist Profile - " << name;
-			uSetWindowText(m_hWnd, tmp);
-			//profile
+			buffer << "Artist Profile - " << name;
+			uSetWindowText(m_hWnd, buffer);
 			uSetDlgItemText(m_hWnd, IDC_EDIT_FIND_ARTIST_PROFILE, profile);
-			//realname
 
 			if (loaded) {
 				if (realname.get_length()) {
-					tmp = "Real name: ";
-					tmp << realname;					
+					buffer = "Real name: ";
+					buffer << realname;
 				}
 				else {
-					tmp = "";
+					buffer = "";
 				}
 			}
 			else {
-				tmp = "Select artist to load profile.";
+				buffer = "Select artist to load profile.";
 			}
 
-			uSetDlgItemText(m_hWnd, IDC_STATIC_PROFILE_REALNAME, tmp);
+			uSetDlgItemText(m_hWnd, IDC_STATIC_PROFILE_REALNAME, buffer);
 
 			m_id = id;
 			m_loaded = loaded;

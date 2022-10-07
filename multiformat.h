@@ -8,7 +8,6 @@
 
 using namespace Discogs;
 
-
 class persistent_store
 {
 private:
@@ -58,8 +57,8 @@ private:
 	fake_threaded_process_status f_status;
 	threaded_process_status &p_status;
 
-	const file_info *m_finfo = nullptr;
-	persistent_store *m_store = nullptr;
+	const file_info *finfo = nullptr;
+	persistent_store *store = nullptr;
 	persistent_store *prompt_store = nullptr;
 	std::map<const char*, string_encoded_array, cmp_str> custom_map;
 
@@ -71,7 +70,7 @@ public:
 	titleformat_hook_impl_multiformat(threaded_process_status &p_status, const MasterRelease_ptr *master_release, const Release_ptr *release = nullptr,
 		const ReleaseDisc_ptr *release_disc = nullptr, const ReleaseTrack_ptr *release_track = nullptr,
 		const file_info *info = nullptr, persistent_store *pstore = nullptr, persistent_store *prompt_store = nullptr) :
-		p_status(p_status), release(release), release_disc(release_disc), release_track(release_track), master_release(master_release), artist(artist), m_finfo(info), m_store(pstore), prompt_store(prompt_store) {};
+		p_status(p_status), release(release), release_disc(release_disc), release_track(release_track), master_release(master_release), artist(artist), finfo(info), store(pstore), prompt_store(prompt_store) {};
 	titleformat_hook_impl_multiformat(const Release_ptr *release = nullptr, const ReleaseDisc_ptr *disc = nullptr, const ReleaseTrack_ptr *track = nullptr) :
 		release(release), release_disc(disc), release_track(track), p_status(f_status) {};
 

@@ -9,14 +9,12 @@ CArtistList* ILOD_artist_list::get_uilist() {
 	return dynamic_cast<CArtistList*>(ilo_get_uilist());
 }
 
-// libPPUI IListControlOwnerDataSource overrides
+// IListControlOwnerDataSource overrides
 
 size_t ILOD_artist_list::listGetItemCount(ctx_t ctx) {
 
 	return get_uilist()->Get_Artists().get_count();
 }
-
-// fb2k lib - get subitems
 
 pfc::string8 ILOD_artist_list::listGetSubItemText(ctx_t ctx, size_t item, size_t subItem) {
 
@@ -29,19 +27,16 @@ pfc::string8 ILOD_artist_list::listGetSubItemText(ctx_t ctx, size_t item, size_t
 	}
 }
 
-// fb2k lib - action, edit, clicked - not implemented
-
 void ILOD_artist_list::listItemAction(ctx_t, size_t) {
 
-	get_uilist()->Default_Artist_Action();
+	get_uilist()->Default_Action();
 }
 
 void ILOD_artist_list::listSelChanged(ctx_t) {
-
 	bool full_cache = ol::can_read() && ol::can_write();
 	cupdRelSrc in_cupdsrc(updRelSrc::ArtistProfile);
 	in_cupdsrc.extended = full_cache && CONF.auto_rel_load_on_select;
 
-    auto dlg = dynamic_cast<CFindReleaseDialog*>(this);
+	auto dlg = dynamic_cast<CFindReleaseDialog*>(this);
 	dlg->convey_artist_list_selection(in_cupdsrc);
 }

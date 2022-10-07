@@ -21,8 +21,8 @@ class get_artist_process_callback;
 class search_artist_process_callback;
 
 class CFindReleaseDialog : public MyCDialogImpl<CFindReleaseDialog>,
-	public CDialogResize<CFindReleaseDialog>, public CMessageFilter,
-	public ILOD_artist_list, public fb2k::CDarkModeHooks {
+	public CMessageFilter, public ILOD_artist_list, 
+	public CDialogResize<CFindReleaseDialog>, public fb2k::CDarkModeHooks {
 
 public:
 
@@ -65,8 +65,6 @@ public:
 
 		CHAIN_MSG_MAP(CDialogResize<CFindReleaseDialog>)
 		CHAIN_MSG_MAP_MEMBER(m_dctree)
-		CHAIN_MSG_MAP_MEMBER(m_alist)
-		REFLECT_NOTIFICATIONS();
 	END_MSG_MAP()
 
 #pragma warning( pop )
@@ -100,19 +98,13 @@ public:
 
 	END_DLGRESIZE_MAP()
 
-	void DlgResize_UpdateLayout(int cxWidth, int cyHeight) {
-		CDialogResize<CFindReleaseDialog>::DlgResize_UpdateLayout(cxWidth, cyHeight);
-	}
-
-	// constructor / destructor
-
-	CFindReleaseDialog(HWND p_parent, metadb_handle_list items, foo_conf cfg);
-
-	~CFindReleaseDialog();
-
 	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 		destroy();
 		return TRUE;
+	}
+
+	void DlgResize_UpdateLayout(int cxWidth, int cyHeight) {
+		CDialogResize<CFindReleaseDialog>::DlgResize_UpdateLayout(cxWidth, cyHeight);
 	}
 
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
@@ -153,11 +145,11 @@ public:
 	//serves EnterKeySubclassProc
 	bool ForwardVKReturn();
 
-
 public:
 
 	enum { IDD = IDD_DIALOG_FIND_RELEASE };
 
+	//flag_enum_findrelease_dialog
 	enum flg_fr {
 		FLG_PROFILE_DLG_SHOW = 1 << 0,
 		FLG_PROFILE_DLG_ATTACHED = 1 << 1,
@@ -171,30 +163,19 @@ public:
 
 	size_t get_tree_artist_list_pos() { return m_dctree.Get_Artist_List_Position(); }
 
+	//serves profile refresh requests from tree, ...
 	void UpdateArtistProfile(Artist_ptr artist);
-
-	//todo:
 	pfc::string EscapeWin(pfc::string8 keyWord) {
 		pfc::string8 out_keyWord(keyWord);
-		//out_keyWord.replace_string("/", "//");
-		//out_keyWord.replace_string("'", "''");
-		//out_keyWord.replace_string("[", "/[");
-		//out_keyWord.replace_string("]", "/]");
-		//out_keyWord.replace_string("%", "/%");
 		out_keyWord.replace_string("&", "&&");
-		//out_keyWord.replace_string("_", "/_");
-		//out_keyWord.replace_string("(", "/(");
-		//out_keyWord.replace_string(")", "/)");
 		return out_keyWord;
 	}
-
 	void print_root_stats(rppair root_stat, bool save = true);
 
 	bool add_history(oplog_type optype, std::string cmd, pfc::string8 ff, pfc::string8 fs, pfc::string8 sf, pfc::string8 ss);
 	bool add_history(oplog_type optype, std::string cmd, rppair row);
 
 	bool Set_Config_Flag(int ID, int flag, bool flagvalue);
-
 	std::mutex m_loading_selection_rw_mutex;
 	size_t m_loading_selection_id = pfc_infinite;
 
@@ -204,7 +185,7 @@ private:
 		KTypeFilterTimerID = 0xd21e0907,
 		KTypeFilterTimeOut = 500
 	};
-		
+
 	//controls
 
 	std::function<bool()>stdf_enteroverride_artist = [this]() {
@@ -252,7 +233,7 @@ private:
 			//transfer result text
 			_tcscpy_s(wstrt, MAX_PATH, wide_menu_cmd);
 
-			//return false if input = output
+			//input != output ?
 			return (stricmp_utf8(in, menu_cmd) != 0);
 		}
 
@@ -292,9 +273,6 @@ private:
 	void on_search_artist_done(const pfc::array_t<Artist_ptr>& p_artist_exact_matches, const pfc::array_t<Artist_ptr>& p_artist_other_matches, bool append);
 
 	// route artist search
-
-	DBFlags calc_dbdc_flag();
-
 	void route_artist_search(pfc::string8 artistname, bool dlgbutton, bool idded);
 
 	// release service callbacks
@@ -340,8 +318,6 @@ private:
 	history_oplog m_oplogger;
 	id_tracer m_tracer;
 
-	//CDlgItemsCallback m_items_callback;
-
 	CFindReleaseTree m_dctree;
 	CArtistList m_alist;
 
@@ -378,6 +354,8 @@ public:
 
 };
 
+// Subclass proc to hook WM_GETDLGCODE VKRETURN
+
 static LRESULT CALLBACK EnterKeySubclassProc(
 	HWND hwnd, UINT uiMsg, WPARAM wParam, LPARAM lParam,
 	UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
@@ -387,8 +365,9 @@ static LRESULT CALLBACK EnterKeySubclassProc(
 		RemoveWindowSubclass(hwnd, EnterKeySubclassProc,
 			uIdSubclass);
 		break;
-	case WM_GETDLGCODE:
 
+	case WM_GETDLGCODE:
+	{
 		LPMSG lpMsg = (LPMSG)lParam;
 
 		if (lpMsg == NULL) {
@@ -397,27 +376,23 @@ static LRESULT CALLBACK EnterKeySubclassProc(
 		}
 
 		switch (lpMsg->message) {
-		
+
 		case WM_KEYDOWN:
 		case WM_SYSKEYDOWN:
-
 			switch (lpMsg->wParam) {
-			
+
 			case VK_RETURN: {
 
-				//forward call
+				//forward to dialog member FowardVKReturn...
 
 				bool bwant_return =
 					g_discogs->find_release_dialog->ForwardVKReturn();
 
 				if (bwant_return) {
-
 					return DefSubclassProc(hwnd, uiMsg, wParam, lParam)
 						& ~VK_RETURN;
 				}
-
-				return DefSubclassProc(hwnd, uiMsg, wParam, lParam)
-					| DLGC_WANTALLKEYS;
+				break;
 			}
 			case VK_ESCAPE:
 
@@ -425,11 +400,13 @@ static LRESULT CALLBACK EnterKeySubclassProc(
 					| DLGC_WANTALLKEYS;
 
 			default:
-                ;
+				;
 			}
+
 		default:
 			;
 		}
+	}
 	}
 	return DefSubclassProc(hwnd, uiMsg, wParam, lParam);
 }

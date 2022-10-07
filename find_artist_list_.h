@@ -175,6 +175,7 @@ private:
 		return FALSE;
 	}
 
+	LRESULT OnGetInfo(WORD /*wNotifyCode*/, LPNMHDR hdr, BOOL& /*bHandled*/);
 	LRESULT OnListSelChanged(int, LPNMHDR hdr, BOOL& bHandled);
 	LRESULT OnListDoubleClick(int, LPNMHDR hdr, BOOL& bHandled);
 	LRESULT OnRClickRelease(int, LPNMHDR hdr, BOOL&);

@@ -20,11 +20,11 @@ namespace Discogs
 	extern pfc::string8 move_the_to_end(const pfc::string8 &src);
 	extern pfc::string8 strip_artist_name(const pfc::string8 str);
 	extern pfc::string8 format_track_number(int tracknumber);
-	
+
 	class ExpTagsImage : public ExposedTags<ExpTagsImage>
 	{
 	public:
-		pfc::string8 type; // "primary" or "secondary"
+		pfc::string8 type; //primary or secondary
 		pfc::string8 url;
 		pfc::string8 url150;
 		pfc::string8 width;
@@ -57,12 +57,21 @@ namespace Discogs
 		}
 	};
 	typedef std::shared_ptr<ExpTagsImage> Image_ptr;
-	
 
 	class HasImages
 	{
 	public:
+
 		pfc::array_t<Image_ptr> images;
+
+		~HasImages() {
+
+			for (auto i : images) {
+
+				i.reset();
+
+			}
+		}
 	};
 
 
@@ -175,8 +184,7 @@ namespace Discogs
 	};
 	typedef std::shared_ptr<Artist> Artist_ptr;
 
-
-	// TODO: possible to merge artist and release artist, using the lazy loading stuff?
+	// todo: possible to merge artist and release artist, using the lazy loading stuff?
 
 	class ReleaseArtist : public HasRoles, public ExposedTags<ReleaseArtist>
 	{
@@ -221,11 +229,12 @@ namespace Discogs
 			m["JOIN"] = { &ReleaseArtist::get_join, &ReleaseArtist::load };
 			return m;
 		}
-
+		//..
 		void load(threaded_process_status& p_status, abort_callback& p_abort, bool throw_all = false) override;
+		//..
 		string_encoded_array get_data(pfc::string8 &tag_name, threaded_process_status &p_status, abort_callback &p_abort) override;
 
-		ReleaseArtist(const char *id, Artist_ptr &full_artist, bool extload = false) : full_artist(full_artist), id(id), preload(preload) {
+		ReleaseArtist(const char *id, Artist_ptr &full_artist, bool preload = false) : full_artist(full_artist), id(id), preload(preload) {
 		}
 
 		bool has_anv() const {
@@ -233,7 +242,7 @@ namespace Discogs
 		}
 
 	private:
-		bool extload = false;
+		bool preload = false;
 	};
 	typedef std::shared_ptr<ReleaseArtist> ReleaseArtist_ptr;
 
@@ -263,34 +272,12 @@ namespace Discogs
 			m["ROLES_RAW"] = { &ReleaseCredit::get_raw_roles, &ReleaseCredit::load };
 			m["ROLES"] = { &ReleaseCredit::get_roles, &ReleaseCredit::load };
 			m["SHORT_ROLES"] = { &ReleaseCredit::get_roles_short, &ReleaseCredit::load };
-			//todo: pending rest of implementation 
-			//m["CAT_ROLES"] = { &ReleaseCredit::get_cat_roles, &ReleaseCredit::load };
 			return m;
 		}
-
 		virtual string_encoded_array get_sub_data(pfc::string8 &tag_name, threaded_process_status &p_status, abort_callback &p_abort) override;
 	};
 	typedef std::shared_ptr<ReleaseCredit> ReleaseCredit_ptr;
 
-#ifdef CAT_CRED
-
-	class ReleaseCatCredit : public HasRoles, public HasArtists, public ExposedTags<ReleaseCatCredit>
-	{
-	public:
-		static ExposedMap<ReleaseCatCredit> create_tags_map() {
-			ExposedMap<ReleaseCatCredit> m;
-			m["ROLES_CAT"] = { &ReleaseCatCredit::get_cat_roles, &ReleaseCatCredit::load };
-			m["ROLES_RAW"] = { &ReleaseCatCredit::get_raw_roles, &ReleaseCatCredit::load };
-			m["ROLES"] = { &ReleaseCatCredit::get_roles, &ReleaseCatCredit::load };
-			m["SHORT_ROLES"] = { &ReleaseCatCredit::get_roles_short, &ReleaseCatCredit::load };
-			return m;
-		}
-
-		virtual string_encoded_array get_sub_data(pfc::string8& tag_name, threaded_process_status& p_status, abort_callback& p_abort) override;
-	};
-	typedef std::shared_ptr<ReleaseCatCredit> ReleaseCatCredit_ptr;
-
-#endif //CAT_CRED
 
 	class HasCredits
 	{
@@ -461,6 +448,49 @@ namespace Discogs
 	};
 	typedef std::shared_ptr<ReleaseFormat> ReleaseFormat_ptr;
 
+	// heading
+
+	class ReleaseHeading : public ExposedTags<ReleaseHeading>
+	{
+	public:
+		pfc::string8 position;
+		pfc::string8 title;
+		pfc::string8 duration;
+
+		pfc::string8 dc_track_first;
+		pfc::string8 dc_track_last;
+		bool dc_track_closed = false;
+
+		string_encoded_array get_position() const {
+			return position;
+		}
+		string_encoded_array get_title() const {		
+			return title;
+		}
+		string_encoded_array get_duration() const {
+			return duration;
+		}
+
+		static ExposedMap<ReleaseHeading> create_tags_map() {
+			ExposedMap<ReleaseHeading> m;
+			m["POSITION"] = { &ReleaseHeading::get_position,  &ReleaseHeading::load };
+			m["TITLE"] = { &ReleaseHeading::get_title, &ReleaseHeading::load };
+			m["DURATION"] = { &ReleaseHeading::get_duration, &ReleaseHeading::load };
+			return m;
+		}
+	};
+	typedef std::shared_ptr<ReleaseHeading> ReleaseHeading_ptr;
+
+	//end heading
+
+	class HasHeadings
+	{
+	public:
+		pfc::array_t<ReleaseHeading_ptr> headings;
+
+		virtual ~HasHeadings() {}
+	};
+
 
 	class ReleaseTrack : public HasArtists, public HasCredits, public ExposedTags<ReleaseTrack>
 	{
@@ -469,6 +499,7 @@ namespace Discogs
 		pfc::string8 title_index;
 		pfc::string8 title_subtrack;
 		pfc::string8 title_heading;
+		ReleaseHeading_ptr heading_ptr;
 		pfc::string8 discogs_duration_raw;
 		pfc::string8 discogs_indextrack_duration_raw;
 		int discogs_duration_seconds = 0;
@@ -494,6 +525,11 @@ namespace Discogs
 		string_encoded_array get_title_heading() const {
 			return title_heading;
 		}
+		//--heading_ptr
+		ReleaseHeading_ptr get_title_heading_ptr() const {
+			return heading_ptr;
+		}
+		//--
 		string_encoded_array get_title_index() const {
 			return title_index;
 		}
@@ -545,6 +581,7 @@ namespace Discogs
 			rt->title_index = title_index;
 			rt->title_subtrack = title_subtrack;
 			rt->title_heading = title_heading;
+			rt->heading_ptr = heading_ptr;
 			rt->discogs_duration_raw = discogs_duration_raw;
 			rt->discogs_duration_seconds = discogs_duration_seconds;
 			rt->artists = artists;
@@ -615,8 +652,7 @@ namespace Discogs
 	{
 	public:
 		int disc_number;
-		// TODO: disc index title
-		ReleaseFormat_ptr format = nullptr;
+		pfc::string8 format;
 
 		string_encoded_array get_number() const {
 			return disc_number;
@@ -624,11 +660,15 @@ namespace Discogs
 		string_encoded_array get_total_tracks() const {
 			return (unsigned)tracks.get_size();
 		}
+		string_encoded_array get_format() const {
+			return format;
+		}
 
 		static ExposedMap<ReleaseDisc> create_tags_map() {
 			ExposedMap<ReleaseDisc> m;
 			m["NUMBER"] = { &ReleaseDisc::get_number, nullptr };
 			m["TOTAL_TRACKS"] = { &ReleaseDisc::get_total_tracks, nullptr };
+			m["FORMAT"] = { &ReleaseDisc::get_format, nullptr };
 			return m;
 		}
 
@@ -677,6 +717,17 @@ namespace Discogs
 			return count;
 		}
 
+		size_t get_all_tracks_csv(pfc::string8& alltracks) {
+			size_t count = 0;
+			for (size_t i = 0; i < discs.get_size(); i++) {
+				count += discs[i]->tracks.get_size();
+				for (size_t j = 0; j < discs[i]->tracks.get_size(); j++) {
+					alltracks << ( i || j  ? "," : "") << discs[i]->tracks[j]->discogs_track_number;
+				}
+			}
+			return count;
+		}
+
 		bool find_disc_track(size_t i, int *disc, int *track) {
 			for (size_t d = 0; d < discs.get_size(); d++) {
 				if (discs[d]->tracks.get_size() <= i) {
@@ -714,7 +765,7 @@ namespace Discogs
 	};
 
 
-	class MasterRelease : public HasImages, public HasArtists, public HasTracklist, public ExposedTags<MasterRelease>
+	class MasterRelease : public HasImages, public HasArtists, public HasTracklist, public HasHeadings, public ExposedTags<MasterRelease>
 	{
 	public:
 		pfc::string8 id;
@@ -819,7 +870,7 @@ namespace Discogs
 	};
 
 
-	class Release : public HasImages, public HasArtists, public HasCredits, public HasCatCredits, public HasTracklist, public ExposedTags<Release>
+	class Release : public HasImages, public HasArtists, public HasCredits, public HasCatCredits, public HasTracklist, public HasHeadings, public ExposedTags<Release>
 	{
 	public:
 		pfc::string8 id;
@@ -934,8 +985,6 @@ namespace Discogs
 			return discogs_total_discs;
 		}
 		string_encoded_array get_genres() const {
-			//TODO: recheck fix for 'write/update has changed' containing only element
-			//value in multivalue (ref. has_diffs)
 			return genres;
 		}
 		string_encoded_array get_styles() const {
@@ -952,7 +1001,6 @@ namespace Discogs
 		}
 		string_encoded_array get_search_labels() const {
 			if (CONF.discard_numeric_suffix) {
-				//todo: v2.23 NOTE: this won't work with multiple labels
 				pfc::string8 result = search_labels; 
 				result = remove_number_suffix(result);
 			}
@@ -993,7 +1041,6 @@ namespace Discogs
 			m["DISCOGS_STATUS"] = { &Release::get_discogs_status, &Release::load };
 			m["DISCOGS_DATA_QUALITY"] = { &Release::get_discogs_data_quality, &Release::load };
 			m["DISCOGS_SUBMITTED_BY"] = { &Release::get_submitted_by, &Release::load };
-			//m["DISCOGS_TOTAL_DISCS"] = { &Release::get_discogs_total_discs, 0 };  -- technically format_quantity...? :-s
 			m["GENRES"] = { &Release::get_genres, &Release::load };
 			m["STYLES"] = { &Release::get_styles, &Release::load };
 			m["VIDEOS"] = { &Release::get_videos, &Release::load };
@@ -1001,7 +1048,6 @@ namespace Discogs
 			m["SEARCH_FORMATS"] = { &Release::get_search_formats, &Release::load_preview };
 			m["SEARCH_LABELS"] = { &Release::get_search_labels, &Release::load_preview };
 			m["SEARCH_CATNOS"] = { &Release::get_search_catno, &Release::load_preview };
-			//todo: pending local db sql role names revision
 			m["SEARCH_ROLE"] = { &Release::get_search_role, &Release::load_preview };
 			m["SEARCH_ROLES"] = { &Release::get_search_roles, &Release::load_preview };
 			return m;
@@ -1043,8 +1089,6 @@ namespace Discogs
 	extern void parseIdentity(json_t *root, Identity *identity);
 	extern void parseCollection(json_t *root, pfc::array_t<pfc::string8> &collection);
 
-	//extern void parseProfile(json_t* root, Profile* profile);
-
 	extern void parseRelease(Release *release, json_t *root);
 	extern void parseReleaseRating(Release *release, json_t *root);
 	extern void parseMasterRelease(MasterRelease *master_release, json_t *root);
@@ -1058,8 +1102,8 @@ namespace Discogs
 	extern void parseArtistReleases(json_t *element, Artist *artist);
 	extern void parseMasterVersions(json_t *element, MasterRelease *master_release);
 
-	extern ReleaseArtist_ptr parseReleaseArtist(json_t *element, bool extload = false);
-	extern void parseReleaseArtists(json_t *element, pfc::array_t<ReleaseArtist_ptr> &artists, bool extload = false);
+	extern ReleaseArtist_ptr parseReleaseArtist(json_t *element, bool preload = false);
+	extern void parseReleaseArtists(json_t *element, pfc::array_t<ReleaseArtist_ptr> &artists, bool preload = false);
 	extern void parseReleaseCredits(json_t* element, pfc::array_t<ReleaseCredit_ptr> &credits, Release *release);
 	extern void addReleaseTrackCredits(const pfc::string8 &tracks, ReleaseCredit_ptr &credit, Release *release);
 
@@ -1074,12 +1118,6 @@ namespace Discogs
 
 	extern ReleaseFormat_ptr parseReleaseFormat(json_t *element);
 	extern void parseReleaseFormats(json_t *element, pfc::array_t<ReleaseFormat_ptr> &formats);
-
-	extern void parseReleaseTrack(json_t *element, 
-		pfc::array_t<ReleaseTrack_ptr> &tracks, unsigned &discogs_original_track_number,
-		pfc::string8 heading = "", ReleaseTrack_ptr *index = nullptr,
-		HasArtists *has_artists = nullptr);
-	extern void parseReleaseTracks(json_t *element, HasTracklist *has_tracklist, HasArtists *has_artists);
-
-	//extern int get_track_count(json_t *element);
+	extern void parseReleaseTracks_v23(json_t* element, HasTracklist* has_tracklist, HasArtists* has_artists);
+	extern void parseReleaseTrack_v23(json_t* element, pfc::array_t<ReleaseTrack_ptr>& tracks, unsigned& discogs_original_track_number, pfc::string8 heading, ReleaseTrack_ptr* index, HasArtists* has_artists);
 }

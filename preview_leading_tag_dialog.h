@@ -23,18 +23,17 @@ public:
 	};
 
 	enum {
-		ID_CMD_EDIT = 1, ID_CMD_COPY, ID_CMD_PASTE, ID_CMD_APPLY
+		ID_CMD_EDIT = 1, ID_CMD_COPY, ID_CMD_PASTE, ID_CMD_APPLY, ID_CMP_COPY_ORI
 	};
 
 	//constructor
 
 	CPreviewLeadingTagDialog(HWND p_parent, TagWriter_ptr tag_writer, size_t isel, PreView parent_preview_mode, bool customfont)
 		: m_tag_writer(tag_writer), m_isel(isel), m_parent_preview_mode(parent_preview_mode), m_customfont(customfont), m_ui_list(this),
-		ILOD_preview_leading(tag_writer->tag_results[isel], parent_preview_mode) {
+		ILOD_preview_leading(tag_writer->m_tag_results[isel], parent_preview_mode) {
 
 		g_discogs->preview_modal_tag_dialog = this;
 		static_api_ptr_t<titleformat_compiler>()->compile_force(m_track_desc_script, "[[%album artist%]] - [[%discnumber% .]%tracknumber% -] [%track artist% -] %title% ");
-
 		init_results();
 	}
 
@@ -107,7 +106,7 @@ private:
 	virtual PreView ilo_get_view_mode() override { return m_parent_preview_mode; }
 	virtual tag_result_ptr ilo_get_item_result() override { return m_ptag_result; }
 	virtual const std::vector<pfc::string8>& ilo_get_vtracks_desc() override { return m_vtracks_desc; }
-	virtual const size_t ilo_get_finfo_count() override { return m_tag_writer->finfo_manager->get_item_count(); }
+	virtual const size_t ilo_get_finfo_count() override { return m_tag_writer->m_finfo_manager->get_item_count(); }
 	//
 
 	pfc::array_t<tab_entry> m_tab_table;

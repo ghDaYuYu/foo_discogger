@@ -3,9 +3,6 @@
 #include "multiformat.h"
 #include "string_encoded_array.h"
 #include "prompt_dialog.h"
-
-
-// TODO: separate this from multiformat to discogs hook.......
 bool titleformat_hook_impl_multiformat::process_field(titleformat_text_out * p_out, const char * p_name, size_t p_name_length, bool & p_found_flag) {
 	size_t multi_depth = 0;
 	while (p_name[0] == '<' && p_name[p_name_length - 1] == '>') {
@@ -77,13 +74,6 @@ bool titleformat_hook_impl_multiformat::process_field(titleformat_text_out * p_o
 			}
 		}
 	}
-
-	// Broken if wrong depth returned due to no release artists, for example. ???
-	/*if (multi_depth > result.get_depth()) {
-		foo_discogs_exception ex;
-		ex << "Error processing field " << pfc::string8(p_name, p_name_length) << " : " << " Too many triangle brackets.";
-		throw ex;
-	}*/
 	result.limit_depth(multi_depth);
 	result.expand_depth(multi_depth);
 	result.encode();
@@ -617,12 +607,6 @@ bool titleformat_hook_impl_multiformat::process_function(titleformat_text_out * 
 				wrong_param_count = true;
 			}
 		}
-
-		/*else if (pfc::strcmp_ex(p_name, p_name_length, "reduce", pfc::infinite_size) == 0 && param_count == 1) {
-			params[0].reduce();
-			result = &params[0];
-		}*/
-
 		else if (pfc::strcmp_ex(p_name, p_name_length, "extend", pfc::infinite_size) == 0) {
 			if (param_count > 1) {
 				for (size_t i = 1; i < param_count; i++) {
@@ -711,15 +695,15 @@ bool titleformat_hook_impl_multiformat::process_function(titleformat_text_out * 
 			}
 		}
 
-		else if (m_finfo != nullptr && pfc::strcmp_ex(p_name, p_name_length, "multi_meta", pfc::infinite_size) == 0) {
+		else if (finfo != nullptr && pfc::strcmp_ex(p_name, p_name_length, "multi_meta", pfc::infinite_size) == 0) {
 			if (param_count == 1) {
 				pfc::string8 name = params[0].get_pure_cvalue();
-				const size_t count = m_finfo->meta_get_count_by_name(name);
+				const size_t count = finfo->meta_get_count_by_name(name);
 				result = &params[0];
 				result->force_reset();
 				result->force_array();
 				for (size_t i = 0; i < count; i++) {
-					const char *val = m_finfo->meta_get(name, i);
+					const char *val = finfo->meta_get(name, i);
 					result->append_item_val(val);
 				}
 			}
@@ -752,9 +736,9 @@ bool titleformat_hook_impl_multiformat::process_function(titleformat_text_out * 
 			}
 		}
 		
-		else if (m_store != nullptr && pfc::strcmp_ex(p_name, p_name_length, "pput", pfc::infinite_size) == 0) {
+		else if (store != nullptr && pfc::strcmp_ex(p_name, p_name_length, "pput", pfc::infinite_size) == 0) {
 			if (param_count == 2) {
-				m_store->put(params[0].get_cvalue(), params[1].get_cvalue());
+				store->put(params[0].get_cvalue(), params[1].get_cvalue());
 				result = &params[1];
 			}
 			else {
@@ -762,9 +746,9 @@ bool titleformat_hook_impl_multiformat::process_function(titleformat_text_out * 
 			}
 		}
 
-		else if (m_store != nullptr && pfc::strcmp_ex(p_name, p_name_length, "pputs", pfc::infinite_size) == 0) {
+		else if (store != nullptr && pfc::strcmp_ex(p_name, p_name_length, "pputs", pfc::infinite_size) == 0) {
 			if (param_count == 2) {
-				m_store->put(params[0].get_cvalue(), params[1].get_cvalue());
+				store->put(params[0].get_cvalue(), params[1].get_cvalue());
 				params[0].force_reset();
 				result = &params[0];
 			}
@@ -773,9 +757,9 @@ bool titleformat_hook_impl_multiformat::process_function(titleformat_text_out * 
 			}
 		}
 
-		else if (m_store != nullptr && pfc::strcmp_ex(p_name, p_name_length, "pget", pfc::infinite_size) == 0) {
+		else if (store != nullptr && pfc::strcmp_ex(p_name, p_name_length, "pget", pfc::infinite_size) == 0) {
 			if (param_count == 1) {
-				params[0].set_value(m_store->get(params[0].get_cvalue()));
+				params[0].set_value(store->get(params[0].get_cvalue()));
 				result = &params[0];
 			}
 			else {
@@ -886,11 +870,6 @@ bool titleformat_hook_impl_multiformat::process_function(titleformat_text_out * 
 		}
 
 		else {
-			/*
-			foo_discogs_exception ex;
-			ex << "Unknown function.";
-			throw ex;
-			*/
 			p_found_flag = false;
 			return false;
 		}

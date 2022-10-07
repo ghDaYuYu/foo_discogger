@@ -1,29 +1,19 @@
 #include "stdafx.h"
 #include "db_fetcher_component.h"
-#include "tag_mapping_credit_utils.h"
-#include "db_utils.h"
-
-//#include "thread_pool.h"
-
-std::mutex open_readwrite_mutex;
-
+#include "utils_db.h"
+#include "utils.h"
 size_t sqldb::open(pfc::string8 dbname, size_t openmode) {
 
-	size_t open_threadsafe_mode = SQLITE_CONFIG_MULTITHREAD;
-
-	pfc::string8 dbpath;
+	pfc::string8 n8_dbPath;
 	m_error_msg = "";
-	
-	if (!stricmp_utf8(dll_db_name(), dbname)) {
-		dbpath << (core_api::pathInProfile("configuration\\")) << dbname;
+
+	if (!stricmp_utf8(dll_db_filename(), dbname)) {
+		n8_dbPath = profile_path((PFC_string_formatter() << "configuration\\" << dbname), true);
 	}
 	else {
-		dbpath = dbname;
+		n8_dbPath = dbname;
+		extract_native_path(n8_dbPath, n8_dbPath);
 	}
-	
-	extract_native_path(dbpath, dbpath);
-
-	std::filesystem::path os_dbpath = std::filesystem::u8path(dbpath.c_str());
 
 	if (NULL != m_query) {
 		m_error_msg << "query not null opening sqldb";
@@ -44,7 +34,7 @@ size_t sqldb::open(pfc::string8 dbname, size_t openmode) {
 
 		{
 			std::lock_guard<std::mutex> guard(open_readwrite_mutex);
-			if (SQLITE_OK != (m_ret = sqlite3_open_v2(os_dbpath.string().c_str(), &m_pDb, openmode, NULL)))
+			if (SQLITE_OK != (m_ret = sqlite3_open_v2(n8_dbPath, &m_pDb, openmode, NULL)))
 			{
 				m_error_msg << "Failed to open DB connection: " << m_ret << ". ";
 				m_error_msg << sqlite3_errmsg(m_pDb);
@@ -54,11 +44,6 @@ size_t sqldb::open(pfc::string8 dbname, size_t openmode) {
 				sqlite3_busy_timeout(m_pDb, 20000);
 			}
 		}
-
-#ifdef DO_TRANSACTIONS
-		sqlite3_exec(m_pDb, "BEGIN TRANSACTION;", NULL, NULL, NULL);
-#endif
-
 	} while (false);
 
 	if (m_error_msg.get_length()) {
@@ -116,9 +101,6 @@ bool sqldb::debug_sql_return(int ret, pfc::string8 op, pfc::string8 msg_subject,
 			if (SQLITE_OK != ret)
 			{
 				out_msg = ext_subject << ": " << sqlite3_errmsg(m_pDb);
-#ifdef _DEBUG               
-				log_msg(out_msg);
-#endif
 				bres = false;
 			}
 			break;
@@ -129,9 +111,6 @@ bool sqldb::debug_sql_return(int ret, pfc::string8 op, pfc::string8 msg_subject,
 			if (SQLITE_OK != ret && SQLITE_ROW != ret)
 			{
 				out_msg << msg_subject << "(" << top << ") " << sqlite3_errmsg(m_pDb);
-#ifdef _DEBUG               
-				log_msg(out_msg);
-#endif					
 				bres = false;
 			}
 			break;
@@ -142,9 +121,6 @@ bool sqldb::debug_sql_return(int ret, pfc::string8 op, pfc::string8 msg_subject,
 			if (SQLITE_DONE != ret)
 			{
 				out_msg << msg_subject << "(" << top << ") " << sqlite3_errmsg(m_pDb);
-#ifdef _DEBUG               
-				log_msg(out_msg);
-#endif					
 				bres = false;
 			}
 			break;
@@ -153,23 +129,14 @@ bool sqldb::debug_sql_return(int ret, pfc::string8 op, pfc::string8 msg_subject,
 			out_msg = "";
 
 			if (SQLITE_CONSTRAINT == ret) {
-				
-				//todo: revise dll.db constraints
-				//msg << "Error in constraint rule (ignored)...";
-				//sqlite3_finalize(m_query);
-				//m_query = NULL;
-
 				break;
 			}
 			else {
 				if (SQLITE_OK != ret && SQLITE_ROW != ret)
 				{
 					out_msg << msg_subject << "(" << top << ") " << sqlite3_errmsg(m_pDb);
-#ifdef _DEBUG               
-					log_msg(out_msg);
-#endif					
 					bres = false;
-				}				
+				}
 			}
 			break;
 		}
@@ -179,9 +146,6 @@ bool sqldb::debug_sql_return(int ret, pfc::string8 op, pfc::string8 msg_subject,
 			if (SQLITE_OK != ret)
 			{
 				out_msg = ext_subject << " :" << sqlite3_errmsg(m_pDb);
-#ifdef _DEBUG
-				log_msg(out_msg);
-#endif
 				bres = false;
 			}
 			break;
@@ -189,11 +153,8 @@ bool sqldb::debug_sql_return(int ret, pfc::string8 op, pfc::string8 msg_subject,
 
 		if (SQLITE_OK != ret) {
 				out_msg = ext_subject << ", " << sqlite3_errmsg(m_pDb);
-#ifdef _DEBUG               
-				log_msg(out_msg);
-#endif
 				bres = false;
-				break;						
+				break;
 		}
 
 	} while (false);
@@ -201,15 +162,10 @@ bool sqldb::debug_sql_return(int ret, pfc::string8 op, pfc::string8 msg_subject,
 	return bres;
 }
 
-#ifdef DB_DC
-bool sqldb::test_dc_database(pfc::string8 db_path, abort_callback& p_abort, threaded_process_status& p_status) {
-	db_fetcher_component dbfetcher;
-	return dbfetcher.test_discogs_db(db_path, p_abort, p_status);
-}
-#endif
+
 
 size_t sqldb::insert_history(oplog_type optype, std::string cmd, rppair& out) {
-	
+
 	if (!CONF.history_enabled()) return pfc_infinite;
 
 	db_fetcher_component dbfetcher;
@@ -217,8 +173,8 @@ size_t sqldb::insert_history(oplog_type optype, std::string cmd, rppair& out) {
 }
 
 bool sqldb::recharge_history(std::string delete_cmd, size_t top_rows, std::map<oplog_type, vppair*>allout) {
-	
+
 	db_fetcher_component dbfetcher;
-	//cmd ej. kcmdHistoryDeleteAll
 	return dbfetcher.recharge_history(this, delete_cmd, top_rows, allout);
 }
+

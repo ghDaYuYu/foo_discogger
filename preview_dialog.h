@@ -53,8 +53,8 @@ public:
 		ID_URL_RELEASE,
 		ID_URL_MASTER_RELEASE,
 		ID_URL_ARTIST,
-
-		ID_WRITE_TAGS,
+		ID_URL_ARTISTS,
+		ID_WRITE_TAGS = 100,
 	};
 
 	enum {
@@ -140,7 +140,7 @@ public:
 	LRESULT OnCheckAttachMappingPanel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnButtonEditTagMappings(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnChangePreviewMode(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnListClick(LPNMHDR lParam);
+
 	LRESULT OnListDoubleClick(LPNMHDR lParam);
 	LRESULT OnListKeyDown(LPNMHDR lParam);
 	LRESULT OnEdit(UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -161,8 +161,8 @@ private:
 	void reset_default_columns(bool breset, bool bshowstats);
 	void fix_sorted_icol_map(bool reset, bool bshowstats);
 
-	void compute_stats(tag_results_list_type tag_results);
-	void compute_stats_track_map(/*tag_results_list_type tag_results*/);
+	void compute_stats();
+	void compute_stats_track_map();
 
 	void reset_stats() { m_vstats.clear(); }
 	void reset_tag_result_stats();
@@ -178,26 +178,26 @@ private:
 	}
 
 	size_t TableEdit_GetColumnCount() const override {
-		return ListView_GetColumnCount(m_results_list);
+		return m_uilist.GetColumnCount();
 	}
 
 	HWND TableEdit_GetParentWnd() const override {
 		return m_results_list;
 	}
 
+	bool TableEdit_CanAdvanceHere(size_t item, size_t subItem, uint32_t whatHappened) const override 
+	{
+		(void)item; (void)subItem; (void)whatHappened; return true;
+	}
+
 	bool delete_selection();
-
-	void set_image_list();
-
 	bool context_menu_show(HWND wnd, size_t isel, LPARAM lParamPos);
-	bool context_menu_switch(HWND wnd, POINT point, int cmd, bit_array_bittable selmask);
+	bool context_menu_switch(HWND wnd, POINT point, int cmd, bit_array_bittable selmask, std::vector<std::pair<std::string, std::string>>vartists);
 
 	HWND m_results_list;
 	CListControlOwnerData m_uilist;
 	CTristate m_tristate;
-
 	HBITMAP m_preview_bitmap;
-
 	foo_conf conf;
 
 	std::vector<preview_stats> m_vstats;
@@ -215,5 +215,6 @@ private:
 	size_t m_tw_index = 0;
 	size_t m_tw_skip = 0;
 
-	friend CPreviewList; // context menu
+	//access context menu
+	friend CPreviewList;
 };

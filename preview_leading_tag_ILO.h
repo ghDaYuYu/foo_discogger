@@ -24,6 +24,8 @@ public:
 	//serves preview modal context menu
 	void TriggerAction();
 
+	void CopyFromOriginal();
+
 private:
 	
 	// local, can diverge from preview dlg mode
@@ -36,7 +38,7 @@ private:
 	virtual const std::vector<pfc::string8>& ilo_get_vtracks_desc() = 0;
 	virtual const size_t ilo_get_finfo_count() = 0;
 
-	//libPPUI IListControlOwnerDataSource overrides
+	// IListControlOwnerDataSource overrides
 
 	//get item count
 	size_t listGetItemCount(ctx_t ctx) override;

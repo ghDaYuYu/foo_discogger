@@ -20,9 +20,15 @@ void CPreviewList::set_image_list() {
 	ListView_SetImageList(this->m_hWnd, m_hImageList, LVSIL_SMALL);
 }
 
+// on context menu
+
+LRESULT CPreviewList::OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) {
+	return FALSE;
+}
+
 //default action for artist list item
 
-void CPreviewList::Default_Artist_Action() {
+void CPreviewList::Default_Action() {
 
 	size_t isel = GetSingleSel();
 	const int icount = GetItemCount();
@@ -31,5 +37,14 @@ void CPreviewList::Default_Artist_Action() {
 	selmask.set(isel, true);
 	CPreviewTagsDialog* dlg = dynamic_cast<CPreviewTagsDialog*>(m_host);
 
-	dlg->context_menu_switch(m_hWnd, { 0 }, CPreviewTagsDialog::ID_PREVIEW_CMD_EDIT_RESULT_TAG, selmask);
+	dlg->context_menu_switch(m_hWnd, { 0 }, CPreviewTagsDialog::ID_PREVIEW_CMD_EDIT_RESULT_TAG, selmask, {});
+}
+
+bool CPreviewList::IsSubItemGrayed(size_t item, size_t subItem) {
+	return false;
+}
+
+void CPreviewList::context_menu(size_t list_index, POINT screen_pos) {
+
+	bool empty_sel = (list_index == -1);
 }

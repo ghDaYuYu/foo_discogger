@@ -28,7 +28,6 @@ void file_info_manager::read_infos_new() {
 		core_api::get_main_window(), 
 		0,
 		callback);
-	// TODO: ....
 }
 
 void file_info_manager::write_infos() {
@@ -62,7 +61,7 @@ void file_info_manager::write_infos() {
 
 void write_tags_completion::on_completion(unsigned p_code) {
 	if (p_code != metadb_io::load_info_success) {
-		// errors are already displayed
+		//..
 	}
 }
 

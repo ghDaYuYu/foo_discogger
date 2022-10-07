@@ -51,40 +51,6 @@ pfc::string8 JSONAttributeString(json_t *element, const char* attribute) {
 	}
 	return s;
 }
-
-/*
-pfc::string8 JSONAttributeStringEx(json_t *element, const char* attribute) {
-	pfc::string8 s;
-
-	if (json_is_object(element)) {
-
-		json_t *attr = json_object_get(element, attribute);
-
-		if (json_is_string(attr)) {
-			const char *tmp = JSONString(attr);
-			if (strlen(tmp)) {
-				s = JSONString(attr);
-			}
-		}
-		// this allows us to read "id" attributes into strings
-		else if (json_is_integer(attr)) {
-			s << json_integer_value(attr);
-		}
-		// and ratings
-		else if (json_is_number(attr)) {
-			s << json_number_value(attr);
-			if (s.find_first('.') != pfc::infinite_size) {
-				s = rtrim(s, "0");
-			}
-			if (s[s.length() - 1] == '.') {
-				s += "0";
-			}
-		}
-	}
-	return s;
-}
-*/
-
 pfc::array_t<pfc::string8> JSONAttributeStringArray(json_t *root, const char* attribute) {
 	pfc::array_t<pfc::string8> v;
 	json_t *array = json_object_get(root, attribute);

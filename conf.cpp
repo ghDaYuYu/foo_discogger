@@ -3,7 +3,8 @@
 #include <filesystem>
 
 #include "conf.h"
-#include "db_utils.h"
+#include "utils_path.h"
+#include "utils_db.h"
 
 static const GUID guid_cfg_bool_values =
 { 0x22c5b65e, 0x84e8, 0x4d73, { 0xb3, 0xff, 0x34, 0x95, 0x1d, 0x2c, 0x8a, 0x65 } };
@@ -17,14 +18,14 @@ cfg_objList<conf_int_entry> cfg_int_entries(guid_cfg_int_values);
 cfg_objList<conf_string_entry> cfg_string_entries(guid_cfg_string_values);
 
 conf_bool_entry make_conf_entry(int i, bool v) {
-	conf_bool_entry result;
+	conf_bool_entry result = {0};
 	result.id = i;
 	result.value = v;
 	return result;
 }
 
 conf_int_entry make_conf_entry(int i, int v) {
-	conf_int_entry result;
+	conf_int_entry result = {0};
 	result.id = i;
 	result.value = v;
 	return result;
@@ -39,7 +40,6 @@ conf_string_entry make_conf_entry(int i, const pfc::string8& v) {
 
 bool copy_dbf_file(pfc::string8 src_dbpath, pfc::string8 dst_dbpath) {
 
-	
 	std::filesystem::path os_src = std::filesystem::u8path(src_dbpath.c_str());
 	std::filesystem::path os_dst = std::filesystem::u8path(dst_dbpath.c_str());
 
@@ -48,12 +48,10 @@ bool copy_dbf_file(pfc::string8 src_dbpath, pfc::string8 dst_dbpath) {
 		//copy dbf...
 		
 		if (std::filesystem::exists(os_dst)) {
-			//undertermined... a previous installation attempt failed?
+
 			log_msg("a previous foo_discogger.cfg.db file version was found");
 			return true;
 		}
-	
-		//todo: migration test (attach db from 1.06 to 1.07)
 		return std::filesystem::copy_file(os_src, os_dst);
 	}
 	catch (const std::filesystem::filesystem_error& e)
@@ -71,23 +69,16 @@ bool prepare_dbf_and_cache(bool bimport = true) {
 
 	bool bres = true;
 
-	pfc::string8 src_path = full_usr_components_path();
-	pfc::string8 dst_path;
-	src_path << "\\" << dll_db_name();
-	dst_path << core_api::pathInProfile("configuration\\") << dll_db_name();
+	//n8_ -> native_utf8
+	pfc::string8 n8_src_path = profile_usr_components_path(true);
+	pfc::string8 n8_dst_path;
 
-	extract_native_path(dst_path, dst_path);
-	extract_native_path(src_path, src_path);
-
-	std::filesystem::path os_dst_path = std::filesystem::u8path(dst_path.c_str());
-	os_dst_path = os_dst_path.parent_path();
-	//auto fsLocal = filesystem::get(dst_path);
-	abort_callback_dummy dummy_abort;
-
+	n8_src_path << "\\" << dll_db_filename();
+	n8_dst_path << core_api::pathInProfile("configuration\\") << dll_db_filename();
 	try {
 
-		std::filesystem::path os_src = std::filesystem::u8path(src_path.c_str());
-		std::filesystem::path os_dst = std::filesystem::u8path(dst_path.c_str());
+		std::filesystem::path os_src = std::filesystem::u8path(n8_src_path.c_str());
+		std::filesystem::path os_dst = std::filesystem::u8path(n8_dst_path.c_str());
 
 		bool b_dst_exists = std::filesystem::exists(os_dst);
 
@@ -114,7 +105,7 @@ bool prepare_dbf_and_cache(bool bimport = true) {
 
 			// copy database
 
-			bres = copy_dbf_file(os_src.string().c_str(), os_dst.string().c_str());
+			bres = copy_dbf_file(n8_src_path, n8_dst_path);
 
 		}
 	}
@@ -126,7 +117,10 @@ bool prepare_dbf_and_cache(bool bimport = true) {
 	}
 
 	try {
-		std::filesystem::create_directory(os_dst_path);
+		//create offline cache folder
+		pfc::string8 n8_olPath = profile_path(OC_NAME, true);		
+		std::filesystem::path os_olDst = std::filesystem::u8path(n8_olPath.c_str());
+		std::filesystem::create_directory(os_olDst);
 		bres &= true;
 	}
 	catch (...) {
@@ -139,27 +133,29 @@ bool prepare_dbf_and_cache(bool bimport = true) {
 }
 
 bool CConf::load() {
-	
-	//vspec vxxx { specs vector, boolvals, intvals, stringvals };
+
+//	vspec vnnn { spec vector, # bools, # ints, # strings };
 	bool bres = true;
 	vspec v000{ &vec_specs, 0, 0, 0 };
-	//vspec v199 { &vec_specs, 25, 16, 13 };
-	//vspec v200 { &vec_specs, 27, 22, 14 };
-	//vspec v201 { &vec_specs, 28, 28, 14 };
-	//vspec v202 { &vec_specs, 28, 29, 14 };
-	//vspec v203 { &vec_specs, 28, 41, 14 };
 	vspec v204{ &vec_specs, 28, 42, 14 }; // 1.0.4
-	vspec v205{ &vec_specs, 24, 39, 15 }; // 1.0.6 + sqlite
+	vspec v205{ &vec_specs, 24, 39, 15 }; // 1.0.6 + sqlite db
 	vspec v206{ &vec_specs, 27, 42, 15 }; // 1.0.8
-	vspec v207{ &vec_specs, 27, 50, 15 }; // 1.0.12.2
+	vspec v207{ &vec_specs, 27, 50, 15 }; // 1.0.13
+	vspec v208{ &vec_specs, 27, 50, 16 }; // 1.0.15
 
 	vspec* vlast = &vec_specs.at(vec_specs.size() - 1);
-	vspec vLoad = { nullptr,
-		cfg_bool_entries.get_count(), cfg_int_entries.get_count(), cfg_string_entries.get_count() };
+	
+	vspec vLoad = {
+		nullptr,
+		cfg_bool_entries.get_count(),
+		cfg_int_entries.get_count(),
+		cfg_string_entries.get_count()
+	};
 
 	if (vLoad == v000) {
 
 		save();
+		//EXIT
 		return prepare_dbf_and_cache(false);
 	}
 	else {
@@ -173,12 +169,12 @@ bool CConf::load() {
 			uMessageBox(core_api::get_main_window(), msg, title, MB_APPLMODAL | MB_ICONASTERISK);
 
 			save();
-
+			//EXIT
 			return prepare_dbf_and_cache(false);
 		}
 	}
 
-	//upgrading, ignore bres for now
+	//ignore bres while upgrading (loading depricated values will fail)
 	for (unsigned int i = 0; i < cfg_bool_entries.get_count(); i++) {
 		/*bres &=*/ bool_load(cfg_bool_entries[i]);
 	}
@@ -196,7 +192,6 @@ bool CConf::load() {
 		);
 	}
 
-	//ignore bres, depricated values are not there
 	for (unsigned int i = 0; i < cfg_int_entries.get_count(); i++) {
 		/*bres &=*/ int_load(cfg_int_entries[i]);
 	}
@@ -292,11 +287,7 @@ bool CConf::load() {
 		entry2 = cfg_bool_entries.get_item(dummy);
 		skip_mng_flag |= entry2.value ? 1 << 2 : 0;
 		cfg_bool_entries.remove_item(entry2);
-#ifdef DB_DC
-		cfg_int_entries.add_item(make_conf_entry(CFG_DC_DB_FLAG, db_dc_flag));
-#else
 		cfg_int_entries.add_item(make_conf_entry(CFG_DC_DB_FLAG, 0));
-#endif
 		cfg_int_entries.add_item(make_conf_entry(CFG_FIND_RELEASE_FILTER_FLAG, find_release_filter_flag));
 		cfg_int_entries.add_item(make_conf_entry(CFG_SKIP_MNG_FLAG, skip_mng_flag));
 
@@ -307,14 +298,16 @@ bool CConf::load() {
 	}
 	//..
 
-	//ignore bres, depricated values will not be there
 	for (unsigned int i = 0; i < cfg_string_entries.get_count(); i++) {
 		/*bres &=*/ string_load(cfg_string_entries[i]);
 	}
 
 	if (vLoad == v204) {
-		//CONF_DC_DB_PATH
 		cfg_string_entries.add_item(make_conf_entry(CFG_DC_DB_PATH, db_dc_path));
+	}
+
+	if (vLoad < v208) {
+		cfg_string_entries.add_item(make_conf_entry(CFG_MULTIVALUE_FIELDS, multivalue_fields));
 	}
 	//..
 
@@ -397,7 +390,7 @@ bool CConf::bool_load(const conf_bool_entry& item) {
 	case CFG_RELEASE_ENTER_KEY_OVR:
 		release_enter_key_override = item.value;
 		break;
-	//v206 (1.0.8)
+	//v206
 	case CFG_AUTO_REL_LOAD_ON_OPEN:
 		auto_rel_load_on_open = item.value;
 		break;
@@ -417,8 +410,8 @@ bool CConf::bool_load(const conf_bool_entry& item) {
 bool CConf::int_load(const conf_int_entry& item) {
 
 	switch (item.id) {
-	case CFG_UPDATE_ART_FLAGS:
-		update_art_flags = item.value;
+	case CFG_TAGSAVE_FLAGS:
+		tag_save_flags = item.value;
 		break;
 	case CFG_EDIT_TAGS_DIALOG_COL1_WIDTH:
 		edit_tags_dialog_col1_width = item.value;
@@ -438,7 +431,7 @@ bool CConf::int_load(const conf_int_entry& item) {
 	case CFG_CACHE_MAX_OBJECTS:
 		cache_max_objects = item.value;
 		break;
-	//v200 (mod v16)
+	//v200
 	case CFG_PREVIEW_TAGS_DIALOG_COL1_WIDTH:
 		preview_tags_dialog_col1_width = item.value;
 		break;
@@ -514,7 +507,7 @@ bool CConf::int_load(const conf_int_entry& item) {
 	case CFG_ALBUM_ART_SKIP_DEFAULT_CUST:
 		album_art_skip_default_cust = item.value;
 		break;
-	//v204 (1.0.4)
+	//v204
 	case CFG_EDIT_TAGS_DIALOG_FLAGS:
 		edit_tags_dlg_flags = item.value;
 		break;
@@ -634,7 +627,10 @@ bool CConf::string_load(const conf_string_entry& item) {
 	case CFG_DC_DB_PATH:
 		db_dc_path = item.value;
 		break;
-
+	//v208
+	case CFG_MULTIVALUE_FIELDS:
+		multivalue_fields = item.value;
+		break;
 		//..
 
 		//..
@@ -646,11 +642,6 @@ bool CConf::string_load(const conf_string_entry& item) {
 
 	return true;
 }
-
-void CConf::SetName(pfc::string8 name) {
-	thisname.append((PFC_string_formatter() << " > " << name).c_str());
-}
-
 bool CConf::GetFlagVar(int ID, FlgMng& flgmng) {
 
 	auto fit = std::find(vflags.begin(), vflags.end(), ID);
@@ -739,7 +730,7 @@ bool CConf::id_to_val_bool(int id, const CConf& in_conf, bool& out, bool assert)
 	case CFG_RELEASE_ENTER_KEY_OVR:
 		out = in_conf.release_enter_key_override;
 		break;
-	//v206 (1.0.8)
+	//v206
 	case CFG_AUTO_REL_LOAD_ON_OPEN:
 		out = in_conf.auto_rel_load_on_open;
 		break;
@@ -787,8 +778,8 @@ int* CConf::id_to_ref_int(int ID, bool assert) {
 bool CConf::id_to_val_int(int id, const CConf& in_conf, int& out, bool assert) {
 
 	switch (id) {
-	case CFG_UPDATE_ART_FLAGS:
-		out = in_conf.update_art_flags;
+	case CFG_TAGSAVE_FLAGS:
+		out = in_conf.tag_save_flags;
 		break;
 	case CFG_EDIT_TAGS_DIALOG_COL1_WIDTH:
 		out = in_conf.edit_tags_dialog_col1_width;
@@ -808,7 +799,7 @@ bool CConf::id_to_val_int(int id, const CConf& in_conf, int& out, bool assert) {
 	case CFG_CACHE_MAX_OBJECTS:
 		out = in_conf.cache_max_objects;
 		break;
-    	//v200
+	//v200
 	case CFG_PREVIEW_TAGS_DIALOG_COL1_WIDTH:
 		out = in_conf.preview_tags_dialog_col1_width;
 		break;
@@ -890,11 +881,7 @@ bool CConf::id_to_val_int(int id, const CConf& in_conf, int& out, bool assert) {
 		break;
 	//v205
 	case CFG_DC_DB_FLAG:
-#ifdef DB_DC			
-		out = in_conf.db_dc_flag;
-#else
 		out = 0;
-#endif
 		break;
 	case CFG_FIND_RELEASE_FILTER_FLAG:
 		out = in_conf.find_release_filter_flag;
@@ -949,7 +936,7 @@ bool CConf::id_to_val_int(int id, const CConf& in_conf, int& out, bool assert) {
 		out = in_conf.custom_font;
 		break;
 
-		//..
+	//..
 	default:
 		if (assert)
 			PFC_ASSERT(false);
@@ -1052,6 +1039,13 @@ bool CConf::id_to_val_str(int id, const CConf& in_conf, pfc::string8& out, bool 
 		out.set_string(str, str.get_length());
 		break;
 	}
+	//v208
+	case CFG_MULTIVALUE_FIELDS:
+	{
+		pfc::string8 str(in_conf.multivalue_fields);
+		out.set_string(str, str.get_length());
+		break;
+	}
 	//..
 
 
@@ -1090,7 +1084,7 @@ void CConf::save(cfgFilter cfgfilter, const CConf& in_conf) {
 		auto filterok =
 			std::find_if(idarray.begin(), idarray.end(), [&](const std::pair<int, int>& e) {
 			return e.first == asi(cfgfilter) && e.second == id;
-			});
+				});
 
 		if (filterok != std::end(idarray)) {
 			int val;
@@ -1106,7 +1100,7 @@ void CConf::save(cfgFilter cfgfilter, const CConf& in_conf) {
 		auto filterok =
 			std::find_if(idarray.begin(), idarray.end(), [&](const std::pair<int, int>& e) {
 			return e.first == asi(cfgfilter) && e.second == id;
-			});
+				});
 
 		if (filterok != std::end(idarray)) {
 			pfc::string8 str;
@@ -1121,7 +1115,7 @@ void CConf::save(cfgFilter cfgfilter, const CConf& in_conf, int id) {
 	auto filterok =
 		std::find_if(idarray.begin(), idarray.end(), [&](const std::pair<int, int>& e) {
 		return e.first == asi(cfgfilter) && e.second == id;
-		});
+			});
 	if (filterok == std::end(idarray)) {
 		//wrong cfgfilter
 		return;
@@ -1184,14 +1178,14 @@ void CConf::save() {
 	//v200
 	cfg_bool_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_SHOW_TM_STATS, edit_tags_dlg_show_tm_stats));
 	cfg_bool_entries.add_item(make_conf_entry(CFG_RELEASE_ENTER_KEY_OVR, release_enter_key_override));
-	//v206 (1.0.8)
+	//v206
 	cfg_bool_entries.add_item(make_conf_entry(CFG_AUTO_REL_LOAD_ON_OPEN, auto_rel_load_on_open));
 	cfg_bool_entries.add_item(make_conf_entry(CFG_AUTO_REL_LOAD_ON_SELECT, auto_rel_load_on_select));
 	cfg_bool_entries.add_item(make_conf_entry(CFG_PARSE_HIDDEN_MERGE_TITLES, parse_hidden_merge_titles));
 	//..
 
 	cfg_int_entries.remove_all();
-	cfg_int_entries.add_item(make_conf_entry(CFG_UPDATE_ART_FLAGS, update_art_flags));
+	cfg_int_entries.add_item(make_conf_entry(CFG_TAGSAVE_FLAGS, tag_save_flags));
 	cfg_int_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_COL1_WIDTH, edit_tags_dialog_col1_width));
 	cfg_int_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_COL2_WIDTH, edit_tags_dialog_col2_width));
 	cfg_int_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_COL3_WIDTH, edit_tags_dialog_col3_width));
@@ -1224,14 +1218,10 @@ void CConf::save() {
 	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_DISCOGS_ARTWORK_STYLE, match_discogs_artwork_art_style));
 	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_FILE_ARTWORKS_STYLE, match_file_artworks_art_style));
 	cfg_int_entries.add_item(make_conf_entry(CFG_ALBUM_ART_SKIP_DEFAULT_CUST, album_art_skip_default_cust));
-	//v204 (from 1.0.4)
+	//v204
 	cfg_int_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_FLAGS, edit_tags_dlg_flags));
-	//v205 (from 1.0.6)
-#ifdef DB_DC
-	cfg_int_entries.add_item(make_conf_entry(CFG_DC_DB_FLAG, db_dc_flag));
-#else
+	//v205
 	cfg_int_entries.add_item(make_conf_entry(CFG_DC_DB_FLAG, 0));
-#endif
 	cfg_int_entries.add_item(make_conf_entry(CFG_FIND_RELEASE_FILTER_FLAG, find_release_filter_flag));
 	cfg_int_entries.add_item(make_conf_entry(CFG_SKIP_MNG_FLAG, skip_mng_flag));
 	cfg_int_entries.add_item(make_conf_entry(CFG_LIST_STYLE, list_style));
@@ -1253,7 +1243,6 @@ void CConf::save() {
 
 	cfg_int_entries.add_item(make_conf_entry(CFG_CUSTOM_FONT, custom_font));
 
-
 	//..
 
 	cfg_string_entries.remove_all();
@@ -1274,6 +1263,8 @@ void CConf::save() {
 	cfg_string_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_HL_KEYWORD, pfc::string8((const char*)edit_tags_dlg_hl_keyword)));
 	//v205
 	cfg_string_entries.add_item(make_conf_entry(CFG_DC_DB_PATH, pfc::string8((const char*)db_dc_path)));
+	//v208
+	cfg_string_entries.add_item(make_conf_entry(CFG_MULTIVALUE_FIELDS, pfc::string8((const char*)multivalue_fields)));
 	//..
 }
 

@@ -34,14 +34,9 @@ private:
 
 	virtual CListControlOwnerData* ilo_get_uilist() = 0;
 
-	//libPPUI IListControlOwnerDataSource overrides
-
-	//get item count
+	// IListControlOwnerDataSource overrides
 
 	size_t listGetItemCount(ctx_t ctx) override;
-
-	//get subitems
-
 	pfc::string8 listGetSubItemText(ctx_t, size_t item, size_t subItem) override;
 
 	void listSubItemClicked(ctx_t, size_t item, size_t subItem) override;
@@ -53,7 +48,10 @@ private:
 	void listItemAction(ctx_t, size_t) override;
 	bool listIsSubItemGrayed(ctx_t, size_t item, size_t subItem) override;
 
+	bool listEditCanAdvanceHere(ctx_t, size_t item, size_t subItem, uint32_t whatHappened) override;
+
 	TagWriter_ptr m_tag_writer;
 	PreView m_preview_mode = PreView::Undef ;
 	std::vector<preview_stats> m_v_stats;
+
 };

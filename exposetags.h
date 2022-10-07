@@ -2,7 +2,6 @@
 
 #include "string_encoded_array.h"
 
-
 class ExposesTags
 {
 public:
@@ -55,24 +54,6 @@ string_encoded_array ExposedTags<T>::get_data(pfc::string8 &tag_name, threaded_p
 		}
 		
 		pfc::string8 out = x();
-
-		/*try {
-			out = x();
-		}
-		catch (pfc::uninitialized_exception) {
-			if (!loaded) {
-				((T*)this)->load(p_status, p_abort);
-				try {
-					out = x();
-				}
-				catch (pfc::uninitialized_exception) {
-					out = "";
-				}
-			}
-			else {
-				out = "";
-			}
-		}*/
 		return out;
 	}
 	else {

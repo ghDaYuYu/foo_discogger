@@ -1,6 +1,6 @@
 #include "stdafx.h"
 
-#include "db_utils.h"
+#include "utils_db.h"
 #include "history_oplog.h"
 
 bool history_oplog::init(bool enabled, size_t max_items) {
@@ -32,7 +32,6 @@ void history_oplog::zap_vhistory() {
 	m_vres_release_history.clear();
 	m_vres_artist_history.clear();
 	m_vres_filter_history.clear();
-
 }
 
 bool history_oplog::add_history_row(oplog_type optype, rppair row) {
@@ -58,9 +57,7 @@ bool history_oplog::add_history_row(oplog_type optype, rppair row) {
 	return false;
 }
 
-bool history_oplog::do_history_menu(oplog_type optype, HWND hwndCtrlParent, pfc::string8 &out) {
-
-
+bool history_oplog::do_history_menu(oplog_type optype, HWND hwndCtrl, pfc::string8 &out) {
 
 	vppair& vophistory = get_history(optype);
 	if (!vophistory.size()) return false;
@@ -70,8 +67,6 @@ bool history_oplog::do_history_menu(oplog_type optype, HWND hwndCtrlParent, pfc:
 	POINT pt;
 	pt.x = clientRect.left;
 	pt.y = clientRect.bottom;
-	
-
 
 	//build menu
 

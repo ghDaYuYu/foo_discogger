@@ -41,4 +41,3 @@ const char* name_of(const GUID&);
 const char* query_capitalized_name(size_t);
 const char* capitalized_name_of(const GUID&);
 };
-

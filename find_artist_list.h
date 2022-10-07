@@ -15,7 +15,7 @@ public:
 		DeleteObject(m_hImageList);
 	}
 
-	// serves dlg->expand_master_release, convery
+	// serves dlg->expand_master_release, convey
 	const Artist_ptr Get_Artist() { return m_find_release_artist; }
 	pfc::array_t<Artist_ptr> Get_Artists() { return m_find_release_artists;	}
 
@@ -39,12 +39,8 @@ public:
 
 		set_image_list();
 
+		SetSelectionModeSingle();
 		SetRowStyle(rowStyleFlat);
-
-		ListView_SetExtendedListViewStyleEx(m_hWnd,
-			LVS_EX_FULLROWSELECT | LVS_EX_INFOTIP | LVS_EX_LABELTIP,
-			LVS_EX_FULLROWSELECT | LVS_EX_INFOTIP | LVS_EX_LABELTIP);
-		
 		auto dpiX = QueryScreenDPIEx(m_hWnd).cx;
 		CRect rc; GetClientRect(&rc);
 		auto rcwidth = rc.Width() - GetSystemMetrics(SM_CXVSCROLL);
@@ -53,20 +49,25 @@ public:
 		AddColumnEx("Artist", colw, LVCFMT_LEFT, true);
 	}
 
-	bool OnDisplayCellImage(int item, int subitem, int& result) const;
-    	
-   	// CListControlOwnerData overrides
-   	bool RenderCellImageTest(size_t item, size_t subItem) const override;
-   	void RenderCellImage(size_t item, size_t subItem, CDCHandle, const CRect&) const override;
-	void Default_Artist_Action();
+	// (nVKReturn)
+	void Default_Action();
 
+	// CListControlOwnerData overrides
+
+	bool RenderCellImageTest(size_t item, size_t subItem) const override;
+	void RenderCellImage(size_t item, size_t subItem, CDCHandle, const CRect&) const override;
+#pragma warning( push )
+#pragma warning( disable : 26454 )
 	typedef CListControlOwnerData TParent;
 	BEGIN_MSG_MAP(CArtistList)
 		MESSAGE_HANDLER(WM_CONTEXTMENU, OnContextMenu)
 		CHAIN_MSG_MAP(TParent)
 	END_MSG_MAP()
 
+#pragma warning(pop)
+
 	LRESULT OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+	bool OnDisplayCellImage(int item, int subitem, int& result) const;
 
 private:
 
@@ -86,11 +87,7 @@ private:
 	void set_image_list();
 	bool OnDisplayCellString(int item, int subitem, pfc::string8& result);
 
-	CImageList m_hImageList;
 	id_tracer* m_idtracer_p;
-	bool m_dispinfo_enabled;
-
-	//artist and matches
 
 	Artist_ptr m_find_release_artist;
 	pfc::array_t<Artist_ptr> m_find_release_artists;
@@ -98,10 +95,9 @@ private:
 	pfc::array_t<Artist_ptr> m_artist_exact_matches;
 	pfc::array_t<Artist_ptr> m_artist_other_matches;
 
-	//notifiers
-
 	std::function<bool(int lparam)>stdf_on_artist_selected_notifier;
 	std::function<bool()>stdf_on_ok_notifier;
 
 	size_t m_last_role_pos = 0;
+	CImageList m_hImageList;
 };

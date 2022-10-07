@@ -25,21 +25,20 @@ CPreviewLeadingTagDialog::~CPreviewLeadingTagDialog() {
 void CPreviewLeadingTagDialog::init_results() {
 
 	//verify upper bound
-	if (m_isel >= m_tag_writer->tag_results.get_count())
-		m_isel = m_tag_writer->tag_results.get_count() - 1;
+	if (m_isel >= m_tag_writer->m_tag_results.get_count())
+		m_isel = m_tag_writer->m_tag_results.get_count() - 1;
 
-	m_ptag_result = m_tag_writer->tag_results[m_isel];
+	m_ptag_result = m_tag_writer->m_tag_results[m_isel];
+	file_info_manager_ptr m_finfo_manager = m_tag_writer->m_finfo_manager;
+	track_mappings_list_type m_track_mappings = m_tag_writer->m_track_mappings;
 
-	file_info_manager_ptr finfo_manager = m_tag_writer->finfo_manager;
-	track_mappings_list_type track_mappings = m_tag_writer->track_mappings;
-
-	m_vtracks_desc.clear();
-	for (size_t i = 0; i < track_mappings.get_count(); i++) {
-		track_mapping tm = track_mappings[i];
+	m_vtracks_desc.clear(); // .resize(track_mappings.get_count());
+	for (size_t i = 0; i < m_track_mappings.get_count(); i++) {
+		track_mapping tm = m_track_mappings[i];
 		if (tm.enabled) {
 			pfc::string8 track_desc;
-			metadb_handle_ptr item = finfo_manager->items[tm.file_index];
-			item->format_title(nullptr, track_desc, m_track_desc_script, nullptr)
+			metadb_handle_ptr item = m_finfo_manager->items[tm.file_index];
+			item->format_title(nullptr, track_desc, m_track_desc_script, nullptr);	//TRACK DESCRIPTION
 			m_vtracks_desc.emplace_back(track_desc);
 		}
 	}
@@ -53,8 +52,7 @@ void CPreviewLeadingTagDialog::init_tabs_defs() {
 }
 
 void CPreviewLeadingTagDialog::enable(bool is_enabled, bool change_focus) {
-	
-	//..	
+	//..
 }
 
 //from libPPUI\CDialogResizeHelper.cpp
@@ -68,6 +66,7 @@ static BOOL GetChildWindowRect(HWND wnd, UINT id, RECT* child)
 	*child = temp;
 	return TRUE;
 }
+//
 
 LRESULT CPreviewLeadingTagDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
 
@@ -136,7 +135,6 @@ void CPreviewLeadingTagDialog::ReloadItem(HWND p_parent, size_t item, PreView pa
 
 	// set tag name textbox
 	uSetDlgItemText(m_hWnd, IDC_PREVIEW_LEADING_TAG_NAME, m_ptag_result->tag_entry->tag_name);
-
 	dynamic_cast<ILOD_preview_leading*>(this)->PullDlgResult();
 
 	CRect rc_visible;
@@ -178,7 +176,9 @@ LRESULT CPreviewLeadingTagDialog::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND 
 
 LRESULT CPreviewLeadingTagDialog::OnChangingTab(WORD /*wNotifyCode*/, LPNMHDR /*lParam*/, BOOL& /*bHandled*/) {
 	//or crash
-	m_ui_list.TableEdit_Abort(false);
+	if (m_ui_list.TableEdit_IsActive()) {
+		m_ui_list.TableEdit_Abort(true);
+	}
 	return FALSE;
 }
 
@@ -189,8 +189,6 @@ LRESULT CPreviewLeadingTagDialog::OnChangeTab(WORD /*wNotifyCode*/, LPNMHDR /*lP
 
 	//set mode
 	PreView pv_curr = (PreView)st_preview_current_tab;
-
-	//static_cast unnecessary when casting upwards
 	((ILOD_preview_leading*)this)->SetMode(pv_curr);
 
 	//redraw
@@ -222,6 +220,8 @@ bool CPreviewLeadingTagDialog::context_menu_show(HWND wnd, size_t isel, LPARAM l
 
 		HMENU menu = CreatePopupMenu();
 
+		bool b_leadin = st_preview_current_tab == 0;
+		bool b_original = st_preview_current_tab == 2;
 		int csel = -1;
 		size_t citems = 0;
 		bit_array_bittable selmask(0);
@@ -229,7 +229,8 @@ bool CPreviewLeadingTagDialog::context_menu_show(HWND wnd, size_t isel, LPARAM l
 		bool is_results = wnd == m_ui_list.m_hWnd;
 
 		uAppendMenu(menu, MF_STRING	| (bselected ? 0 : MF_DISABLED | MF_GRAYED), ID_CMD_COPY, "Copy\tCtrl+C");
-		uAppendMenu(menu, MF_STRING | (bselected && st_preview_current_tab == 0 ? 0 : MF_DISABLED | MF_GRAYED), ID_CMD_EDIT, "&Edit");
+		uAppendMenu(menu, MF_STRING | (b_original ? 0 : MF_DISABLED | MF_GRAYED), ID_CMP_COPY_ORI, "Copy to lead-in");
+		uAppendMenu(menu, MF_STRING | (bselected && b_leadin ? 0 : MF_DISABLED | MF_GRAYED), ID_CMD_EDIT, "&Edit");
 		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 		uAppendMenu(menu, MF_STRING, ID_CMD_APPLY, "&Apply");
 		int cmd = TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, 0, wnd, 0);
@@ -258,14 +259,20 @@ bool CPreviewLeadingTagDialog::context_menu_switch(HWND wnd, POINT point, bool i
 		m_ui_list.GetSubItemText(isel, 2, out);
 
 		ClipboardHelper::OpenScope scope;
-		scope.Open(core_api::get_main_window());
-		ClipboardHelper::SetString(out);
+		scope.Open(core_api::get_main_window(), true);
+		scope.SetString(out);
 		return true;
 	}
 	case ID_CMD_APPLY:
 
 		push_updates();
 		return true;
+
+	case ID_CMP_COPY_ORI: {
+
+		((ILOD_preview_leading*)this)->CopyFromOriginal();
+		return true;
+	}
 
 	default: {
 		//..
@@ -277,7 +284,7 @@ bool CPreviewLeadingTagDialog::context_menu_switch(HWND wnd, POINT point, bool i
 LRESULT CPreviewLeadingTagDialog::OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) {
 
 	HWND hwndCtrl = (HWND)wParam;
-	size_t iItem = ListView_GetFirstSelection(m_ui_list);
+	size_t iItem = m_ui_list.GetFirstSelected();
 
 	context_menu_show(hwndCtrl, iItem, lParam /*Coords*/);
 	return FALSE;

@@ -9,14 +9,13 @@
 #include "cache.h"
 #include "ol_cache.h"
 
-
 using namespace Discogs;
 namespace ol = Offline;
 
 #ifdef _WIN64
-const size_t MAX_ARTISTS = 200; //max to 200 
+const size_t MAX_ARTISTS = 200;
 #else
-const size_t MAX_ARTISTS = 63; // 32bits-24bits = 6bites -> 2^6 - 1 = 63
+const size_t MAX_ARTISTS = 63; //max - id size = 32bits-24bits = 6bites -> 2^6 - 1 = 63
 #endif
 
 class SkipMng {
@@ -24,14 +23,14 @@ class SkipMng {
 public:
 	enum {
 
-		SKIP_RELEASE_DLG_MATCHED		= 1 << 0,
-		SKIP_RELEASE_DLG_IDED		= 1 << 1,
-		SKIP_PREVIEW_DLG				= 1 << 2,
-
-		SKIP_BRAINZ_ID_FETCH			= 1 << 5,
+		SK_RELEASE_DLG_MATCHED = SKIP_RELEASE_DLG_MATCHED,
+		SK_RELEASE_DLG_IDED = SKIP_RELEASE_DLG_IDED,
+		SK_PREVIEW_DLG = SKIP_PREVIEW_DLG,
+		SK_BRAINZ_ID_FETCH = SKIP_BRAINZ_ID_FETCH,
 	};
 
 	SkipMng() = default;
+
 	constexpr SkipMng(int flags) : value(flags) {}
 
 private:
@@ -55,7 +54,7 @@ private:
 		return cache_releases->exists(lkey) ? cache_releases->get(lkey) : nullptr;
 	}
 
-	inline MasterRelease_ptr get_master_release_from_cache(const size_t lkey/*pfc::string8 &master_id*/) {
+	inline MasterRelease_ptr get_master_release_from_cache(const size_t lkey) {
 		return cache_master_releases->exists(lkey) ? cache_master_releases->get(lkey) : nullptr;
 	}
 
@@ -69,6 +68,7 @@ private:
 	}
 
 	inline void add_master_release_to_cache(const size_t lkey, MasterRelease_ptr &master) {
+
 		cache_master_releases->put((const size_t)lkey, master);
 	}
 
@@ -167,9 +167,17 @@ public:
 			accimg += this_artist->images.get_count();
 		}
 
-		ndx -= accimg;
+		/*local_*/ndx -= accimg;
 		artist = this_artist;
-		return this_artist.get() && ndx < this_artist->images.get_count();
+		return this_artist.get() && /*local_*/ndx < this_artist->images.get_count();
+	}
+
+	bool artists_vid(Release_ptr p_release, std::vector<std::pair<std::string, std::string>> &out) {
+		if (p_release->artists.get_count() < 2) return false;
+		for (auto w : p_release->artists) {
+			out.emplace_back(std::pair(w->full_artist->id, w->full_artist->name));
+		}
+		return true;
 	}
 
 	bool get_thumbnail_from_cache(Release_ptr release, bool isArtist, size_t img_ndx, MemoryBlock& small_art,
@@ -180,11 +188,12 @@ public:
 	Release_ptr get_release(const size_t lkey, bool bypass_is_cache = true, bool bypass = false);
 	Release_ptr get_release(const size_t lkey, threaded_process_status& p_status, abort_callback& p_abort, bool bypass_cache = false, bool throw_all = false);
 	Release_ptr get_release(const size_t, const pfc::string8& offline_artist_id, threaded_process_status &p_status, abort_callback &p_abort, bool bypass_cache = false, bool throw_all = false);
+
 	MasterRelease_ptr get_master_release(const pfc::string8 &master_id, const pfc::string8& artist_id, bool bypass_cache = false);
 	MasterRelease_ptr get_master_release(const pfc::string8 &master_id, bool bypass_cache = false);
 	MasterRelease_ptr get_master_release(const size_t lkey, bool bypass_cache = false);
-
 	MasterRelease_ptr get_master_release(const pfc::string8 &master_id, threaded_process_status &p_status, abort_callback &p_abort, bool bypass_cache = false, bool throw_all = false);
+
 	Artist_ptr get_artist(const pfc::string8 &artist_id, bool bypass_cache = false);
 	Artist_ptr get_artist(const pfc::string8 &artist_id, bool load_releases, threaded_process_status &p_status, abort_callback &p_abort, bool bypass_cache = false, bool throw_all = false, bool throw_404 = true);
 

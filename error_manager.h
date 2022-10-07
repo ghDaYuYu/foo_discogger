@@ -3,7 +3,6 @@
 #include "exception.h"
 #include "utils.h"
 
-
 class ErrorManager
 {
 public:

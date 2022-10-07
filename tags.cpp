@@ -70,7 +70,6 @@ static tag_mapping_entry default_tag_mappings[] = {
 bool operator ==(const tag_mapping_entry &a, const tag_mapping_entry &b) {
 	return a.tag_name == b.tag_name;  // compares memory...?
 }
-
 void init_tag_mappings() {
 	if (!cfg_tag_mappings.get_count()) {
 		init_default_tag_mappings();
@@ -81,6 +80,7 @@ void init_tag_mappings() {
 				const size_t count = sizeof(default_tag_mappings) / sizeof(tag_mapping_entry);
 				bool found = false;
 				for (size_t j = 0; j < count; j++) {
+					
 					if (STR_EQUAL(default_tag_mappings[j].tag_name, cfg_tag_mappings[i].tag_name)) {
 						found = true;
 						break;
@@ -97,49 +97,38 @@ void init_tag_mappings() {
 		}
 	}
 }
-
 void init_default_tag_mappings() {
 	cfg_tag_mappings.remove_all();
 	const size_t count = sizeof(default_tag_mappings) / sizeof(tag_mapping_entry);
 	for (size_t i = 0; i < count; i++) {
 		cfg_tag_mappings.add_item(*(default_tag_mappings[i].clone()));
+		cfg_tag_mappings[i].is_multival_meta = is_multivalue_meta(default_tag_mappings[i].tag_name);
 	}
 }
 
 pfc::list_t<tag_mapping_entry> * copy_tag_mappings() {
-	pfc::list_t<tag_mapping_entry> *mappings = new pfc::list_t<tag_mapping_entry>();
+	pfc::list_t<tag_mapping_entry>* mappings = new pfc::list_t<tag_mapping_entry>();
 	for (size_t i = 0; i < cfg_tag_mappings.get_count(); i++) {
 		mappings->add_item(cfg_tag_mappings.get_item(i));
 	}
 	return mappings;
 }
-
 pfc::list_t<tag_mapping_entry> * copy_default_tag_mappings() {
 	pfc::list_t<tag_mapping_entry> *mappings = new pfc::list_t<tag_mapping_entry>();
 	const size_t count = sizeof(default_tag_mappings) / sizeof(tag_mapping_entry);
 	for (size_t i = 0; i < count; i++) {
 		mappings->add_item(*(default_tag_mappings[i].clone()));
+		tag_mapping_entry& new_map = mappings->get_item(i);
+		new_map.is_multival_meta = is_multivalue_meta(default_tag_mappings[i].tag_name);
 	}
 	return mappings;
 }
-
 void set_cfg_tag_mappings(pfc::list_t<tag_mapping_entry> *mappings) {
-	cfg_tag_mappings.remove_all();
+	TAGS.remove_all();
 	for (size_t i = 0; i < mappings->get_count(); i++) {
-		cfg_tag_mappings.add_item(mappings->get_item(i));
+		TAGS.add_item(mappings->get_item(i));
 	}
 }
-
-int find_tag(pfc::list_t<tag_mapping_entry> * mappings, const char * tag) {
-	for (size_t i = 0; i < mappings->get_count(); i++) {
-		auto entry = mappings->get_item_ref(i);
-		if (STR_EQUAL(entry.tag_name.get_ptr(), tag)) {
-			return i;
-		}
-	}
-	return -1;
-}
-
 pfc::string8 get_default_tag(const pfc::string8 &name) {
 	const size_t count = sizeof(default_tag_mappings) / sizeof(tag_mapping_entry);
 	for (size_t i = 0; i < count; i++) {

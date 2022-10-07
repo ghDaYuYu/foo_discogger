@@ -54,8 +54,6 @@
 #include "../../libPPUI/CListControl-Cells.h"
 #include "../../libPPUI/InPlaceEdit.h"
 #include "../../libPPUI/InPlaceEditTable.h"
-#include "../../libPPUI/listview_helper.h"
-
 #include "liboauthcpp/liboauthcpp.h"
 
 #include "version.h"

@@ -1,8 +1,10 @@
 #pragma once
 
+#include "resource.h"
+#include "helpers/DarkMode.h"
 #include "libPPUI/PaintUtils.h"
 #include "libPPUI/CListControlOwnerData.h"
-#include "resource.h"
+
 #include "foo_discogs.h"
 #include "tags.h"
 #include "my_editwithbuttons.h"
@@ -12,7 +14,7 @@ static const char* TEXT_UPDATE = "update";
 static const char* TEXT_DISABLED = "disabled";
 static const char* TEXT_WRITE_UPDATE = "write + update";
 
-class CTagMappingListControlOwnerData : public CListControlOwnerData {
+class CTagMappingListControlOwnerData : public CListControlOwnerData, public fb2k::CDarkModeHooks {
 
 public:
 
@@ -20,33 +22,47 @@ public:
 		: CListControlOwnerData(h) {}
 
 	~CTagMappingListControlOwnerData() {
-		//
+		//..
+	}
+
+	BEGIN_MSG_MAP_EX(CTagMappingListControlOwnerData)
+		CHAIN_MSG_MAP(CListControlOwnerData)
+	END_MSG_MAP()
+
+	void ui_colors_changed() override {
+
+		this->SetDark(fb2k::isDarkMode());
+		CRect rc_visible;
+		GetClientRect(&rc_visible);
+		::RedrawWindow(m_hWnd, &rc_visible, 0, RDW_INVALIDATE);
 	}
 
 	void RenderHLBackground(CDCHandle p_dc, const CRect& p_itemRect, size_t item, uint32_t bkColor, pfc::string8 str, pfc::string8 hlstr, bool freeze) {
 
 		Gdiplus::Color gdiHLColor, gdiROColor;
+
 		if (IsDark()) {
 			gdiHLColor.SetFromCOLORREF(GetSysColor(COLOR_HOTLIGHT));
 		}
 		else {
 			gdiHLColor = Gdiplus::Color(255, 180, 180, 180);
+			gdiROColor = Gdiplus::Color(255, 240, 240, 240);
 		}
 
 		const CRect* rc = &p_itemRect;
 		Gdiplus::Graphics gr(p_dc);
-		Gdiplus::Pen pen(gdiROColor, static_cast<Gdiplus::REAL>(rc->bottom - rc->top));
+		Gdiplus::Pen pen(freeze? gdiROColor : gdiHLColor, static_cast<Gdiplus::REAL>(rc->bottom - rc->top));
 		gr.DrawLine(&pen, rc->left, rc->top + ((rc->bottom - rc->top) / 2), rc->right, rc->top + ((rc->bottom - rc->top) / 2));
+
 		DeleteObject(&pen);
 		DeleteObject(&gr);
-
 	}
 
 	void RenderItemBackground(CDCHandle p_dc, const CRect& p_itemRect, size_t item, uint32_t bkColor) override {
 
 		TParent::RenderItemBackground(p_dc, p_itemRect, item, bkColor);
 		pfc::string8 freeze; GetSubItemText(item, 3, freeze);
-
+		
 		bool bfreeze = freeze.get_length();
 		if (!m_hl_string.get_length() && !bfreeze) return;
 
@@ -58,15 +74,9 @@ public:
 			do_hlight = pfc::string_find_first(pfc::stringToLower(strItem), m_hl_string, 0) != pfc_infinite;
 		}
 
-		if (do_hlight)
+		if (do_hlight) {
+
 			RenderHLBackground(p_dc, p_itemRect, item, bkColor, strItem, m_hl_string, false);
-		else {
-			if (bfreeze) {
-				pfc::bit_array_bittable selmask = GetSelectionMask();
-				bool selected = selmask.get(item);
-				if (!selected)
-					RenderHLBackground(p_dc, p_itemRect, item, bkColor, strItem, m_hl_string, true);
-			}
 		}
 	}
 
@@ -76,28 +86,144 @@ public:
 	}
 
 private:
+
+	bool TableEdit_CanAdvanceHere(size_t item, size_t subItem, uint32_t whatHappened) const override {
+
+		pfc::string8 freeze;
+		GetSubItemText(item, 3, freeze);
+
+		if (freeze.get_length() || (subItem != 0 && subItem != 1)) {
+
+			return false;
+		}
+
+		(void)item; (void)subItem; (void)whatHappened;
+
+		return true;
+	}
+
+	// CListControlOwnerData overrides
+
+	bool IsSubItemGrayed(size_t item, size_t subItem) override {
+		pfc::string8 freeze; GetSubItemText(item, 3, freeze);
+
+		bool bfreeze = freeze.get_length();
+
+		if (bfreeze) {
+			pfc::string8 strItem;
+			bool do_hlight = false;
+
+			if (m_hl_string.get_length()) {
+				GetSubItemText(item, 0, strItem);
+				do_hlight = pfc::string_find_first(pfc::stringToLower(strItem), m_hl_string, 0) != pfc_infinite;
+			}
+			return !do_hlight;
+		}
+		return bfreeze;
+	}
+
 	pfc::string8 m_hl_string;
+
 };
 
-class CTagMappingDialog : public MyCDialogImpl<CTagMappingDialog>,	public CDialogResize<CTagMappingDialog>,
-	public CMessageFilter,	private IListControlOwnerDataSource, public fb2k::CDarkModeHooks
-{
+class CTagMappingDialog : public MyCDialogImpl<CTagMappingDialog>,	
+	public CMessageFilter,	private IListControlOwnerDataSource,
+	public CDialogResize<CTagMappingDialog>, public fb2k::CDarkModeHooks {
+
+public:
+
+	enum {
+		IDD = IDD_DIALOG_TAG_MAPPINGS,
+		MSG_ADD_NEW
+	};
+
+	CTagMappingDialog::CTagMappingDialog(HWND p_parent, UINT default_button = IDOK)
+		: default_button(default_button), cewb_highlight(), m_tag_list(this), remove_button(nullptr) {
+
+		set_tag_mapping(copy_tag_mappings());
+	}
+
+	CTagMappingDialog::~CTagMappingDialog() {
+
+
+		g_discogs->tag_mappings_dialog = nullptr;
+		delete m_ptag_mappings;
+	}
+
+
+	virtual BOOL PreTranslateMessage(MSG* pMsg) override {
+
+		if (pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_RETURN)
+		{
+			HWND focused = ::GetFocus();
+			int idCtrl = ::GetDlgCtrlID(focused);
+			if (idCtrl == IDC_EDIT_TAG_MATCH_HL)
+			{
+				return TRUE;
+			}
+		}
+		return ::IsDialogMessage(m_hWnd, pMsg);
+	}
+
+	void load_column_layout();
+	bool build_current_cfg();
+	void pushcfg();
+	bool check_mapping_changed();
+	void on_mapping_changed(bool changed);
+
+#pragma warning( push )
+#pragma warning( disable : 26454 )
+
+	MY_BEGIN_MSG_MAP(CTagMappingDialog)
+		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
+		COMMAND_ID_HANDLER(IDOK, OnOk)
+		COMMAND_ID_HANDLER(IDC_APPLY, OnApply)
+		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
+		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
+		COMMAND_ID_HANDLER(IDC_EDIT_TAG_MATCH_HL, OnEditHLText)
+		COMMAND_ID_HANDLER(IDC_SPLIT_BTN_TAG_ADD_NEW, OnSplitDropDown)
+		COMMAND_ID_HANDLER(IDC_SPLIT_BTN_TAG_FILE_DEF, OnSplitDropDown)
+		COMMAND_ID_HANDLER(IDC_REMOVE_TAG, OnBtnRemoveTag)
+		MESSAGE_HANDLER_EX(MSG_ADD_NEW, OnAddNewTag)
+		MESSAGE_HANDLER_EX(WM_CONTEXTMENU, OnContextMenu)
+
+		CHAIN_MSG_MAP(CDialogResize<CTagMappingDialog>)
+		MY_END_MSG_MAP()
+
+#pragma warning( pop )
+
+	BEGIN_DLGRESIZE_MAP(CTagMappingDialog)
+		DLGRESIZE_CONTROL(IDC_SPLIT_BTN_TAG_FILE_DEF, DLSZ_MOVE_Y)
+		DLGRESIZE_CONTROL(IDOK, DLSZ_MOVE_X | DLSZ_MOVE_Y)
+		DLGRESIZE_CONTROL(IDCANCEL, DLSZ_MOVE_X | DLSZ_MOVE_Y)
+		DLGRESIZE_CONTROL(IDC_APPLY, DLSZ_MOVE_X | DLSZ_MOVE_Y)
+		DLGRESIZE_CONTROL(IDC_SPLIT_BTN_TAG_ADD_NEW, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_REMOVE_TAG, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_TAG_LIST, DLSZ_SIZE_X | DLSZ_SIZE_Y)
+	END_DLGRESIZE_MAP()
+
+	void DlgResize_UpdateLayout(int cxWidth, int cyHeight) {
+		CDialogResize<CTagMappingDialog>::DlgResize_UpdateLayout(cxWidth, cyHeight);
+	}
+
+	LRESULT OnGetInfo(LPNMHDR lParam);
+
+	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+	LRESULT OnOk(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnApply(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+	LRESULT OnEditHLText(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnImport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnExport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnBtnRemoveTag(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnSplitDropDown(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnAddNewTag(UINT, WPARAM, LPARAM);
+	LRESULT OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam);
+	void enable(bool v) override {}
 
 private:
-
-	foo_conf conf;
-	tag_mapping_list_type* m_ptag_mappings = nullptr;
-
-#ifdef CAT_CRED
-	//..
-#endif // CAT_CRED
-
-	CTagMappingListControlOwnerData m_tag_list;
-	CMyEditWithButtons cewb_highlight;
-	CHyperLink help_link;
-
-	HWND remove_button;
-	UINT default_button;
 
 	void set_tag_mapping(tag_mapping_list_type* ptag_mapping) {
 		m_ptag_mappings = ptag_mapping;
@@ -110,17 +236,18 @@ private:
 
 	void applymappings();
 
-    // LIBPPUI list: IListControlOwnerDataSource 
+	// IListControlOwnerDataSource 
 
-	//- Get Item Count
+	// get Item Count
 
 	size_t listGetItemCount(ctx_t ctx) override {
+
 		//pointer to object calling us
 		PFC_ASSERT(ctx == &m_tag_list);
 		return m_ptag_mappings->get_count();
 	}
 
-	//- Get subitems
+	// get subitems
 
 	pfc::string8 listGetSubItemText(ctx_t ctx, size_t item, size_t subItem) override {
 
@@ -156,29 +283,33 @@ private:
 		return buffer;
 	}
 
-	//- Can reorder
+	// can reorder
 
 	bool listCanReorderItems(ctx_t) override {
 		return true;
 	}
 
-	//- Reorder
+	// reorder
 
 	bool listReorderItems(ctx_t ctx, const size_t* order, size_t count) override {
+
 		pfc::reorder_t(*m_ptag_mappings, order, m_ptag_mappings->get_count());
 		on_mapping_changed(check_mapping_changed());
 		return true;
 	}
 
-	//- Remove
+	// remove
 
 	bool listRemoveItems(ctx_t ctx, pfc::bit_array const& mask) override {
+		
+		//remove not freezed masked
 
-		size_t max = m_ptag_mappings->get_count();
 		size_t deleted = 0;
 		size_t walk = -1;
+		size_t max = m_ptag_mappings->get_count();
 
 		while ((walk = mask.find_next(true, walk, max)) < max) {
+
 			auto entry = m_ptag_mappings->get_item(walk - deleted);
 
 			if (!entry.freeze_tag_name) {
@@ -190,20 +321,24 @@ private:
 		if (deleted) {
 			on_mapping_changed(check_mapping_changed());
 		}
-
 		return deleted;
 	}
 
-	//- Item action
+	// item action
 
 	void listItemAction(ctx_t, size_t item) override {
-		m_tag_list.TableEdit_Start(item, 1);
+		tag_mapping_entry& entry = (*m_ptag_mappings)[item];
+		if (!entry.freeze_tag_name) {
+			m_tag_list.TableEdit_Start(item, 1);
+		}
 	}
 
-	//- Subitem action
+	// subitem action
 
 	void listSubItemClicked(ctx_t, size_t item, size_t subItem) override {
+
 		tag_mapping_entry& entry = (*m_ptag_mappings)[item];
+
 		if ((!entry.freeze_tag_name) && (subItem == 0 || subItem == 1)) {	
 			m_tag_list.TableEdit_Start(item, subItem);
 		}
@@ -215,7 +350,7 @@ private:
 		}
 	}
 
-	//- Set edited text
+	// set edited text
 
 	void listSetEditField(ctx_t ctx, size_t item, size_t subItem, const char* val) override {
 
@@ -231,19 +366,17 @@ private:
 		on_mapping_changed(check_mapping_changed());
 	}
 
-	//- Can edit
+	// can edit
 
 	bool listIsColumnEditable(ctx_t, size_t subItem) override {
 		return (subItem == 0 || subItem == 1);
 	}
 
-    // end LIBPPUI list methods
-
+	//..end IListControlOwnerDataSource
 
 	void TableEdit_Finished() {
 		on_mapping_changed(check_mapping_changed());
 	}
-
 
 	void loadComboCreditUserDefinitions(HWND hparent, UINT id, vppair v, const char* selected_name) {
 
@@ -278,107 +411,12 @@ private:
 		::RedrawWindow(hwnd_cmb, &rc, NULL, RDW_ERASENOW /*| RDW_VALIDATE*/ | RDW_INVALIDATE | RDW_ALLCHILDREN);
 	}
 
-public:
+	foo_conf conf;
+	tag_mapping_list_type* m_ptag_mappings = nullptr;
+	CTagMappingListControlOwnerData m_tag_list;
+	CMyEditWithButtons cewb_highlight;
+	CHyperLink help_link;
 
-	enum {
-		IDD = IDD_DIALOG_TAG_MAPPINGS,
-		MSG_ADD_NEW
-	};
-
-#ifdef CAT_CRED
-	//..
-#endif // CAT_CRED
-
-	virtual BOOL PreTranslateMessage(MSG* pMsg) override {
-
-		if (pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_RETURN)
-		{
-			HWND focused = ::GetFocus();
-			int idCtrl = ::GetDlgCtrlID(focused);
-			if (idCtrl == IDC_EDIT_TAG_MATCH_HL)
-			{
-				return TRUE;
-			}
-		}
-		return ::IsDialogMessage(m_hWnd, pMsg);
-	}
-
-	void load_size();
-	bool build_current_cfg();
-	void pushcfg();
-	bool check_mapping_changed();
-	void on_mapping_changed(bool changed);
-
-#pragma warning( push )
-#pragma warning( disable : 26454 )
-
-	MY_BEGIN_MSG_MAP(CTagMappingDialog)
-		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
-		COMMAND_ID_HANDLER(IDOK, OnOk)
-		COMMAND_ID_HANDLER(IDC_APPLY, OnApply)
-		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
-		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
-		COMMAND_ID_HANDLER(IDC_EDIT_TAG_MATCH_HL, OnEditHLText)
-		COMMAND_ID_HANDLER(IDC_SPLIT_BTN_TAG_ADD_NEW, OnSplitDropDown)
-		COMMAND_ID_HANDLER(IDC_SPLIT_BTN_TAG_CAT_CREDIT, OnSplitDropDown)
-		COMMAND_ID_HANDLER(IDC_SPLIT_BTN_TAG_FILE_DEF, OnSplitDropDown)
-		COMMAND_ID_HANDLER(IDC_REMOVE_TAG, OnBtnRemoveTag)
-
-#ifdef CAT_CRED
-		//..
-#endif // CAT_CRED
-
-		MESSAGE_HANDLER_EX(MSG_ADD_NEW, OnAddNewTag)
-		MESSAGE_HANDLER_EX(WM_CONTEXTMENU, OnContextMenu)
-
-		CHAIN_MSG_MAP(CDialogResize<CTagMappingDialog>)
-	MY_END_MSG_MAP()
-
-#pragma warning( pop )
-
-	BEGIN_DLGRESIZE_MAP(CTagMappingDialog)
-		DLGRESIZE_CONTROL(IDC_SPLIT_BTN_TAG_FILE_DEF, DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDOK, DLSZ_MOVE_X | DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDCANCEL, DLSZ_MOVE_X | DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDC_APPLY, DLSZ_MOVE_X | DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDC_SPLIT_BTN_TAG_ADD_NEW, DLSZ_MOVE_X)
-		DLGRESIZE_CONTROL(IDC_SYNTAX_HELP, DLSZ_MOVE_X)
-		DLGRESIZE_CONTROL(IDC_REMOVE_TAG, DLSZ_MOVE_X)
-		DLGRESIZE_CONTROL(IDC_SPLIT_BTN_TAG_CAT_CREDIT, DLSZ_MOVE_X)
-		DLGRESIZE_CONTROL(IDC_TAG_LIST, DLSZ_SIZE_X | DLSZ_SIZE_Y)
-	END_DLGRESIZE_MAP()
-
-	void DlgResize_UpdateLayout(int cxWidth, int cyHeight) {
-		CDialogResize<CTagMappingDialog>::DlgResize_UpdateLayout(cxWidth, cyHeight);
-	}
-
-	CTagMappingDialog::CTagMappingDialog(HWND p_parent, UINT default_button = IDOK)
-		: default_button(default_button), cewb_highlight(), m_tag_list(this), remove_button(nullptr) {
-
-		set_tag_mapping(copy_tag_mappings());
-	}
-
-	CTagMappingDialog::~CTagMappingDialog() {
-
-		g_discogs->tag_mappings_dialog = nullptr;
-	}
-
-	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
-	LRESULT OnOk(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnApply(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
-	LRESULT OnEditHLText(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnImport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnExport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnBtnRemoveTag(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-#ifdef CAT_CRED
-	//..
-#endif // CAT_CRED
-
-	LRESULT OnSplitDropDown(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnAddNewTag(UINT, WPARAM, LPARAM);
-	LRESULT OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam);
-	void enable(bool v) override {}
+	HWND remove_button;
+	UINT default_button;
 };

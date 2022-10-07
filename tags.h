@@ -2,6 +2,7 @@
 
 #include "formatting_script.h"
 #include "string_encoded_array.h"
+#include "utils.h"
 
 
 typedef struct
@@ -21,6 +22,7 @@ class tag_mapping_entry
 {
 public:
 	pfc::string8 tag_name = "";
+	bool is_multival_meta = false;
 	bool enable_write = false;
 	bool enable_update = false;
 	bool freeze_write = false;
@@ -29,18 +31,17 @@ public:
 	formatting_script formatting_script;
 
 	tag_mapping_entry() {};
-#ifdef DEBUG	
-	~tag_mapping_entry() {
-		int debug = 0;
-	};
-#endif
 
 	tag_mapping_entry(const char *tn, bool ew, bool eu, bool fw, bool fu, bool ft, const char *fs) :
-		tag_name(tn), enable_write(ew), enable_update(eu), freeze_write(fw), freeze_update(fu), freeze_tag_name(ft), formatting_script(fs) {}
+		tag_name(tn), enable_write(ew), enable_update(eu), freeze_write(fw), freeze_update(fu), freeze_tag_name(ft), formatting_script(fs) {
+	
+		is_multival_meta = is_multivalue_meta(pfc::string8(tn));
+	}
 
 	tag_mapping_entry * clone() {
 		tag_mapping_entry *t = new tag_mapping_entry();
 		*t = *this;
+		t->is_multival_meta = this->is_multival_meta;
 		return t;
 	}
 
@@ -94,11 +95,9 @@ extern void init_tag_mappings();
 extern void init_default_tag_mappings();
 extern pfc::list_t<tag_mapping_entry> * copy_tag_mappings();
 extern pfc::list_t<tag_mapping_entry> * copy_default_tag_mappings();
-extern void set_cfg_tag_mappings(pfc::list_t<tag_mapping_entry> *tag_mappings);
-extern int find_tag(tag_mapping_list_type * mappings, const char * tag);
+extern void set_cfg_tag_mappings(pfc::list_t<tag_mapping_entry> *mappings);
 
 extern pfc::string8 get_default_tag(const pfc::string8 &name);
-
 extern cfg_tag_mapping_list_type cfg_tag_mappings;
 
 #define TAGS cfg_tag_mappings

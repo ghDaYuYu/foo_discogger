@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "resource.h"
 
 class CTristate {
@@ -16,6 +16,7 @@ public:
 
   void Init(UINT state, BOOL enabled);
   UINT GetState();
+  bool IsTri();
 
 private:
 

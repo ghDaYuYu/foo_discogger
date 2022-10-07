@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 #include "tristate_skip_artwork.h"
 
 void CTristate::Init(UINT state, BOOL enabled) {
@@ -8,7 +8,13 @@ void CTristate::Init(UINT state, BOOL enabled) {
   //BST_CHECKED : BST_UNCHECKED
   ::CheckDlgButton(parent->m_hWnd, IDC, state);
   ::EnableWindow(wnd, enabled);
+}
 
+bool CTristate::IsTri() {
+
+	HWND wnd = uGetDlgItem(parent->m_hWnd, IDC);
+	const DWORD btnType = CWindow(wnd).GetStyle() & BS_TYPEMASK;
+	return (btnType == BS_AUTO3STATE);
 }
 
 UINT  CTristate::GetState() {
@@ -67,7 +73,6 @@ void CTristate::SetBistate() {
 }
 
 void CTristate::SetBistate(UINT state) {
-
 	// SET BI-STATE
 
 	SendMessage(getWnd(), BM_SETSTYLE

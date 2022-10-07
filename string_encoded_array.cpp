@@ -9,7 +9,6 @@ inline void PRINTDOUBLE(pfc::string8 &v, double d) {
 	v << pfc::string8(s.str().c_str());
 }
 
-
 string_encoded_array::string_encoded_array() {
 }
 
@@ -391,8 +390,6 @@ bool string_encoded_array::branch_execute(bool(string_encoded_array::*func)(cons
 	}
 }
 
-// TODO: this unique is at depth D, make one at depth 1 as well...
-
 void string_encoded_array::unique() {
 	if (has_array()) {
 		encode();
@@ -439,7 +436,6 @@ void string_encoded_array::flatten() {
 		sub_array = new_sub_array;
 	}
 }
-
 
 void string_encoded_array::force_array(size_t depth) {
 	if (m_depth == 0) {
@@ -569,14 +565,10 @@ bool string_encoded_array::_replace_exp(const string_encoded_array& find, const 
 		return false;
 	}
 
-#ifdef DEBUG
 	std::string strval(value.toString());
 	std::sregex_iterator begin = std::sregex_iterator(strval.begin(), strval.end(), regex_v);
 	std::sregex_iterator end = std::sregex_iterator();
 
-	for (std::sregex_iterator i = begin; i != end; i++) {
-		occurrences++;
-	}
 
 	try {
 		value.set_string(std::regex_replace(value.get_ptr(), regex_v, with.value.c_str()).c_str());
@@ -796,12 +788,6 @@ bool string_encoded_array::_count() {
 
 bool string_encoded_array::_multi_if(const string_encoded_array &yes, const string_encoded_array &no) {
 	PFC_ASSERT(m_depth == 0);
-	/*if (yes.m_depth != m_depth) {
-		array_param_too_deep(2);
-	}
-	else if (no.m_depth != m_depth) {
-		array_param_too_deep(3);
-	}*/
 	if (value.get_length() && !(value.get_length() == 1 && value[0] == '0')) {
 		value = yes.value;
 	}
@@ -813,9 +799,6 @@ bool string_encoded_array::_multi_if(const string_encoded_array &yes, const stri
 
 bool string_encoded_array::_multi_or(const string_encoded_array &other) {
 	PFC_ASSERT(m_depth == 0);
-	/*if (other.m_depth != m_depth) {
-		array_param_too_deep(2);
-	}*/
 	if (value.get_length() && !(value.get_length() == 1 && value[0] == '0')) {
 	}
 	else if (other.value.get_length() && !(other.value.get_length() == 1 && other.value[0] == '0')) {
@@ -829,9 +812,6 @@ bool string_encoded_array::_multi_or(const string_encoded_array &other) {
 
 bool string_encoded_array::_multi_and(const string_encoded_array &other) {
 	PFC_ASSERT(m_depth == 0);
-	/*if (other.m_depth != m_depth) {
-	array_param_too_deep(2);
-	}*/
 	if (value.get_length() && !(value.get_length() == 1 && value[0] == '0') &&
 		other.value.get_length() && !(other.value.get_length() == 1 && other.value[0] == '0')) {
 		value = "1";
@@ -854,7 +834,6 @@ bool string_encoded_array::_multi_not() {
 }
 
 bool string_encoded_array::_extend(const string_encoded_array &other) {
-	//PFC_ASSERT(m_depth == 1);
 	if (other.m_depth != m_depth) {
 		array_param_too_deep(2);
 	}
@@ -868,7 +847,6 @@ bool string_encoded_array::_extend(const string_encoded_array &other) {
 }
 
 bool string_encoded_array::_append(const string_encoded_array &other) {
-	//PFC_ASSERT(m_depth == 1);
 	if (other.m_depth != m_depth - 1) {
 		array_param_too_deep(2);
 	}
@@ -927,57 +905,8 @@ bool string_encoded_array::_filter(const string_encoded_array &other) {
 		}
 	}
 	sub_array = new_sub_array;
-	/*if (other.m_depth == 0) {
-		for (size_t i = 0; i < count; i++) {
-			if (STR_EQUAL(sub_array[i], other.value)) {
-				for (size_t j = i + 1; j < count; j++) {
-					sub_array[j - 1] = sub_array[j];
-				}
-				count--;
-				sub_array.set_size(count);
-				changed = true;
-			}
-		}
-	}*/
-	/*else {
-		if (other.m_depth != 1) {
-			array_param_too_deep(2);
-		}
-		const size_t other_count = other.get_width();
-		for (size_t i = 0; i < other_count; i++) {
-			size_t inner_count = count;
-			for (size_t j = 0; j < inner_count; j++) {
-				if (STR_EQUAL(sub_array[j], other.sub_array[i])) {
-					for (size_t k = j + 1; k < inner_count; k++) {
-						sub_array[k - 1] = sub_array[k];
-					}
-					inner_count--;
-					sub_array.set_size(count);
-					changed = true;
-				}
-			}
-		}
-	}*/
 	return true;
 }
-
-/*
-bool string_encoded_array::_reduce() {
-	PFC_ASSERT(m_depth == 2);
-	pfc::array_t<string_encoded_array> next;
-	const size_t count = get_width();
-	for (size_t i = 0; i < count; i++) {
-		const size_t inner_count = sub_array[i].get_width();
-		for (size_t j = 0; j < inner_count; j++) {
-			next.append_single(sub_array[i][j]);
-		}
-	}
-	sub_array = next;
-	m_depth = 1;
-	return true;
-}
-*/
-
 bool string_encoded_array::_multi_len() {
 	PFC_ASSERT(m_depth == 0);
 	size_t length = value.get_length();
@@ -999,8 +928,6 @@ bool string_encoded_array::_multi_longest(const string_encoded_array& other) {
 		return false;
 	}
 }
-
-// Same as left?
 bool string_encoded_array::_multi_cut(const string_encoded_array& other) {
 	PFC_ASSERT(m_depth == 0);
 	if (other.m_depth) {
@@ -1275,29 +1202,7 @@ pfc::string8 string_encoded_array::print_raw() const {
 
 bool string_encoded_array::has_diffs(string_encoded_array new_value) {
 	bool bres = false;
-
-	//TODO: maybe replace has_array() by get_width()...
-	//			check why sometimes m_depth is 0 instead of ~0
-
-	// CREDITS:
-	// fix crash comparing CREDITS sanitizing empty elements
-	// todo: should we fix it before while processing the titleformat output?
-	// ei: in release 2702206
-	// new DISCOGS_CREDIT_FEATURING can carry "\x1\x2Bone Thugs-N-Harmony\x2\x2\x2\x2\x2\x2\x2\x3"
-	// while old value is just "Bone Thugs-N-Harmony" (dim 0 vs dim 1 with empty elements)
-	
-	// URLS:
-	// new value comes as dim 1 "\x1https:xxx\x2https...\x3"
-	// old value is dim 0 so new value is limited and joined by print() before compare
-	
-	//FB2K_console_formatter1() << "has_diffs old-new:";
-	///*if (info.get_length() > 0)*/ FB2K_console_formatter() << "+" << print() << "+" << new_value.print() << "+";
-	
-	//const size_t new_count = new_value.get_citems().get_size();
-	//size_t dims = new_value.get_depth();
-
 	if (has_blank() == true && new_value.has_blank() == true)
-		//both blanks
 		return false;
 
 	if (has_array() && new_value.has_array()) {
@@ -1317,7 +1222,6 @@ bool string_encoded_array::has_diffs(string_encoded_array new_value) {
 	else {
 		PFC_ASSERT(false);
 	}
-
 	return bres;
 }
 

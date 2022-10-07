@@ -14,11 +14,12 @@ HWND get_ctx_lvlist(HWND hwnd, int ID) {
 	return uGetDlgItem(hwnd, ID);
 }
 
-//libPPUI IListControlOwnerDataSource overrides
+//IListControlOwnerDataSource overrides
 
 size_t ILOD_track_matching::listGetItemCount(ctx_t ctx) {
 
 	HWND wnd = ((TParent*)this)->m_hWnd;
+
 	HWND lvlist = get_ctx_lvlist(wnd, ctx->GetDlgCtrlID());
 
 	PFC_ASSERT(get_ctx_lvlist(wnd, ctx->GetDlgCtrlID()) != nullptr);
@@ -52,13 +53,13 @@ pfc::string8 ILOD_track_matching::listGetSubItemText(ctx_t ctx, size_t item, siz
 	pfc::string8 buffer = "";
 
 	HWND wnd = ((TParent*)this)->m_hWnd;
+
 	HWND lvlist = get_ctx_lvlist(wnd, ctx->GetDlgCtrlID());
 
 	coord_presenters* coord = ilo_get_coord();
 
 	multi_uartwork uart = *coord->GetUartwork();
 
-	//file_it file_match;
 	size_t res;
 
 	switch (ctx->GetDlgCtrlID()) {
@@ -127,6 +128,8 @@ pfc::string8 ILOD_track_matching::listGetSubItemText(ctx_t ctx, size_t item, siz
 	
 		getimages_file_it track_match;
 		size_t res = coord->GetFileArtAtLvPos(item, track_match);
+		size_t pos = item;
+
 		getimages_file_it imagefilerow;
 		size_t ndx_pos = coord->GetLvFileArtRow(item, imagefilerow);
 
@@ -136,33 +139,40 @@ pfc::string8 ILOD_track_matching::listGetSubItemText(ctx_t ctx, size_t item, siz
 		//file name
 		case 0: {
 			pfc::string8 str(imagefilerow->second.at(0));
-			buffer = pfc::string_filename_ext(str);
+			pfc::string8 fullpath = pfc::string_filename_ext(str);
+			buffer = fullpath;
 			break;
 		}
-		//dims
+					//dims
 		case 1: {
-			buffer = imagefilerow->second.at(1);			
+			pfc::string8 str(imagefilerow->second.at(1));
+			buffer = str;
+
 			break;
 		}
-		//file size
+					//file size
 		case 2: {
-			buffer = imagefilerow->second.at(2);			
+			pfc::string8 str(imagefilerow->second.at(2));
+			buffer = str;
 			break;
 		}
-		//position
+					//position
 		case 3: {
-			buffer = std::to_string(item).c_str();			
+			pfc::string8 str = std::to_string(item).c_str();
+			buffer = str;
 			break;
 		}
 		default: {
-			//..
+			int debug = 1;
 		}
 		}
+
 		break;
 	}
 	default:
 		buffer = "na";
 	}
+
 	return buffer;
 }
 
@@ -171,6 +181,7 @@ pfc::string8 ILOD_track_matching::listGetSubItemText(ctx_t ctx, size_t item, siz
 bool ILOD_track_matching::listCanReorderItems(ctx_t) {
 
 	return true;
+
 }
 
 // fb2k lib - reorder
@@ -192,12 +203,18 @@ bool ILOD_track_matching::listReorderItems(ctx_t ctx, const size_t* order, size_
 
 bool ILOD_track_matching::listRemoveItems(ctx_t ctx, pfc::bit_array const& mask) {
 
+
+	HWND wnd = ((TParent*)this)->m_hWnd;
+	HWND dbg = ctx->m_hWnd;
+	HWND hlist = uGetDlgItem(wnd, ctx->GetDlgCtrlID());
+	
 	coord_presenters* coord = ilo_get_coord();
 	lsmode mode = coord->GetCtrIDMode(ctx->GetDlgCtrlID());
 
 	size_t count = ctx->GetItemCount();
 	bit_array_bittable delmask;
 	delmask.resize(count);
+
 
 	t_size n, total = 0;
 	n = total = mask.find(true, 0, count);
@@ -212,7 +229,9 @@ bool ILOD_track_matching::listRemoveItems(ctx_t ctx, pfc::bit_array const& mask)
 			delmask.set(n, true);
 		}
 	}
-	else return true;
+	else {
+		return true;
+	}
 
 	size_t nextfocus = coord->ListUserCmd(hlist, mode, ID_REMOVE, delmask, pfc::bit_array_bittable(), pfc::array_t<size_t>(), false);
 
@@ -226,18 +245,12 @@ void ILOD_track_matching::listItemAction(ctx_t ctx, size_t item) {
 
 	switch (ctx->GetDlgCtrlID()) {
 	case IDC_UI_LIST_DISCOGS: {
-
 		break;
 	}
 	case IDC_UI_LIST_FILES: {
-
 		break;
 	}
 	case IDC_UI_DC_ARTWORK_LIST: {
-		
-		//column 0: toggle tile view
-		//columns 3, 4, 5 change attribs
-
 		coord_presenters* coord = ilo_get_coord();
 		CPoint curpos;
 		GetCursorPos(&curpos);
@@ -250,12 +263,14 @@ void ILOD_track_matching::listItemAction(ctx_t ctx, size_t item) {
 		lptest.pt = curpos;
 		header.HitTest(&lptest);
 
+
 		//calculate subItem by hittest
-		int subItem = -1;
+		int subItem = 9999;
 		if (lptest.flags == HHT_ONHEADER) {
 			subItem = lptest.iItem;
 		}
 
+		//
 		bool battrib = subItem == 3 || subItem == 4 || subItem == 5;
 		af att;
 		bool bval, dc_isalbum = false;		
@@ -272,6 +287,7 @@ void ILOD_track_matching::listItemAction(ctx_t ctx, size_t item) {
 			dc_isalbum = ndx_image.first == (int)art_src::alb;
 			perm_pos = dc_isalbum ? perm_pos : perm_pos - cAlbumArt;
 		}
+		//
 
 		switch (subItem) {
 		case 0:
@@ -314,10 +330,10 @@ void ILOD_track_matching::listItemAction(ctx_t ctx, size_t item) {
 		service_ptr_t<fb2k::imageViewer> img_viewer = fb2k::imageViewer::get();
 		const GUID aaType = ndx_img.second;
 
+
 		//image viewer req >= 1.6.2
 		bool has_viewer = core_version_info_v2::get()->test_version(1, 6, 2, 0);
 		if (has_viewer) {
-
 			auto items = ((TParent*)this)->get_tag_writer_items();
 			img_viewer->load_and_show(ctx->m_hWnd, items, aaType/*ndx_img.second*/, 0);
 		}
@@ -330,12 +346,12 @@ void ILOD_track_matching::listItemAction(ctx_t ctx, size_t item) {
 }
 
 void ILOD_track_matching::listSubItemClicked(ctx_t ctx, size_t item, size_t subItem) {
-    //..
+	//..
 	return;
 }
 void ILOD_track_matching::listSetEditField(ctx_t ctx, size_t item, size_t subItem, const char* val) {
 	//..
 }
 bool ILOD_track_matching::listIsColumnEditable(ctx_t, size_t subItem) {
-	return false;
+	return subItem > 2 && subItem < 6;
 }

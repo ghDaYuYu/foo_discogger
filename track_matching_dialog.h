@@ -62,7 +62,6 @@ public:
 
 		g_discogs->track_matching_dialog = nullptr;
 	}
-
 	virtual BOOL PreTranslateMessage(MSG* pMsg) override {
 		return ::IsDialogMessage(m_hWnd, pMsg);
 	}
@@ -144,23 +143,24 @@ public:
 	LRESULT OnCheckSkipArtwork(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCheckManageArtwork(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCheckArtworkFileMatch(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-
 	LRESULT OnUpdateSkipButton(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
-
+	
 	void match_message_update(pfc::string8 local_msg = "");
 
 	//serves credit preview
 	pfc::string8 get_discogs_release_id() { return m_tag_writer->release->id; };
 
-	const metadb_handle_list get_tag_writer_items() {return m_tag_writer->finfo_manager->items; }
+	const metadb_handle_list get_tag_writer_items() {return m_tag_writer->m_finfo_manager->items; }
 
 	void enable(bool v) override;
 	void destroy_all();
 	void go_back();
 
+	void set_tristate(bool btri, UINT state, bool enabled);
 	void init_track_matching_dialog();
+	void show(const int skip_tristate);
 	void show() override;
 	void hide() override;
 
@@ -169,16 +169,14 @@ public:
 	void request_file_preview(size_t img_ndx, bool artist_art);
 
 	void process_artwork_preview_done(size_t img_ndx, bool artist_art, MemoryBlock callback_mb, musicbrainz_info musicbrainz_mibs);
-	void process_file_artwork_preview_done(size_t img_ndx, bool artist_art, imgpairs callback_pair_hbitmaps, std::pair<pfc::string8, pfc::string8> temp_file_names);
+	void process_file_artwork_preview_done(size_t img_ndx, bool artist_art, std::pair<std::pair<HICON, HBITMAP>, std::pair<HICON, HBITMAP>> callback_pair_hbitmaps, std::pair<pfc::string8, pfc::string8> temp_file_names);
 	void process_download_art_paths_done(pfc::string8 callback_release_id, std::shared_ptr<std::vector<std::pair<pfc::string8, bit_array_bittable>>> vres,pfc::array_t<GUID> album_art_ids);
-
-	void set_image_list();
-
 	const TCHAR m_szArtist[50] = _T("Artist");
 	const TCHAR m_szAlbum[50] = _T("Album");
 	const TCHAR m_szWrite[50] = _T("Write");
 	const TCHAR m_szOverwrite[50] = _T("Overwrite");
 	const TCHAR m_szEmbed[50] = _T("Embed");
+
 
 	std::shared_ptr<std::vector<pfc::string8>> vres;
 
@@ -216,29 +214,29 @@ private:
 			lsmode::art : lsmode::default;
 	}
 
+	//void load_column_layout();
 	bool build_current_cfg();
 	void pushcfg();
 
-	void generate_track_mappings(track_mappings_list_type& track_mappings);
+	//void insert_track_mappings();
+	void generate_track_mappings(track_mappings_list_type& m_track_mappings);
 	bool generate_artwork_guids(pfc::array_t<GUID>& my_album_art_ids, bool cfg_default);
 
+	//void update_list_width(HWND list, bool initcontrols = false);
 	bool context_menu_form(HWND wnd, LPARAM coords);
 	bool context_menu_track_show(HWND wnd, int idFrom, LPARAM coords);
 	bool context_menu_track_switch(HWND wnd, POINT point, bool isfiles, int cmd,
 		bit_array_bittable selmask, bit_array_bittable mixedvals);
-	void context_menu_art_attrib_switch(HWND wnd, af afalbum, af afart, UINT IDATT, bool mixedvals);
+	void context_menu_art_attrib_switch(HWND wnd, af afalbum, af afart, UINT IDATT, bool mixedvals/*, lsmode mode*/);
 	bool context_menu_art_attrib_show(HWND wnd, HMENU* menu, bit_array_bittable &mixedvals);
 
 	virtual coord_presenters* ilo_get_coord() override { return &m_coord; }
-
 	foo_conf m_conf;
-	multi_uartwork m_last_run_multi_uart;
 
 	size_t m_pending_previews = 0;
 	std::mutex m_mx_pending_previews_mod;
 	std::vector<preview_job> m_vpreview_jobs;
 	void add_pending_previews(size_t n);
-
 	TagWriter_ptr m_tag_writer;
 
 	size_t m_tw_index = 0;
@@ -251,16 +249,13 @@ private:
 	CListControlOwnerData m_idc_list;
 	CListControlOwnerData m_ifile_list;
 
-	CArtworkList					m_ida_list;
-	CArtworkList					m_ifa_list;
+	CArtworkList m_ida_list;
+	CArtworkList m_ifa_list;
 
-	CTristate							m_tristate;
+	CTristate m_tristate;
 
 	coord_presenters m_coord;
-
 	CImageList m_hImageList;
-
 	musicbrainz_info m_musicbrainz_mibs;
-
 	friend CArtworkList;
 };

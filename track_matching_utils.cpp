@@ -14,7 +14,6 @@ multi_uartwork::multi_uartwork(const CConf& conf, Discogs::Release_ptr release) 
 
 	size_t calbum_art = release->images.get_count();
 	size_t cartist_art = 0;
-
 	for (auto wra : release->artists) {
 		cartist_art += wra->full_artist->images.get_count();
 	}
@@ -38,10 +37,6 @@ multi_uartwork::multi_uartwork(const CConf& conf, Discogs::Release_ptr release) 
 		if (conf.embed_album_art) {
 
 			setflag(af::alb_emb, 0, true);
-
-			//todo: ovr flag
-			//if (conf.album_art_overwrite)
-			//	setflag(af::alb_ovr, 0, true);
 		}
 
 		if (conf.album_art_fetch_all && conf.save_album_art) {
@@ -82,10 +77,6 @@ multi_uartwork::multi_uartwork(const CConf& conf, Discogs::Release_ptr release) 
 		if (conf.embed_artist_art) {
 
 			setflag(af::art_emb, 0, true);
-
-			//todo: ovr flag
-			//if (conf.artist_art_overwrite)
-			//	setflag(af::art_ovr, 0, true);
 		}
 
 		if (conf.artist_art_fetch_all && conf.save_artist_art) {
@@ -153,15 +144,12 @@ std::vector<int> build_woas_libppui(CListControlOwnerData* ui_list, double tile_
 
 		int justify_masked = (headerItem.fmt & LVCFMT_JUSTIFYMASK);
 		int lwoa = justify_masked * 10 + v_order[index];
+
 		int hwoa = ui_list->GetColumnWidthF(index);
 		if (it_woa == vw_res.begin()) {
-
+			//measure after miminize first and expand back the rest
 			hwoa = (double)hwoa * tile_multi;
 		}
-		else {
-			//hwoa = (double)hwoa * (1/tile_multi);
-		}
-
 		//store woa
 		*it_woa = MAKELPARAM(lwoa, hwoa);
 	}
@@ -211,14 +199,12 @@ pfc::string8 round_file_size_units(size_t size) {
 }
 
 //generate cache thumbnails files and hbitmaps from artwork preview memoryblock
-imgpairs MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::string8> cache_path, MemoryBlock small_art) {
+imgpairs MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::string8> n8_cache_paths, MemoryBlock small_art) {
 
 	if (!small_art.get_count()) return imgpairs{ {nullptr, nullptr}, {nullptr, nullptr } };
 
-	pfc::string8 temp_file_small(cache_path.first);
-	extract_native_path(temp_file_small, temp_file_small);
-	pfc::string8 temp_file_mini(cache_path.second);
-	extract_native_path(temp_file_mini, temp_file_mini);
+	pfc::string8 temp_file_small(n8_cache_paths.first);
+	pfc::string8 temp_file_mini(n8_cache_paths.second);
 
 	std::filesystem::path os_file_small = std::filesystem::u8path(temp_file_small.c_str());
 	std::filesystem::path os_file_mini = std::filesystem::u8path(temp_file_mini.c_str());
@@ -229,7 +215,8 @@ imgpairs MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::string8> cache_path
 		pfc::string8 msg("can't open ");
 		msg << temp_file_small;
 		log_msg(msg);
-		return std::pair(nullptr, nullptr);
+		return imgpairs{ {nullptr, nullptr}, {nullptr, nullptr } };
+
 	}
 	else {
 		//write small thumb (aprox. 150x150)
@@ -246,9 +233,11 @@ imgpairs MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::string8> cache_path
 	Bitmap bmSmall(os_file_small.wstring().c_str());
 
 	HBITMAP hBmSmall, hBmMini;
+	HICON hIconSmall, hIconMini;
 
 	//Get hBmSmall (150x150 aprox)
 	if (bmSmall.GetHBITMAP(Color(255, 255, 255)/*Color::Black*/, &hBmSmall) == Gdiplus::Ok) {
+		bmSmall.GetHICON(&hIconSmall);
 
 		Gdiplus::Graphics gmini(/*(Image*)*/&bmSmall);
 		Gdiplus::Status gdi_res = gmini.DrawImage(/*(Gdiplus::Image*)*/ &bmSmall, 0, 0);
@@ -264,15 +253,6 @@ imgpairs MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::string8> cache_path
 			ScalingFactor = (float)newWidth / (float)bmSmall.GetWidth();
 		else
 			ScalingFactor = (float)newHeight / (float)bmSmall.GetHeight();
-
-		/*
-			horizontalScalingFactor & horizontalScalingFactor works well,
-			except if the original image has a specific resolution,
-			for example if it was created by the reading of an image file.
-			In this case you have to apply the resolution of the
-			original image	to the scaling factors
-		*/
-
 		Gdiplus::Bitmap imgMini = Gdiplus::Bitmap((int)newWidth, (int)newHeight);
 
 		Gdiplus::REAL oriResX = bmSmall.GetHorizontalResolution();
@@ -280,10 +260,6 @@ imgpairs MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::string8> cache_path
 		Gdiplus::REAL newResX = imgMini.GetHorizontalResolution();
 		Gdiplus::REAL newResY = imgMini.GetVerticalResolution();
 
-#ifdef DEBUG
-		float debugx = (float)oriResX / (float)newResX;
-		float debugy = (float)oriResY / (float)newResY;
-#endif
 
 		float horizontalScalingFactor = ScalingFactor * ((float)oriResX / (float)newResX);
 		float verticalScalingFactor = ScalingFactor * ((float)oriResY / (float)newResY);
@@ -292,6 +268,7 @@ imgpairs MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::string8> cache_path
 		g.ScaleTransform(horizontalScalingFactor, verticalScalingFactor);
 
 		gdi_res = g.DrawImage(/*(Gdiplus::Image*)*/ &bmSmall, 0, 0);
+		
 		PFC_ASSERT(gdi_res == Gdiplus::Ok);
 
 		FILE* fd = nullptr;
@@ -299,19 +276,10 @@ imgpairs MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::string8> cache_path
 			pfc::string8 msg("can't open ");
 			msg << temp_file_mini;
 			log_msg(msg);
-			return std::pair(nullptr, nullptr);
+			return imgpairs{ {nullptr, nullptr}, {nullptr, nullptr } };
 		}
 		if (fd != nullptr)
 			fclose(fd);
-
-		/*
-		bmp: {557cf400-1a04-11d3-9a73-0000f81ef32e}
-		jpg: {557cf401-1a04-11d3-9a73-0000f81ef32e}
-		gif: {557cf402-1a04-11d3-9a73-0000f81ef32e}
-		tif: {557cf405-1a04-11d3-9a73-0000f81ef32e}
-		png: {557cf406-1a04-11d3-9a73-0000f81ef32e}
-		*/
-
 		CLSID pngClsid;
 		HRESULT hres = CLSIDFromString(L"{557cf406-1a04-11d3-9a73-0000f81ef32e}", &pngClsid);
 
@@ -324,16 +292,16 @@ imgpairs MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::string8> cache_path
 		if (bmMini.GetHBITMAP(Color(255, 255, 255)/*Color::Black*/, &hBmMini) != Gdiplus::Ok) {
 			log_msg("GdiPlus error (GetHBITMAP Small preview 48x48)");
 		}
+		bmMini.GetHICON(&hIconMini);
 	}
 	else {
 		log_msg("GdiPlus error (GetHBITMAP Small preview)");
 	}
 
-	return std::pair(hBmSmall, hBmMini);
+	DeleteObject(hBmSmall);
+	DeleteObject(hBmMini);
+	return std::pair(std::pair(hIconSmall, nullptr), std::pair(hIconMini, nullptr));
 }
-
-//generate windows %temp% thumbnails (150x150 and 48x48) bitmaps from local artwork
-
 imgpairs GenerateTmpBitmapsFromRealSize(pfc::string8 release_id, size_t pos,
 	pfc::string8 source_full_path, std::pair<pfc::string8, pfc::string8>& temp_file_names) {
 
@@ -359,10 +327,6 @@ imgpairs GenerateTmpBitmapsFromRealSize(pfc::string8 release_id, size_t pos,
 	Gdiplus::REAL newResX = imgSmall.GetHorizontalResolution();
 	Gdiplus::REAL newResY = imgSmall.GetVerticalResolution();
 
-#ifdef DEBUG
-	float debugx = (float)oriResX / (float)newResX;
-	float debugy = (float)oriResY / (float)newResY;
-#endif
 
 	float horizontalScalingFactor = ScalingFactor * (float)oriResX / (float)newResX;
 	float verticalScalingFactor = ScalingFactor * (float)oriResY / (float)newResY;
@@ -397,6 +361,7 @@ imgpairs GenerateTmpBitmapsFromRealSize(pfc::string8 release_id, size_t pos,
 	Bitmap bmSmall(os_tmp.wstring().c_str());
 
 	HBITMAP hBmSmall, hBmMini;
+	HICON hIconSmall, hIconMini;
 
 	if (bmSmall.GetHBITMAP(Color(255, 255, 255)/*Color::Black*/, &hBmSmall) == Gdiplus::Ok) {
 		
@@ -430,17 +395,14 @@ imgpairs GenerateTmpBitmapsFromRealSize(pfc::string8 release_id, size_t pos,
 		Gdiplus::REAL newResX = imgMini.GetHorizontalResolution();
 		Gdiplus::REAL newResY = imgMini.GetVerticalResolution();
 
-#ifdef DEBUG
-		float debugx = (float)oriResX / (float)newResX;
-		float debugy = (float)oriResY / (float)newResY;
-#endif
 
-		float horizontalScalingFactor = ScalingFactor * (float)oriResX / (float)newResX;//(float)oriResX / (float)newResX;
-		float verticalScalingFactor = ScalingFactor * (float)oriResY / (float)newResY;//(float)oriResY / (float)newResY;
+		float horizontalScalingFactor = ScalingFactor * (float)oriResX / (float)newResX;
+		float verticalScalingFactor = ScalingFactor * (float)oriResY / (float)newResY;
 
 		Gdiplus::Graphics g(&imgMini);
 		g.ScaleTransform(horizontalScalingFactor, verticalScalingFactor);
 		gdi_res = g.DrawImage(/*(Gdiplus::Image*)*/ &bmSmall, 0, 0);
+		bmSmall.GetHICON(&hIconSmall);
 		PFC_ASSERT(gdi_res == Gdiplus::Ok);
 		
 		uGetTempPath(temp_path);
@@ -450,10 +412,9 @@ imgpairs GenerateTmpBitmapsFromRealSize(pfc::string8 release_id, size_t pos,
 		std::filesystem::path tmp_file_min = std::filesystem::u8path(temp_file_name_mini.c_str());
 
 		if (!std::filesystem::exists(tmp_file_min)) {
+			return imgpairs{ {nullptr, nullptr}, {nullptr, nullptr } };
 		
-			return std::pair(nullptr, nullptr);
 		}
-
 		std::filesystem::path os_tmp_mini = std::filesystem::u8path(temp_file_name_mini.c_str());
 
 		CLSID pngClsid;
@@ -463,12 +424,10 @@ imgpairs GenerateTmpBitmapsFromRealSize(pfc::string8 release_id, size_t pos,
 		imgMini.Save(os_tmp_mini.wstring().c_str(), &pngClsid, NULL);
 
 		Bitmap bmMini(os_tmp_mini.wstring().c_str());
-
-		//Get hBmMini (48x48)
-		//temp file to be deleted on hbitmap cleanup
 		if (bmMini.GetHBITMAP(Color(255, 255, 255)/*Color::Black*/, &hBmMini) != Gdiplus::Ok) {
 			log_msg("GdiPlus error (GetHBITMAP 48x48 tmp artwork)");
 		}
+		bmMini.GetHICON(&hIconMini);
 	}
 	else {
 		log_msg("GdiPlus error (GetHBITMAP 150x150 tmp artwork)");
@@ -477,7 +436,9 @@ imgpairs GenerateTmpBitmapsFromRealSize(pfc::string8 release_id, size_t pos,
 	temp_file_names.first = temp_file_name_small;
 	temp_file_names.second = temp_file_name_mini;
 
-	return std::pair(hBmSmall, hBmMini);
+	DeleteObject(hBmSmall);
+	DeleteObject(hBmMini);
+	return std::pair(std::pair(hIconSmall, nullptr), std::pair(hIconMini, nullptr));
 }
 
 MemoryBlock MemoryBlockToPngIcon(MemoryBlock buffer) {

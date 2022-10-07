@@ -94,7 +94,7 @@ public:
 			DeleteObject(hicon.second);
 		}
 	}
-	
+
 	std::vector<int> Woas() { return m_conf_col_woa; }
 
 	bool RowHeigth() { return m_row_height; }
@@ -140,8 +140,6 @@ protected:
     virtual void update_list_width(bool initcontrols) {}
 	virtual void set_row_height(bool assign) {}
 
-	foo_conf& get_conf();
-
 	void set_lv_images_lists();
 
 	std::pair<CImageList*, CImageList*> get_imagelists() {
@@ -174,8 +172,8 @@ class track_presenter : public presenter {
 
 public:
 
-	track_presenter(coord_presenters* coord) : m_ui_list(NULL), presenter(coord) {
-	}
+	track_presenter(coord_presenters* coord) : m_ui_list(NULL), presenter(coord)
+	{}
 
 	track_presenter() : m_ui_list(NULL) {}
 
@@ -201,8 +199,8 @@ public:
 
 	virtual size_t GetVLvRow(size_t list_position, var_it_t& out) = 0;
 
-	virtual size_t GetDataSize() = 0; // override { return ~0; };
-	virtual size_t GetDataLvSize() = 0; //override { return ~0; };
+	virtual size_t GetDataSize() = 0;
+	virtual size_t GetDataLvSize() = 0;
 
 	size_t DeleteLvRow(size_t position) = 0;
 	
@@ -227,7 +225,6 @@ protected:
 	bool populated = false;
 
 	void define_columns() override =  0 ;
-	void update_list_width(bool init_controls);
 	void set_row_height(bool assign) override;
 
 	bool m_tile = false;
@@ -305,7 +302,6 @@ private:
 
 	vtracks_t m_vtracks;
 	std::vector<V> m_lvtracks;
-
 };
 
 class file_track_libui_presenter : public track_presenter {
@@ -327,7 +323,7 @@ public:
 	}
 
 	~file_track_libui_presenter() {
-		//int debug = 0;
+		//..
 	}
 
 	void AddRow(std::any file) override;
@@ -358,11 +354,11 @@ public:
 		if (bres) std::swap(m_lvfiles.at(key1), m_lvfiles.at(key2));
 		return bres;
 	}
-	
+
 	void ReorderMapItem(size_t const* order, size_t count) override {
 		pfc::reorder_t(m_lvfiles, order, count);
 	}
-	
+
 	void Reset() override { m_vfiles.clear(); m_lvfiles.clear(); }
 
 protected:
@@ -406,10 +402,8 @@ public:
 
 		m_vimages = {};
 		m_lvimages = {};
-
 		m_ui_list = NULL;
-
-		m_multi_uart = multi_uartwork(/*conf*/);
+		m_multi_uart = multi_uartwork();
 	}
 
 	discogs_artwork_presenter() { m_ui_list = NULL; }
@@ -429,7 +423,6 @@ public:
 	size_t get_icon_id(size_t iImageList) override;
 
 	void AddRow(std::any track) override;
-
 	size_t GetVRow(size_t list_position, var_it_t& out) override;
 
 	size_t GetVLvRow(size_t list_position, var_it_t& out) {
@@ -481,7 +474,6 @@ public:
 		m_multi_uart = multi_uartwork();
 		m_multi_uart.file_match = bmatch_file;
 	}
-
 protected:
 
 	void define_columns() override;
@@ -500,7 +492,6 @@ private:
 	getimages_t m_vimages;
 
 	std::vector<V> m_lvimages;
-	
 };
 
 
@@ -525,15 +516,15 @@ public:
 			DeleteObject(hicon.first);
 			DeleteObject(hicon.second);
 		}
-		
+
 		m_vicons.clear();
-		
+
 		for (auto tmp_pair : m_vtemp_files) {
 			uDeleteFile(tmp_pair.first);
 			uDeleteFile(tmp_pair.second);
 		}
 	}
-	
+
 	virtual bool IsTile() { return m_tile; }
 	void SetTile(bool enable) {};
 
@@ -592,7 +583,7 @@ protected:
 
 	void define_columns() override;
 	void display_columns() override;
-	void update_list_width(bool initialize) override;
+	void update_list_width(bool initcontrols) override;
 
 	void build_cfg_columns() override;
 
@@ -626,9 +617,7 @@ public:
 	}
 
 	~coord_presenters() {
-		for (auto bin : form_mode) {
-            //..
-		}
+		//..
 	}
 
 	void swap_map_elements(HWND hwnd, const size_t key1, const size_t key2, lsmode mode = lsmode::default);
@@ -650,7 +639,9 @@ public:
 	size_t ListUserCmdDELETE(HWND hwnd, lsmode mode, int cmd, bit_array_bittable cmdmask, bit_array_bittable are_albums, bool cmdmod = false);
 	size_t ListUserCmdMOVE(HWND hwnd, lsmode mode, int cmd, bit_array_bittable cmdmask, bit_array_bittable are_albums, pfc::array_t<size_t> order, bool cmdmod = false);
 
+	//build from list columns
 	void PullConf(lsmode mode, bool tracks, foo_conf* out_conf);
+	//from woas to column
 	void PushConf(lsmode mode, bool tracks, bool loadwoas);
 
 	multi_uartwork* GetUartwork() {
@@ -661,14 +652,6 @@ public:
 
 		return m_discogs_art_presenter.GetUartwork_guids();
 	}
-
-	std::pair<pfc::string8, pfc::string8> GetDiscogsArtInfo(art_src art_source, size_t list_position) {
-		return m_discogs_art_presenter.TagWriterImgInfo(art_source, list_position);
-	}
-	std::pair<pfc::string8, pfc::string8> GetFileArtInfo(art_src art_source, size_t list_position) {
-		return m_file_art_presenter.TagWriterImgInfo(art_source, list_position);
-	}
-
 	size_t Get_V_LvRow(lsmode mode, bool tracks, size_t list_position, var_it_t& out) {
 		
 		presenter* pres;
@@ -750,7 +733,7 @@ private:
 
 	HWND m_hWnd;
 	lsmode m_lsmode;
-    size_t m_cImageTileMode;
+	size_t m_cImageTileMode;
 
 	typedef std::pair<presenter&, presenter&> binomial_t;
 	typedef std::vector<binomial_t> binomials_t;

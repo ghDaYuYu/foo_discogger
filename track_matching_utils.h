@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "discogs.h"
 #include "conf.h"
 #include "utils.h"
@@ -60,10 +60,6 @@ enum {
 	ID_ART_WRITE,
 	ID_ART_OVR,
 	ID_ART_EMBED,
-	/*ID_ART_DO_ATTRIB,
-	ID_ART_WRITE_ALL,
-	ID_ART_OVR_ALL,
-	ID_ART_EMBED_ALL,*/
 	ID_ART_RESET,
 	ID_SUBMENU_SELECTOR_TEMPLATES,
 	ID_ART_DETAIL,
@@ -123,16 +119,15 @@ const struct uartwork {
 		case (af::art_ovr): return &ucfg_art_ovr;
 		default: PFC_ASSERT(false);
 		}
-
 		return 0;
 	}
 
 	void setflag(af fl, size_t pos,  bool val) {
-		//todo: call fl_pval, rev ovr mod on sd
 		PFC_ASSERT(pos <= kBlockSize); 
 		if (fl == af::alb_emb)			{ setbitflag(ucfg_album_embed, pos, val); }
 		else if (fl == af::alb_sd)		{ setbitflag(ucfg_album_save_to_dir, pos, val);
 											if (!val) setflag(af::alb_ovr, pos, false); }
+
 		else if (fl == af::alb_ovr)		{
 			setbitflag(ucfg_album_ovr, pos, (ucfg_album_save_to_dir || init_done()) && val);
 		}
@@ -145,6 +140,7 @@ const struct uartwork {
 	}
 
 	void setflag_range(af an_af, bool val, size_t from, size_t to) {
+
 		PFC_ASSERT(to <= kBlockSize);
 		setbitflag_range(an_af, val, from, to);
 	}
@@ -181,9 +177,6 @@ const struct uartwork {
 		ucfg_art_save_to_dir = 0;
 		ucfg_art_save_all = 0;
 		ucfg_art_ovr = 0;
-
-		//todo: test cases on release
-		//#ifdef DEBUG 
 		ucfg_album_embed = (cfg_album_embed ? setbitflag_range(af::alb_emb, true, 0, 31) : 0);
 		ucfg_album_save_to_dir = (cfg_album_save_to_dir ? setbitflag_range(af::alb_sd, true, 0, 1) : 0);
 		ucfg_album_save_all = ucfg_album_save_all;
@@ -193,7 +186,6 @@ const struct uartwork {
 		ucfg_art_save_to_dir = (cfg_art_save_to_dir ? setbitflag_range(af::art_sd, true, 0, 1) : 0);
 		ucfg_art_save_all = ucfg_art_save_all;
 		ucfg_art_ovr = ((cfg_art_save_to_dir || cfg_art_embed) &&  cfg_art_ovr ? setbitflag_range(af::art_ovr, true, 0, 31) : 0);
-		//#endif
 	}
 
 	uartwork(bool &init) : init(init) {
@@ -206,10 +198,10 @@ const struct uartwork {
 		ucfg_art_save_to_dir = 0;
 		ucfg_art_save_all = 0;
 		ucfg_art_ovr = 0;
-		pinit = nullptr;
 	}
 
 	inline bool operator==(const uartwork& rhs) {
+
 		return (ucfg_album_embed == rhs.ucfg_album_embed &&
 			ucfg_album_save_to_dir == rhs.ucfg_album_save_to_dir &&
 			ucfg_album_save_all == rhs.ucfg_album_save_all &&
@@ -232,7 +224,7 @@ const struct uartwork {
 			conf.save_artist_art,
 			conf.artist_art_fetch_all,
 			conf.artist_art_overwrite,
-			init
+			this->init
 		);
 	}
 
@@ -251,12 +243,9 @@ const struct uartwork {
 const struct multi_uartwork {
 
 	std::vector<uartwork> vuart;
+
 	bool file_match = false;
 	bool init = false;
-
-	//todo: remove
-	//bool populated = false;
-	//..
 
 	void prep_block(size_t ndx) {
 		if (vuart.size() < ndx + 1) {
@@ -266,7 +255,7 @@ const struct multi_uartwork {
 
 	std::pair<size_t, size_t> get_block(size_t pos) {
 		auto pres = std::pair(pos / kBlockSize, pos % (kBlockSize));
-		prep_block(pres.first); //todo: init once
+		prep_block(pres.first); 
 		return pres;
 	}
 
@@ -281,6 +270,7 @@ const struct multi_uartwork {
 		auto pbp_last = get_block(to);
 
 		bool block_range = pbp_last.first - pbp_first.first;
+
 		for (size_t i = pbp_first.first; i <= pbp_last.first; i++) {
 
 			if (i == pbp_first.first) {
@@ -308,6 +298,7 @@ const struct multi_uartwork {
 	}
 
 	void setflag_range(af fl, bool val, size_t from, size_t to) {
+
 		setbitflag_range(fl, val, from, to);
 	}
 
@@ -349,13 +340,12 @@ const struct multi_uartwork {
 
 		auto uart = vuart.emplace_back(uartwork(cfg_album_embed,
 			cfg_album_save_to_dir,
-			0/*cfg_album_save_all*/,
+			0,
 			cfg_album_ovr,
 			cfg_art_embed,
 			cfg_art_save_to_dir,
-			0/*cfg_art_save_all*/,
+			0,
 			cfg_art_ovr, init));
-
 		init = true;
 	}
 
@@ -408,7 +398,9 @@ inline multi_uartwork CONF_MULTI_ARTWORK;
 const pfc::string8 THUMB_EXTENSION = ".png";
 const size_t FLAG_FIRST_COL = 3;
 
-std::pair<HBITMAP, HBITMAP> MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::string8> cache_path, MemoryBlock small_art);
-std::pair<HBITMAP, HBITMAP> GenerateTmpBitmapsFromRealSize(pfc::string8 release_id, size_t pos, pfc::string8 source_full_path, std::pair<pfc::string8, pfc::string8> &temp_file_names);
+typedef std::pair<std::pair<HICON, HBITMAP>, std::pair<HICON, HBITMAP>> imgpairs;
+
+imgpairs MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::string8> n8_cache_paths, /*size_t pos,*/ MemoryBlock small_art);
+imgpairs GenerateTmpBitmapsFromRealSize(pfc::string8 release_id, size_t pos, pfc::string8 source_full_path, std::pair<pfc::string8, pfc::string8> &temp_file_names);
 std::pair<pfc::string8, pfc::string8> ReadDimSizeFromFile(pfc::string8 path, pfc::string8 file_name);
 MemoryBlock MemoryBlockToPngIcon(MemoryBlock buffer);

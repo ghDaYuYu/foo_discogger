@@ -8,36 +8,23 @@ class MyCDialogImpl : public CDialogImpl<T>, public ErrorManager
 {
 public:
 	virtual void show() {
-		if (placement_valid) {
-			SetWindowPlacement(&my_placement);
-		}
 		ShowWindow(SW_SHOW);
 	}
 
 	virtual void hide() {
-		GetWindowPlacement(&my_placement);
-		placement_valid = true;
 		ShowWindow(SW_HIDE);
 	}
 
 	virtual void destroy() {
 		if (::IsWindow(m_hWnd)) {
-			GetWindowPlacement(&my_placement);
-			placement_valid = true;
 			DestroyWindow();
 		}
 		else {
 			delete this;
 		}
 	}
-
-	static WINDOWPLACEMENT my_placement;
-	static bool placement_valid;
-
 	virtual void enable(bool v) = 0;
 };
-template <class T> WINDOWPLACEMENT MyCDialogImpl<T>::my_placement = { 0, 0, 0, { 0, 0 }, { 0, 0 }, { 0, 0, 0, 0 } };
-template <class T> bool MyCDialogImpl<T>::placement_valid = false;
 
 
 #define MY_BEGIN_MSG_MAP(theClass) \

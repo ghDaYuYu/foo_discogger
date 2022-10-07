@@ -7,6 +7,12 @@ extern "C" {
 	#include "zlib.h"
 }
 
+#define NO_MOVE_NO_COPY(C) \
+  C(const C&) = delete; \
+  C& operator=(const C&) = delete; \
+  C(C&&) = delete; \
+  C& operator=(C&&) = delete;
+
 #define STR_EQUAL(a,b)		::strcmp(a,b)==0
 #define STR_EQUALN(a,b,n)	::strncmp(a,b,n)==0
 
@@ -50,6 +56,8 @@ struct cmp_str
 	}
 };
 
+inline const pfc::string8 OC_NAME = "foo_discogger-cache";
+
 extern const char *whitespace;
 
 static const std::map<const char*, const char*, cmp_str> MONTH_NAMES = {
@@ -67,8 +75,6 @@ static const std::map<const char*, const char*, cmp_str> MONTH_NAMES = {
 	{"12", "Dec"}
 };
 
-//compensate gripp offset
-//TODO: dpi check
 static struct rzgripp {
 	int width = 22;
 	int height = 56;
@@ -84,14 +90,25 @@ static const pfc::string8 match_assumed("ASSUMED TRACK ORDER");
 static const pfc::string8 match_manual("...");
 
 typedef pfc::array_t<t_uint8> MemoryBlock;
-
 extern inline pfc::string EscapeWin(pfc::string8 keyWord);
+
+struct nota_info {
+	bool is_number;
+	size_t disk;	//zero based
+	size_t track;	//zero based
+	pfc::string8 discogs_track_number;
+};
+
+extern pfc::string8 sanitize_track_semi_media(const pfc::string8& tracks);
+extern pfc::string8 sanitize_track_commas(const pfc::string8& tracks);
+extern void replace_track_volume_desc(const pfc::string& sometrack, nota_info& out, std::vector<pfc::string8>alldescs);
 
 // Trim whitespace from strings
 extern inline pfc::string8 trim(const pfc::string8 &str, const char *ch = whitespace);
 extern inline pfc::string8 ltrim(const pfc::string8 &str, const char *ch = whitespace);
 extern inline pfc::string8 rtrim(const pfc::string8 &str, const char *ch = whitespace);
 
+// Is number
 extern bool is_number(const std::string& s);
 // Replace one alpha by dot
 extern bool replace_last_alpha_by_dot(std::string& s);
@@ -103,6 +120,7 @@ size_t encode_mr(const int a, pfc::string8& sb);
 std::pair<int, unsigned long> decode_mr(const size_t coded);
 
 extern void szcstr(size_t n, pfc::string8& out);
+//extern const char* ulcstr(unsigned long ul);
 
 // Make strings lowercase
 extern pfc::string8 lowercase(pfc::string8 str);
@@ -112,17 +130,18 @@ extern pfc::string8 join(const pfc::array_t<pfc::string8> &in, const pfc::string
 
 // Tokenize string
 extern int tokenize(const pfc::string8 &src, const pfc::string8 &delim, pfc::array_t<pfc::string8> &tokens, bool remove_blanks);
+extern int tokenize_non_bracketed(const pfc::string8& src, const pfc::string8& delim, pfc::array_t<pfc::string8>& tokens, bool remove_blanks);
 extern int tokenize_multi(const pfc::string8 &src, const pfc::array_t<pfc::string8> &delims, pfc::array_t<pfc::string8> &tokens, bool remove_blanks);
 
-// TODO: use the titleformat filter instead?
 extern void makeFsCompliant(pfc::string8 &str);
 extern pfc::string8 urlEscape(const pfc::string8 &src);
 extern inline pfc::string8 substr(const pfc::string8 &s, size_t start, size_t count = pfc::infinite_size);
 
 // Open URL in default browser
 extern void display_url(const pfc::string8 &url);
+//extern void list_replace_text(HWND list, int pos, const char *text);
 
-extern pfc::string8 extract_max_number(const pfc::string8& s);
+extern pfc::string8 extract_max_number(const pfc::string8& s, const char mode);
 extern pfc::string8 extract_musicbrainz_mib(const pfc::string8& s);
 
 extern int myUncompress(Bytef *dest, uLongf *destLen, const Bytef *source, uLong sourceLen);
@@ -146,18 +165,11 @@ void erase(pfc::array_t<T> &ar, unsigned int index) {
 
 extern bool tokenize_filter(pfc::string8 filter, pfc::array_t<pfc::string>& out_filter_words_lowercase);
 
-extern void CenterWindow(HWND hwnd, CRect rcCfg, HWND hwndCenter, LPARAM lefttop = 0);
 extern void CustomFont(HWND hwndParent, bool enable, bool enable_cedit = false);
 
 extern bool sortByVal(const std::pair<int, int>& a, const std::pair<int, int>& b);
 
-namespace listview_helper {
-
-	extern unsigned fr_insert_column(HWND p_listview, unsigned p_index, const char* p_name, unsigned p_width_dlu, int fmt);
-	extern unsigned insert_lvItem_tracer(HWND p_listview, unsigned p_index, bool is_release_tracker, const char* p_name, LPARAM p_param, int icon_offline = 0);
-	extern bool fr_insert_item_subitem(HWND p_listview, unsigned p_index, unsigned p_subitem, const char* p_name, LPARAM p_param);
-
-}
+extern bool is_multivalue_meta(const pfc::string& field);
 
 extern const int IMAGELIST_OFFLINE_CACHE_NDX;
 extern const int IMAGELIST_OFFLINE_DB_NDX;

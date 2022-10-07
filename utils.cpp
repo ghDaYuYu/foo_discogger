@@ -1,7 +1,6 @@
 #include "stdafx.h"
 
 #include "foo_discogs.h"
-
 #include "utils.h"
 #include <algorithm>
 #include <regex>
@@ -9,7 +8,6 @@
 const char *whitespace = " \t\r\n";
 
 bool cfg_preview_dialog_track_map = true;
-bool cfg_find_release_dialog_idtracker = true;
 
 float cfg_find_release_colummn_showid_width = 50.0f;
 bool cfg_find_release_colummn_showid = false;
@@ -32,16 +30,147 @@ const int IMAGELIST_OFFLINE_DB_NDX = 9;
 //todo:
 inline pfc::string EscapeWin(pfc::string8 keyWord) {
 	pfc::string8 out_keyWord(keyWord);
-	//out_keyWord.replace_string("/", "//");
-	//out_keyWord.replace_string("'", "''");
-	//out_keyWord.replace_string("[", "/[");
-	//out_keyWord.replace_string("]", "/]");
-	//out_keyWord.replace_string("%", "/%");
 	out_keyWord.replace_string("&", "&&");
-	//out_keyWord.replace_string("_", "/_");
-	//out_keyWord.replace_string("(", "/(");
-	//out_keyWord.replace_string(")", "/)");
 	return out_keyWord;
+}
+pfc::string8 sanitize_track_semi_media(const pfc::string8& tracks) {
+
+	pfc::string8 res;
+	std::vector<pfc::string8> v_vols;
+	split(tracks, ";", 0, v_vols); //split by volumes
+	for (auto& walk_vol : v_vols) {
+		//CD 1: ... ; CD 2: ... or CD: ...; LP: ... ?
+		std::vector<pfc::string8> v_voldesc;
+		split(walk_vol, ":", 0, v_voldesc); //split by :
+		bool hasvol = v_voldesc.size() == 2;
+		size_t volnum = ~0;
+		pfc::string8 volspec = "";
+		if (hasvol) {
+			std::vector<pfc::string8> v_voltoken;
+			split(trim(v_voldesc.at(0)), " ", 0, v_voltoken); //split by spc
+
+			if (v_voltoken.size() == 2) {
+				volnum = is_number(v_voltoken.at(1).c_str()) ? volnum = atoi(v_voltoken.at(1)) : pfc_infinite;
+			}
+			volspec = v_voltoken.at(0);
+			walk_vol = "";
+
+			//..
+
+			std::vector<pfc::string8> v_trackranges;
+			split(v_voldesc.at(1), ",", 0, v_trackranges); //split by commas
+			for (auto& walk_trackranges : v_trackranges) {
+
+				std::vector<pfc::string8> v_trackto;
+				split(walk_trackranges, " to ", 0, v_trackto); //split by " to "
+				pfc::string trk = "";
+				//dont really need a loop here
+				for (auto walk_trackto : v_trackto) {
+					if (trk.get_length())
+						walk_vol << " to ";
+
+					if (volnum != ~0) {
+						trk << volnum;
+					}
+					else {
+						trk << volspec;
+					}
+					trk << "-" << trim(walk_trackto);
+					// 1-1 to 1-4 or just 1-5
+				}
+				res << (res.get_length() ? "," : "") << trk;
+			}
+		}
+		else {
+			res << (res.get_length() ? "," : "") << walk_vol;
+		}
+	}
+	return res;
+}
+pfc::string8 sanitize_track_commas(const pfc::string8& tracks) {
+
+	std::regex regex_v;
+
+	regex_v = std::regex("[ ]+,[ ]+");
+	std::string res_no_extra_comma_spc(tracks.c_str());
+	std::sregex_iterator begin = std::sregex_iterator(res_no_extra_comma_spc.begin(), res_no_extra_comma_spc.end(), regex_v);
+	std::sregex_iterator end = std::sregex_iterator();
+	if (begin == end) return tracks;
+
+
+	try {
+
+		res_no_extra_comma_spc = std::regex_replace(res_no_extra_comma_spc.c_str(), regex_v, ", ");
+	}
+	catch (std::regex_error e) {
+		return false;
+	}
+
+	pfc::string8 tracks_semied = sanitize_track_semi_media(res_no_extra_comma_spc.c_str());
+
+	//split
+	std::vector<pfc::string8>v;
+	split(trim(tracks_semied), " ", 0, v);
+	for (int i = 0; i < v.size(); i++) {
+		if (i < v.size() - 2) {
+			if (v.at(i).equals("to") && (v.at(i + 1).find_first(',', 0) == pfc_infinite)) {
+				auto c = std::find(v.begin() + i, v.end(), ",");
+				if (c == v.end() || (c - v.begin() + i > 1)) {
+					v.at(i + 1) = PFC_string_formatter() << v.at(i + 1) << ",";
+				}
+			}
+		}
+		v.at(i).replace_string("to", " to ");
+	}
+
+	//rebuild
+	pfc::string8 res;
+	std::vector<pfc::string8>::iterator iter_forward = v.begin();
+	for (auto w : v) {
+		iter_forward++;
+		size_t comma_pos = w.find_first(',', 0);
+		if (comma_pos != pfc_infinite) {
+			res << w << " ";
+			continue;
+		}
+		if (w.equals(" to ")) {
+			res << w;
+			continue;
+		}
+		res << w << (iter_forward != v.end() && !iter_forward->equals(" to ") ? ", " : "");
+	}
+	return res;
+}
+void replace_track_volume_desc(const pfc::string& sometrack, nota_info& out, const std::vector<pfc::string8> vvoldescs) {
+
+	pfc::string8 res;
+
+	pfc::string8 sometrack_fixed = sometrack;
+	pfc::string8 credits_disk_notation = "";
+	pfc::string8 tracks_disk_notation = "";
+
+	std::vector<pfc::string8> v_nota;
+	split(sometrack_fixed, "-", 0, v_nota);
+
+	if (is_number(v_nota.at(0).c_str())) {
+		out.is_number = true;
+		if (v_nota.size() < 2) {
+			out.disk = 0;
+			out.track = atoi(v_nota.at(0).c_str()) - 1;
+		}
+		else {
+			out.disk = atoi(v_nota.at(0).c_str()) - 1;
+			out.track = is_number(v_nota.at(1).c_str()) ? (atoi(v_nota.at(1).c_str()) - 1) : ~0;;
+			out.is_number &= out.track != ~0;
+		}
+		return;
+	}
+	else {
+		out.is_number = false;
+		out.disk = ~0;
+		out.track = ~0;
+	}
+	return;
 }
 
 inline pfc::string8 trim(const pfc::string8 &str, const char *ch) {
@@ -70,6 +199,34 @@ bool is_number(const std::string& s)
 {
 	return !s.empty() && std::find_if(s.begin(),
 		s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
+}
+
+bool replace_last_alpha_by_dot(std::string& s) {
+	auto fit_any_alpha = std::find_if(s.rbegin(),
+		s.rend(), [](unsigned char c) { return std::isdigit(c) == false; });
+	if (fit_any_alpha.base() != s.begin() && fit_any_alpha.base() != s.end()) {
+ 		size_t dist = std::distance(s.begin(), fit_any_alpha.base());
+		s.replace(dist - 1, 1, ".");
+		return true;
+	}
+	return false;
+}
+
+size_t split(pfc::string8 str, pfc::string8 token, size_t index, std::vector<pfc::string8>& out) {
+	size_t last_index = index;
+
+	index = str.find_first(token, index);
+	if (index != pfc_infinite) {
+		out.push_back(pfc::string_part(str + last_index, index - last_index));
+		//recursion
+		return split(str, token, index + token.length(), out);
+	}
+	else {
+		pfc::string8 notoken;
+		if ((notoken = substr(str, last_index, str.get_length())).get_length())
+			out.push_back(notoken);
+		return pfc_infinite; //end
+	}
 }
 
 size_t encode_mr(const int a, const unsigned long b) {
@@ -144,22 +301,13 @@ bool replace_bracketed_commas(pfc::string8& out, pfc::string8 what, pfc::string8
 	//all bracketed commas
 	std::regex regex_v;
 	std::string str_exp(what);
-	//ej. ",(?=((?!\\[).)*?\\])"
 	str_exp.append("(?=((?!\\[).)*?\\])");
-	//try {
 	regex_v = std::regex(str_exp);
-
 	std::string res_no_bracketed_commas(out.c_str());
 	std::sregex_iterator begin = std::sregex_iterator(res_no_bracketed_commas.begin(), res_no_bracketed_commas.end(), regex_v);
 	std::sregex_iterator end = std::sregex_iterator();
 	if (begin != end) {
 
-#ifdef DEBUG
-		int occurrences = 0;
-		for (std::sregex_iterator i = begin; i != end; i++) {
-			occurrences++;
-		}
-#endif
 
 		try {
 			res_no_bracketed_commas = std::regex_replace(res_no_bracketed_commas.c_str(), regex_v, with.c_str());
@@ -167,7 +315,6 @@ bool replace_bracketed_commas(pfc::string8& out, pfc::string8 what, pfc::string8
 			return true;
 		}
 		catch (std::regex_error e) {
-			//res.set_string(e.what());
 			return false;
 		}
 
@@ -212,10 +359,6 @@ int tokenize_non_bracketed(const pfc::string8& src, const pfc::string8& delim, p
 		replace_bracketed_commas(tmp, "%", ",");
 	}
 	tokens.append_single(tmp);
-
-	//bring back bracketed commas
-
-
 	return (int)tokens.get_size();
 }
 
@@ -356,8 +499,36 @@ pfc::string8 substr(const pfc::string8 &s, size_t start, size_t count) {
 	return pfc::string8(s.get_ptr() + start, count);
 }
 
-pfc::string8 extract_max_number(const pfc::string8& s) {
-	std::regex regex_v("\\[a\\d+?\\]");
+//modes: 'a' 'r' 'w' for artist and release refs, and web links
+pfc::string8 extract_max_number(const pfc::string8& s, const char mode) {
+
+	std::regex regex_v; // ("[\\d]+");
+
+	size_t prefix_len;
+	size_t postfix_len;
+	switch (mode) {
+	case 'a':
+		prefix_len = 2;
+		postfix_len = 1;
+		regex_v = "\\[a\\d+?\\]";
+		break;
+	case 'r':
+		prefix_len = 2;
+		postfix_len = 1;
+		regex_v = "\\[r\\d+?\\]";
+		break;
+	case 'z':
+		prefix_len = 0;
+		postfix_len = 0;
+		regex_v = "[\\d]";
+		break;
+	case 'w':
+		[[fallthrough]];
+	default:
+		prefix_len = 1;
+		postfix_len = 0;
+		regex_v = "/[\\d]+";
+	}
 
 	size_t max = 0;
 	std::string str(s);
@@ -366,8 +537,8 @@ pfc::string8 extract_max_number(const pfc::string8& s) {
 
 	for (std::sregex_iterator i = begin; i != end; i++) {
 		const std::string_view sv{
-			str.data() + i->position(),
-			i->str().length()
+			str.data() + i->position() + prefix_len,
+			i->str().length() - (prefix_len + postfix_len)
 		};
 		if (size_t ival = atoi(sv.data()); ival > max)
 			max = ival;
@@ -459,12 +630,10 @@ void ensure_directory_exists(const char* dir) {
 
 	try {
 		while (true) {
-			//log_msg("testing directory: %s", path.c_str());
-			if (!filesystem::g_exists(path.get_ptr(), _abort)) {
+			if (!foobar2000_io::filesystem::g_exists(path.get_ptr(), _abort)) {
 				missing.append_single(path);
 			}
 			else {
-				//log_msg("directory exists: %s", path.c_str());
 
 				for (int i = missing.get_size(); i > 0; i--) {
 					pfc::string8 make = missing[i - 1];
@@ -472,13 +641,12 @@ void ensure_directory_exists(const char* dir) {
 					msg << make;
 					log_msg(msg);
 
-					filesystem::g_create_directory(make.get_ptr(), _abort);
+					foobar2000_io::filesystem::g_create_directory(make.get_ptr(), _abort);
 
-					if (!filesystem::g_exists(make.get_ptr(), _abort)) {
+					if (!foobar2000_io::filesystem::g_exists(make.get_ptr(), _abort)) {
 						foo_discogs_exception ex;
 						ex << "Error creating directory: \"" << make.get_ptr() << "\"";
 						throw ex;
-						//log_msg("create directory failed!? %s", make.c_str());
 					}
 				}
 				return;
@@ -516,8 +684,6 @@ bool check_os_wine() {
 #ifdef OS_IS_WINE
 	return TRUE;
 #endif
-
-	//static const char* (CDECL * pwine_get_version)(void);
 	HMODULE hntdll = GetModuleHandle(L"ntdll.dll");
 	if (!hntdll)
 	{
@@ -528,7 +694,6 @@ bool check_os_wine() {
 	auto pwine_get_version = (void*)GetProcAddress(hntdll, "wine_get_version");
 	if (pwine_get_version)
 	{
-		//log_msg(PFC_string_formatter() << "Running on Wine... " << pwine_get_version());
 		log_msg("Wine detected.");
 		return true;
 	}
@@ -538,93 +703,10 @@ bool check_os_wine() {
 	}
 }
 
-void CenterWindow(HWND hwnd, CRect rcCfg, HWND hwndCenter, LPARAM lparamLeftTop)
-{
-	// Determine owner window to center against.
-	DWORD dwStyle = GetWindowLong(hwnd, GWL_STYLE);
-	if (hwndCenter == NULL)
-	{
-		if (dwStyle & WS_CHILD)
-			hwndCenter = GetParent(hwnd);
-		else
-			hwndCenter = GetWindow(hwnd, GW_OWNER);
-	}
-
-	// Get coordinates of the window relative to its parent.
-	RECT rcDlg;
-	if (rcCfg != CRect()) {
-		rcDlg = rcCfg;
-	}
-	else
-		GetWindowRect(hwnd, &rcDlg);
-
-	RECT rcArea;
-	RECT rcCenter;
-	HWND hwndParent;
-	if ((dwStyle & WS_CHILD) == 0)
-	{
-		// Don't center against invisible or minimized windows.
-		if (hwndCenter != NULL)
-		{
-			DWORD dwStyleCenter = GetWindowLong(hwndCenter, GWL_STYLE);
-			if (!(dwStyleCenter & WS_VISIBLE) || (dwStyleCenter & WS_MINIMIZE))
-				hwndCenter = NULL;
-		}
-
-		// Center within screen coordinates.
-		SystemParametersInfo(SPI_GETWORKAREA, NULL, &rcArea, NULL);
-		if (hwndCenter == NULL)
-			rcCenter = rcArea;
-		else
-			GetWindowRect(hwndCenter, &rcCenter);
-	}
-	else
-	{
-		// Center within parent client coordinates.
-		hwndParent = GetParent(hwnd);
-		GetClientRect(hwndParent, &rcArea);
-		GetClientRect(hwndCenter, &rcCenter);
-		MapWindowPoints(hwndCenter, hwndParent, (POINT*)&rcCenter, 2);
-	}
-
-	int nDlgWidth = rcDlg.right - rcDlg.left;
-	int nDlgHeight = rcDlg.bottom - rcDlg.top;
-
-	POINT point;
-	point.x = GET_X_LPARAM(lparamLeftTop);
-	point.y = GET_Y_LPARAM(lparamLeftTop);
-
-	// Find dialog's upper left based on rcCenter.
-	int xLeft = point.x;
-	int yTop = point.y;
-
-	if (xLeft == 0 && yTop == 0) {
-		xLeft = (rcCenter.left + rcCenter.right) / 2 - nDlgWidth / 2;
-		yTop = (rcCenter.top + rcCenter.bottom) / 2 - nDlgHeight / 2;
-
-		if (xLeft < rcArea.left)
-			xLeft = rcArea.left;
-		else if (xLeft + nDlgWidth > rcArea.right)
-			xLeft = rcArea.right - nDlgWidth;
-
-		if (yTop < rcArea.top)
-			yTop = rcArea.top;
-		else if (yTop + nDlgHeight > rcArea.bottom)
-			yTop = rcArea.bottom - nDlgHeight;
-
-		int grippX = mygripp.enabled ? mygripp.width : 0;
-		int grippY = mygripp.enabled ? mygripp.height : 0;
-		SetWindowPos(hwnd, core_api::get_main_window(), xLeft - grippX / 2, yTop - grippY / 2, nDlgWidth + grippX, nDlgHeight + grippY, /*SWP_NOSIZE |*/ SWP_NOZORDER | SWP_NOACTIVATE);
-	}
-	else {
-		SetWindowPos(hwnd, core_api::get_main_window(), xLeft, yTop, nDlgWidth, nDlgHeight, /*SWP_NOSIZE |*/ SWP_NOZORDER | SWP_NOACTIVATE);
-	}
-	
-	// Map screen coordinates to child coordinates.
-	
-}
 void CustomFont(HWND hwndParent, bool enabled, bool enableedits) {
+
 	if (enabled) {
+
 		for (HWND walk = ::GetWindow(hwndParent, GW_CHILD); walk != NULL; ) {
 			wchar_t buffer[128] = {};
 			::GetClassName(walk, buffer, (int)(std::size(buffer) - 1));
@@ -649,52 +731,12 @@ bool sortByVal(const std::pair<int, int>& a, const std::pair<int, int>& b)
 	return a.second < b.second;
 }
 
-namespace listview_helper {
-
-	unsigned fr_insert_column(HWND p_listview, unsigned p_index, const char* p_name, unsigned p_width_dlu, int fmt)
-	{
-
-		int colcount = ListView_GetColumnCount(p_listview);
-		pfc::stringcvt::string_os_from_utf8 os_string_temp(p_name);
-		RECT rect = { 0, 0, static_cast<LONG>(p_width_dlu), 0 };
-		MapDialogRect(GetParent(p_listview), &rect);
-		LVCOLUMNW data = {};
-		data.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_FMT | LVCF_SUBITEM;
-		data.fmt = fmt;
-		data.cx = rect.right;
-		data.pszText = const_cast<TCHAR*>(os_string_temp.get_ptr());
-		data.iSubItem = colcount/*p_index*/;
-		LRESULT ret = uSendMessage(p_listview, LVM_INSERTCOLUMNW, colcount/*p_index*/, (LPARAM)&data);
-		if (ret < 0) return ~0;
-		else return (unsigned)ret;
+extern bool is_multivalue_meta(const pfc::string& field) {
+	std::vector<pfc::string8> vmvf;
+	split(CONF.multivalue_fields, ";", 0, vmvf);
+	for (auto k : vmvf) {
+		if (k.equals(field))
+			return true;
 	}
-
-	unsigned insert_lvItem_tracer(HWND p_listview, unsigned p_index,
-		bool tracer_match, const char* p_name, LPARAM p_param, int icon_offline)
-	{
-		if (p_index == ~0) p_index = ListView_GetItemCount(p_listview);
-		LVITEM item = {};
-		pfc::stringcvt::string_os_from_utf8 os_string_temp(p_name);
-		item.mask = LVIF_TEXT | LVIF_PARAM | LVIF_IMAGE;
-		item.iItem = p_index;
-		item.lParam = p_param;
-		item.iImage = icon_offline;
-		item.pszText = const_cast<TCHAR*>(os_string_temp.get_ptr());
-
-		if (tracer_match) {
-			item.mask |= LVIF_STATE;
-			item.state =  LVIS_GLOW;
-			item.stateMask = LVIS_GLOW;
-		}
-
-		LRESULT ret = SendMessage(p_listview, LVM_INSERTITEM, 0, (LPARAM)&item);
-
-		if (ret < 0) return ~0;
-		else return (unsigned)ret;
-	}
-
-	bool fr_insert_item_subitem(HWND p_listview, unsigned p_index, unsigned p_subitem, const char* p_name, LPARAM p_param)
-	{
-		return set_item_text(p_listview, p_index, p_subitem, p_name);
-	}
+	return false;
 }

@@ -18,7 +18,10 @@ struct track_mapping
 
 public:
 	bool operator!=(track_mapping &other) {
-		return !(other.discogs_disc == discogs_disc && other.discogs_track == discogs_track && other.enabled == enabled && other.file_index == file_index);
+		return !(other.discogs_disc == discogs_disc &&
+			other.discogs_track == discogs_track &&
+			other.enabled == enabled &&
+			other.file_index == file_index);
 	}
 };
 
@@ -31,6 +34,8 @@ public:
 	pfc::array_t<string_encoded_array> value;
 	pfc::array_t<string_encoded_array> old_value;
 	pfc::array_t<bool> r_approved;
+	bit_array_bittable r_usr_modded;
+	bit_array_bittable r_usr_approved;
 
 	bool changed = false;
 	bool result_approved = false;
@@ -42,61 +47,45 @@ typedef pfc::array_t<tag_result_ptr> tag_results_list_type;
 class TagWriter : public ErrorManager
 {
 public:
-	file_info_manager_ptr finfo_manager;
 
-	track_mappings_list_type track_mappings;
-	int match_status = -1;
-	
-	/* Tag results are per [enabled] tag. They contain an array of result per track_mapping. */
-	tag_results_list_type tag_results;
-
-	Release_ptr release;
-	size_t release_art_count = 0;
-
-	TagWriter(file_info_manager_ptr finfo_manager, Release_ptr release);
-	TagWriter(file_info_manager_ptr finfo_manager, pfc::string8 p_error) : finfo_manager(finfo_manager), release(nullptr), error(p_error) {
-		skip = true;
-		force_skip = true;
-		release_art_count = get_art_count();
-	}
-
-	void generate_tags(tag_mapping_list_type* alt_mappings, threaded_process_status& p_status, abort_callback& p_abort);
-
-	//todo: param (all, album, art)
-	const t_size GetArtCount() {
-		return release_art_count;
-	}
+	TagWriter(file_info_manager_ptr m_finfo_manager, Release_ptr release);
+	TagWriter(file_info_manager_ptr m_finfo_manager, pfc::string8 p_error);
 
 	void write_tags();
-	void write_tags_track_map();
 	void write_tags_v23();
+	void write_tags_track_map();
 
 	void match_tracks();
+	void generate_tags(tag_mapping_list_type* alt_mappings, threaded_process_status& p_status, abort_callback& p_abort);
+
+	const t_size GetArtCount(art_src artsrc = art_src::unknown);
+
+	file_info_manager_ptr m_finfo_manager;
+	track_mappings_list_type m_track_mappings;
+	
+	int m_match_status = -1;
+	tag_results_list_type m_tag_results;
+
+	Release_ptr release;
 
 	bool will_modify = false;
 	bool skip = false;
 	bool force_skip = false;
-
 	pfc::string8 error = "";
 
 private:
 
 	void write_tag(metadb_handle_ptr item, file_info &info, const tag_mapping_entry &entry, const pfc::string8 &tag_value);
 	void write_tag(metadb_handle_ptr item, file_info &info, const tag_mapping_entry &entry, const pfc::array_t<string_encoded_array> &tag_values);
+	const t_size get_art_count();
 
 	int compute_discogs_track_order(track_mappings_list_type &mappings);
 	int order_tracks_by_duration(track_mappings_list_type &mappings);
 	int order_tracks_by_number(track_mappings_list_type &mappings);
 	int order_tracks_by_assumption(track_mappings_list_type &mappings);
 
-	const static std::vector<int(TagWriter::*)(track_mappings_list_type &)> matching_functions;
-
-	const t_size get_art_count() {
-		size_t res = release->images.get_count();
-		for (auto wra : release->artists) {
-			res += wra->full_artist->images.get_count();
-		}
-		return res;
-	}
+	service_ptr_t<titleformat_object> m_track_script;
+	const static std::vector<int(TagWriter::*)(track_mappings_list_type &)> m_matching_functions;
 };
+
 typedef std::shared_ptr<TagWriter> TagWriter_ptr;

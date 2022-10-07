@@ -343,9 +343,6 @@ public:
 	inline void filter(const string_encoded_array &other) {
 		branch_execute(&string_encoded_array::_filter, other, 1, 1);
 	}
-	/*inline void reduce() {
-		branch_execute(&string_encoded_array::_reduce, 2);
-	}*/
 	inline void multi_len() {
 		branch_execute(&string_encoded_array::_multi_len);
 	}

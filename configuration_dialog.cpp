@@ -63,9 +63,9 @@ void CConfigurationDialog::InitTabs() {
 }
 
 CConfigurationDialog::~CConfigurationDialog() {
-
-	g_discogs->configuration_dialog = nullptr;
-
+	if (g_discogs) {
+		g_discogs->configuration_dialog = nullptr;
+	}
 }
 
 //from libPPUI\CDialogResizeHelper.cpp
@@ -82,6 +82,11 @@ static BOOL GetChildWindowRect(HWND wnd, UINT id, RECT* child)
 //
 
 LRESULT CConfigurationDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
+
+	if (!g_discogs) {
+		//installation is not reliable
+		return FALSE;
+	}
 
 	InitTabs();
 	HWND hWndTab = uGetDlgItem(IDC_TAB_CFG);

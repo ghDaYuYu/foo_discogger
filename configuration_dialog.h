@@ -158,9 +158,11 @@ public:
 		m_hwndSecretEdit = nullptr;
 		m_hwndOAuthMsg = nullptr;
 
-		g_discogs->configuration_dialog = this;
-		conf = CConf(CONF); conf.SetName("Cfg");
-		conf_edit = CConf(CONF); conf_edit.SetName("CfgEdit");
+		if (g_discogs) {
+			g_discogs->configuration_dialog = this;
+			conf = CConf(CONF); conf.SetName("Cfg");
+			conf_edit = CConf(CONF); conf_edit.SetName("CfgEdit");
+		}
 	}
 
 	~CConfigurationDialog();

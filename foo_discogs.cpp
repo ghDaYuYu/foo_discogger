@@ -56,10 +56,12 @@ class initquit_discogs : public initquit
 	}
 	virtual void on_quit() override {
 		console::print("Quitting");
-		DeleteObject(g_discogs->icon);
-		delete g_discogs;				//(1)
-		delete discogs_interface;		//(2)
 
+		if (g_discogs) {
+			DeleteObject(g_discogs->icon);
+			delete g_discogs;				//(1)
+		}
+        delete discogs_interface;		    //(2)
 		unload_dlls();
 	}
 };

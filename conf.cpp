@@ -70,11 +70,11 @@ bool prepare_dbf_and_cache(bool bimport = true) {
 	bool bres = true;
 
 	//n8_ -> native_utf8
-	pfc::string8 n8_src_path = profile_usr_components_path(true);
-	pfc::string8 n8_dst_path;
+	pfc::string8 n8_src_path = profile_usr_components_path();
+	pfc::string8 n8_dst_path = profile_path("configuration");
 
 	n8_src_path << "\\" << dll_db_filename();
-	n8_dst_path << core_api::pathInProfile("configuration\\") << dll_db_filename();
+	n8_dst_path << "\\" << dll_db_filename();
 	try {
 
 		std::filesystem::path os_src = std::filesystem::u8path(n8_src_path.c_str());

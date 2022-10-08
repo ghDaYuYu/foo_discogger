@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 #include "resource.h"
 #include "guids_discogger.h"
 
@@ -155,6 +155,12 @@ public:
 	bool context_get_display(unsigned p_index, metadb_handle_list_cref p_data, pfc::string_base& p_out, unsigned& p_displayflags, const GUID& p_caller) override {
 		PFC_ASSERT(p_index >= 0 && p_index < get_num_items());
 		get_item_name(p_index, p_out);
+
+		if (!g_discogs) {
+			p_displayflags = FLAG_GRAYED;
+			return true;
+		}
+
 		switch (p_index) {
 		case WriteTags:
 			p_displayflags =
@@ -310,6 +316,12 @@ public:
 	bool context_get_display(unsigned p_index, metadb_handle_list_cref p_data, pfc::string_base& p_out, unsigned& p_displayflags, const GUID& p_caller) override {
 		PFC_ASSERT(p_index >= 0 && p_index < get_num_items());
 		get_item_name(p_index, p_out);
+
+		if (!g_discogs) {
+			p_displayflags = FLAG_GRAYED;
+			return true;
+		}
+
 		switch (p_index) {
 		case FindDeletedReleases:
 			p_displayflags = !g_discogs->locked_operation ? 0 : FLAG_GRAYED;

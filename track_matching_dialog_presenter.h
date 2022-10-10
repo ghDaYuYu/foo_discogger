@@ -72,14 +72,14 @@ public:
 	std::vector<std::pair<HICON, HICON>> m_vicons;
 	CImageList m_lstimg;
 	CImageList m_lstimg_small;
-	DWORD m_dwHeaderStyle = 0L;
+	//DWORD m_dwHeaderStyle = 0L;
 
 public:
 
 	presenter(coord_presenters* coord);
 	presenter() : mm_hWnd(NULL),
 		m_coord(), m_listID(0), m_loaded(false),
-		m_dwHeaderStyle(0L), m_row_height(false)  {
+		/*m_dwHeaderStyle(0L),*/ m_row_height(false)  {
 
 		m_tag_writer = nullptr;
 		m_release = nullptr;
@@ -137,7 +137,7 @@ protected:
 	virtual void create_columns() {}
 	virtual void display_columns() {}
 
-    virtual void update_list_width(bool initcontrols) {}
+  virtual void update_list_width(bool initcontrols) {}
 	virtual void set_row_height(bool assign) {}
 
 	void set_lv_images_lists();
@@ -715,7 +715,7 @@ public:
 	void InitFormMode(lsmode mode, UINT lvleft, UINT lvright);
 
 	bool show_artwork_preview(size_t image_ndx, art_src art_source, MemoryBlock small_art);
-	bool add_file_artwork_preview(size_t image_ndx, art_src art_source, std::pair<std::pair<HICON, HBITMAP>, std::pair<HICON, HBITMAP>> callback_mb,
+	bool add_file_artwork_preview(size_t image_ndx, art_src art_source, imgpairs callback_mb,
 		std::pair<pfc::string8, pfc::string8> temp_file_names);
 
 	const foo_conf& Get_Conf();

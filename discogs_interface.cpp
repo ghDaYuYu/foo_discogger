@@ -287,7 +287,7 @@ namespace fs =std::filesystem;
 
 pfc::array_t<JSONParser_ptr> DiscogsInterface::get_all_pages_offline_cache(ol::GetFrom getFrom, pfc::string8& id, pfc::string8 &secid, pfc::string8 params, abort_callback& p_abort, const char* msg, threaded_process_status& p_status) {
 
-	pfc::string8 path_container = get_offline_path(id, true, getFrom, secid);
+	pfc::string8 path_container = get_offline_path(id, getFrom, secid, true);
 	std::filesystem::path os_path_container = std::filesystem::u8path(path_container.c_str());
 
 	pfc::array_t<JSONParser_ptr> jparsers;
@@ -356,10 +356,10 @@ void DiscogsInterface::get_entity_offline_cache(ol::GetFrom getfrom, pfc::string
 	pfc::string8 json_path;
 	
 	if (getfrom == ol::GetFrom::Artist) {
-		json_path = ol::get_offline_path(artist_id, true, ol::GetFrom::Artist, "");
+		json_path = ol::get_offline_path(artist_id, ol::GetFrom::Artist, "", true);
 	}
 	else {
-		json_path = ol::get_offline_path(artist_id, true, ol::GetFrom::Release, release_id);
+		json_path = ol::get_offline_path(artist_id, ol::GetFrom::Release, release_id, true);
 	}
 
 	json_path << "\\root.json";
@@ -415,7 +415,6 @@ pfc::array_t<pfc::string8> DiscogsInterface::get_collection(threaded_process_sta
 	pfc::string8 username = get_username(p_status, p_abort);
 
 	try {
-
 		pfc::string8 json;
 		pfc::string8 url;
 		url << "https://api.discogs.com/users/" << username << "/collection/folders";		
@@ -439,7 +438,6 @@ pfc::array_t<pfc::string8> DiscogsInterface::get_collection(threaded_process_sta
 	}
 	return collection;
 }
-
 bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release, bool isArtist, size_t img_ndx, MemoryBlock& small_art,
 	threaded_process_status& p_status, abort_callback& p_abort) {
 
@@ -562,7 +560,7 @@ bool DiscogsInterface::delete_artist_cache(const pfc::string8& artist_id) {
 		
 		// disk cache
 
-		pfc::string8 parent_path = ol::get_offline_path(artist_id, true, ol::GetFrom::Artist, "");
+		pfc::string8 parent_path = ol::get_offline_path(artist_id, ol::GetFrom::Artist, "", true);
 		std::filesystem::path os_path = std::filesystem::u8path(parent_path.c_str());
 
 		os_path = os_path.parent_path();

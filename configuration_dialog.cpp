@@ -57,8 +57,6 @@ void CConfigurationDialog::InitTabs() {
 	tab_table.append_single(tab_entry("Cache", caching_dialog_proc, IDD_DIALOG_CONF_CACHING));
 	tab_table.append_single(tab_entry("Artwork", art_dialog_proc, IDD_DIALOG_CONF_ART));
 	tab_table.append_single(tab_entry("UI Options", ui_dialog_proc, IDD_DIALOG_CONF_UI));
-
-
 	tab_table.append_single(tab_entry("OAuth", oauth_dialog_proc, IDD_DIALOG_CONF_OAUTH));
 }
 
@@ -79,7 +77,6 @@ static BOOL GetChildWindowRect(HWND wnd, UINT id, RECT* child)
 	*child = temp;
 	return TRUE;
 }
-//
 
 LRESULT CConfigurationDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
 
@@ -101,7 +98,7 @@ LRESULT CConfigurationDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 	InitCommonControlsEx(&InitCtrls);
 	EnableThemeDialogTexture(hWndTab, ETDT_ENABLETAB);
 
-	// set up tabs and create (invisible) subdialogs
+	// set up tabs and create (not visible) subdialogs
 	uTCITEM item = {0};
 	item.mask = TCIF_TEXT;
 	for (size_t n = 0; n < NUM_TABS; n++) {
@@ -138,11 +135,13 @@ LRESULT CConfigurationDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 
 	// position the subdialogs in the inner part of the tab control
 	uSendMessage(hWndTab, TCM_ADJUSTRECT, FALSE, (LPARAM)&rcTabDialog);
+
 	// fix left white stripe
 	if (!IsDark()) {
 		InflateRect(&rcTabDialog, 2, 1);
 		OffsetRect(&rcTabDialog, -1, 1);
 	}
+
 	for (size_t n = 0; n < tabsize(g_hWndTabDialog); n++) {
 		if (g_hWndTabDialog[n] != nullptr) {
 			::SetWindowPos(g_hWndTabDialog[n], nullptr,
@@ -167,8 +166,9 @@ LRESULT CConfigurationDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 	::ShowWindow(help_link, toggle_title_format_help() ? SW_SHOW : SW_HIDE);
 
 	g_hWndCurrentTab = g_hWndTabDialog[g_current_tab];
-	if (g_hWndCurrentTab)
+	if (g_hWndCurrentTab) {
 		::ShowWindow(g_hWndCurrentTab, SW_SHOW);
+	}
 
 	return TRUE;
 }
@@ -369,7 +369,7 @@ void CConfigurationDialog::init_searching_dialog(HWND wnd) {
 	FlgMng fv_skip;
 	conf.GetFlagVar(CFG_SKIP_MNG_FLAG, fv_skip);
 
-	uButton_SetCheck(wnd, IDC_CHK_SKIP_RELEASE_DLG_IDED, fv_skip.GetFlat(SkipMng::SK_RELEASE_DLG_IDED));
+	uButton_SetCheck(wnd, IDC_CHK_SKIP_RELEASE_DLG_IDED, fv_skip.GetFlat(SkipMng::RELEASE_DLG_IDED));
 
 	uSetDlgItemText(wnd, IDC_EDIT_RELEASE_FORMATTING, conf.search_release_format_string);
 	uSetDlgItemText(wnd, IDC_EDIT_MASTER_FORMATTING, conf.search_master_format_string);
@@ -383,8 +383,8 @@ void CConfigurationDialog::init_matching_dialog(HWND wnd) {
 	uButton_SetCheck(wnd, IDC_CHK_MATCH_USING_DURATIONS, conf.match_tracks_using_duration);
 	uButton_SetCheck(wnd, IDC_CHK_MATCH_USING_NUMBERS, conf.match_tracks_using_number);
 	uButton_SetCheck(wnd, IDC_CHK_MATCH_ASSUME_SORTED, conf.assume_tracks_sorted);
-	uButton_SetCheck(wnd, IDC_CHK_SKIP_RELEASE_DLG, conf.skip_mng_flag & SkipMng::SK_RELEASE_DLG_MATCHED);
-	uButton_SetCheck(wnd, IDC_CHK_SKIP_BRAINZ_MIBS_FETCH, conf.skip_mng_flag & SkipMng::SK_BRAINZ_ID_FETCH);
+	uButton_SetCheck(wnd, IDC_CHK_SKIP_RELEASE_DLG, conf.skip_mng_flag & SkipMng::RELEASE_DLG_MATCHED);
+	uButton_SetCheck(wnd, IDC_CHK_SKIP_BRAINZ_MIBS_FETCH, conf.skip_mng_flag & SkipMng::BRAINZ_ID_FETCH);
 	uSetDlgItemText(wnd, IDC_EDIT_DISCOGS_FORMATTING, conf.release_discogs_format_string);
 	uSetDlgItemText(wnd, IDC_EDIT_FILE_FORMATTING, conf.release_file_format_string);
 
@@ -397,7 +397,7 @@ void CConfigurationDialog::init_tagging_dialog(HWND wnd) {
 	uButton_SetCheck(wnd, IDC_CHK_MOVE_THE_AT_BEGINNING, conf.move_the_at_beginning);
 	uButton_SetCheck(wnd, IDC_CHK_DISCARD_NUMERIC_SUFFIXES, conf.discard_numeric_suffix);
 
-	uButton_SetCheck(wnd, IDC_CHK_SKIP_PREVIEW_DIALOG, conf.skip_mng_flag & SkipMng::SK_PREVIEW_DLG);
+	uButton_SetCheck(wnd, IDC_CHK_SKIP_PREVIEW_DIALOG, conf.skip_mng_flag & SkipMng::PREVIEW_DLG);
 	uButton_SetCheck(wnd, IDC_CHK_REMOVE_OTHER_TAGS, conf.remove_other_tags);
 	uSetDlgItemText(wnd, IDC_EDIT_REMOVE_EXCLUDING_TAGS, conf.raw_remove_exclude_tags);
 	uSetDlgItemText(wnd, IDC_EDIT_CFG_MULTIVALUE_FIELDS, conf.multivalue_fields);
@@ -548,7 +548,7 @@ void CConfigurationDialog::save_searching_dialog(HWND wnd, bool dlgbind) {
 
 	FlgMng fv_skip;
 	conf_ptr->GetFlagVar(CFG_SKIP_MNG_FLAG, fv_skip);
-	fv_skip.SetFlag(wnd, IDC_CHK_SKIP_RELEASE_DLG_IDED, SkipMng::SK_RELEASE_DLG_IDED);
+	fv_skip.SetFlag(wnd, IDC_CHK_SKIP_RELEASE_DLG_IDED, SkipMng::RELEASE_DLG_IDED);
 
 	pfc::string8 text;
 	uGetDlgItemText(wnd, IDC_EDIT_RELEASE_FORMATTING, text);
@@ -600,14 +600,14 @@ void CConfigurationDialog::save_matching_dialog(HWND wnd, bool dlgbind) {
 	conf_ptr->release_file_format_string = text;
 
 	if (uButton_GetCheck(wnd, IDC_CHK_SKIP_RELEASE_DLG))
-		conf_ptr->skip_mng_flag |= SkipMng::SK_RELEASE_DLG_MATCHED;
+		conf_ptr->skip_mng_flag |= SkipMng::RELEASE_DLG_MATCHED;
 	else
-		conf_ptr->skip_mng_flag &= ~SkipMng::SK_RELEASE_DLG_MATCHED;
+		conf_ptr->skip_mng_flag &= ~SkipMng::RELEASE_DLG_MATCHED;
 
 	if (uButton_GetCheck(wnd, IDC_CHK_SKIP_BRAINZ_MIBS_FETCH))
-		conf_ptr->skip_mng_flag |= SkipMng::SK_BRAINZ_ID_FETCH;
+		conf_ptr->skip_mng_flag |= SkipMng::BRAINZ_ID_FETCH;
 	else
-		conf_ptr->skip_mng_flag &= ~SkipMng::SK_BRAINZ_ID_FETCH;
+		conf_ptr->skip_mng_flag &= ~SkipMng::BRAINZ_ID_FETCH;
 }
 
 bool CConfigurationDialog::cfg_matching_has_changed() {
@@ -636,9 +636,9 @@ void CConfigurationDialog::save_tagging_dialog(HWND wnd, bool dlgbind) {
 	conf_ptr->discard_numeric_suffix = uButton_GetCheck(wnd, IDC_CHK_DISCARD_NUMERIC_SUFFIXES);
 
 	if (uButton_GetCheck(wnd, IDC_CHK_SKIP_PREVIEW_DIALOG))
-		conf_ptr->skip_mng_flag |= SkipMng::SK_PREVIEW_DLG;
+		conf_ptr->skip_mng_flag |= SkipMng::PREVIEW_DLG;
 	else
-		conf_ptr->skip_mng_flag &= ~SkipMng::SK_PREVIEW_DLG;
+		conf_ptr->skip_mng_flag &= ~SkipMng::PREVIEW_DLG;
 	
 	conf_ptr->remove_other_tags = uButton_GetCheck(wnd, IDC_CHK_REMOVE_OTHER_TAGS);
 	pfc::string8 text;
@@ -1085,7 +1085,6 @@ INT_PTR WINAPI CConfigurationDialog::art_dialog_proc(HWND hWnd, UINT msg, WPARAM
 		::SetWindowLongPtr(hWnd, GWLP_USERDATA, (LPARAM)p_this); //store it for future use
 	}
 	else {
-		// if isnt wm_create, retrieve pointer to class
 		p_this = reinterpret_cast<CConfigurationDialog*>(::GetWindowLongPtr(hWnd, GWLP_USERDATA));
 	}
 	return p_this ? p_this->on_art_dialog_message(hWnd, msg, wParam, lParam) : FALSE;

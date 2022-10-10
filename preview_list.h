@@ -1,4 +1,4 @@
-﻿#include "libPPUI/CListControlOwnerData.h"
+#include "libPPUI/CListControlOwnerData.h"
 
 class CPreviewList : public CListControlOwnerData {
 
@@ -35,13 +35,10 @@ public:
 #pragma warning( disable : 26454 )
 	typedef CListControlOwnerData TParent;
 	BEGIN_MSG_MAP(CPreviewList)
-		MESSAGE_HANDLER(WM_CONTEXTMENU, OnContextMenu)
 		CHAIN_MSG_MAP(TParent)
 	END_MSG_MAP()
 
 #pragma warning(pop)
-
-	LRESULT OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 
 private:
 

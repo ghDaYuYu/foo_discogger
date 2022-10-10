@@ -1,5 +1,4 @@
 #include "stdafx.h"
-
 #include "string_encoded_array.h"
 #include "utils.h"
 
@@ -568,7 +567,6 @@ bool string_encoded_array::_replace_exp(const string_encoded_array& find, const 
 	std::string strval(value.toString());
 	std::sregex_iterator begin = std::sregex_iterator(strval.begin(), strval.end(), regex_v);
 	std::sregex_iterator end = std::sregex_iterator();
-
 
 	try {
 		value.set_string(std::regex_replace(value.get_ptr(), regex_v, with.value.c_str()).c_str());

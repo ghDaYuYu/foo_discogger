@@ -20,7 +20,7 @@ int CArtworkList::GetItemHeight() const {
 	auto uilist = dlg->get_ctx_lvlist(IDC_UI_DC_ARTWORK_LIST);
 
 	if (m_hWnd == uilist && dlg->m_coord.isTile()) {
-			return 150;	
+		return 150;	
 	}
 	return 50;
 }

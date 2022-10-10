@@ -151,8 +151,8 @@ public:
 
 	//flag_enum_findrelease_dialog
 	enum flg_fr {
-		FLG_PROFILE_DLG_SHOW = 1 << 0,
-		FLG_PROFILE_DLG_ATTACHED = 1 << 1,
+		FLG_PROFILE_DLG_SHOW        = 1 << 0,
+		FLG_PROFILE_DLG_ATTACHED    = 1 << 1,
 		FLG_SHOW_RELEASE_TREE_STATS = 1 << 2
 	};
 

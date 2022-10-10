@@ -2,7 +2,6 @@
 
 #include "file_info_manager.h"
 
-
 bool file_info_manager::read_infos() {
 	static_api_ptr_t<metadb_io> api;
 	if (api->load_info_multi(items, metadb_io::load_info_default, core_api::get_main_window(), 0) != metadb_io::load_info_success) {

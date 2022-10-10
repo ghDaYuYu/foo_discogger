@@ -1,4 +1,9 @@
 #pragma once
+#include <future>
+#include <condition_variable>
+#include <mutex>
+#include "sqlite3.h"
+#include "db_fetcher.h"
 
 #include "discogs.h"
 #include "file_info_manager.h"
@@ -8,17 +13,16 @@
 
 #include "track_matching_dialog.h"
 #include "preview_dialog.h"
-#include "preview_modal_tag_dialog.h"
-#ifdef CAT_CRED
-#include "tag_mappings_credits_dlg.h"
-#endif // CAT_CRED
-
+#include "preview_leading_tag_dialog.h"
 
 
 using namespace Discogs;
 
 class foo_discogs_threaded_process_callback : public threaded_process_callback, public ErrorManager
 {
+public:
+	db_fetcher* get_dbfetcher() { return nullptr; }
+
 protected:
 	// implement task here. catches foo_discogs exceptions.
 	virtual void safe_run(threaded_process_status &p_status, abort_callback &p_abort) = 0;
@@ -54,19 +58,22 @@ public:
 class generate_tags_task : public foo_discogs_locked_threaded_process_callback
 {
 public:
+
 	generate_tags_task(CPreviewTagsDialog *preview_dialog, TagWriter_ptr tag_writer);
 	generate_tags_task(CTrackMatchingDialog *release_dialog, TagWriter_ptr tag_writer, bool show_preview_dialog);
 	generate_tags_task(CTagCreditDialog* credits_dialog, TagWriter_ptr tag_writer, tag_mapping_list_type* alt_mappings);
 	void start();
 
 private:
+
 	CPreviewTagsDialog *m_preview_dialog = nullptr;
 	CTrackMatchingDialog *m_track_matching_dialog = nullptr;
+	CTagCreditDialog *m_credits_dialog = nullptr;
+
 	bool m_show_preview_dialog;
 	
 	TagWriter_ptr m_tag_writer;
 	tag_mapping_list_type* m_alt_mappings;
-	bool m_use_update_tags;
 
 	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
@@ -86,23 +93,6 @@ private:
 
 	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
-};
-
-
-class update_art_task : public foo_discogs_threaded_process_callback
-{
-public:
-	update_art_task(metadb_handle_list items, bool save_album_art, bool save_artist_art);
-	void start();
-
-private:
-	bool save_album_art;
-	bool save_artist_art;
-
-	file_info_manager finfo_manager;
-	metadb_handle_list items;
-
-	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 };
 
 
@@ -149,9 +139,9 @@ public:
 	void start();
 
 private:
-	file_info_manager finfo_manager;
-	metadb_handle_list items;
-	metadb_handle_list deleted_items;
+	file_info_manager m_finfo_manager;
+	metadb_handle_list m_items;
+	metadb_handle_list m_deleted_items;
 	
 	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
@@ -169,7 +159,7 @@ public:
 	void start();
 
 private:
-	file_info_manager finfo_manager;
+	file_info_manager m_finfo_manager;
 	metadb_handle_list items;
 	metadb_handle_list missing_items;
 
@@ -182,11 +172,7 @@ private:
 };
 
 
-#ifdef DB_DC
-class get_artist_process_callback : public foo_discogs_with_db_threaded_process_callback
-#else
 class get_artist_process_callback : public foo_discogs_threaded_process_callback
-#endif // DB_DC
 
 {
 public:
@@ -204,9 +190,9 @@ private:
 	void on_error(HWND p_wnd) override;
 };
 
-// various
 
 class get_various_artists_process_callback : public foo_discogs_threaded_process_callback
+
 {
 public:
 	get_various_artists_process_callback(cupdRelSrc cupdsrc, const std::vector<size_t> & artist_ids)
@@ -224,18 +210,17 @@ private:
 	void on_error(HWND p_wnd) override;
 };
 
-#ifdef DB_DC
-class search_artist_process_callback : public foo_discogs_with_db_locked_threaded_process_callback/*foo_discogs_locked_threaded_process_callback*/
-#else
+
 class search_artist_process_callback : public foo_discogs_locked_threaded_process_callback
-#endif // DB_DC
 {
 public:
-	search_artist_process_callback(const char *search) : m_search(search) {}
+	search_artist_process_callback(const char* search, const int db_dc_flags);
 	void start(HWND parent);
 
 private:
 	pfc::string8 m_search;
+	int m_db_dc_flags;
+
 	pfc::array_t<Artist_ptr> m_artist_exact_matches;
 	pfc::array_t<Artist_ptr> m_artist_other_matches;
 
@@ -247,11 +232,7 @@ private:
 };
 
 
-#ifdef DB_DC
-class expand_master_release_process_callback : public foo_discogs_with_db_threaded_process_callback
-#else
 class expand_master_release_process_callback : public foo_discogs_threaded_process_callback
-#endif // DB_DC
 {
 public:
 	expand_master_release_process_callback(const MasterRelease_ptr& master_release, const int pos, pfc::string8 offlineArtistId) : m_master_release(master_release), m_pos(pos), m_offlineArtist_id(offlineArtistId) {}
@@ -268,11 +249,8 @@ private:
 	void on_error(HWND p_wnd) override;
 };
 
-#ifdef DB_DC
-class process_release_callback : public foo_discogs_with_db_threaded_process_callback
-#else
+
 class process_release_callback : public foo_discogs_threaded_process_callback
-#endif // DB_DC
 {
 public:
 	process_release_callback(CFindReleaseDialog *dialog, const pfc::string8 &release_id, const pfc::string8& offline_artist_id, pfc::string8 inno, const metadb_handle_list &items);
@@ -289,11 +267,12 @@ private:
 	pfc::string8 m_inno;
 	Release_ptr m_release;
 
-	void safe_run(threaded_process_status& p_status, abort_callback& p_abort) override;
+	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
 	void on_abort(HWND p_wnd) override;
 	void on_error(HWND p_wnd) override;
 };
+
 
 class process_artwork_preview_callback : public foo_discogs_threaded_process_callback
 {
@@ -322,11 +301,11 @@ private:
 class process_file_artwork_preview_callback : public foo_discogs_threaded_process_callback
 {
 public:
-	process_file_artwork_preview_callback(CTrackMatchingDialog* dialog, const Release_ptr& release, const metadb_handle_list items, const size_t img_ndx, const bool bartist);
+	process_file_artwork_preview_callback(CTrackMatchingDialog* dialog, const Release_ptr& m_release, const metadb_handle_list items, const size_t img_ndx, const bool bartist);
 	void start(HWND parent);
 
 private:
-	std::pair<HBITMAP, HBITMAP> m_small_art;
+	imgpairs m_small_art;
 	std::pair<pfc::string8, pfc::string8> m_temp_file_names;
 	CTrackMatchingDialog* m_dialog;
 	pfc::string8 m_release_id;
@@ -341,21 +320,6 @@ private:
 	void on_error(HWND p_wnd) override;
 };
 
-#ifdef DB_DC
-class test_db_process_callback : public foo_discogs_threaded_process_callback
-{
-public:
-	test_db_process_callback(const pfc::string8& db_path) : db_path(db_path) {}
-	void start(HWND parent);
-
-private:
-	const pfc::string8& db_path;
-
-	void safe_run(threaded_process_status& p_status, abort_callback& p_abort) override;
-	void on_success(HWND p_wnd) override;
-	void on_error(HWND p_wnd) override;
-};
-#endif // DB_DC
 
 class test_oauth_process_callback : public foo_discogs_threaded_process_callback
 {

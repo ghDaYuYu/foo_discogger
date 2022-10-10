@@ -37,6 +37,7 @@ class initquit_discogs : public initquit
 			uMessageBox(core_api::get_main_window(),
 				"Error loading configuration.",
 				"foo_discogger initialization", MB_APPLMODAL | MB_ICONASTERISK);
+			
 			return;
 		}
 
@@ -56,12 +57,15 @@ class initquit_discogs : public initquit
 	}
 	virtual void on_quit() override {
 		console::print("Quitting");
-
 		if (g_discogs) {
 			DeleteObject(g_discogs->icon);
-			delete g_discogs;				//(1)
+			delete g_discogs; //(1)
+			delete discogs_interface; //(2)
 		}
-        delete discogs_interface;		    //(2)
+		else {
+			log_msg("Warning: skipping default on_quit clearance.");
+		}
+
 		unload_dlls();
 	}
 };
@@ -230,8 +234,6 @@ void foo_discogs::save_album_art(Release_ptr& release, metadb_handle_ptr item,
 	}
 	static const GUID undef_guid = { 0xCDCDCDCD, 0xCDCD, 0xCDCD, { 0xCD, 0xCD, 0xCD, 0xCD, 0xCD, 0xCD, 0xCD, 0xCD } };
 	static const GUID zero_guid = { 0, 0, 0, 0 };
-	
-	//..
 
 	pfc::string8 formatted_release_name;
 	item->format_title(nullptr, formatted_release_name, g_discogs->release_name_script, nullptr);
@@ -465,7 +467,7 @@ void foo_discogs::save_artist_art(Release_ptr &release, metadb_handle_ptr item,
 
 	size_t lkey = encode_mr(0, atol(release->master_id));
 
-	MasterRelease_ptr master = discogs_interface->get_master_release(lkey);
+	MasterRelease_ptr master = discogs_interface->get_master_release(lkey/*release->master_id*/);
 
 	file_info_impl info;
 	item->get_info(info);
@@ -666,7 +668,7 @@ void foo_discogs::save_artist_art(pfc::array_t<Artist_ptr>& artists, Release_ptr
 			}
 			if (!file.get_length() || !ada.file_match || !b_multiple_artist_head) {
 				if (!file.get_length() && !ada.file_match) {
-					embed_req = true;
+					embed_req = true; //req is ok, vembed_it[i] will decide
 				}
 				CONF.artist_art_filename_string->run_hook(item->get_location(), &info, &hook, file, nullptr);
 			}

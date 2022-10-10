@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "stdafx.h"
 
 #include <gdiplus.h>
@@ -459,7 +459,7 @@ presenter::presenter(coord_presenters* coord) : presenter() {
 
 	m_listID = 0;
 	m_loaded = false;
-	m_dwHeaderStyle = 0L;
+	//m_dwHeaderStyle = 0L;
 	m_row_height = false;
 
 	m_tag_writer = nullptr;
@@ -810,12 +810,11 @@ size_t track_presenter::columnHitTest(CPoint point) {
 //	DISCOGS ARTWORK PRESENTER
 
 void discogs_artwork_presenter::SetTile(bool enable) {
-	//build before applying new mode
-	build_cfg_columns(/*enable*/);
+
+	build_cfg_columns();
 	m_tile = enable;
-	//delete
+
 	this->m_ui_list->DeleteColumns(bit_array_true(), false);
-	//restore applying new factor (x or 1/x)
 	define_columns();
 	SetUIList();
 	m_ui_list->Invalidate(true);
@@ -863,7 +862,7 @@ size_t discogs_artwork_presenter::GetVRow(size_t list_position, var_it_t& out) {
 
 		return ~0;	
 	}
-	
+
 	std::vector<V>::iterator v_it = m_lvimages.begin();
 	std::variant<V> vb(*m_lvimages.begin());
 
@@ -885,8 +884,6 @@ void discogs_artwork_presenter::SetUIList(CListControlOwnerData* ui_replace_list
 
 	std::vector<int> vorder;
 	vorder.resize(m_vtitles.size());
-
-	int dbg = m_ui_list->GetColumnCount();
 	if (m_ui_list->GetColumnCount()) return;
 
 	for (size_t walk = 0; walk < m_conf_col_woa.size(); walk++) {
@@ -953,14 +950,6 @@ void discogs_artwork_presenter::define_columns() {
 		m_conf_col_woa.push_back(mp_conf->match_discogs_artwork_tl_embed_width);
 		m_conf_col_woa.push_back(mp_conf->match_discogs_artwork_tl_index_width);
 	}
-
-	m_dwHeaderStyle = LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | /*LVS_EX_SUBITEMIMAGES |*/ LVS_REPORT | LVS_OWNERDATA | LVS_ICON;
-	
-	if (mp_conf->match_discogs_artwork_art_style != 0) {
-	
-		m_dwHeaderStyle |= static_cast<DWORD>(mp_conf->match_discogs_artwork_art_style);
-	}
-
 }
 void discogs_artwork_presenter::build_cfg_columns() {
 
@@ -1044,11 +1033,6 @@ void files_artwork_presenter::define_columns() {
 	m_conf_col_woa.push_back(mp_conf->match_file_artwork_dim_width);
 	m_conf_col_woa.push_back(mp_conf->match_file_artwork_size_width);
 	m_conf_col_woa.push_back(mp_conf->match_file_artwork_index_width);
-
-	m_dwHeaderStyle = LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | /*LVS_EX_SUBITEMIMAGES |*/ LVS_REPORT | LVS_OWNERDATA | LVS_ICON;
-
-	if (mp_conf->match_file_artworks_art_style != 0)
-		m_dwHeaderStyle |= static_cast<DWORD>(mp_conf->match_file_artworks_art_style);
 }
 
 void files_artwork_presenter::build_cfg_columns() {
@@ -1209,7 +1193,7 @@ void files_artwork_presenter::Add_template(GUID template_guid, size_t template_s
 	}
 }
 size_t files_artwork_presenter::AddFileArtwork(size_t img_ndx, art_src art_source,
-	std::pair<std::pair<HICON, HBITMAP>, std::pair<HICON, HBITMAP>> callback_pair_memblock, std::pair<pfc::string8, pfc::string8> temp_file_names) {
+	imgpairs callback_pair_memblock, std::pair<pfc::string8, pfc::string8> temp_file_names) {
 
 	size_t sz_res = pfc_infinite;
 	size_t list_param_ndx = img_ndx;
@@ -1625,7 +1609,7 @@ bool coord_presenters::show_artwork_preview(size_t image_ndx, art_src art_source
 }
 
 bool coord_presenters::add_file_artwork_preview(size_t image_ndx, art_src art_source,
-	std::pair<std::pair<HICON, HBITMAP>, std::pair<HICON, HBITMAP>> callback_pair_hbitmaps, std::pair<pfc::string8, pfc::string8> temp_file_names) {
+	imgpairs callback_pair_hbitmaps, std::pair<pfc::string8, pfc::string8> temp_file_names) {
 
 	size_t album_art_id = m_file_art_presenter.AddFileArtwork(image_ndx, art_source, callback_pair_hbitmaps, temp_file_names);
 	return true;

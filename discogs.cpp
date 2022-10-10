@@ -498,6 +498,7 @@ unsigned long long encode_track_position(const pfc::string8 &pos) {
 	}
 	return result;
 }
+
 bool track_in_range(const pfc::string8 &pos, const pfc::string8 &start, const pfc::string8 &end) {
 	unsigned long long dpos = encode_track_position(pos);
 	unsigned long long dstart = encode_track_position(start);
@@ -512,6 +513,7 @@ pfc::array_t<pfc::string8> blah() {
 	v.append_single(pfc::string8(" and "));
 	return v;
 }
+
 const pfc::array_t<pfc::string8> CREDIT_DELIMS = blah();
 
 void Discogs::addReleaseTrackCredits(const pfc::string8 &tracks, ReleaseCredit_ptr &credit, Release *release) {
@@ -815,9 +817,7 @@ bool first_prefixed_format_disc(const std::vector<std::string> &formats, const s
 	return false;
 }
 
-
 enum hidden_att_enum { not_hidden = 0, pregap_main, pregap_add, intrack_main, intrack_add };
-
 
 void split_track_number(bool &b_parsed_position, hidden_att_enum & hidden_att, const pfc::string8 tmp_discogs_track_number,
 	const size_t disc_number, const std::vector<std::string>formats, const std::vector<std::pair<size_t, size_t>>disc_formats,
@@ -983,7 +983,7 @@ void parseTrackPosition_v23(ReleaseTrack_ptr& track, pfc::string8& pre, pfc::str
 		detect_hidden(post, post, hidden);
 	}
 }
-
+#ifdef PARSE_V23
 void parseTrackPositions_v23(pfc::array_t<ReleaseTrack_ptr>& intermediate_tracks, HasTracklist* release, bool fix_dots = false) {
 	pfc::string8 pre, last_pre = "";
 	pfc::string8 post, last_post = "";
@@ -1104,6 +1104,7 @@ void parseTrackPositions_v23(pfc::array_t<ReleaseTrack_ptr>& intermediate_tracks
 		}
 	}
 }
+#endif
 
 
 void Discogs::parseReleaseTrack_v23(json_t* element, pfc::array_t<ReleaseTrack_ptr>& tracks, unsigned& discogs_original_track_number, pfc::string8 heading, ReleaseTrack_ptr* index, HasArtists* has_artists) {
@@ -1200,6 +1201,7 @@ void Discogs::parseReleaseTrack_v23(json_t* element, pfc::array_t<ReleaseTrack_p
 	}
 }
 
+#ifdef PARSE_V23
 void Discogs::parseReleaseTracks_v23(json_t* element, HasTracklist* has_tracklist, HasArtists* has_artists) {
 	assert_is_array(element);
 
@@ -1225,6 +1227,7 @@ void Discogs::parseReleaseTracks_v23(json_t* element, HasTracklist* has_tracklis
 	bool fix_dots = false;
 	parseTrackPositions_v23(intermediate_tracks, has_tracklist, fix_dots);
 }
+#endif
 
 pfc::string8 getYearFromReleased(pfc::string8 released) {
 	int dash = released.find_first("-");
@@ -1454,13 +1457,17 @@ void Discogs::parseArtistReleases(json_t *root, Artist *artist) {
 						}
 
 						bool duplicate = false;
+
 						for (auto walk_master_release : artist->master_releases) {
 							if (release->id == walk_master_release->id) {
+
+								
 								if (!release->search_role.equals("Main")) {
 									release->search_role = JSONAttributeString(rel, "role");
 								}
 
 								release->search_roles.add_item(JSONAttributeString(rel, "role"));
+
 								duplicate = true;
 								break;
 							}
@@ -1469,6 +1476,7 @@ void Discogs::parseArtistReleases(json_t *root, Artist *artist) {
 							release->loaded_preview = true;
 							artist->master_releases.append_single(std::move(release));
 							artist->search_order_master.append_single(true);
+
 						}
 					}
 					else {
@@ -1477,6 +1485,7 @@ void Discogs::parseArtistReleases(json_t *root, Artist *artist) {
 
 						size_t lkey = encode_mr(artist->search_role_list_pos, JSONAttributeString(rel, "id"));
 						Release_ptr release = discogs_interface->get_release(lkey, decode_mr(lkey).second);
+
 
 						void* iter = json_object_iter((json_t*)rel);
 
@@ -1506,6 +1515,7 @@ void Discogs::parseArtistReleases(json_t *root, Artist *artist) {
 						for (auto walk_release : artist->releases) {
 							if (release->id == walk_release->id) {
 
+
 								if (!walk_release->id.equals("Main")) {
 									release->search_role = JSONAttributeString(rel, "role");
 								}
@@ -1515,7 +1525,6 @@ void Discogs::parseArtistReleases(json_t *root, Artist *artist) {
 								break;
 							}
 						}
-
 						if (!duplicate) {
 
 							release->loaded_preview = true;
@@ -1563,12 +1572,6 @@ void Discogs::parseMasterVersions(json_t *root, MasterRelease *master_release) {
 					release->search_catno = JSONAttributeString(rel, "catno");
 					release->release_year = JSONAttributeString(rel, "year");
 					release->db_total_tracks = atoi(JSONAttributeString(rel, "db_total_tracks"));
-
-					pfc::string8 r = JSONAttributeString(rel, "role");
-
-					if (JSONAttributeString(rel, "role").length()) {
-						int debug = 1;
-					}
 
 					if (release->release_year.get_length() == 0) {
 						release->release_year = getYearFromReleased(JSONAttributeString(rel, "released"));
@@ -1724,6 +1727,7 @@ void Discogs::Artist::load(threaded_process_status &p_status, abort_callback &p_
 			foo_discogs_exception ex("Truncated results error.");
 			throw ex;
 		}
+
 		// parse json and artist
 
 		JSONParser jp(json);
@@ -1745,7 +1749,7 @@ void Discogs::Artist::load(threaded_process_status &p_status, abort_callback &p_
 					//PENDING
 					bool bmark_loading = ol::stamp_download("", n8_rel_path, false/*done*/);
 
-					pfc::string8 page_path = ol::get_offline_path(id, true, ol::GetFrom::Artist, "");
+					pfc::string8 page_path = ol::get_offline_path(id, ol::GetFrom::Artist, "", true);
 					page_path << "\\root.json";
 
 					bCacheSaved = bmark_loading && discogs_interface->offline_cache_save(page_path, jp.root);
@@ -1854,6 +1858,7 @@ void Discogs::Release::load(threaded_process_status &p_status, abort_callback &p
 			offline_can_write = false;
 		}
 
+
 		//parse json and release
 
 		JSONParser jp(json);
@@ -1872,7 +1877,7 @@ void Discogs::Release::load(threaded_process_status &p_status, abort_callback &p
 					offlineArtistId = artists[0]->id;
 				}
 				pfc::string8 target_artist_id = offlineArtistId;
-				n8_rel_path = ol::get_offline_path(offlineArtistId, true, ol::GetFrom::Release, id);
+				n8_rel_path = ol::get_offline_path(offlineArtistId, ol::GetFrom::Release, id, true);
 
 				bool bFolderReady = ol::create_offline_entity_folder(target_artist_id, ol::GetFrom::Release, id);
 				
@@ -1881,7 +1886,7 @@ void Discogs::Release::load(threaded_process_status &p_status, abort_callback &p
 					//mark PENDING
 					bool bmark_loading = ol::stamp_download("", n8_rel_path, false/*done*/);
 
-					pfc::string8 page_path = ol::get_offline_path(target_artist_id, true, ol::GetFrom::Release, id);
+					pfc::string8 page_path = ol::get_offline_path(target_artist_id, ol::GetFrom::Release, id, true);
 					page_path << "\\root.json";
 
 					bCacheSaved = bmark_loading && discogs_interface->offline_cache_save(page_path, jp.root);
@@ -1952,6 +1957,7 @@ void Discogs::MasterRelease::load(threaded_process_status &p_status, abort_callb
 		pfc::string8 url;
 		url << "https://api.discogs.com/masters/" << id;
 		discogs_interface->fetcher->fetch_html(url, "", json, p_abort);
+
 
 		JSONParser jp(json);
 		parseMasterRelease(this, jp.root);
@@ -2036,10 +2042,10 @@ void Discogs::Artist::load_releases(threaded_process_status &p_status, abort_cal
 
 						if (bfolder_ready) {
 						
-							pfc::string8 page_path = ol::get_offline_pages_path(id, i, true, ol::GetFrom::ArtistReleases, "");
-							page_path << "\\root.json";
+							pfc::string8 n8_page_path = ol::get_offline_pages_path(id, i, ol::GetFrom::ArtistReleases, "", true);
+							n8_page_path << "\\root.json";
 					
-							bCacheSaved &= discogs_interface->offline_cache_save(page_path, pages[i]->root);
+							bCacheSaved &= discogs_interface->offline_cache_save(n8_page_path, pages[i]->root);
 						}					
 					}
 					else {
@@ -2158,10 +2164,10 @@ void Discogs::MasterRelease::load_releases(threaded_process_status &p_status, ab
 
 						if (bfolder_ready) {
 						
-							pfc::string8 page_path = ol::get_offline_pages_path(artist_id, i, true, gfVersions, master_id);
-							page_path << "\\root.json";
+							pfc::string8 n8_page_path = ol::get_offline_pages_path(artist_id, i, gfVersions, master_id, true);
+							n8_page_path << "\\root.json";
 					
-							bCacheSaved &= discogs_interface->offline_cache_save(page_path, pages[i]->root);
+							bCacheSaved &= discogs_interface->offline_cache_save(n8_page_path, pages[i]->root);
 						}
 					}
 				}

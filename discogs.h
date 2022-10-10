@@ -479,9 +479,8 @@ namespace Discogs
 			return m;
 		}
 	};
-	typedef std::shared_ptr<ReleaseHeading> ReleaseHeading_ptr;
 
-	//end heading
+	typedef std::shared_ptr<ReleaseHeading> ReleaseHeading_ptr;
 
 	class HasHeadings
 	{
@@ -1118,6 +1117,9 @@ namespace Discogs
 
 	extern ReleaseFormat_ptr parseReleaseFormat(json_t *element);
 	extern void parseReleaseFormats(json_t *element, pfc::array_t<ReleaseFormat_ptr> &formats);
+#ifdef PARSE_V23
 	extern void parseReleaseTracks_v23(json_t* element, HasTracklist* has_tracklist, HasArtists* has_artists);
 	extern void parseReleaseTrack_v23(json_t* element, pfc::array_t<ReleaseTrack_ptr>& tracks, unsigned& discogs_original_track_number, pfc::string8 heading, ReleaseTrack_ptr* index, HasArtists* has_artists);
+#else
+#endif
 }

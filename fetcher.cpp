@@ -185,11 +185,11 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 					msg_ratelimits << " - RMNG: " << rate_header_buffer;
 				}
 
-					if (m_throttle_delta) {
-						std::stringstream human_read_time;
-						human_read_time << std::setprecision(3) << m_throttle_delta;
-						msg_ratelimits << " - Throttle engaged (" << pfc::string8(human_read_time.str().c_str()) << u8" \u03BCs)";
-					}
+				if (m_throttle_delta) {
+					std::stringstream human_read_time;
+					human_read_time << std::setprecision(3) << m_throttle_delta;
+					msg_ratelimits << " - Throttle engaged (" << pfc::string8(human_read_time.str().c_str()) << u8" \u03BCs)";
+				}
 				if (msg_ratelimits.length())
 					log_msg(msg_ratelimits);
 				else {

@@ -28,6 +28,8 @@ struct musicbrainz_info {
 };
 
 struct preview_job {
+	preview_job() :
+		isfile(false), index_art(~0), artist_art(false), only_cache(false), get_mibs(false) {};
 	preview_job(bool aisfile, size_t anindex_art, bool anartist_art, bool anonly_cache, bool aget_mibs) :
 		isfile(aisfile), index_art(anindex_art), artist_art(anartist_art), only_cache(anonly_cache), get_mibs(aget_mibs) {
 		preview_job::inc++;
@@ -77,6 +79,7 @@ public:
 		MESSAGE_HANDLER(WM_CONTEXTMENU, OnContextMenu)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		MESSAGE_HANDLER(WM_CUST_UPDATE_SKIP_BUTTON, OnUpdateSkipButton)
+
 		MESSAGE_HANDLER(WM_CTLCOLORSTATIC, OnColorStatic)
 
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
@@ -133,6 +136,7 @@ public:
 
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+
 	LRESULT OnColorStatic(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
 
 	LRESULT OnButtonPreviewTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
@@ -146,7 +150,7 @@ public:
 	LRESULT OnUpdateSkipButton(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
-	
+
 	void match_message_update(pfc::string8 local_msg = "");
 
 	//serves credit preview
@@ -164,12 +168,12 @@ public:
 	void show() override;
 	void hide() override;
 
-	size_t get_art_perm_selection(HWND list, bool flagselected, const size_t max_items, pfc::array_t<t_uint8>& selmask, bit_array_bittable& selalbum);
+	size_t get_art_perm_selection(HWND hwndList, bool flagselected, const size_t max_items, pfc::array_t<t_uint8>& outmask, bit_array_bittable& are_albums);	
 	void request_preview(size_t img_ndx, bool artist_art, bool onlycache, bool get_mibs = false);
 	void request_file_preview(size_t img_ndx, bool artist_art);
 
 	void process_artwork_preview_done(size_t img_ndx, bool artist_art, MemoryBlock callback_mb, musicbrainz_info musicbrainz_mibs);
-	void process_file_artwork_preview_done(size_t img_ndx, bool artist_art, std::pair<std::pair<HICON, HBITMAP>, std::pair<HICON, HBITMAP>> callback_pair_hbitmaps, std::pair<pfc::string8, pfc::string8> temp_file_names);
+	void process_file_artwork_preview_done(size_t img_ndx, bool artist_art, imgpairs callback_pair_hbitmaps, std::pair<pfc::string8, pfc::string8> temp_file_names);
 	void process_download_art_paths_done(pfc::string8 callback_release_id, std::shared_ptr<std::vector<std::pair<pfc::string8, bit_array_bittable>>> vres,pfc::array_t<GUID> album_art_ids);
 	const TCHAR m_szArtist[50] = _T("Artist");
 	const TCHAR m_szAlbum[50] = _T("Album");
@@ -214,15 +218,12 @@ private:
 			lsmode::art : lsmode::default;
 	}
 
-	//void load_column_layout();
 	bool build_current_cfg();
 	void pushcfg();
 
-	//void insert_track_mappings();
 	void generate_track_mappings(track_mappings_list_type& m_track_mappings);
 	bool generate_artwork_guids(pfc::array_t<GUID>& my_album_art_ids, bool cfg_default);
 
-	//void update_list_width(HWND list, bool initcontrols = false);
 	bool context_menu_form(HWND wnd, LPARAM coords);
 	bool context_menu_track_show(HWND wnd, int idFrom, LPARAM coords);
 	bool context_menu_track_switch(HWND wnd, POINT point, bool isfiles, int cmd,

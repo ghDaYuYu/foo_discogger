@@ -3,7 +3,9 @@
 #include "sqlite3.h"
 
 #include "foo_discogs.h"
-
+#include "utils_path.h"
+#define THREAD_SAFE_SQL
+#define BUSY_TIMEOUT_SQL 20000
 inline std::mutex open_readwrite_mutex;
 
 const std::string kcmdHistoryWashup{ "cmd_leave_latest" };
@@ -29,31 +31,6 @@ static int sizet_type_sqlite3_exec_callback(void* data, int argc, char** argv, c
 	return 0; //callback status
 }
 
-static pfc::string8 dll_db_name() {
-	pfc::string8 str = core_api::get_my_file_name();
-	str << ".dll.db";
-	return str;
-}
-
-static pfc::string8 full_dll_db_name() {
-	pfc::string8 db_path;
-	db_path << core_api::pathInProfile("configuration\\") << dll_db_name();
-	return db_path;
-}
-
-static pfc::string8 full_usr_components_path() {
-	pfc::string8 path;
-#ifdef _WIN64
-	path << (core_api::pathInProfile("user-components-x64\\") << core_api::get_my_file_name());
-#else
-	path << (core_api::pathInProfile("user-components\\") << core_api::get_my_file_name());
-#endif
-	return path;
-}
-
-// foo_discogger dll.db helper class
-// may also be used as a generic db helper class
-
 static pfc::string8 db_dbl_apos(pfc::string8 field_data) { pfc::string8 tmp = field_data; tmp.replace_string("'", "''", 0); return tmp; }
 static pfc::string8 db_slh_apos(pfc::string8 field_data) { return PFC_string_formatter() << "\'" << field_data << "\'"; }
 
@@ -64,7 +41,6 @@ public:
 	sqldb() {};
 	~sqldb() {
 		if (m_pDb) {
-			//debug line, exec should not reach here...
 			sqlite3_close(m_pDb);
 		}
 	};
@@ -78,17 +54,16 @@ public:
 	//history
 	size_t insert_history(oplog_type optype, std::string cmd, rppair& out);	
 	bool recharge_history(std::string delete_cmd, size_t top_rows, std::map<oplog_type, vppair*>allout);
-	
 	bool test_dc_database(pfc::string8 db_path, abort_callback& p_abort, threaded_process_status& p_status);
+
 	
 private:
 
-	pfc::string8 m_dbname = pfc::string8();
+	pfc::string8 m_dbname;
 	size_t m_openmode = SQLITE_OPEN_READONLY;
 	sqlite3* m_pDb = nullptr;
 	sqlite3_stmt** m_query = nullptr;
 
 	int m_ret = -1;
-
 	pfc::string8 m_error_msg;
 };

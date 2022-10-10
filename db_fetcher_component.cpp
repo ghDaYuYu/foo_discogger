@@ -1,8 +1,6 @@
 #include "stdafx.h"
 
 #include "utils_db.h"
-
-
 #include "db_fetcher_component.h"
 
 int db_fetcher_component::insert_history(sqldb* db, oplog_type optype, std::string cmd_log, pfc::string8 cmd_param, rppair& out) {
@@ -55,7 +53,6 @@ int db_fetcher_component::insert_history(sqldb* db, oplog_type optype, std::stri
 			query << "\'" << artist_id << "\' , ";
 			query << "\'" << db_dbl_apos(artist_name) << "\'";
 			query << ");";
-
 
 			char* err;
 			ret = sqlite3_exec(pDb, query, int_type_sqlite3_exec_callback, &inc_insert, &err);
@@ -110,7 +107,6 @@ bool db_fetcher_component::recharge_history(sqldb* db, std::string delete_cmd, s
 	std::map<oplog_type, std::string> query_map;
 
 	//
-
 	task_map.emplace(oplog_type::artist, kHistorySearchArtist);
 	task_map.emplace(oplog_type::release, kHistoryProccessRelease);
 	task_map.emplace(oplog_type::filter, kHistoryFilterButton);
@@ -188,7 +184,6 @@ bool db_fetcher_component::recharge_history(sqldb* db, std::string delete_cmd, s
 
 		oplog_type thistype = walk_flush.first;
 
-
 		const char* param_pop_tops = "@param_pop_tops";
 
 		do {
@@ -230,7 +225,6 @@ bool db_fetcher_component::recharge_history(sqldb* db, std::string delete_cmd, s
 					std::string query_gq = query_map.at(thistype);
 
 					cmd = "prepare";
-
 
 					ret = sqlite3_prepare_v2(pDb, query_gq.c_str(), -1, &stmt_read, NULL);
 					//

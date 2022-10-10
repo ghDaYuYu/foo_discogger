@@ -124,9 +124,9 @@ pfc::list_t<tag_mapping_entry> * copy_default_tag_mappings() {
 	return mappings;
 }
 void set_cfg_tag_mappings(pfc::list_t<tag_mapping_entry> *mappings) {
-	TAGS.remove_all();
+	cfg_tag_mappings.remove_all();
 	for (size_t i = 0; i < mappings->get_count(); i++) {
-		TAGS.add_item(mappings->get_item(i));
+		cfg_tag_mappings.add_item(mappings->get_item(i));
 	}
 }
 pfc::string8 get_default_tag(const pfc::string8 &name) {

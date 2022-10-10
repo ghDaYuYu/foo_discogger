@@ -80,8 +80,9 @@ public:
 
 	void FocusClear() {
 		HWND wnd = this->GetNextDlgTabItem(m_hWnd, FALSE);
-		if (wnd)
+		if (wnd) {
 			::SetFocus(wnd);
+		}
 	}
 
 	void SetEnterOverride(std::function<bool()>stdf_func) {

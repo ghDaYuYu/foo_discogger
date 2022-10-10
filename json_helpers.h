@@ -31,7 +31,7 @@ typedef pfc::rcptr_t<JSONParser> JSONParser_ptr;
 class JSONParser {
 public:
 	json_t *root = nullptr;
-	json_error_t error;
+	json_error_t m_error = {0};
 
 	JSONParser(json_t *object) {
 		root = object;
@@ -39,10 +39,10 @@ public:
 	}
 
 	JSONParser(const pfc::string8 &json) {
-		root = json_loads(json.get_ptr(), 0, &error);
+		root = json_loads(json.get_ptr(), 0, &m_error);
 		if (!root) {
 			parser_exception ex;
-			ex << error.text;
+			ex << m_error.text;
 			throw ex;
 		}
 	}

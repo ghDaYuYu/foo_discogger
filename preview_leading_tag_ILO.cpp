@@ -134,13 +134,10 @@ pfc::string8 ILOD_preview_leading::listGetEditField(ctx_t ctx, size_t item, size
 
 void ILOD_preview_leading::listSetEditField(ctx_t ctx, size_t item, size_t subItem, const char* val) {
 
-	auto c = m_ptag_result->value.get_count();
+	string_encoded_array sea_val;
 	string_encoded_array* value = &(m_ptag_result->value[0]);
 
-	bool was_array = value->has_array();
-
-	string_encoded_array sea_val;
-	if (was_array) {
+	if (value->has_array()) {
 
 		std::vector<pfc::string8>vsplit;
 		split(val, ";", 0, vsplit);
@@ -148,8 +145,6 @@ void ILOD_preview_leading::listSetEditField(ctx_t ctx, size_t item, size_t subIt
 			sea_val.append_item(w.trim(' '));
 		}
 		sea_val.encode();
-		bool bcheck = sea_val.has_array();
-		bcheck = bcheck;
 	}
 	else {
 		sea_val = val;

@@ -2,8 +2,8 @@
 
 #include "utils.h"
 #include "preview_list.h"
-#include "preview_ILO.h"
 #include "preview_dialog.h"
+#include "preview_ILO.h"
 
 void ILOD_preview::SetResults(TagWriter_ptr ptag_writer, PreView preview_mode, std::vector<preview_stats> m_vstats) {
 
@@ -12,16 +12,15 @@ void ILOD_preview::SetResults(TagWriter_ptr ptag_writer, PreView preview_mode, s
 	m_v_stats = m_vstats;
 
 	CPreviewList* uilist = (CPreviewList*)ilo_get_uilist();
-	ListView_SetItemCountEx(uilist->m_hWnd, m_tag_writer->m_tag_results.get_count(), 0);
+	ListView_SetItemCountEx(uilist->m_hWnd, m_tag_writer->tag_results.get_count(), 0);
 	uilist->Invalidate();
-
 }
 
 //IListControlOwnerDataSource overrides
 
 size_t ILOD_preview::listGetItemCount(ctx_t ctx) {
 	if (m_tag_writer) {
-		return m_tag_writer->m_tag_results.get_count();
+		return m_tag_writer->tag_results.get_count();
 	}
 
 	return 0;
@@ -60,29 +59,46 @@ pfc::string8 print_stenar(const pfc::array_t<string_encoded_array>& input) {
 
 pfc::string8 print_normal(const pfc::array_t<string_encoded_array>& input) {
 	pfc::string8 result = "";
+	if (!input.size()) {
+		//todo: identify crash scenario for null result
+		return "#error";
+	}
 	if (input.get_size() == 1) {
 		result = input[0].print();
 	}
 	else {
-		pfc::array_t<pfc::string8> parts;
-		const auto count = input.get_count();
-		for (unsigned int i = 0; i < count; i++) {
-			auto part = input[i].print();
-			if (part.get_length()) {
-				bool duplicate = false;
-				for (size_t j = 0; j < parts.get_size(); j++) {
-					if (STR_EQUAL(parts[j], part)) {
-						duplicate = true;
-						break;
-					}
-				}
-				if (!duplicate) {
-					parts.append_single(part);
-				}
+		bool allequal = true;
+		pfc::string8 commonval = input[0].print();
+		for (auto w : input) {
+			if (!(allequal = (STR_EQUAL(w.print(), commonval)))) {
+				break;
 			}
 		}
-		if (parts.get_size()) {
-			result << "(multiple values) " << join(parts, "; ");
+
+		if (allequal) {
+			result = commonval;
+		}
+		else {
+			pfc::array_t<pfc::string8> parts;
+			const auto count = input.get_count();
+			for (unsigned int i = 0; i < count; i++) {
+				auto part = input[i].print();
+				if (part.get_length()) {
+					bool duplicate = false;
+					for (size_t j = 0; j < parts.get_size(); j++) {
+						if (STR_EQUAL(parts[j], part)) {
+							duplicate = true;
+							break;
+						}
+					}
+					if (!duplicate) {
+						parts.append_single(part);
+					}
+				}
+			}
+			if (parts.get_size() && !allequal) {
+				result << "(multiple values) " << join(parts, "; ");
+			}
 		}
 	}
 	return result;
@@ -174,22 +190,16 @@ pfc::string8 print_result_in_mode(const tag_result_ptr& result, PreView preview_
 // fb2k lib - get subitems
 
 pfc::string8 ILOD_preview::listGetSubItemText(ctx_t ctx, size_t item, size_t subItem) {
-	
+
 	auto auilist = this->ilo_get_uilist();
 	CPreviewList* uilist = (CPreviewList*)ilo_get_uilist();
 
 	if (subItem == 0) {
-		pfc::string8 mode_result = m_tag_writer->m_tag_results[item]->tag_entry->tag_name;
+		pfc::string8 mode_result = m_tag_writer->tag_results[item]->tag_entry->tag_name;
 		return mode_result;
 	}
 	if (subItem == 1) {
-		string_encoded_array valsea = m_tag_writer->m_tag_results[item]->value[0];
-		string_encoded_array oldvalsea = m_tag_writer->m_tag_results[item]->old_value[0];
-		auto cvalsea = valsea.get_citems().get_size();
-		auto coldvalsea = oldvalsea.get_citems().get_size();
-		auto dbgsize_val = m_tag_writer->m_tag_results[item]->value.get_size();
-		auto dbgsize_old_val = m_tag_writer->m_tag_results[item]->old_value.get_size();
-		pfc::string8 mode_result = print_result_in_mode(m_tag_writer->m_tag_results[item], m_preview_mode).c_str();
+		pfc::string8 mode_result = print_result_in_mode(m_tag_writer->tag_results[item], m_preview_mode).c_str();
 		return mode_result;
 	}
 	if (subItem == 2) {
@@ -216,6 +226,7 @@ void ILOD_preview::listSelChanged(ctx_t) {
 	CPreviewList* uilist = (CPreviewList*)ilo_get_uilist();
 	if (uilist->TableEdit_IsActive()) {
 		uilist->TableEdit_Abort(true);
+		uilist->UpdateItem(uilist->GetSingleSel());
 	}
 }
 
@@ -237,8 +248,8 @@ uint32_t ILOD_preview::listGetEditFlags(ctx_t ctx, size_t item, size_t subItem) 
 
 pfc::string8 ILOD_preview::listGetEditField(ctx_t ctx, size_t item, size_t subItem, size_t& lineCount) {
 
-	pfc::array_t<string_encoded_array> value = GetPreviewValue(m_tag_writer->m_tag_results[item]);
-	if (item < m_tag_writer->m_tag_results.get_count() && subItem == 1 && value.get_size() > 1) {
+	pfc::array_t<string_encoded_array> value = GetPreviewValue(m_tag_writer->tag_results[item]);
+	if (item < m_tag_writer->tag_results.get_count() && subItem == 1 && value.get_size() > 1) {
 		return "";
 	}
 	else {
@@ -255,9 +266,9 @@ void ILOD_preview::listSetEditField(ctx_t ctx, size_t item, size_t subItem, cons
 		uilist->TableEdit_Abort(false);
 		return;
 	}
-	auto c = m_tag_writer->m_tag_results[item]->value.get_count();
+	auto c = m_tag_writer->tag_results[item]->value.get_count();
 	string_encoded_array sea_val;
-	string_encoded_array* value = &(m_tag_writer->m_tag_results[item]->value[0]);
+	string_encoded_array* value = &(m_tag_writer->tag_results[item]->value[0]);
 
 	if (value->has_array()) {
 
@@ -273,11 +284,11 @@ void ILOD_preview::listSetEditField(ctx_t ctx, size_t item, size_t subItem, cons
 	}
 
 
-	if (item < m_tag_writer->m_tag_results.get_count()) {
+	if (item < m_tag_writer->tag_results.get_count()) {
 		if (subItem == 1) {
 
-			m_tag_writer->m_tag_results[item]->value.force_reset();
-			m_tag_writer->m_tag_results[item]->value.append_single(sea_val);
+			m_tag_writer->tag_results[item]->value.force_reset();
+			m_tag_writer->tag_results[item]->value.append_single(sea_val);
 			((CPreviewTagsDialog*)this)->cb_generate_tags();
 		}
 	}
@@ -292,7 +303,7 @@ bool ILOD_preview::listIsColumnEditable(ctx_t, size_t subItem) {
 void ILOD_preview::listSubItemClicked(ctx_t ctx, size_t item, size_t subItem) {
 	if (listIsColumnEditable(ctx, subItem)) {
 
-		if (!m_tag_writer->m_tag_results[item]->tag_entry->freeze_tag_name) {
+		if (!m_tag_writer->tag_results[item]->tag_entry->freeze_tag_name) {
 
 			//edit
 			CPreviewList* uilist = (CPreviewList*)ilo_get_uilist();
@@ -304,13 +315,13 @@ void ILOD_preview::listSubItemClicked(ctx_t ctx, size_t item, size_t subItem) {
 }
 bool ILOD_preview::is_result_editable(size_t item) {
 
-	bool bres = item != ~0 && item < m_tag_writer->m_tag_results.get_count();
+	bool bres = item != ~0 && item < m_tag_writer->tag_results.get_count();
 	bres &= m_preview_mode == PreView::Normal;
 	bres &= !g_discogs->preview_modal_tag_dialog;
-	bres &= !m_tag_writer->m_tag_results[item]->tag_entry->freeze_tag_name;
+	bres &= !m_tag_writer->tag_results[item]->tag_entry->freeze_tag_name;
 	return bres;
 }
 
 bool ILOD_preview::listIsSubItemGrayed(ctx_t, size_t item, size_t subItem) {
-	return m_tag_writer->m_tag_results[item]->tag_entry->freeze_tag_name;
+	return m_tag_writer->tag_results[item]->tag_entry->freeze_tag_name;
 }

@@ -2,9 +2,7 @@
 
 #include "error_manager.h"
 
-
 class file_info_manager;
-
 
 class read_tags_completion : public completion_notify_dummy, public ErrorManager
 {

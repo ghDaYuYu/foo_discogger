@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "resource.h"
 
 #include "helpers/DarkMode.h"
@@ -30,7 +30,7 @@ public:
 
 	CPreviewLeadingTagDialog(HWND p_parent, TagWriter_ptr tag_writer, size_t isel, PreView parent_preview_mode, bool customfont)
 		: m_tag_writer(tag_writer), m_isel(isel), m_parent_preview_mode(parent_preview_mode), m_customfont(customfont), m_ui_list(this),
-		ILOD_preview_leading(tag_writer->m_tag_results[isel], parent_preview_mode) {
+		ILOD_preview_leading(tag_writer->tag_results[isel], parent_preview_mode) {
 
 		g_discogs->preview_modal_tag_dialog = this;
 		static_api_ptr_t<titleformat_compiler>()->compile_force(m_track_desc_script, "[[%album artist%]] - [[%discnumber% .]%tracknumber% -] [%track artist% -] %title% ");

@@ -3,6 +3,7 @@
 #include <filesystem>
 
 #include "conf.h"
+#include "utils.h"
 #include "utils_path.h"
 #include "utils_db.h"
 
@@ -100,8 +101,9 @@ bool prepare_dbf_and_cache(bool bimport = true) {
 		}
 		else {
 
-			if (bimport)
+			if (bimport) {
 				log_msg("failed to import former foo_discogger.cfg.db values, recreating...");
+			}
 
 			// copy database
 
@@ -118,7 +120,7 @@ bool prepare_dbf_and_cache(bool bimport = true) {
 
 	try {
 		//create offline cache folder
-		pfc::string8 n8_olPath = profile_path(OC_NAME, true);		
+		pfc::string8 n8_olPath = profile_path(OC_NAME);		
 		std::filesystem::path os_olDst = std::filesystem::u8path(n8_olPath.c_str());
 		std::filesystem::create_directory(os_olDst);
 		bres &= true;
@@ -134,7 +136,7 @@ bool prepare_dbf_and_cache(bool bimport = true) {
 
 bool CConf::load() {
 
-//	vspec vnnn { spec vector, # bools, # ints, # strings };
+	// vspec vnnn { spec vector, # bools, # ints, # strings };
 	bool bres = true;
 	vspec v000{ &vec_specs, 0, 0, 0 };
 	vspec v204{ &vec_specs, 28, 42, 14 }; // 1.0.4
@@ -174,7 +176,7 @@ bool CConf::load() {
 		}
 	}
 
-	//ignore bres while upgrading (loading depricated values will fail)
+	// ignore bres while upgrading (loading depricated values will fail)
 	for (unsigned int i = 0; i < cfg_bool_entries.get_count(); i++) {
 		/*bres &=*/ bool_load(cfg_bool_entries[i]);
 	}
@@ -400,7 +402,7 @@ bool CConf::bool_load(const conf_bool_entry& item) {
 	case CFG_PARSE_HIDDEN_MERGE_TITLES:
 		parse_hidden_merge_titles = item.value;
 		break;
-	//
+	//..
 	default:
 		return false;
 	}
@@ -498,12 +500,14 @@ bool CConf::int_load(const conf_int_entry& item) {
 	case CFG_MATCH_FILE_ARTWORK_SIZE_WIDTH:
 		match_file_artwork_size_width = item.value;
 		break;
+	//todo: depri
 	case CFG_MATCH_DISCOGS_ARTWORK_STYLE:
 		match_discogs_artwork_art_style = item.value;
 		break;
 	case CFG_MATCH_FILE_ARTWORKS_STYLE:
 		match_file_artworks_art_style = item.value;
 		break;
+	//..
 	case CFG_ALBUM_ART_SKIP_DEFAULT_CUST:
 		album_art_skip_default_cust = item.value;
 		break;
@@ -631,13 +635,10 @@ bool CConf::string_load(const conf_string_entry& item) {
 	case CFG_MULTIVALUE_FIELDS:
 		multivalue_fields = item.value;
 		break;
-		//..
-
-		//..
+	//..
 
 	default:
 		PFC_ASSERT(false);
-		//return false;
 	}
 
 	return true;
@@ -743,8 +744,9 @@ bool CConf::id_to_val_bool(int id, const CConf& in_conf, bool& out, bool assert)
 	//..
 
 	default:
-		if (assert)
+		if (assert) {
 			PFC_ASSERT(false);
+		}
 		return false;
 
 	}
@@ -767,8 +769,9 @@ int* CConf::id_to_ref_int(int ID, bool assert) {
 		return &cache_offline_cache_flag;
 
 	default:
-		if (assert)
+		if (assert) {
 			PFC_ASSERT(false);
+		}
 		return nullptr;
 	}
 
@@ -866,12 +869,14 @@ bool CConf::id_to_val_int(int id, const CConf& in_conf, int& out, bool assert) {
 	case CFG_MATCH_FILE_ARTWORK_SIZE_WIDTH:
 		out = in_conf.match_file_artwork_size_width;
 		break;
+	//todo: depri
 	case CFG_MATCH_DISCOGS_ARTWORK_STYLE:
 		out = in_conf.match_discogs_artwork_art_style;
 		break;
 	case CFG_MATCH_FILE_ARTWORKS_STYLE:
 		out = in_conf.match_file_artworks_art_style;
 		break;
+	//..
 	case CFG_ALBUM_ART_SKIP_DEFAULT_CUST:
 		out = in_conf.album_art_skip_default_cust;
 		break;
@@ -938,8 +943,9 @@ bool CConf::id_to_val_int(int id, const CConf& in_conf, int& out, bool assert) {
 
 	//..
 	default:
-		if (assert)
+		if (assert) {
 			PFC_ASSERT(false);
+		}
 		return false;
 	}
 	return true;
@@ -1048,12 +1054,10 @@ bool CConf::id_to_val_str(int id, const CConf& in_conf, pfc::string8& out, bool 
 	}
 	//..
 
-
-	//..
-
 	default:
-		if (assert)
+		if (assert) {
 			PFC_ASSERT(false);
+		}
 		return false;
 	}
 	return true;
@@ -1215,8 +1219,10 @@ void CConf::save() {
 	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_FILE_ARTWORK_NAME_WIDTH, match_file_artwork_name_width));
 	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_FILE_ARTWORK_DIM_WIDTH, match_file_artwork_dim_width));
 	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_FILE_ARTWORK_SIZE_WIDTH, match_file_artwork_size_width));
+	//todo: depri
 	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_DISCOGS_ARTWORK_STYLE, match_discogs_artwork_art_style));
 	cfg_int_entries.add_item(make_conf_entry(CFG_MATCH_FILE_ARTWORKS_STYLE, match_file_artworks_art_style));
+	//..
 	cfg_int_entries.add_item(make_conf_entry(CFG_ALBUM_ART_SKIP_DEFAULT_CUST, album_art_skip_default_cust));
 	//v204
 	cfg_int_entries.add_item(make_conf_entry(CFG_EDIT_TAGS_DIALOG_FLAGS, edit_tags_dlg_flags));

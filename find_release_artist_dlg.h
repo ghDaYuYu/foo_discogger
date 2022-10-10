@@ -22,7 +22,9 @@ public:
 	CFindReleaseArtistDialog(HWND p_parent, size_t SW_FLAG, bool customfont);
 
 	~CFindReleaseArtistDialog() {
+
 		g_discogs->find_release_artist_dialog = nullptr;
+
 	}
 
 	virtual BOOL PreTranslateMessage(MSG* pMsg) override {

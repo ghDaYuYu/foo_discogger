@@ -1,7 +1,8 @@
-﻿#pragma once
+#pragma once
 #include <errno.h>
 #include <filesystem>
 #include "jansson/jansson.h"
+#include "utils.h"
 #include "utils_path.h"
 #include "track_matching_utils.h"
 
@@ -30,7 +31,7 @@ namespace Offline {
 	static bool can_write() { return CONF.cache_offline_cache_flag & CacheFlags::OC_WRITE; }
 	static bool can_ovr() { return CONF.cache_offline_cache_flag & CacheFlags::OC_OVERWRITE; }
 
-	static pfc::string8 get_offline_path(pfc::string8 id, bool native, GetFrom gfFrom, pfc::string8 secId) {
+	static pfc::string8 get_offline_path(pfc::string8 id, GetFrom gfFrom, pfc::string8 secId, bool native) {
 
 		pfc::string8 ol_path(core_api::pathInProfile(OC_NAME));
 
@@ -96,17 +97,18 @@ namespace Offline {
 					filenames.append_single(tmp);
 				else 
 					filenames.append_single(folders[walk]);
+				if (ndx != ~0) break;
 			}
 		}
 		return filenames;
 	}
 
-	static pfc::string8 get_offline_pages_path(pfc::string8 id, size_t page, bool native, GetFrom getFrom, pfc::string8 secid) {
+	static pfc::string8 get_offline_pages_path(pfc::string8 id, size_t page, GetFrom getFrom, pfc::string8 secid, bool native) {
 		
 		PFC_ASSERT(getFrom == GetFrom::ArtistReleases || getFrom == GetFrom::Versions);
 		PFC_ASSERT(getFrom != GetFrom::Versions || (!STR_EQUAL(id, secid) && secid.get_length()));
 		
-		pfc::string8 page_path(get_offline_path(id, native, getFrom, secid));
+		pfc::string8 page_path(get_offline_path(id, getFrom, secid, native));
 		page_path << "\\page-";
 		if (page != pfc_infinite)
 			page_path << page;
@@ -118,7 +120,7 @@ namespace Offline {
 		PFC_ASSERT(getFrom == GetFrom::Artist || getFrom == GetFrom::Release || getFrom == GetFrom::ArtistReleases || getFrom == GetFrom::Versions);
 		PFC_ASSERT((getFrom != GetFrom::Release && getFrom != GetFrom::Versions) || (!STR_EQUAL(id, secid) && secid.get_length()));
 
-		pfc::string8 n8_path = get_offline_path(id, true, getFrom, secid);
+		pfc::string8 n8_path = get_offline_path(id, getFrom, secid, true);
 		fs::path os_path = fs::u8path(n8_path.c_str());
 
 		bool debug_path_exists = false;
@@ -174,7 +176,7 @@ namespace Offline {
 		bool bok = false;
 		
 		if (!done) {
-		
+
 			//delete if exists
 
 			fs::path os_path = fs::u8path(path.c_str());
@@ -198,21 +200,17 @@ namespace Offline {
 				os_path = fs::u8path((PFC_string_formatter() << path << "\\" << MARK_LOADING_NAME).c_str());
 
 				int flags = 0; // JSON_ENCODE_ANY | JSON_INDENT(1);
-				FILE* fo_abplus;
+				FILE* file;
 				errno = 0;
 				//ab+ : append; open or create binary file for update, writing at eof
-				if ((fo_abplus = fopen(os_path.string().c_str(), "ab+")) != NULL)
+				if ((file = fopen(os_path.string().c_str(), "ab+")) != NULL)
 				{
-					int w = fwrite(fcontent.get_ptr(), fcontent.get_length(), 1, fo_abplus);
+					int w = fwrite(fcontent.get_ptr(), fcontent.get_length(), 1, file);
 					bok = (w == fcontent.get_length());
 
 					// close and return status
 
-					return (fclose(fo_abplus) == 0) && bok;
-				}
-				else {
-
-					int debug = 1;
+					return (fclose(file) == 0) && bok;
 				}
 			}
 
@@ -274,7 +272,7 @@ namespace Offline {
 		}
 		//..
 
-		out_relative_path = get_offline_path(id, native, gfFrom, secid);
+		out_relative_path = get_offline_path(id, gfFrom, secid, native);
 		bool bres = check_offline_entity_folder(id, gfFrom, secid);
 
 		bres &= check_download(out_relative_path);
@@ -293,13 +291,13 @@ namespace Offline {
 
 		if (subpage == pfc_infinite) {		
 			if (!thumbs)
-				n8_rel_path = get_offline_path(id, true, getFrom, secid);
+				n8_rel_path = get_offline_path(id, getFrom, secid, true);
 			else {
 				n8_rel_path = get_thumbnail_cache_path(id, artSrc, true);				
 			}
 		}
 		else {
-			n8_rel_path = get_offline_pages_path(id, subpage, true, getFrom, secid);
+			n8_rel_path = get_offline_pages_path(id, subpage, getFrom, secid, true);
 		}
 		
 		fs::path os_path = fs::u8path(n8_rel_path.c_str());
@@ -329,13 +327,13 @@ namespace Offline {
 		PFC_ASSERT(getFrom == GetFrom::Artist || getFrom == GetFrom::Release);
 		PFC_ASSERT(getFrom != GetFrom::Release || (!STR_EQUAL(id, secid) && secid.get_length()));
 
-		pfc::string8 rel_path = get_offline_path(id, true, getFrom, secid);
+		pfc::string8 n8_rel_path = get_offline_path(id, getFrom, secid, true);
 
-		fs::path os_path = fs::u8path(rel_path.c_str());
+		fs::path os_path = fs::u8path(n8_rel_path.c_str());
 		
 		try {
 			std::error_code ec;
-			bool bdebug_created = fs::create_directories(os_path, ec);
+			bool bdone = fs::create_directories(os_path, ec);
 			return !ec.value();
 		}
 		catch (...) {

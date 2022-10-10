@@ -7,17 +7,15 @@
 #include "foo_discogs.h"
 #include "my_tabentry.h"
 
-
 #define NUM_TABS 7
 
-#define CONF_FIND_RELEASE_TAB	0
-#define CONF_MATCHING_TAB		1
-#define CONF_TAGGING_TAB		2
-#define CONF_CACHING_TAB		3
-#define CONF_ART_TAB			4
-#define CONF_UI_TAB				5
-#define CONF_OATH_TAB			6
-
+#define CONF_FIND_RELEASE_TAB    0
+#define CONF_MATCHING_TAB        1
+#define CONF_TAGGING_TAB         2
+#define CONF_CACHING_TAB         3
+#define CONF_ART_TAB             4
+#define CONF_UI_TAB              5
+#define CONF_OATH_TAB            6
 
 class NOVTABLE my_threaded_process : public threaded_process {
 public:

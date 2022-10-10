@@ -5,7 +5,7 @@
 #include <chrono>
 
 #define CONSUMER_KEY "<<key>>"
-#define CONSUMER_SECRET "<<counsumer_secret>>"
+#define CONSUMER_SECRET "<<consumer_secret>>"
 #define REQUEST_TOKEN_URL "https://api.discogs.com/oauth/request_token"
 #define AUTHORIZE_URL "https://www.discogs.com/oauth/authorize"
 #define ACCESS_TOKEN_URL "https://api.discogs.com/oauth/access_token"
@@ -94,12 +94,10 @@ public:
 		m_throttle_delta = 0.0;
 		
 		int n = 0;
-		// ?
 		while (!service_enum_t<http_client>().first(client)) {
 			log_msg("Waiting a little for http_client...");
 			Sleep(200);
-			n++;
-			if (n == 19) {
+			if (++n == 19) {
 				foo_discogs_exception ex("Timed out waiting for http_client.");
 				throw ex;
 			}

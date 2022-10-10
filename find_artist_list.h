@@ -56,6 +56,7 @@ public:
 
 	bool RenderCellImageTest(size_t item, size_t subItem) const override;
 	void RenderCellImage(size_t item, size_t subItem, CDCHandle, const CRect&) const override;
+
 #pragma warning( push )
 #pragma warning( disable : 26454 )
 	typedef CListControlOwnerData TParent;
@@ -85,6 +86,7 @@ private:
 	void context_menu(size_t list_index, POINT screen_pos);
 
 	void set_image_list();
+
 	bool OnDisplayCellString(int item, int subitem, pfc::string8& result);
 
 	id_tracer* m_idtracer_p;

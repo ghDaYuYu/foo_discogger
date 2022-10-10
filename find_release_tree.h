@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <atltypes.h>
 #include <windef.h>
 #include "resource.h"
@@ -141,10 +141,9 @@ public:
 	std::pair<rppair_t, rppair_t> update_releases(const pfc::string8& filter, updRelSrc updsrc, bool init_expand, bool brolemain_filter);
 	
 	//
-	// -- UPDRELSRC
+	// -- end UPDRELSRC
 
 	LRESULT apply_filter(pfc::string8 strFilter, bool force_redraw, bool force_rebuild);
-
 
 	void set_selected_notifier(std::function<bool(int)>stdf_notifier) {
 		stdf_on_release_selected_notifier = stdf_notifier;
@@ -154,8 +153,6 @@ public:
 	const Artist_ptr Get_Artist();
 	size_t Get_Artist_List_Position();
 	size_t Get_Size();
-	size_t Get_Visible_Count();
-
 	// public, do not use as private/protected member
 	void OnInitExpand(int lparam);
 	//
@@ -202,7 +199,6 @@ public:
 		NOTIFY_HANDLER(IDC_RELEASE_TREE, NM_DBLCLK, OnReleaseTreeDoubleClickRelease)
 		NOTIFY_HANDLER(IDC_RELEASE_TREE, TVN_GETDISPINFO, OnReleaseTreeGetInfo)
 		NOTIFY_HANDLER(IDC_RELEASE_TREE, TVN_ITEMEXPANDING, OnReleaseTreeExpanding)
-		NOTIFY_HANDLER(IDC_RELEASE_TREE, TVN_SELCHANGING, OnReleaseTreeSelChanging)
 		NOTIFY_HANDLER(IDC_RELEASE_TREE, TVN_SELCHANGED, OnReleaseTreeSelChanged)
 	END_MSG_MAP()
 
@@ -245,7 +241,6 @@ private:
 
 	LRESULT OnReleaseTreeGetInfo(WORD /*wNotifyCode*/, LPNMHDR hdr, BOOL& /*bHandled*/);
 	LRESULT OnReleaseTreeExpanding(int, LPNMHDR hdr, BOOL&);
-	LRESULT OnReleaseTreeSelChanging(int, LPNMHDR hdr, BOOL& bHandled);
 	LRESULT OnReleaseTreeSelChanged(int, LPNMHDR hdr, BOOL& bHandled);
 	LRESULT OnReleaseTreeDoubleClickRelease(int, LPNMHDR hdr, BOOL&);
 	LRESULT OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);

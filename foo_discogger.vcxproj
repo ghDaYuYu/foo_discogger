@@ -263,7 +263,7 @@
     <ClCompile Include="configuration_dialog.cpp" />
     <ClCompile Include="db_fetcher.cpp" />
     <ClCompile Include="db_fetcher_component.cpp" />
-    <ClCompile Include="db_utils.cpp" />
+    <ClCompile Include="utils_db.cpp" />
     <ClCompile Include="discogs.cpp" />
     <ClCompile Include="discogs_db_interface.cpp" />
     <ClCompile Include="discogs_interface.cpp" />
@@ -321,7 +321,7 @@
     <ClInclude Include="configuration_dialog.h" />
     <ClInclude Include="db_fetcher.h" />
     <ClInclude Include="db_fetcher_component.h" />
-    <ClInclude Include="db_utils.h" />
+    <ClInclude Include="utils_db.h" />
     <ClInclude Include="discogs.h" />
     <ClInclude Include="discogs_db_interface.h" />
     <ClInclude Include="discogs_interface.h" />
@@ -344,7 +344,6 @@
     <ClInclude Include="ol_cache.h" />
     <ClInclude Include="preview_dialog.h" />
     <ClInclude Include="prompt_dialog.h" />
-    <ClInclude Include="request_q.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="sdk_helpers.h" />
     <ClInclude Include="stdafx.h" />
@@ -360,8 +359,11 @@
     <ClInclude Include="track_matching_utils.h" />
     <ClInclude Include="utils.h" />
     <ClInclude Include="utils_import_export_dialog.h" />
+    <ClInclude Include="utils_menu.h" />
+    <ClInclude Include="utils_path.h" />
     <ClInclude Include="version.h" />
     <ClInclude Include="wtl_helpers.h" />
+    <ClInclude Include="yesno_dialog.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="foo_discogger.rc" />
@@ -391,6 +393,8 @@
     <Image Include="ico\bitmap_s.bmp" />
     <Image Include="ico\bitmap_tracer.bmp" />
     <Image Include="ico\bitmap_tracer_ext.bmp" />
+    <Image Include="ico\bitmap_tracer_ext_drk.bmp" />
+    <Image Include="ico\ic_quian.ico" />
     <Image Include="ico\png_dc_32_c.png" />
     <Image Include="ico\png_ic_quian_16c.png" />
     <Image Include="ico\png_ic_quian_24c.png" />

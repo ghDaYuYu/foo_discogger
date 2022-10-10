@@ -2,6 +2,7 @@
 
 #include "resource.h"
 #include "helpers/DarkMode.h"
+
 #include "libPPUI/PaintUtils.h"
 #include "libPPUI/CListControlOwnerData.h"
 
@@ -75,7 +76,6 @@ public:
 		}
 
 		if (do_hlight) {
-
 			RenderHLBackground(p_dc, p_itemRect, item, bkColor, strItem, m_hl_string, false);
 		}
 	}
@@ -188,7 +188,7 @@ public:
 		MESSAGE_HANDLER_EX(WM_CONTEXTMENU, OnContextMenu)
 
 		CHAIN_MSG_MAP(CDialogResize<CTagMappingDialog>)
-		MY_END_MSG_MAP()
+	MY_END_MSG_MAP()
 
 #pragma warning( pop )
 

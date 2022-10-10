@@ -19,7 +19,7 @@ HWND get_ctx_lvlist(HWND hwnd, int ID) {
 size_t ILOD_track_matching::listGetItemCount(ctx_t ctx) {
 
 	HWND wnd = ((TParent*)this)->m_hWnd;
-
+	// ctx: calling object
 	HWND lvlist = get_ctx_lvlist(wnd, ctx->GetDlgCtrlID());
 
 	PFC_ASSERT(get_ctx_lvlist(wnd, ctx->GetDlgCtrlID()) != nullptr);
@@ -79,8 +79,8 @@ pfc::string8 ILOD_track_matching::listGetSubItemText(ctx_t ctx, size_t item, siz
 		getimages_it track_match;
 		size_t perm_pos = coord->GetTrackArtAtLvPos(item, track_match);
 		size_t cAlbumArt = m_release->images.get_count();
-		ndx_image_info_row_t image_info_row = *track_match;
-		ndx_image_t ndx_image = image_info_row.first;
+		ndx_image_info_row_t image_info_row = *track_match; // (ndx_image, imageinfo);
+		ndx_image_t ndx_image = image_info_row.first; // ((int)art_src::alb, pi);
 		bool dc_isalbum = ndx_image.first == (int)art_src::alb;
 		perm_pos = dc_isalbum ? perm_pos : perm_pos - cAlbumArt;
 
@@ -125,9 +125,10 @@ pfc::string8 ILOD_track_matching::listGetSubItemText(ctx_t ctx, size_t item, siz
 		break;
 	}
 	case IDC_UI_FILE_ARTWORK_LIST: {
-	
 		getimages_file_it track_match;
 		size_t res = coord->GetFileArtAtLvPos(item, track_match);
+		buffer = !subItem ? "0 fl": "fl subitem" ;
+
 		size_t pos = item;
 
 		getimages_file_it imagefilerow;
@@ -143,27 +144,27 @@ pfc::string8 ILOD_track_matching::listGetSubItemText(ctx_t ctx, size_t item, siz
 			buffer = fullpath;
 			break;
 		}
-					//dims
+		//dims
 		case 1: {
 			pfc::string8 str(imagefilerow->second.at(1));
 			buffer = str;
 
 			break;
 		}
-					//file size
+		//file size
 		case 2: {
 			pfc::string8 str(imagefilerow->second.at(2));
 			buffer = str;
 			break;
 		}
-					//position
+		//position
 		case 3: {
 			pfc::string8 str = std::to_string(item).c_str();
 			buffer = str;
 			break;
 		}
 		default: {
-			int debug = 1;
+			//..
 		}
 		}
 
@@ -181,7 +182,6 @@ pfc::string8 ILOD_track_matching::listGetSubItemText(ctx_t ctx, size_t item, siz
 bool ILOD_track_matching::listCanReorderItems(ctx_t) {
 
 	return true;
-
 }
 
 // fb2k lib - reorder

@@ -20,7 +20,6 @@ void load_global_icons() {
 	CWindowDC dc(core_api::get_main_window());
 	HTHEME theme = OpenThemeDataForDpi(core_api::get_main_window(), L"TEXTSTYLE", dpiX);
 	GetThemeFont(theme, dc, TEXT_EXPANDED, 0, TMT_FONT, &lf);
-
 	g_hFont = CreateFontIndirectW(&lf);
 }
 
@@ -221,8 +220,6 @@ bool CFindReleaseDialog::ForwardVKReturn()
 
 		m_alist.Default_Action();
 		return true;
-		//dont want return
-		return false;
 	}
 	else if (hwnd == m_release_tree) {
 
@@ -332,7 +329,6 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	uSetWindowText(m_edit_artist, artist ? artist : "");
 	uSetWindowText(m_edit_release, m_tracer.has_release() ? std::to_string(m_tracer.release_id).c_str() : "");
 
-	// artist & release tree
 	// dlg resize and dimensions
 
 	DlgResize_Init(mygripp.enabled, true);
@@ -359,7 +355,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	bool bvisible_dlg;
 	{
 		bool brelease_ided = m_tracer.release_tag && m_tracer.release_id != pfc_infinite;
-		bool bskip_ided = conf.skip_mng_flag & SkipMng::SK_RELEASE_DLG_IDED;
+		bool bskip_ided = conf.skip_mng_flag & SkipMng::RELEASE_DLG_IDED;
 
 		bool cfg_always_load_artist_ided_preview = true;
 
@@ -399,7 +395,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	if (OAuthCheck(conf) || (db_ready_to_search)) {
 
 		bool brelease_ided = m_tracer.release_tag && m_tracer.release_id != pfc_infinite;
-		bool bskip_ided = conf.skip_mng_flag & SkipMng::SK_RELEASE_DLG_IDED;
+		bool bskip_ided = conf.skip_mng_flag & SkipMng::RELEASE_DLG_IDED;
 
 		//autofill release id
 		uSetWindowText(m_edit_release, brelease_ided ? std::to_string(m_tracer.release_id).c_str() : "");
@@ -575,7 +571,7 @@ std::pair<rppair_t, rppair_t> CFindReleaseDialog::update_releases(const pfc::str
 
 void CFindReleaseDialog::apply_filter(pfc::string8 strFilter, bool force_redraw, bool force_rebuild) {
 
-	// forwared apply_filter
+	// forwarded apply_filter
 
 	m_dctree.apply_filter(strFilter, force_redraw, force_rebuild);
 
@@ -735,7 +731,7 @@ void CFindReleaseDialog::on_write_tags(const pfc::string8& release_id) {
 	}
 
 	pfc::string8 offline_artist_id;
-	bool bskip_idded_release_dlg = conf.skip_mng_flag & SkipMng::SK_RELEASE_DLG_IDED;
+	bool bskip_idded_release_dlg = conf.skip_mng_flag & SkipMng::RELEASE_DLG_IDED;
 
 	if (bskip_idded_release_dlg && m_tracer.has_artist()) {
 		size_t artist_id = m_tracer.get_artist_id_store();
@@ -812,7 +808,6 @@ void CFindReleaseDialog::convey_artist_list_selection(cupdRelSrc cupdsrc) {
 	//from Default action (ArtistList) or List selection (ArtistProfile)
 
 	PFC_ASSERT(cupdsrc == updRelSrc::ArtistList || cupdsrc == updRelSrc::ArtistProfile);
-
 	t_size pos = m_alist.GetSingleSel();
 
 	if (pos == ~0 || (cupdsrc != updRelSrc::ArtistList && cupdsrc != updRelSrc::ArtistProfile)) {
@@ -921,7 +916,6 @@ void CFindReleaseDialog::route_artist_search(pfc::string8 artistname, bool dlgbu
 				task->start(m_hWnd);
 		}
 			else {
-
 				service_ptr_t<get_artist_process_callback> task =
 					new service_impl_t<get_artist_process_callback>(cupdsrc, artist_id);
 
@@ -1063,6 +1057,7 @@ void replace_artist_refs(const pfc::string8 & profile, pfc::string8& outprofile,
 		}	
 	}	
 }
+
 void CFindReleaseDialog::UpdateArtistProfile(Artist_ptr artist) {
 
 	const auto exactlist = m_alist.Get_Artists();

@@ -33,26 +33,27 @@ void CArtistList::on_get_artist_done(cupdRelSrc updsrc, Artist_ptr& artist) {
 	else if (updsrc == updRelSrc::ArtistProfile) {
 
 		//update profile
-		CFindReleaseDialog* dlg = dynamic_cast<CFindReleaseDialog*>(m_host);
+
+		CFindReleaseDialog* dlg = static_cast<CFindReleaseDialog*>(m_host);
+
 		{
 			std::lock_guard<std::mutex> guard(dlg->m_loading_selection_rw_mutex);
 
 			if (dlg->m_loading_selection_id == atoi(artist->id)) {
 
 				g_discogs->find_release_dialog->UpdateArtistProfile(artist);
+
 				dlg->m_loading_selection_id = pfc_infinite;
 			}
 		}
 		return;
 	}
 	else if (updsrc == updRelSrc::ArtistList) {
-
 		Artist_ptr selected_artist = get_selected_artist();
 		size_t selected_id = selected_artist ? atoi(selected_artist->id) : pfc_infinite;
-
 		if (selected_id == pfc_infinite || atoi(artist->id) == selected_id) {
 	
-			CFindReleaseDialog* dlg = dynamic_cast<CFindReleaseDialog*>(m_host);
+			CFindReleaseDialog* dlg = static_cast<CFindReleaseDialog*>(m_host);
 			{
 				std::lock_guard<std::mutex> guard(dlg->m_loading_selection_rw_mutex);
 
@@ -67,9 +68,6 @@ void CArtistList::on_get_artist_done(cupdRelSrc updsrc, Artist_ptr& artist) {
 				}
 			}
 		}
-	}
-	else {
-		//int dbg = 1;
 	}
 }
 
@@ -130,7 +128,6 @@ void CArtistList::fill_artist_list(bool dlgexact, bool force_exact, updRelSrc up
 		m_find_release_artist = Get_Artists()[pos];
 
 		//..
-
 		//refresh lv images
 
 		ListView_RedrawItems(this->m_hWnd, pos, pos);
@@ -211,21 +208,18 @@ void CArtistList::switch_find_releases(size_t op, bool append) {
 	for (size_t i = 0; !append && i < m_find_release_artists.get_count(); i++) {
 		m_find_release_artists[i]->search_role_list_pos = get_next_role_pos();
 	}
-	CFindReleaseDialog* dlg = dynamic_cast<CFindReleaseDialog*>(m_host);
+	CFindReleaseDialog* dlg = static_cast<CFindReleaseDialog*>(m_host);
 
 	Invalidate();
 
 	auto citems = get_size();
-	bool bskip_idded_release_dlg = CONF.skip_mng_flag & SkipMng::SK_RELEASE_DLG_IDED;
+	bool bskip_idded_release_dlg = CONF.skip_mng_flag & SkipMng::RELEASE_DLG_IDED;
 	if (!bskip_idded_release_dlg && !append == true && ((CONF.enable_autosearch && op == 3) ||
 		(CONF.auto_rel_load_on_open && op == 1 && citems == 1) ||
 		(CONF.auto_rel_load_on_open && op == 3) ||
 		(op == 0 && citems == 1 && append == false)))
 	{
-
-		SetSelectionModeSingle();
 		SetSelectionAt(0, true);
-
 	}
 }
 
@@ -255,7 +249,7 @@ bool CArtistList::OnDisplayCellImage(int item, int subitem, int& result) const {
 	}
 	else {
 
-		CFindReleaseDialog* dlg = dynamic_cast<CFindReleaseDialog*>(m_host);
+		CFindReleaseDialog* dlg = static_cast<CFindReleaseDialog*>(m_host);
 		size_t artist_pos_showing = dlg->get_tree_artist_list_pos();
 		size_t item_rol_pos = m_find_release_artists[item]->search_role_list_pos;
 		if (item_rol_pos == artist_pos_showing) {
@@ -335,7 +329,7 @@ LRESULT CArtistList::OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL
 	bHandled = FALSE; // tree handle needs event too. todo: rev own message loops
 
 	HWND hwndCtrl = (HWND)wParam;
-	CFindReleaseDialog* dlg = dynamic_cast<CFindReleaseDialog*>(m_host);
+	CFindReleaseDialog* dlg = static_cast<CFindReleaseDialog*>(m_host);
 	if (hwndCtrl != this->m_hWnd) return FALSE;
 
 	CPoint screen_position;
@@ -372,7 +366,7 @@ void CArtistList::Default_Action() {
 
 	// * CONVEY ARTIST-LIST
 
-	CFindReleaseDialog* dlg = dynamic_cast<CFindReleaseDialog*>(m_host);
+	CFindReleaseDialog* dlg = static_cast<CFindReleaseDialog*>(m_host);
 	dlg->convey_artist_list_selection(updRelSrc::ArtistList);
 }
 
@@ -429,7 +423,7 @@ void CArtistList::context_menu(size_t list_index, POINT screen_pos) {
 
 	bool empty_sel = (list_index == ~0);
 
-	CFindReleaseDialog* dlg = dynamic_cast<CFindReleaseDialog*>(m_host);
+	CFindReleaseDialog* dlg = static_cast<CFindReleaseDialog*>(m_host);
 
 	Artist_ptr artist;
 	bool isArtistOffline = false;
@@ -493,8 +487,9 @@ void CArtistList::context_menu(size_t list_index, POINT screen_pos) {
 			if (isel != ~0) {
 				pfc::string8 out;
 				GetSubItemText(isel, 1, out);
-				ClipboardHelper::OpenScope scope; scope.Open(core_api::get_main_window(), true);
-				scope.SetString(out);
+				ClipboardHelper::OpenScope scope;
+				scope.Open(core_api::get_main_window(), true);
+				ClipboardHelper::SetString(out);
 			}
 			break;
 		}

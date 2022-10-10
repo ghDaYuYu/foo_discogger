@@ -11,7 +11,7 @@
 
 class CPreviewTagsDialog : public MyCDialogImpl<CPreviewTagsDialog>,
 	public CDialogResize<CPreviewTagsDialog>, public CMessageFilter,
-	public ILOD_preview,  private InPlaceEdit::CTableEditHelperV2_ListView, public fb2k::CDarkModeHooks {
+	public ILOD_preview, public fb2k::CDarkModeHooks {
 
 public:
 
@@ -32,7 +32,6 @@ public:
 
 	enum {
 		IDD = IDD_DIALOG_PREVIEW_TAGS,
-		MSG_EDIT = WM_APP + 5000
 	};
 
 	enum {
@@ -97,9 +96,6 @@ public:
 		NOTIFY_HANDLER_EX(IDC_PREVIEW_LIST, NM_DBLCLK, OnListDoubleClick)
 		NOTIFY_HANDLER_EX(IDC_PREVIEW_LIST, LVN_KEYDOWN, OnListKeyDown)
 		NOTIFY_HANDLER(IDC_PREVIEW_LIST, NM_CUSTOMDRAW, OnCustomDraw)
-
-		MESSAGE_HANDLER_EX(MSG_EDIT, OnEdit)
-
 		CHAIN_MSG_MAP(CDialogResize<CPreviewTagsDialog>)
 
 	MY_END_MSG_MAP()
@@ -172,23 +168,6 @@ private:
 
 	bool init_other_controls_and_results();
 	void GlobalReplace_ANV(bool state);
-
-	bool TableEdit_IsColumnEditable(size_t subItem) const override {
-		return subItem == 1;
-	}
-
-	size_t TableEdit_GetColumnCount() const override {
-		return m_uilist.GetColumnCount();
-	}
-
-	HWND TableEdit_GetParentWnd() const override {
-		return m_results_list;
-	}
-
-	bool TableEdit_CanAdvanceHere(size_t item, size_t subItem, uint32_t whatHappened) const override 
-	{
-		(void)item; (void)subItem; (void)whatHappened; return true;
-	}
 
 	bool delete_selection();
 	bool context_menu_show(HWND wnd, size_t isel, LPARAM lParamPos);

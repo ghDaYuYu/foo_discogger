@@ -63,7 +63,6 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 
 	HWND discogs_track_list = uGetDlgItem(IDC_UI_DC_ARTWORK_LIST);
 	HWND file_list = uGetDlgItem(IDC_UI_FILE_ARTWORK_LIST);
-
 	HWND write_btn = GetDlgItem(IDC_BTN_WRITE_TAGS);
 	::SendMessageW(write_btn, BM_SETIMAGE, IMAGE_BITMAP, (LPARAM)g_hIcon_rec);
 	if (m_tag_writer) {
@@ -130,7 +129,7 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 		if (!buser_skip_artwork && save_artwork) {
 			//;
 		}
-		if (m_tag_writer->m_match_status == MATCH_SUCCESS && (m_conf.skip_mng_flag & SkipMng::SK_RELEASE_DLG_MATCHED)) {
+		if (m_tag_writer->m_match_status == MATCH_SUCCESS && (m_conf.skip_mng_flag & SkipMng::RELEASE_DLG_MATCHED)) {
 			generate_track_mappings(m_tag_writer->m_track_mappings);
 			service_ptr_t<generate_tags_task> task = new service_impl_t<generate_tags_task>(this, m_tag_writer, false);
 			task->start();
@@ -158,7 +157,7 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 		}
 		else {
 
-			bool get_mibs = !(m_conf.skip_mng_flag & SkipMng::SK_BRAINZ_ID_FETCH);
+			bool get_mibs = !(m_conf.skip_mng_flag & SkipMng::BRAINZ_ID_FETCH);
 
 			// * REQUEST 
 
@@ -176,22 +175,17 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 			}
 			// 0 front, 1 back, 3 disk, 2 artist
 			for (size_t i = 0; i < album_art_ids::num_types(); i++) {
-
+				preview_job pj;
 				if (i == 2) {
-		
-					preview_job pj(true, 3, false, true, false);
-					m_vpreview_jobs.emplace_back(pj);
+					pj =  preview_job(true, 3, false, true, false);					
 				}
 				else if (i == 3) {
-
-					preview_job pj(true, 2, false, true, false);
-					m_vpreview_jobs.emplace_back(pj);
+					pj = preview_job(true, 2, false, true, false);
 				}
 				else {
-
-					preview_job pj(true, i, false, true, false);
-
+					pj = preview_job(true, i, false, true, false);
 				}
+				m_vpreview_jobs.emplace_back(pj);
 			}
 		}
 
@@ -354,7 +348,7 @@ void CTrackMatchingDialog::process_artwork_preview_done(size_t img_ndx, bool art
 	this->pending_previews_done(1);
 }
 
-void CTrackMatchingDialog::process_file_artwork_preview_done(size_t img_ndx, bool artist_art, std::pair<std::pair<HICON, HBITMAP>, std::pair<HICON, HBITMAP>> callback_pair_hbitmaps, std::pair<pfc::string8, pfc::string8> temp_file_names) {
+void CTrackMatchingDialog::process_file_artwork_preview_done(size_t img_ndx, bool artist_art, imgpairs callback_pair_hbitmaps, std::pair<pfc::string8, pfc::string8> temp_file_names) {
 	HWND lvlist = uGetDlgItem(IDC_UI_FILE_ARTWORK_LIST);
 	art_src art_source = artist_art ? art_src::art : art_src::alb;
 
@@ -445,7 +439,7 @@ LRESULT CTrackMatchingDialog::OnColorStatic(UINT /*uMsg*/, WPARAM wParam, LPARAM
 
 			SetBkMode((HDC)wParam, GetSysColor(COLOR_3DFACE));
 			SetTextColor((HDC)wParam, RGB(255, 0, 0));
-			return (LRESULT/*BOOL*/)GetSysColorBrush(COLOR_3DFACE);
+			return (LRESULT)GetSysColorBrush(COLOR_3DFACE);
 		}
 		else {
 			return FALSE;
@@ -455,9 +449,9 @@ LRESULT CTrackMatchingDialog::OnColorStatic(UINT /*uMsg*/, WPARAM wParam, LPARAM
 		return FALSE;
 	}
 }
-void CTrackMatchingDialog::generate_track_mappings(track_mappings_list_type &m_track_mappings) {
+void CTrackMatchingDialog::generate_track_mappings(track_mappings_list_type &track_mappings) {
 	
-	m_track_mappings.force_reset();
+	track_mappings.force_reset();
 
 	int file_index = -1;
 	int dc_track_index = -1;
@@ -486,16 +480,15 @@ void CTrackMatchingDialog::generate_track_mappings(track_mappings_list_type &m_t
 			if ((orig_file_index = m_coord.GetFileTrackUiAtLvPos(i, file_match)) != pfc_infinite) {
 				file_index = orig_file_index;
 			}
-			else {
+			else
 				file_index = -1;
-			}
 		}
 
 		track.enabled = (dc_track_index != -1 && dc_disc_index != -1);
 		track.discogs_disc = dc_disc_index; //DECODE_DISCOGS_DISK(dindex);
 		track.discogs_track = dc_track_index;  //DECODE_DISCOGS_TRACK(dindex);
 		track.file_index = file_index;
-		m_track_mappings.append_single(track);
+		track_mappings.append_single(track);
 	}
 }
 
@@ -523,6 +516,7 @@ bool CTrackMatchingDialog::generate_artwork_guids(pfc::array_t<GUID> &my_album_a
 		CONF_MULTI_ARTWORK.file_match = bfile_match;
 	}
 	else {
+
 		if (want_file_match) return false;
 
 		bool bfile_match = CONF_MULTI_ARTWORK.file_match;
@@ -616,7 +610,6 @@ bool CTrackMatchingDialog::generate_artwork_guids(pfc::array_t<GUID> &my_album_a
 		else {
 			return false;
 		}
-	
 	}
 	else {
 
@@ -653,7 +646,7 @@ LRESULT CTrackMatchingDialog::OnButtonWriteArtwork(WORD /*wNotifyCode*/, WORD wI
 	bool bfile_match = CONF_MULTI_ARTWORK.file_match;
 
 	if (!generate_artwork_guids(my_album_art_ids, bfile_match)) {
-	    return false;
+		return false;
 	}
 
 	//write art
@@ -757,8 +750,10 @@ inline bool CTrackMatchingDialog::build_current_cfg() {
 		cfg_coord->match_file_artwork_size_width != m_conf.match_file_artwork_size_width ||
 		cfg_coord->match_file_artwork_size_width != m_conf.match_file_artwork_index_width ||
 		//styles
+		//todo: depri
 		cfg_coord->match_discogs_artwork_art_style != m_conf.match_discogs_artwork_art_style ||
 		cfg_coord->match_file_artworks_art_style != m_conf.match_file_artworks_art_style) {
+		//..
 		bres |= true;
 	}
 
@@ -828,6 +823,7 @@ void CTrackMatchingDialog::LibUIAsTrackList(bool toTrackFile) {
 			rc_UI_fileList.Width(), rc_UI_fileList.Height(), SWP_NOACTIVATE | SWP_SHOWWINDOW);
 	}
 }
+
 size_t CTrackMatchingDialog::get_art_perm_selection(HWND hwndList, bool flagselected, const size_t max_items, pfc::array_t<t_uint8>& outmask, bit_array_bittable& are_albums) {
 
 	auto p_uilist = GetUIListByWnd(hwndList);
@@ -970,7 +966,7 @@ bool CTrackMatchingDialog::context_menu_form(HWND wnd, LPARAM lParamPos) {
 		if (is_multiartist) {
 			build_sub_menu(menu, ID_URL_ARTISTS, vartists, _T("Web release artist&s page"), 16);
 		}
-		if (!(CONF.skip_mng_flag & SkipMng::SK_BRAINZ_ID_FETCH)) {
+		if (!(CONF.skip_mng_flag & SkipMng::BRAINZ_ID_FETCH)) {
 			uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 			bool hasMib_Release = m_musicbrainz_mibs.release.get_length();
 			bool hasMib_ReleaseGroup = m_musicbrainz_mibs.release_group.get_length();
@@ -1042,7 +1038,7 @@ bool CTrackMatchingDialog::context_menu_form(HWND wnd, LPARAM lParamPos) {
 			if (cmd >= ID_URL_ARTISTS && cmd < ID_URL_MB_REL) {
 				pfc::string8 artist_id = vartists.at(cmd - ID_URL_ARTISTS).first.c_str();
 				url << "https://www.discogs.com/artist/" << artist_id;
-			}			
+			}
 			break;
 		}
 		}
@@ -1116,7 +1112,9 @@ bool CTrackMatchingDialog::context_menu_track_show(HWND wnd, int idFrom, LPARAM 
 					}
 				}
 				//attribs
-    			context_menu_art_attrib_show(wnd, &menu, mixedvals);
+				
+				context_menu_art_attrib_show(wnd, &menu, mixedvals);
+
 			}
 			else {
 				uAppendMenu(menu, MF_SEPARATOR, 0, 0);
@@ -1199,49 +1197,49 @@ bool CTrackMatchingDialog::context_menu_track_switch(HWND wnd, POINT point, bool
 	}
 	case ID_REMOVE:
 	{
-		
-        //process attribs
+		//process attribs
 
-        bool bcrop = false;
-        const size_t count = selmask.size();
-        bit_array_bittable delmask(count);
-        for (size_t i = 0; i < count; i++) {
-            if (bcrop)
-                delmask.set(i, !selmask.get(i));
-            else
-                delmask.set(i, selmask.get(i));
-        }
+		bool bcrop = false;
+		const size_t count = selmask.size();
+		bit_array_bittable delmask(count);
+		for (size_t i = 0; i < count; i++) {
+			if (bcrop)
+				delmask.set(i, !selmask.get(i));
+			else
+				delmask.set(i, selmask.get(i));
+		}
 
-        //are albums
+		//are albums
 
-        pfc::array_t<t_uint8> perm_selection;
-        bit_array_bittable are_albums;
-        if (get_mode() == lsmode::art && !is_files) {
-            perm_selection.resize(count);
-            are_albums.resize(count);
-            const size_t max_items = m_tag_writer->GetArtCount();
-            size_t csel = get_art_perm_selection(wnd, true, max_items, perm_selection, are_albums);		
-        }
+		pfc::array_t<t_uint8> perm_selection;
+		bit_array_bittable are_albums;
+		if (get_mode() == lsmode::art && !is_files) {
+			perm_selection.resize(count);
+			are_albums.resize(count);
+			const size_t max_items = m_tag_writer->GetArtCount();
+			size_t csel = get_art_perm_selection(wnd, true, max_items, perm_selection, are_albums);		
+		}
 
-        size_t nextfocus = ~0;
-        if (p_uilist->m_hWnd) {
-            //list user command...
-            nextfocus = m_coord.ListUserCmd(wnd, get_mode(), ID_REMOVE, delmask, are_albums, {}, false);
-            match_message_update(match_manual);
-        }
-        selmask.resize(0);
-        if (nextfocus != 0) {
-            selmask.resize(count - perm_selection.size());
-            selmask.set(nextfocus, true);
-        }
-        p_uilist->OnItemsRemoved(selmask, selmask.size());
+		size_t nextfocus = ~0;
+		if (p_uilist->m_hWnd) {
+			//list user command...
+			nextfocus = m_coord.ListUserCmd(wnd, get_mode(), ID_REMOVE, delmask, are_albums, {}, false);
+			match_message_update(match_manual);
+		}
+		selmask.resize(0);
+		if (nextfocus != 0) {
+			selmask.resize(count - perm_selection.size());
+			selmask.set(nextfocus, true);
+		}
+		p_uilist->OnItemsRemoved(selmask, selmask.size());
 
-        if (get_mode() == lsmode::art && !is_files) {
-            //refresh tristate
-            init_track_matching_dialog();
-        }
+		if (get_mode() == lsmode::art && !is_files) {
+			//refresh tristate
+			init_track_matching_dialog();
+		}
 		return true;
 	}
+	
 	case ID_CROP:
 	{
 		for (size_t i = 0; i < selmask.size(); i++) {
@@ -1304,14 +1302,16 @@ bool CTrackMatchingDialog::context_menu_track_switch(HWND wnd, POINT point, bool
 		size_t added = 0;
 
 		for (size_t i = 0; i < citems; i++) {
-			if (perm_selection[i] != max_items) { //selection?
+
+			if (perm_selection[i] != max_items) { 
 				size_t album_artist_ndx = perm_selection[i];
-				if (!are_albums.get(i)) {	 //artist art type?
+
+				if (!are_albums.get(i)) {
 					album_artist_ndx -= m_tag_writer->GetArtCount(art_src::alb);
 				}
 				preview_job pj(false, album_artist_ndx, !are_albums.get(i), false, false);
-				++added;
 				m_vpreview_jobs.emplace_back(pj);
+				++added;
 			}
 		}
 
@@ -1384,7 +1384,6 @@ bool CTrackMatchingDialog::context_menu_track_switch(HWND wnd, POINT point, bool
 			CONF_MULTI_ARTWORK.file_match = bfile_match;
 			uButton_SetCheck(m_hWnd, IDC_CHK_ARTWORK_FILEMATCH, bfile_match);
 			::EnableWindow(uGetDlgItem(IDC_UI_FILE_ARTWORK_LIST), bfile_match);
-			
 			//..
 
 			m_coord.Reset(wnd, get_mode());
@@ -1510,7 +1509,6 @@ bool CTrackMatchingDialog::context_menu_art_attrib_show(HWND wndlist, HMENU* men
 		uAppendMenu(*menu, MF_SEPARATOR, (bitems ? 0 : MF_DISABLED | MF_GRAYED), 0);
 		uAppendMenu(*menu, MF_STRING | (is_tile ? MF_CHECKED : 0) | (bitems && !is_tile ? 0 : MF_DISABLED | MF_GRAYED), ID_ART_TILE, "Tile");
 		uAppendMenu(*menu, MF_STRING | (!is_tile ? MF_CHECKED : 0) | (bitems && is_tile ? 0 : MF_DISABLED | MF_GRAYED), ID_ART_DETAIL, "Detail");
-
 	}
 	catch (...) {}
 	return false;

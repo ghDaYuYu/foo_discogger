@@ -20,13 +20,7 @@ void CPreviewList::set_image_list() {
 	ListView_SetImageList(this->m_hWnd, m_hImageList, LVSIL_SMALL);
 }
 
-// on context menu
-
-LRESULT CPreviewList::OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) {
-	return FALSE;
-}
-
-//default action for artist list item
+//default action 
 
 void CPreviewList::Default_Action() {
 

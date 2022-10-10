@@ -1,4 +1,5 @@
 #pragma once
+#include <mutex>
 
 template<typename key_t, typename value_t>
 
@@ -12,7 +13,10 @@ public:
 		_max_size(max_size) {
 	}
 
-	void remove(const key_t& key) {
+	std::mutex modify_mutex;
+
+	bool remove(const key_t& key) {
+
 		//note c++ std::list & std::map: only those iterators, or refs pointing to
 		//the element which will be erased, are affected
 
@@ -20,10 +24,14 @@ public:
 		if (it != _cache_items_map.end()) {
 			_cache_items_list.erase(it->second);
 			_cache_items_map.erase(it);
+			return true;
 		}
+		return false;
 	}
 
 	void put(const key_t& key, const value_t& value) {
+
+		std::lock_guard<std::mutex> ul(modify_mutex);
 
 		remove(key);
 
@@ -39,6 +47,9 @@ public:
 	}
 
 	const value_t& get(const key_t& key) {
+
+		std::lock_guard<std::mutex> ul(modify_mutex);
+
 		auto it = _cache_items_map.find(key);
 		if (it == _cache_items_map.end()) {
 			throw ("cache error");
@@ -49,20 +60,32 @@ public:
 		}
 	}
 
-	bool exists(const key_t& key) const {
+	bool exists(const key_t& key) /*const*/ {
+
+		std::lock_guard<std::mutex> ul(modify_mutex);
+
 		return _cache_items_map.find(key) != _cache_items_map.end();
 	}
 
-	size_t size() const {
+	size_t size() /*const*/ {
+
+		std::lock_guard<std::mutex> ul(modify_mutex);
+
 		return _cache_items_map.size();
 	}
 
 	void clear() {
+
+		std::lock_guard<std::mutex> ul(modify_mutex);
+
 		_cache_items_list.clear();
 		_cache_items_map.clear();
 	}
 
 	void set_max_size(size_t max_size) {
+
+		std::lock_guard<std::mutex> ul(modify_mutex);
+
 		_max_size = max_size;
 		while (_cache_items_map.size() > _max_size) {
 			auto last = _cache_items_list.end();
@@ -73,11 +96,11 @@ public:
 	}
 
 private:
+
 	std::list<key_value_pair_t> _cache_items_list;
 	std::unordered_map<key_t, list_iterator_t> _cache_items_map;
 	size_t _max_size;
 };
-
 
 namespace std
 {

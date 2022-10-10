@@ -147,7 +147,6 @@ std::vector<int> build_woas_libppui(CListControlOwnerData* ui_list, double tile_
 
 		int hwoa = ui_list->GetColumnWidthF(index);
 		if (it_woa == vw_res.begin()) {
-			//measure after miminize first and expand back the rest
 			hwoa = (double)hwoa * tile_multi;
 		}
 		//store woa
@@ -199,7 +198,7 @@ pfc::string8 round_file_size_units(size_t size) {
 }
 
 //generate cache thumbnails files and hbitmaps from artwork preview memoryblock
-imgpairs MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::string8> n8_cache_paths, MemoryBlock small_art) {
+imgpairs MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::string8> n8_cache_paths, /*size_t pos,*/ MemoryBlock small_art) {
 
 	if (!small_art.get_count()) return imgpairs{ {nullptr, nullptr}, {nullptr, nullptr } };
 
@@ -216,7 +215,6 @@ imgpairs MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::string8> n8_cache_p
 		msg << temp_file_small;
 		log_msg(msg);
 		return imgpairs{ {nullptr, nullptr}, {nullptr, nullptr } };
-
 	}
 	else {
 		//write small thumb (aprox. 150x150)

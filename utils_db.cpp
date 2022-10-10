@@ -2,13 +2,15 @@
 #include "db_fetcher_component.h"
 #include "utils_db.h"
 #include "utils.h"
+
 size_t sqldb::open(pfc::string8 dbname, size_t openmode) {
 
 	pfc::string8 n8_dbPath;
 	m_error_msg = "";
 
 	if (!stricmp_utf8(dll_db_filename(), dbname)) {
-		n8_dbPath = profile_path((PFC_string_formatter() << "configuration\\" << dbname), true);
+		n8_dbPath = profile_path("configuration");
+		n8_dbPath << "\\" << dbname;
 	}
 	else {
 		n8_dbPath = dbname;
@@ -23,6 +25,11 @@ size_t sqldb::open(pfc::string8 dbname, size_t openmode) {
 
 	do
 	{
+#ifdef THREAD_SAFE_SQL
+		if (SQLITE_OK != (m_ret = sqlite3_config(SQLITE_CONFIG_MULTITHREAD))) {
+			//will fail on already initiated sqlite
+		}
+#endif
 
 		if (SQLITE_OK != (m_ret = sqlite3_initialize()))
 		{
@@ -31,7 +38,6 @@ size_t sqldb::open(pfc::string8 dbname, size_t openmode) {
 		}
 
 		// open connection
-
 		{
 			std::lock_guard<std::mutex> guard(open_readwrite_mutex);
 			if (SQLITE_OK != (m_ret = sqlite3_open_v2(n8_dbPath, &m_pDb, openmode, NULL)))
@@ -41,7 +47,7 @@ size_t sqldb::open(pfc::string8 dbname, size_t openmode) {
 				break;
 			}
 			if (openmode == SQLITE_OPEN_READWRITE) {
-				sqlite3_busy_timeout(m_pDb, 20000);
+				sqlite3_busy_timeout(m_pDb, BUSY_TIMEOUT_SQL);
 			}
 		}
 	} while (false);
@@ -56,7 +62,10 @@ size_t sqldb::open(pfc::string8 dbname, size_t openmode) {
 
 void sqldb::close() {
 
-	if (nullptr != m_query) m_ret = sqlite3_finalize(*m_query);
+	if (nullptr != m_query) {
+		m_ret = sqlite3_finalize(*m_query);
+	}
+
 	if (nullptr != m_pDb) {
 		m_ret = sqlite3_close(m_pDb);
 		if (m_ret == SQLITE_OK) m_pDb = nullptr;
@@ -166,7 +175,9 @@ bool sqldb::debug_sql_return(int ret, pfc::string8 op, pfc::string8 msg_subject,
 
 size_t sqldb::insert_history(oplog_type optype, std::string cmd, rppair& out) {
 
-	if (!CONF.history_enabled()) return pfc_infinite;
+	if (!CONF.history_enabled()) {
+		return pfc_infinite;
+	}
 
 	db_fetcher_component dbfetcher;
 	return dbfetcher.insert_history(this, optype, cmd, "", out);

@@ -25,20 +25,20 @@ CPreviewLeadingTagDialog::~CPreviewLeadingTagDialog() {
 void CPreviewLeadingTagDialog::init_results() {
 
 	//verify upper bound
-	if (m_isel >= m_tag_writer->m_tag_results.get_count())
-		m_isel = m_tag_writer->m_tag_results.get_count() - 1;
+	if (m_isel >= m_tag_writer->tag_results.get_count())
+		m_isel = m_tag_writer->tag_results.get_count() - 1;
 
-	m_ptag_result = m_tag_writer->m_tag_results[m_isel];
-	file_info_manager_ptr m_finfo_manager = m_tag_writer->m_finfo_manager;
-	track_mappings_list_type m_track_mappings = m_tag_writer->m_track_mappings;
-
-	m_vtracks_desc.clear(); // .resize(track_mappings.get_count());
-	for (size_t i = 0; i < m_track_mappings.get_count(); i++) {
-		track_mapping tm = m_track_mappings[i];
+	m_ptag_result = m_tag_writer->tag_results[m_isel];
+	file_info_manager_ptr pfinfo_mng = m_tag_writer->m_finfo_manager;
+	track_mappings_list_type track_map = m_tag_writer->m_track_mappings;
+	m_vtracks_desc.clear();
+	for (size_t i = 0; i < track_map.get_count(); i++) {
+		track_mapping tm = track_map[i];
 		if (tm.enabled) {
 			pfc::string8 track_desc;
-			metadb_handle_ptr item = m_finfo_manager->items[tm.file_index];
-			item->format_title(nullptr, track_desc, m_track_desc_script, nullptr);	//TRACK DESCRIPTION
+			metadb_handle_ptr item = pfinfo_mng->items[tm.file_index];
+			//track description
+			item->format_title(nullptr, track_desc, m_track_desc_script, nullptr);
 			m_vtracks_desc.emplace_back(track_desc);
 		}
 	}
@@ -175,6 +175,7 @@ LRESULT CPreviewLeadingTagDialog::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND 
 }
 
 LRESULT CPreviewLeadingTagDialog::OnChangingTab(WORD /*wNotifyCode*/, LPNMHDR /*lParam*/, BOOL& /*bHandled*/) {
+
 	//or crash
 	if (m_ui_list.TableEdit_IsActive()) {
 		m_ui_list.TableEdit_Abort(true);
@@ -189,7 +190,7 @@ LRESULT CPreviewLeadingTagDialog::OnChangeTab(WORD /*wNotifyCode*/, LPNMHDR /*lP
 
 	//set mode
 	PreView pv_curr = (PreView)st_preview_current_tab;
-	((ILOD_preview_leading*)this)->SetMode(pv_curr);
+	static_cast<ILOD_preview_leading*>(this)->SetMode(pv_curr);
 
 	//redraw
 	CRect rc_visible;
@@ -229,7 +230,7 @@ bool CPreviewLeadingTagDialog::context_menu_show(HWND wnd, size_t isel, LPARAM l
 		bool is_results = wnd == m_ui_list.m_hWnd;
 
 		uAppendMenu(menu, MF_STRING	| (bselected ? 0 : MF_DISABLED | MF_GRAYED), ID_CMD_COPY, "Copy\tCtrl+C");
-		uAppendMenu(menu, MF_STRING | (b_original ? 0 : MF_DISABLED | MF_GRAYED), ID_CMP_COPY_ORI, "Copy to lead-in");
+		uAppendMenu(menu, MF_STRING | (b_original ? 0 : MF_DISABLED | MF_GRAYED), ID_CMP_COPY_ORI, "Copy all to lead-in");
 		uAppendMenu(menu, MF_STRING | (bselected && b_leadin ? 0 : MF_DISABLED | MF_GRAYED), ID_CMD_EDIT, "&Edit");
 		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 		uAppendMenu(menu, MF_STRING, ID_CMD_APPLY, "&Apply");
@@ -251,8 +252,9 @@ bool CPreviewLeadingTagDialog::context_menu_switch(HWND wnd, POINT point, bool i
 
 	case ID_CMD_EDIT:
 
-		((ILOD_preview_leading*)this)->TriggerAction();
+		static_cast<ILOD_preview_leading*>(this)->TriggerAction();
 		return true;
+
 	case ID_CMD_COPY: {
 
 		pfc::string8 out;
@@ -260,7 +262,7 @@ bool CPreviewLeadingTagDialog::context_menu_switch(HWND wnd, POINT point, bool i
 
 		ClipboardHelper::OpenScope scope;
 		scope.Open(core_api::get_main_window(), true);
-		scope.SetString(out);
+		ClipboardHelper::SetString(out);
 		return true;
 	}
 	case ID_CMD_APPLY:
@@ -270,7 +272,7 @@ bool CPreviewLeadingTagDialog::context_menu_switch(HWND wnd, POINT point, bool i
 
 	case ID_CMP_COPY_ORI: {
 
-		((ILOD_preview_leading*)this)->CopyFromOriginal();
+		static_cast<ILOD_preview_leading*>(this)->CopyFromOriginal();
 		return true;
 	}
 
@@ -286,7 +288,7 @@ LRESULT CPreviewLeadingTagDialog::OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM
 	HWND hwndCtrl = (HWND)wParam;
 	size_t iItem = m_ui_list.GetFirstSelected();
 
-	context_menu_show(hwndCtrl, iItem, lParam /*Coords*/);
+	context_menu_show(hwndCtrl, iItem, lParam);
 	return FALSE;
 }
 

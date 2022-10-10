@@ -73,6 +73,7 @@ const struct mounted_param {
 struct id_tracer {
 
 private:
+
 	size_t artist_id = pfc_infinite;
 	size_t artist_ovr_id = pfc_infinite;
 
@@ -88,6 +89,7 @@ public:
 
 		return vmulti_artist_ids.size();
 	}
+
 	const std::vector<size_t> & get_vartist_ids() { return vmulti_artist_ids; }
 
 	size_t artist_i = pfc_infinite;
@@ -101,7 +103,7 @@ public:
 	size_t master_id = pfc_infinite;
 	size_t release_id = pfc_infinite;
 
-	// artist_id related
+	// artist_id
 
 	size_t id_tracer::get_artist_id() const {
 		return artist_id;
@@ -117,10 +119,6 @@ public:
 
 	size_t id_tracer::get_artist_id_store() {
 		return is_multi_artist() ? vmulti_artist_ids.at(0) : artist_id;
-	}
-
-	void id_tracer::set_artist_id(size_t id) {
-		artist_id = id;
 	}
 
 	// has
@@ -157,7 +155,6 @@ public:
 			has_release() &&
 			release_pos == pfc_infinite;
 	}
-
 
 	// reset 
 
@@ -199,12 +196,6 @@ public:
 				if (need_release()) {
 					if (release_id == std::atoi(currentid)) {
 						release_pos = 0;
-						if (masteri != pfc_infinite) {
-							//TODO: continue
-							//master_i = masteri;
-							//master_index = masterndx;
-							//master = true;
-						}
 						return true;
 					}
 				}			
@@ -256,12 +247,10 @@ public:
 				if (sz_id == artist_id) return;
 
 				if (vartists.size() == 0) {
-					//add current tmp_artist_id
 					vartists.emplace_back(artist_id);
 				}
 				
 				if (std::find(vartists.begin(), vartists.end(),	sz_id) == vartists.end()) {
-					//add unique artist
 					vartists.emplace_back(sz_id);
 				}
 			}
@@ -286,7 +275,6 @@ public:
 			std::vector<pfc::string8> vtrack_artists;
 			walk_artist_id.replace_char(',', ';');
 			split(walk_artist_id, ";", 0, vtrack_artists);
-
 			if (vtrack_artists.size() > 1) {
 				for (auto w : vtrack_artists) {
 					//multiple artists per track
@@ -300,7 +288,6 @@ public:
 
 		metadb_handle_ptr item = items[0];
 		item->get_info(finfo);
-
 		if (tmp_artist_id != ~0) {
 			artist_id = tmp_artist_id;
 			artist_tag = true;
@@ -317,7 +304,6 @@ public:
 				release_tag = true;
 			}
 		}
-		
 		return has_amr();
 	}
 };
@@ -339,7 +325,7 @@ struct row_col_data {
 
 struct flagreg { int ver; int flag; };
 
-#endif //flagreg
+#endif
 
 #ifndef FILTERCACHE_H
 #define FILTERCACHE_H
@@ -472,7 +458,7 @@ struct filter_cache {
 				break;
 			case 2:
 				break;
-			case (int)NodeFlag::spawn: //4 (downloaded?)
+			case (int)NodeFlag::spawn: //4 (downloaded)
 				break;
 			case (int)NodeFlag::expanded: //8
 				break;
@@ -495,7 +481,6 @@ struct filter_cache {
 			else {
 				fr.flag &= ~INDEXTOSTATEIMAGEMASK((int)flagtype);
 			}
-			/*fr.ver = ver;*/
 			bres = true;
 		}
 		else {
@@ -519,7 +504,7 @@ struct filter_cache {
 				break;
 			case 2:
 				break;
-			case (int)NodeFlag::spawn: //4 (downloaded?)
+			case (int)NodeFlag::spawn: //4 (downloaded)
 				break;
 			case (int)NodeFlag::expanded: //8
 				break;
@@ -538,7 +523,6 @@ struct filter_cache {
 			else {
 				fr.flag &= ~INDEXTOSTATEIMAGEMASK((int)flagtype);
 			}
-			/*fr.ver = ver;*/
 			bres = true;
 		}
 		else {
@@ -586,7 +570,6 @@ struct filter_cache {
 			else {
 				fr.flag &= ~INDEXTOSTATEIMAGEMASK((int)flagtype);
 			}
-			//fr.ver = ver;
 			bres = true;
 		}
 		else {

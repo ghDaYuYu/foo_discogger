@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "libPPUI\CListControlOwnerData.h"
 
 class CPreviewLeadingTagDialog;
@@ -45,7 +45,6 @@ private:
 
 	//get subitems
 	pfc::string8 listGetSubItemText(ctx_t ctx, size_t item, size_t subItem) override;
-
 	//action, editable, clicked, edit, get/set
 	void listItemAction(ctx_t, size_t item) override;
 	bool listIsColumnEditable(ctx_t, size_t subItem) override;

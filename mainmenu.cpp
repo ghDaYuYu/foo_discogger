@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "resource.h"
 #include "guids_discogger.h"
 
@@ -109,7 +109,9 @@ public:
 		unsigned displayflags;
 		pfc::string8 out;
 		context_get_display(p_index, p_data, out, displayflags, p_caller);
+		
 		if (displayflags & FLAG_GRAYED) {
+			//exit
 			return;
 		}
 
@@ -157,6 +159,7 @@ public:
 		get_item_name(p_index, p_out);
 
 		if (!g_discogs) {
+			//exit
 			p_displayflags = FLAG_GRAYED;
 			return true;
 		}
@@ -318,6 +321,7 @@ public:
 		get_item_name(p_index, p_out);
 
 		if (!g_discogs) {
+			//exit
 			p_displayflags = FLAG_GRAYED;
 			return true;
 		}

@@ -7,7 +7,7 @@
 #include "yesno_dialog.h"
 #include "preview_dialog.h"
 #include "utils_import_export_dialog.h"
-
+#include "yesno_dialog.h"
 #include "tag_mappings_dialog.h"
 
 static const GUID guid_cfg_window_placement_tag_mapping_dlg = { 0x7056137a, 0x8fe9, 0x4b5e, { 0x89, 0x8e, 0x13, 0x59, 0x83, 0xfd, 0x3, 0x95 } };
@@ -64,7 +64,7 @@ bool CTagMappingDialog::check_mapping_changed() {
 
 	bool mapping_changed = cfg_tag_mappings.get_count() != m_ptag_mappings->get_count();
 	if (!mapping_changed) {
-		for (unsigned int i = 0; i < TAGS.get_count(); i++) {
+		for (unsigned int i = 0; i < cfg_tag_mappings.get_count(); i++) {
 
 			if (!cfg_tag_mappings.get_item(i).equals(m_ptag_mappings->get_item(i))) {
 				mapping_changed = true;
@@ -85,7 +85,6 @@ LRESULT CTagMappingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM
 
 	//darkmode
 	AddDialog(m_hWnd);
-
 	HWND listctrl = uGetDlgItem(IDC_TAG_LIST);
 
 	m_tag_list.CreateInDialog(*this, IDC_TAG_LIST);
@@ -644,7 +643,7 @@ LRESULT CTagMappingDialog::OnSplitDropDown(WORD wNotifyCode, WORD wID, HWND hWnd
 		++item;
 		for (size_t n = 17; n < 21; n++) {
 			entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(n));
-			uAppendMenu(submenus[item], MF_STRING |  MF_DISABLED | MF_GRAYED, submenus_ids[item] + n, entry->tag_name);
+			uAppendMenu(submenus[item], MF_STRING | MF_DISABLED | MF_GRAYED, submenus_ids[item] + n, entry->tag_name);
 		}
 		InsertMenuItem(hSplitMenu, submenus_ids[item], true, &submenu_infos[item]);
 

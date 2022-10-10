@@ -72,6 +72,7 @@ public:
 	service_ptr_t<titleformat_object> release_name_script;
 
 	service_ptr_t<titleformat_object> dc_artist_id_script;
+
 	service_ptr_t<titleformat_object> dc_release_id_script;
 
 	void item_display_web_page(const metadb_handle_ptr item, discog_web_page web_page);

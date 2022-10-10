@@ -48,8 +48,8 @@ class TagWriter : public ErrorManager
 {
 public:
 
-	TagWriter(file_info_manager_ptr m_finfo_manager, Release_ptr release);
-	TagWriter(file_info_manager_ptr m_finfo_manager, pfc::string8 p_error);
+	TagWriter(file_info_manager_ptr finfo_manager, Release_ptr release);
+	TagWriter(file_info_manager_ptr finfo_manager, pfc::string8 p_error);
 
 	void write_tags();
 	void write_tags_v23();
@@ -64,7 +64,7 @@ public:
 	track_mappings_list_type m_track_mappings;
 	
 	int m_match_status = -1;
-	tag_results_list_type m_tag_results;
+	tag_results_list_type tag_results;
 
 	Release_ptr release;
 

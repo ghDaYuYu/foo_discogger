@@ -16,40 +16,11 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// English (United States) resources
+// Neutral (Default) resources
 
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
-LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEUD)
+LANGUAGE LANG_NEUTRAL, SUBLANG_DEFAULT
 #pragma code_page(1252)
-
-#ifdef APSTUDIO_INVOKED
-/////////////////////////////////////////////////////////////////////////////
-//
-// TEXTINCLUDE
-//
-
-1 TEXTINCLUDE 
-BEGIN
-    "resource.h\0"
-END
-
-2 TEXTINCLUDE 
-BEGIN
-    "#include <windows.h>\r\n"
-    "#ifndef IDC_STATIC\r\n"
-    "#define IDC_STATIC -1\r\n"
-    "#endif\r\n"
-    "\0"
-END
-
-3 TEXTINCLUDE 
-BEGIN
-    "\r\n"
-    "\0"
-END
-
-#endif    // APSTUDIO_INVOKED
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -65,7 +36,7 @@ BEGIN
     LTEXT           "Syntax help",IDC_SYNTAX_HELP,269,233,38,9,NOT WS_VISIBLE | WS_DISABLED | WS_TABSTOP
 END
 
-IDD_DIALOG_CONF_FIND_RELEASE DIALOGEX 0, 0, 319, 227
+IDD_DIALOG_CONF_FIND_RELEASE DIALOGEX 0, 0, 319, 232
 STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD
 EXSTYLE WS_EX_TRANSPARENT
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
@@ -100,39 +71,47 @@ BEGIN
     EDITTEXT        IDC_EDIT_DISCOGS_FORMATTING,14,42,292,70,ES_MULTILINE | WS_VSCROLL,WS_EX_CLIENTEDGE
     LTEXT           "File formatting string:",IDC_STATIC,15,114,80,9
     EDITTEXT        IDC_EDIT_FILE_FORMATTING,14,124,292,12,ES_AUTOHSCROLL,WS_EX_CLIENTEDGE
-    GROUPBOX        "Automatic tracklist matching",IDC_GRP_STATIC_AUTO_TRK_MATCHING,6,145,308,79
-    LTEXT           "Files can be matched using several methods. If multiple methods return conflicting results, no method returns a successful result, or all methods are disabled, tracks will not be automatically matched.",IDC_STATIC_CFG_MATCHING,14,156,292,27
+    GROUPBOX        "Automatic tracklist matching",IDC_GRP_STATIC_AUTO_TRK_MATCHING,6,145,308,72
+    LTEXT           "If multiple methods return conflicting results, no method returns a successful result, or all methods are disabled, tracks will not be automatically matched.",IDC_STATIC_CFG_MATCHING,14,156,292,19
     CONTROL         "Match using track length durations",IDC_CHK_MATCH_USING_DURATIONS,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,186,131,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,176,131,10
     CONTROL         "Match using existing track number",IDC_CHK_MATCH_USING_NUMBERS,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,198,131,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,188,131,10
     CONTROL         "Assume tracks are in sorted order",IDC_CHK_MATCH_ASSUME_SORTED,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,210,130,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,200,130,10
 END
 
-IDD_DIALOG_CONF_TAGGING DIALOGEX 0, 0, 319, 204
+IDD_DIALOG_CONF_TAGGING DIALOGEX 0, 0, 319, 232
 STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_SYSMENU
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    GROUPBOX        "Writing tags",IDC_GRP_STATIC_CFG_WRITE_TAGS,6,6,308,72
+    GROUPBOX        "Writing tags",IDC_GRP_STATIC_CFG_WRITE_TAGS,6,25,308,67
     CONTROL         "Skip preview tags dialog by default",IDC_CHK_SKIP_PREVIEW_DIALOG,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,18,134,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,37,134,10
     CONTROL         "Remove any pre-existing tags",IDC_CHK_REMOVE_OTHER_TAGS,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,30,134,10
-    LTEXT           "Excluding (comma separated):",IDC_STATIC,28,46,115,9
-    EDITTEXT        IDC_EDIT_REMOVE_EXCLUDING_TAGS,28,57,278,14,ES_AUTOHSCROLL,WS_EX_CLIENTEDGE
-    GROUPBOX        "Artist names",IDC_GRP_STATIC_CFG_ARTIST_NAMES,6,82,308,52
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,49,134,10
+    LTEXT           "Excluding (comma separated):",IDC_STATIC,28,63,115,9
+    EDITTEXT        IDC_EDIT_REMOVE_EXCLUDING_TAGS,28,73,278,14,ES_AUTOHSCROLL,WS_EX_CLIENTEDGE
+    GROUPBOX        "Artist names",IDC_GRP_STATIC_CFG_ARTIST_NAMES,6,96,308,52
     CONTROL         "Replace ANVs (artist name variations)",IDC_CHK_ENABLE_ANV,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,94,146,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,108,146,10
     CONTROL         "Move ""The"" to the beginning",IDC_CHK_MOVE_THE_AT_BEGINNING,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,106,145,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,120,145,10
     CONTROL         "Discard numeric suffixes",IDC_CHK_DISCARD_NUMERIC_SUFFIXES,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,118,145,10
-    PUSHBUTTON      "Tag mapping...",IDC_BTN_TAG_MAPPINGS,14,141,72,14
-    PUSHBUTTON      "Credit mapping...",IDC_BTN_EDIT_CAT_CREDIT,92,141,72,14,NOT WS_VISIBLE
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,132,145,10
+    PUSHBUTTON      "Tag mapping...",IDC_BTN_TAG_MAPPINGS,234,8,72,14
+    PUSHBUTTON      "Credit mapping...",IDC_BTN_EDIT_CAT_CREDIT,158,8,72,14,NOT WS_VISIBLE
+    EDITTEXT        IDC_EDIT_CFG_MULTIVALUE_FIELDS,14,176,292,32,ES_MULTILINE | WS_VSCROLL,WS_EX_CLIENTEDGE
+    LTEXT           "Field list: (See also fb2k Preferences->Advanced->Display->Multivalue fields)",IDC_STATIC_CFG_MULTIVAL_LIST,15,165,278,8
+    CONTROL         "Auto-update list with additional multi-value fields while saving",IDC_CHK_CFG_TAGSAVE_AUTO_MULTIV_FLAG,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,212,277,10
+    GROUPBOX        "Multi-value fields",IDC_GRP_STATIC_CFG_MULTIVALUES,5,153,309,73
+    CONTROL         "Log updates",IDC_CHK_CFG_TAGSAVE_LOG_FLAG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,10,56,10
+    CONTROL         "Sticky preview panel",IDC_CHK_CFG_TAGSAVE_PRV_WRITECLOSE_FLAG,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,73,10,79,10
 END
 
-IDD_DIALOG_CONF_CACHING DIALOGEX 0, 0, 319, 226
+IDD_DIALOG_CONF_CACHING DIALOGEX 0, 0, 319, 233
 STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_SYSMENU
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
@@ -144,49 +123,49 @@ BEGIN
     CONTROL         "Skip video tracks when parsing tracklist",IDC_CHK_SKIP_VIDEO_TRACKS,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,42,152,10
     LTEXT           "Note: Changing parsing options will clear releases from cache memory",IDC_STATIC_CFG_CACHE_NOTE,14,58,239,9
-    GROUPBOX        "Cache memory",IDC_GRP_STATIC_CFG_CACHE_MEM,6,75,308,88
+    GROUPBOX        "Cache memory",IDC_GRP_STATIC_CFG_CACHE_MEM,6,75,308,81
     LTEXT           "Cache memory is cleared when closing foobar2000",IDC_STATIC_CFG_CACHE_CLEAR_INFO,14,86,170,10
     LTEXT           "Max objects:",IDC_STATIC_CFG_CACHE_MAX_OBJ,14,99,55,9
     EDITTEXT        IDC_EDIT_CACHED_OBJECTS,82,97,31,14,ES_CENTER | ES_AUTOHSCROLL
     LTEXT           "Clear cache:",IDC_STATIC_CFG_CACHE_CLEAR_CACHE,14,112,56,9
-    PUSHBUTTON      "Releases",IDC_BTN_CLEAR_CACHE_RELEASES,67,124,95,15
-    PUSHBUTTON      "Artists",IDC_BTN_CLEAR_CACHE_ARTISTS,165,124,95,15
-    PUSHBUTTON      "Master Releases",IDC_BTN_CLEAR_CACHE_MASTERS,67,142,95,15
-    PUSHBUTTON      "Collection",IDC_BTN_CLEAR_CACHE_COLLECTION,165,142,95,15
-    GROUPBOX        "Disk cache",IDC_GRP_STATIC_CFG_CACHE_DISK,6,168,308,52
-    CONTROL         "Write",IDC_CHK_CFG_CACHE_WRITE_DSK_CACHE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,181,39,10
-    CONTROL         "Read",IDC_CHK_CFG_CACHE_READ_DSK_CACHE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,193,38,10
-    LTEXT           "Cache path: <profile>/foo_discogger-cache",IDC_STATIC_CFG_CACHE_PATH,14,208,161,10
+    PUSHBUTTON      "Releases",IDC_BTN_CLEAR_CACHE_RELEASES,67,118,95,15
+    PUSHBUTTON      "Artists",IDC_BTN_CLEAR_CACHE_ARTISTS,165,118,95,15
+    PUSHBUTTON      "Master Releases",IDC_BTN_CLEAR_CACHE_MASTERS,67,136,95,15
+    PUSHBUTTON      "Collection",IDC_BTN_CLEAR_CACHE_COLLECTION,165,136,95,15
+    GROUPBOX        "Disk cache",IDC_GRP_STATIC_CFG_CACHE_DISK,6,159,308,52
+    CONTROL         "Write",IDC_CHK_CFG_CACHE_WRITE_DSK_CACHE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,172,39,10
+    CONTROL         "Read",IDC_CHK_CFG_CACHE_READ_DSK_CACHE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,184,38,10
+    LTEXT           "Cache path: <profile>/foo_discogger-cache",IDC_STATIC_CFG_CACHE_PATH,14,199,161,10
 END
 
-IDD_DIALOG_CONF_ART DIALOGEX 0, 0, 319, 226
+IDD_DIALOG_CONF_ART DIALOGEX 0, 0, 319, 234
 STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    GROUPBOX        "Album art",IDC_GRP_STATIC_CFG_ART_ALBUM,6,6,308,101
+    GROUPBOX        "Album art",IDC_GRP_STATIC_CFG_ART_ALBUM,6,6,308,99
     CONTROL         "Embed in file",IDC_CHK_ALBUM_ART_EMBED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,18,60,10
     CONTROL         "Save to directory",IDC_CHK_SAVE_ALBUM_ART,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,28,75,10
-    LTEXT           "Directory:",IDC_STATIC_ALBUM_ART_DIR,25,39,36,9,SS_CENTERIMAGE
-    EDITTEXT        IDC_EDIT_ALBUM_ART_DIR,66,39,234,12,ES_AUTOHSCROLL,WS_EX_CLIENTEDGE
-    LTEXT           "File prefix:",IDC_STATIC_ALBUM_ART_PREFIX,25,53,36,12,SS_CENTERIMAGE
-    EDITTEXT        IDC_EDIT_ALBUM_ART_PREFIX,66,53,234,30,ES_MULTILINE | WS_VSCROLL,WS_EX_CLIENTEDGE
-    CONTROL         "Save all images",IDC_CHK_ALBUM_ART_FETCH_ALL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,36,84,71,10
-    CONTROL         "Overwrite existing files",IDC_CHK_ALBUM_ART_OVR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,36,94,95,10
-    GROUPBOX        "Artist art",IDC_GRP_STATIC_CFG_ART_ARTIST,6,110,308,111
-    LTEXT           "Artist IDs to fetch for:",IDC_STATIC_ARTIST_ART_IDS,14,120,72,9
-    EDITTEXT        IDC_EDIT_ARTIST_ART_IDS,90,119,210,12,ES_AUTOHSCROLL,WS_EX_CLIENTEDGE
-    CONTROL         "Embed in file",IDC_CHK_ARTIST_ART_EMBED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,130,56,10
-    CONTROL         "Save to directory",IDC_CHK_SAVE_ARTIST_ART,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,140,74,10
-    LTEXT           "Directory:",IDC_STATIC_ARTIST_ART_DIR,25,153,38,9,SS_CENTERIMAGE
-    EDITTEXT        IDC_EDIT_ARTIST_ART_DIR,66,153,234,12,ES_AUTOHSCROLL,WS_EX_CLIENTEDGE
-    LTEXT           "File prefix:",IDC_STATIC_ARTIST_ART_PREFIX,25,167,36,12,SS_CENTERIMAGE
-    EDITTEXT        IDC_EDIT_ARTIST_ART_PREFIX,66,167,234,29,ES_MULTILINE | WS_VSCROLL,WS_EX_CLIENTEDGE
-    CONTROL         "Save all images",IDC_CHK_ARTIST_ART_FETCH_ALL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,36,198,65,10
+    LTEXT           "Directory:",IDC_STATIC_ALBUM_ART_DIR,25,42,36,9,SS_CENTERIMAGE
+    EDITTEXT        IDC_EDIT_ALBUM_ART_DIR,66,42,234,12,ES_AUTOHSCROLL,WS_EX_CLIENTEDGE
+    LTEXT           "File prefix:",IDC_STATIC_ALBUM_ART_PREFIX,25,56,36,12,SS_CENTERIMAGE
+    EDITTEXT        IDC_EDIT_ALBUM_ART_PREFIX,66,56,234,30,ES_MULTILINE | WS_VSCROLL,WS_EX_CLIENTEDGE
+    CONTROL         "Save all images",IDC_CHK_ALBUM_ART_FETCH_ALL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,36,90,66,10
+    CONTROL         "Overwrite existing files",IDC_CHK_ALBUM_ART_OVR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,109,91,95,10
+    GROUPBOX        "Artist art",IDC_GRP_STATIC_CFG_ART_ARTIST,6,111,308,100
+    LTEXT           "Artist IDs to fetch for:",IDC_STATIC_ARTIST_ART_IDS,14,222,72,9,NOT WS_VISIBLE
+    EDITTEXT        IDC_EDIT_ARTIST_ART_IDS,90,221,210,12,ES_AUTOHSCROLL | NOT WS_VISIBLE,WS_EX_CLIENTEDGE
+    CONTROL         "Embed in file",IDC_CHK_ARTIST_ART_EMBED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,122,56,10
+    CONTROL         "Save to directory",IDC_CHK_SAVE_ARTIST_ART,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,132,74,10
+    LTEXT           "Directory:",IDC_STATIC_ARTIST_ART_DIR,25,145,38,9,SS_CENTERIMAGE
+    EDITTEXT        IDC_EDIT_ARTIST_ART_DIR,66,149,234,12,ES_AUTOHSCROLL,WS_EX_CLIENTEDGE
+    LTEXT           "File prefix:",IDC_STATIC_ARTIST_ART_PREFIX,25,163,36,12,SS_CENTERIMAGE
+    EDITTEXT        IDC_EDIT_ARTIST_ART_PREFIX,66,163,234,29,ES_MULTILINE | WS_VSCROLL,WS_EX_CLIENTEDGE
+    CONTROL         "Save all images",IDC_CHK_ARTIST_ART_FETCH_ALL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,36,197,65,10
     CONTROL         "Overwrite existing files",IDC_CHK_ARTIST_ART_OVERWRITE,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,36,208,89,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,109,197,89,10
 END
 
-IDD_DIALOG_CONF_UI DIALOGEX 0, 0, 319, 204
+IDD_DIALOG_CONF_UI DIALOGEX 0, 0, 319, 233
 STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_SYSMENU
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
@@ -202,11 +181,11 @@ BEGIN
     GROUPBOX        "List options",IDC_GRP_STATIC_CFG_OTHER,6,99,308,61
     LTEXT           "List style (where applicable):",IDC_STATIC_CFG_LIST_STYLE,15,112,106,8
     COMBOBOX        IDC_CMB_CONFIG_LIST_STYLE,128,110,109,57,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP,WS_EX_CLIENTEDGE
-    CONTROL         "Adjust content area font",IDC_CHK_CFG_CUSTOM_FONT_ENABLE,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,132,100,10
+    CONTROL         "Expanded content area font",IDC_CHK_CFG_CUSTOM_FONT_ENABLE,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,132,113,10
 END
 
-IDD_DIALOG_CONF_DATABASE DIALOGEX 0, 0, 319, 204
+IDD_DIALOG_CONF_DATABASE DIALOGEX 0, 0, 319, 232
 STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_SYSMENU
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
@@ -224,7 +203,7 @@ BEGIN
     LTEXT           "Note: Database download URL is available via GitHub foo_discogger release page",IDC_STATIC_CONF_DB_NOTE,14,85,257,8,NOT WS_VISIBLE
 END
 
-IDD_DIALOG_CONF_OAUTH DIALOGEX 0, 0, 319, 204
+IDD_DIALOG_CONF_OAUTH DIALOGEX 0, 0, 319, 232
 STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
@@ -262,22 +241,22 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | NOT WS_VISIBLE | WS_TABSTOP,304,8,79,10
     PUSHBUTTON      "&Next  >",IDC_BTN_PROCESS_RELEASE,393,6,50,14
     LTEXT           "Artist not found",IDC_STATIC_FIND_REL_SEARCH_STATS,45,23,115,8
-    CONTROL         "Artists",IDC_STATIC,"Static",SS_LEFTNOWORDWRAP | SS_CENTERIMAGE | WS_DISABLED | WS_GROUP,10,33,25,9
-    LTEXT           "Releases",IDC_LABEL_RELEASES,126,33,33,9,SS_CENTERIMAGE | WS_DISABLED
+    CONTROL         "Artists",IDC_STATIC,"Static",SS_LEFTNOWORDWRAP | SS_CENTERIMAGE | WS_DISABLED | WS_GROUP,10,32,25,9
+    LTEXT           "Releases",IDC_LABEL_RELEASES,126,32,33,9,SS_CENTERIMAGE | WS_DISABLED
     CONTROL         "filtered &versions",IDC_CHK_FIND_RELEASE_FILTER_VERS,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,206,33,68,10
-    RTEXT           "Filter:",IDC_LABEL_FILTER,283,33,22,10,SS_CENTERIMAGE
-    EDITTEXT        IDC_EDIT_FILTER,310,32,133,12,ES_AUTOHSCROLL,WS_EX_CLIENTEDGE
-    CONTROL         "",IDC_ARTIST_LIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_OWNERDATA | LVS_NOSORTHEADER | WS_TABSTOP,10,49,110,93,WS_EX_STATICEDGE
-    CONTROL         "",IDC_RELEASE_TREE,"SysTreeView32",TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | TVS_DISABLEDRAGDROP | TVS_SHOWSELALWAYS | WS_HSCROLL | WS_TABSTOP,126,49,317,93,WS_EX_STATICEDGE
-    CONTROL         "exact &matches",IDC_CHK_ONLY_EXACT_MATCHES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,10,146,63,10
-    CONTROL         "&profile",IDC_CHK_RELEASE_SHOW_PROFILE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,74,146,52,10
-    CONTROL         "&main role",IDC_CHK_FIND_RELEASE_FILTER_ROLEMAIN,"Button",BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,126,146,107,10
-    LTEXT           "Release id/url:",IDC_LABEL_RELEASE_ID,301,146,52,9,SS_CENTERIMAGE
-    EDITTEXT        IDC_RELEASE_URL_TEXT,357,145,86,12,ES_AUTOHSCROLL,WS_EX_CLIENTEDGE
-    PUSHBUTTON      "&Configure",IDC_BTN_CONFIGURE,9,165,50,14
-    LTEXT           "",IDC_STATIC_FIND_REL_STATS,66,168,193,8,WS_TABSTOP
-    RTEXT           "Dbl-click or Enter key on artists to load releases.",IDC_STATIC_FIND_REL_STATS_EXT,263,168,176,8
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,206,32,68,10
+    RTEXT           "Filter:",IDC_LABEL_FILTER,283,32,22,10,SS_CENTERIMAGE
+    EDITTEXT        IDC_EDIT_FILTER,310,31,133,12,ES_AUTOHSCROLL,WS_EX_CLIENTEDGE
+    CONTROL         "",IDC_ARTIST_LIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_OWNERDATA | LVS_NOSORTHEADER | WS_TABSTOP,10,48,110,93,WS_EX_STATICEDGE
+    CONTROL         "",IDC_RELEASE_TREE,"SysTreeView32",TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | TVS_DISABLEDRAGDROP | TVS_SHOWSELALWAYS | WS_HSCROLL | WS_TABSTOP,126,48,317,93,WS_EX_STATICEDGE
+    CONTROL         "exact &matches",IDC_CHK_ONLY_EXACT_MATCHES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,10,145,63,10
+    CONTROL         "&profile",IDC_CHK_RELEASE_SHOW_PROFILE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,74,145,52,10
+    CONTROL         "&main role",IDC_CHK_FIND_RELEASE_FILTER_ROLEMAIN,"Button",BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,126,145,107,10
+    LTEXT           "Release id/url:",IDC_LABEL_RELEASE_ID,301,145,52,9,SS_CENTERIMAGE
+    EDITTEXT        IDC_RELEASE_URL_TEXT,357,144,86,12,ES_AUTOHSCROLL,WS_EX_CLIENTEDGE
+    PUSHBUTTON      "&Configure",IDC_BTN_CONFIGURE,9,164,50,14
+    LTEXT           "",IDC_STATIC_FIND_REL_STATS,66,167,193,8,WS_TABSTOP
+    RTEXT           "Dbl-click or Enter key on artists to load releases.",IDC_STATIC_FIND_REL_STATS_EXT,263,167,176,8
 END
 
 IDD_DIALOG_FIND_ARTIST DIALOGEX 0, 0, 235, 129
@@ -298,7 +277,7 @@ CAPTION "Match Tracks & Artwork"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     CONTROL         "&manage artwork",IDC_CHK_MNG_ARTWORK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,9,6,68,10
-    CONTROL         "s&kip artwork",IDC_CHK_SKIP_ARTWORK,"Button",BS_AUTO3STATE | WS_TABSTOP,82,6,55,10
+    CONTROL         "s&kip artwork",IDC_CHK_SKIP_ARTWORK,"Button",BS_AUTO3STATE | WS_TABSTOP,83,6,60,10
     PUSHBUTTON      "&Save artwork",IDC_BTN_WRITE_ARTWORK,191,3,56,14,NOT WS_VISIBLE
     CONTROL         "&file match",IDC_CHK_ARTWORK_FILEMATCH,"Button",BS_AUTOCHECKBOX | NOT WS_VISIBLE | WS_TABSTOP,258,6,45,10
     PUSHBUTTON      "&Write tags",IDC_BTN_WRITE_TAGS,249,3,59,14
@@ -366,7 +345,7 @@ BEGIN
     PUSHBUTTON      "OK",IDOK,123,195,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,175,195,50,14
     LTEXT           "Values subjected to tag remapping",IDC_STATIC_PREV_LEADING_TAG_FOOTNOTE,9,198,113,8,WS_DISABLED
-    PUSHBUTTON      "Appy",IDC_APPLY,227,195,50,14
+    PUSHBUTTON      "Apply",IDC_APPLY,227,195,50,14
 END
 
 IDD_DIALOG_TAG_MAPPINGS_CREDITS DIALOGEX 0, 0, 437, 299
@@ -448,111 +427,11 @@ BEGIN
     COMBOBOX        IDC_COMBO_PLAYLIST,7,7,48,30,CBS_DROPDOWNLIST | WS_DISABLED | WS_VSCROLL | WS_TABSTOP,WS_EX_ACCEPTFILES
 END
 
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// DESIGNINFO
-//
-
-#ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO
-BEGIN
-    
-END
-#endif    // APSTUDIO_INVOKED
-
-
 /////////////////////////////////////////////////////////////////////////////
 //
 // AFX_DIALOG_LAYOUT
 //
 
-IDD_DIALOG_CONF AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-IDD_DIALOG_CONF_CACHING AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-IDD_DIALOG_CONF_ART AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-IDD_DIALOG_CONF_MATCHING AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-IDD_DIALOG_CONF_TAGGING AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-IDD_DIALOG_CONF_OAUTH AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-IDD_DIALOG_CONF_FIND_RELEASE AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-IDD_DIALOG_MATCH_TRACKS AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-IDD_DIALOG_PREVIEW_TAGS AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-IDD_DIALOG_FIND_RELEASE AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-IDD_DIALOG_TAG_MAPPINGS AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-IDD_DIALOG_TAG_MAPPINGS_CREDITS AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-IDD_CONFIG_NAME AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-IDD_DIALOG_CONF_DATABASE AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-IDD_DIALOG_FIND_ARTIST AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Icon
-//
-
-// Icon with lowest ID value placed first to ensure application icon
-// remains consistent on all systems.
-IDI_STATIC_OAUTH_ICO_ERROR ICON                    "ico\\alert-32_red.ico"
-
-IDI_STATIC_OAUTH_ICO_OK ICON                    "ico\\check-32_green.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -562,37 +441,6 @@ IDI_STATIC_OAUTH_ICO_OK ICON                    "ico\\check-32_green.ico"
 IDB_PNG48F              PNG                     "ico\\48F.png"
 
 IDB_PNG150F             PNG                     "ico\\150F.png"
-
-#endif    // English (United States) resources
-/////////////////////////////////////////////////////////////////////////////
-
-
-/////////////////////////////////////////////////////////////////////////////
-// English (United Kingdom) resources
-
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENG)
-LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
-#pragma code_page(1252)
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Dialog
-//
-
-IDD_TAB_PREVIEW_LEADING_TAG DIALOGEX 0, 0, 86, 66
-STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_VISIBLE | WS_BORDER
-EXSTYLE WS_EX_TRANSPARENT
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
-BEGIN
-    CONTROL         "",IDC_LEADING_TAG_LIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_CLIPCHILDREN | WS_BORDER | WS_TABSTOP,19,18,46,32
-END
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// PNG
-//
-
-IDB_PNG_DC_32C          PNG                     "ico\\png_dc_32_c.png"
 
 IDB_PNG_RECC_16         PNG                     "ico\\png_rec_16c.png"
 
@@ -619,8 +467,6 @@ IDB_PNG_QUIAN_DARK_24   PNG                     "ico\\png_ic_quian_dark_24c.png"
 IDB_PNG_QUIAN_DARK_32   PNG                     "ico\\png_ic_quian_dark_32c.png"
 
 
-
-
 /////////////////////////////////////////////////////////////////////////////
 //
 // Bitmap
@@ -642,12 +488,38 @@ IDB_BITMAP_TRACER_EXT_DRK BITMAP                  "ico\\bitmap_tracer_ext_drk.bm
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
+IDI_DC                  ICON                    "ico\\dc.ico"
 
-IDI_QUIAN               ICON                    "ico\\ic_quian.ico"
+#endif    // Neutral (Default) resources
 
-#endif    // English (United Kingdom) resources
+
+#ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
 
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include <windows.h>\r\n"
+    "#ifndef IDC_STATIC\r\n"
+    "#define IDC_STATIC -1\r\n"
+    "#endif\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
 
 
 #ifndef APSTUDIO_INVOKED

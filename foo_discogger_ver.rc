@@ -1,6 +1,14 @@
 ﻿#include "windows.h" //include needed to replace dll info
 #include "version.h"
 
+
+/////////////////////////////////////////////////////////////////////////////
+// Neutral (Default) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEUD)
+LANGUAGE LANG_NEUTRAL, SUBLANG_DEFAULT
+#pragma code_page(1252)
+
 /////////////////////////////////////////////////////////////////////////////
 //
 // Version
@@ -38,3 +46,5 @@ BEGIN
 VALUE "Translation", 0x9, 1200
 END
 END
+
+#endif    // Neutral (Default) resources

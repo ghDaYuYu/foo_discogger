@@ -74,7 +74,8 @@ static initquit_factory_t<initquit_discogs> foo_initquit;
 
 foo_discogs::foo_discogs() {
 
-	icon = GdiplusLoadPNGIcon(IDB_PNG_DC_32C, CSize(32,32));
+	auto hInst = core_api::get_my_instance();
+    icon = (HICON)LoadImage(hInst, MAKEINTRESOURCE(IDI_DC), IMAGE_ICON, GetSystemMetrics( SM_CXSMICON ), GetSystemMetrics( SM_CYSMICON ), 0);
 
 	discogs_interface->fetcher->set_oauth(CONF.oauth_token, CONF.oauth_token_secret);
 

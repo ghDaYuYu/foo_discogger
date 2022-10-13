@@ -1,43 +1,34 @@
 #pragma once
-#include "resource.h"
-#include "helpers/DarkMode.h"
 
-class CYesNoDialog : private dialog_helper::dialog_modal, public fb2k::CDarkModeHooks {
-	BOOL on_message(UINT uMsg, WPARAM wParam, LPARAM /*lParam*/) final {
-		switch (uMsg) {
-		case WM_INITDIALOG:
-			AddDialog(get_wnd());
-			AddControls(get_wnd());
-			if (m_values.size() > 0) {
-				SetWindowText(get_wnd(), pfc::stringcvt::string_wide_from_utf8(m_values[0]));
-				uSetDlgItemText(get_wnd(), IDC_STATIC_QUESTION, m_values[1]);
-			}
-			return 0;
-		case WM_COMMAND:
-			if (HIWORD(wParam) == BN_CLICKED) {
-				if (LOWORD(wParam) == IDOK) {
-					end_dialog(1);
-				}
-				else if (LOWORD(wParam) == IDCANCEL) {
-					end_dialog(0);
-				}
-			}
-			else if (HIWORD(wParam) == EN_CHANGE) {
-			}
-			return 0;
-		}
-		return 0;
-	}
+class CYesNoApiDialog {
 
 public:
 
-	int query(HWND parent, std::vector<pfc::string8> defValues) {
-		m_values = defValues;
-#pragma warning(suppress:4996)
-		return run(idd, parent);  // NOLINT
+	int query(HWND wndParent, std::vector<pfc::string8> values) {
+		
+		int res = ~0;
+
+		completion_notify::ptr reply;
+		fb2k::completionNotifyFunc_t comp_func = [&res](unsigned op) {
+			res = op;
+		};
+		completion_notify::ptr comp_notify = fb2k::makeCompletionNotify(comp_func);
+
+		popup_message_v3::query_t query = { 0 };
+		query.wndParent = wndParent;
+		query.title = values[0];
+		query.msg = values[1];
+		query.icon = popup_message_v3::iconWarning;
+		query.buttons = popup_message_v3::buttonYes | popup_message_v3::buttonNo;
+		query.reply = comp_notify;
+
+		popup_message_v3::get()->show_query_modal(query);
+
+		if (res == popup_message_v3::buttonYes) {
+			return 1;
+		}
+		else {
+			return 0;
+		}
 	}
-
-	UINT idd = IDD_DIALOG_YESNO;
-
-	std::vector<pfc::string8> m_values;
 };

@@ -1,9 +1,9 @@
-#pragma once
+﻿#pragma once
 #define COMPONENT_NAME "foo_discogger"
-#define COMPONENT_YEAR "2022"
+#define COMPONENT_YEAR "2023"
 #define COMPONENT_VERSION_MAJOR 1
 #define COMPONENT_VERSION_MINOR 0
-#define COMPONENT_VERSION_PATCH 14
+#define COMPONENT_VERSION_PATCH 15
 #define COMPONENT_VERSION_SUB_PATCH 0
 
 #define MAKE_STRING(text) #text

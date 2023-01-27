@@ -92,9 +92,10 @@ typedef pfc::list_t<tag_mapping_entry> tag_mapping_list_type;
 typedef cfg_objList<tag_mapping_entry> cfg_tag_mapping_list_type;
 
 extern void init_tag_mappings();
-extern void init_default_tag_mappings();
+extern void init_with_default_tag_mappings();
 extern pfc::list_t<tag_mapping_entry> * copy_tag_mappings();
 extern pfc::list_t<tag_mapping_entry> * copy_default_tag_mappings();
+extern void update_loaded_tagmaps_multivalues();
 extern void set_cfg_tag_mappings(pfc::list_t<tag_mapping_entry> *mappings);
 
 extern pfc::string8 get_default_tag(const pfc::string8 &name);

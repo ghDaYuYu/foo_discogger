@@ -29,8 +29,10 @@ inline void CTagMappingDialog::load_column_layout() {
 }
 
 void CTagMappingDialog::pushcfg() {
-	CONF.save(CConf::cfgFilter::TAG, conf);
-	CONF.load();
+	if (build_current_cfg()) {
+		CONF.save(CConf::cfgFilter::TAG, conf);
+		CONF.load();
+	}
 }
 
 inline bool CTagMappingDialog::build_current_cfg() {
@@ -230,10 +232,7 @@ LRESULT CTagMappingDialog::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndC
 LRESULT CTagMappingDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
 
 	m_tag_list.TableEdit_Abort(false);
-
-	if (build_current_cfg()) {
-		pushcfg();
-	}
+	pushcfg();
 	cfg_window_placement_tag_mapping_dlg.on_window_destruction(m_hWnd);
 	return FALSE;
 }

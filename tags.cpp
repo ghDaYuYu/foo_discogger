@@ -72,7 +72,7 @@ bool operator ==(const tag_mapping_entry &a, const tag_mapping_entry &b) {
 }
 void init_tag_mappings() {
 	if (!cfg_tag_mappings.get_count()) {
-		init_default_tag_mappings();
+		init_with_default_tag_mappings();
 	}
 	else {
 		for (size_t i = 0; i < cfg_tag_mappings.get_count(); i++) {
@@ -97,7 +97,7 @@ void init_tag_mappings() {
 		}
 	}
 }
-void init_default_tag_mappings() {
+void init_with_default_tag_mappings() {
 	cfg_tag_mappings.remove_all();
 	const size_t count = sizeof(default_tag_mappings) / sizeof(tag_mapping_entry);
 	for (size_t i = 0; i < count; i++) {
@@ -118,8 +118,8 @@ pfc::list_t<tag_mapping_entry> * copy_default_tag_mappings() {
 	const size_t count = sizeof(default_tag_mappings) / sizeof(tag_mapping_entry);
 	for (size_t i = 0; i < count; i++) {
 		mappings->add_item(*(default_tag_mappings[i].clone()));
-		tag_mapping_entry& new_map = mappings->get_item(i);
-		new_map.is_multival_meta = is_multivalue_meta(default_tag_mappings[i].tag_name);
+		tag_mapping_entry& new_map_entry = mappings->get_item(i);
+		new_map_entry.is_multival_meta = is_multivalue_meta(default_tag_mappings[i].tag_name);
 	}
 	return mappings;
 }
@@ -129,6 +129,17 @@ void set_cfg_tag_mappings(pfc::list_t<tag_mapping_entry> *mappings) {
 		cfg_tag_mappings.add_item(mappings->get_item(i));
 	}
 }
+
+void update_loaded_tagmaps_multivalues() {
+	for (auto& entry : cfg_tag_mappings) {
+		entry.is_multival_meta = is_multivalue_meta(entry.tag_name);
+	}
+
+	for (auto& entry : default_tag_mappings) {
+		entry.is_multival_meta = is_multivalue_meta(entry.tag_name);
+	}
+}
+
 pfc::string8 get_default_tag(const pfc::string8 &name) {
 	const size_t count = sizeof(default_tag_mappings) / sizeof(tag_mapping_entry);
 	for (size_t i = 0; i < count; i++) {

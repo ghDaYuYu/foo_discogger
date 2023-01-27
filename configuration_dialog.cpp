@@ -1,10 +1,9 @@
 #include "stdafx.h"
-
 #include "tag_mappings_dialog.h"
-
 #include "utils.h"
 #include "tasks.h"
 #include "utils_db.h"
+#include "yesno_dialog.h"
 #include "configuration_dialog.h"
 
 static HWND g_hWndTabDialog[NUM_TABS] = {nullptr};
@@ -173,30 +172,27 @@ LRESULT CConfigurationDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 	return TRUE;
 }
 
-t_uint8 AskApplyConfirmation(HWND wndParent) {
-	pfc::string8 title;
-	title << "Configuration Changes";
-	return uMessageBox(wndParent, "Apply Changes?", title,
-		MB_APPLMODAL | MB_YESNOCANCEL | MB_ICONASTERISK);
-}
-
 LRESULT CConfigurationDialog::OnChangingTab(WORD /*wNotifyCode*/, LPNMHDR /*lParam*/, BOOL& /*bHandled*/) {
 
 	if (get_state() & preferences_state::changed) {
-		switch (AskApplyConfirmation(get_wnd())) {
-		case IDYES:
+
+		CYesNoApiDialog yndlg;
+		auto res = yndlg.query(m_hWnd, { "Configuration Changes","Apply Changes ?" }, true, false);
+
+		switch (res) {
+		case 1:/*yes*/
 			pushcfg(false);
 			OnChanged();
 			break;
-		case IDNO:
+		case 2:
 			setting_dlg = true;
 			init_current_tab();
 			conf_edit = conf;
 			setting_dlg = false;
 			OnChanged();
 			break;
-		case IDCANCEL:
-			return TRUE;
+		/*default:
+			return TRUE;*/
 		}
 	}
 	return FALSE;
@@ -217,30 +213,30 @@ LRESULT CConfigurationDialog::OnChangeTab(WORD /*wNotifyCode*/, LPNMHDR /*lParam
 	return FALSE;
 }
 
-bool CConfigurationDialog::build_current_cfg(bool reset, bool bind) {
+bool CConfigurationDialog::build_current_cfg(bool reset) {
 
 	bool bres = false;
 
 	if (reset || g_hWndCurrentTab == g_hWndTabDialog[CONF_FIND_RELEASE_TAB]) {
-		save_searching_dialog(g_hWndTabDialog[CONF_FIND_RELEASE_TAB], bind);		
+		save_searching_dialog(g_hWndTabDialog[CONF_FIND_RELEASE_TAB], !reset/*bind*/);
 	}
 	if (reset || g_hWndCurrentTab == g_hWndTabDialog[CONF_MATCHING_TAB]) {
-		save_matching_dialog(g_hWndTabDialog[CONF_MATCHING_TAB], bind);
+		save_matching_dialog(g_hWndTabDialog[CONF_MATCHING_TAB], !reset);
 	}
 	if (reset || g_hWndCurrentTab == g_hWndTabDialog[CONF_TAGGING_TAB]) {
-		save_tagging_dialog(g_hWndTabDialog[CONF_TAGGING_TAB], bind);
+		save_tagging_dialog(g_hWndTabDialog[CONF_TAGGING_TAB], !reset/*, true*/);
 	}
 	if (reset || g_hWndCurrentTab == g_hWndTabDialog[CONF_CACHING_TAB]) {
-		save_caching_dialog(g_hWndTabDialog[CONF_CACHING_TAB], bind);
+		save_caching_dialog(g_hWndTabDialog[CONF_CACHING_TAB], !reset);
 	}
 	if (reset || g_hWndCurrentTab == g_hWndTabDialog[CONF_ART_TAB]) {
-		save_art_dialog(g_hWndTabDialog[CONF_ART_TAB], bind);
+		save_art_dialog(g_hWndTabDialog[CONF_ART_TAB], !reset);
 	}
 	if (reset || g_hWndCurrentTab == g_hWndTabDialog[CONF_UI_TAB]) {
-		save_ui_dialog(g_hWndTabDialog[CONF_UI_TAB], bind);
+		save_ui_dialog(g_hWndTabDialog[CONF_UI_TAB], !reset);
 	}
 	if (reset || g_hWndCurrentTab == g_hWndTabDialog[CONF_OATH_TAB]) {
-		save_oauth_dialog(g_hWndTabDialog[CONF_OATH_TAB], bind);
+		save_oauth_dialog(g_hWndTabDialog[CONF_OATH_TAB], !reset);
 	}
 
 	bres = reset || HasChanged();
@@ -249,17 +245,22 @@ bool CConfigurationDialog::build_current_cfg(bool reset, bool bind) {
 
 void CConfigurationDialog::pushcfg(bool reset) {
 
-	bool bind = !reset;
+	if (build_current_cfg(reset)) {
 
-	bool has_changed = build_current_cfg(reset, bind);
-
-	if (has_changed) {
 		discogs_interface->fetcher->update_oauth(conf.oauth_token, conf.oauth_token_secret);
-		if (bind) conf = conf_edit;
+
+		if (!reset) conf = conf_edit;
+
+		bool brefresh_tagmap_multivalues = !conf.multivalue_fields.equals(CONF.multivalue_fields);
+		
 		conf_edit = foo_conf(conf);
 		conf_edit.SetName("CfgEdit");
 		CONF.save(CConf::cfgFilter::CONF, conf);
 		CONF.load();
+
+		if (brefresh_tagmap_multivalues) {
+			update_loaded_tagmaps_multivalues();
+		}
 	}
 }
 
@@ -602,12 +603,12 @@ void CConfigurationDialog::save_matching_dialog(HWND wnd, bool dlgbind) {
 	if (uButton_GetCheck(wnd, IDC_CHK_SKIP_RELEASE_DLG))
 		conf_ptr->skip_mng_flag |= SkipMng::RELEASE_DLG_MATCHED;
 	else
-		conf_ptr->skip_mng_flag &= ~SkipMng::RELEASE_DLG_MATCHED;
+		conf_ptr->skip_mng_flag &= ~(SkipMng::RELEASE_DLG_MATCHED);
 
 	if (uButton_GetCheck(wnd, IDC_CHK_SKIP_BRAINZ_MIBS_FETCH))
 		conf_ptr->skip_mng_flag |= SkipMng::BRAINZ_ID_FETCH;
 	else
-		conf_ptr->skip_mng_flag &= ~SkipMng::BRAINZ_ID_FETCH;
+		conf_ptr->skip_mng_flag &= ~(SkipMng::BRAINZ_ID_FETCH);
 }
 
 bool CConfigurationDialog::cfg_matching_has_changed() {
@@ -652,19 +653,20 @@ void CConfigurationDialog::save_tagging_dialog(HWND wnd, bool dlgbind) {
 	if (bcheck)
 		conf_ptr->tag_save_flags |= TAGSAVE_AUTO_MULTIV_FLAG;
 	else
-		conf_ptr->tag_save_flags &= ~TAGSAVE_AUTO_MULTIV_FLAG;
+		conf_ptr->tag_save_flags &= ~(TAGSAVE_AUTO_MULTIV_FLAG);
 	//log tag writes
 	bcheck = uButton_GetCheck(wnd, IDC_CHK_CFG_TAGSAVE_LOG_FLAG);
 	if (bcheck)
 		conf_ptr->tag_save_flags |= TAGSAVE_LOG_FLAG;
 	else
-		conf_ptr->tag_save_flags &= ~TAGSAVE_LOG_FLAG;
+		conf_ptr->tag_save_flags &= ~(TAGSAVE_LOG_FLAG);
 	//keep preview open after tag writes
 	bcheck = uButton_GetCheck(wnd, IDC_CHK_CFG_TAGSAVE_PRV_WRITECLOSE_FLAG);
 	if (bcheck)
 		conf_ptr->tag_save_flags |= TAGSAVE_PREVIEW_STICKY_FLAG;
-	else
-		conf_ptr->tag_save_flags &= ~TAGSAVE_PREVIEW_STICKY_FLAG;
+	else {
+		conf_ptr->tag_save_flags &= ~(TAGSAVE_PREVIEW_STICKY_FLAG);
+	}
 }
 
 bool CConfigurationDialog::cfg_tagging_has_changed() {
@@ -695,12 +697,12 @@ void CConfigurationDialog::save_caching_dialog(HWND wnd, bool dlgbind) {
 	if (uButton_GetCheck(wnd, IDC_CHK_CFG_CACHE_READ_DSK_CACHE)) 
 		conf_ptr->cache_offline_cache_flag |= ol::CacheFlags::OC_READ;
 	else
-		conf_ptr->cache_offline_cache_flag &= ~ol::CacheFlags::OC_READ;
+		conf_ptr->cache_offline_cache_flag &= ~(ol::CacheFlags::OC_READ);
 	
 	if (uButton_GetCheck(wnd, IDC_CHK_CFG_CACHE_WRITE_DSK_CACHE))
 		conf_ptr->cache_offline_cache_flag |= ol::CacheFlags::OC_WRITE;
 	else
-		conf_ptr->cache_offline_cache_flag &= ~ol::CacheFlags::OC_WRITE;
+		conf_ptr->cache_offline_cache_flag &= ~(ol::CacheFlags::OC_WRITE);
 	
 	if (original_parsing_merge_titles != conf_ptr->parse_hidden_merge_titles || original_parsing != conf_ptr->parse_hidden_as_regular || original_skip_video != conf_ptr->skip_video_tracks) {
 		discogs_interface->reset_release_cache();

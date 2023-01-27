@@ -41,10 +41,9 @@ class initquit_discogs : public initquit
 			return;
 		}
 
-		for (size_t w = 0; w < cfg_tag_mappings.get_count(); w++) {
+		for (auto & entry :  cfg_tag_mappings) {
 
-			auto & e = cfg_tag_mappings[w];
-			e.is_multival_meta = is_multivalue_meta(e.tag_name);
+			entry.is_multival_meta = is_multivalue_meta(entry.tag_name);
 		
 		}
 		init_tag_mappings();
@@ -60,11 +59,12 @@ class initquit_discogs : public initquit
 		if (g_discogs) {
 			DeleteObject(g_discogs->icon);
 			delete g_discogs; //(1)
-			delete discogs_interface; //(2)
 		}
 		else {
 			log_msg("Warning: skipping default on_quit clearance.");
 		}
+
+		delete discogs_interface; //(2)
 
 		unload_dlls();
 	}
@@ -75,7 +75,10 @@ static initquit_factory_t<initquit_discogs> foo_initquit;
 foo_discogs::foo_discogs() {
 
 	auto hInst = core_api::get_my_instance();
-    icon = (HICON)LoadImage(hInst, MAKEINTRESOURCE(IDI_DC), IMAGE_ICON, GetSystemMetrics( SM_CXSMICON ), GetSystemMetrics( SM_CYSMICON ), 0);
+	auto dbg_micon = GetSystemMetrics(SM_CXSMICON);
+	icon = (HICON)LoadImage(hInst, MAKEINTRESOURCE(IDI_DC), IMAGE_ICON, GetSystemMetrics( SM_CXSMICON ), GetSystemMetrics( SM_CYSMICON ), 0);
+	//auto dpiX = QueryScreenDPIEx(core_api::get_main_window()).cx;
+	//icon = GdiplusLoadPNGIcon(IDB_PNG_DC_32C, CSize(32, 32));
 
 	discogs_interface->fetcher->set_oauth(CONF.oauth_token, CONF.oauth_token_secret);
 

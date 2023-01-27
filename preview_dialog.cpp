@@ -617,7 +617,6 @@ bool CPreviewTagsDialog::init_other_controls_and_results() {
 	bool release_has_anv = m_tag_writer->release->has_anv();
 
 	CheckDlgButton(IDC_CHK_REPLACE_ANV, release_has_anv && conf.replace_ANVs);
-	CheckDlgButton(IDC_CHK_PREV_DLG_DIFF_TRACKS, cfg_preview_dialog_track_map);
 	auto n8_thumb_paths = Offline::get_thumbnail_cache_path_filenames(m_tag_writer->release->id, art_src::alb, LVSIL_NORMAL, true, 0);
 	// Album art
 	if (n8_thumb_paths.get_count()) {
@@ -751,8 +750,9 @@ LRESULT CPreviewTagsDialog::OnButtonWriteTags(WORD /*wNotifyCode*/, WORD wID, HW
 		m_uilist.TableEdit_Abort(true);
 		m_uilist.UpdateItem(m_uilist.GetSingleSel());
 	}
-	build_current_cfg();
+
 	pushcfg();
+
 	service_ptr_t<write_tags_task> task = new service_impl_t<write_tags_task>(m_tag_writer);
 	task->start();
 
@@ -1019,8 +1019,6 @@ LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam, BOOL& bHand
 		ctrl.EnableWindow(check_write_tags_status());
 		ctrl = uGetDlgItem(IDC_CHK_REPLACE_ANV);
 		ctrl.EnableWindow(bresults && m_tag_writer->release->has_anv());
-		ctrl = uGetDlgItem(IDC_CHK_PREV_DLG_DIFF_TRACKS);
-		ctrl.EnableWindow(cfg_preview_dialog_track_map);
 		ctrl = uGetDlgItem(IDC_VIEW_NORMAL);
 		ctrl.EnableWindow(bresults);
 		ctrl = uGetDlgItem(IDC_VIEW_DIFFERENCE);

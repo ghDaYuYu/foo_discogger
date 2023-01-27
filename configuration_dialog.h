@@ -89,7 +89,7 @@ private:
 	void init_oauth_dialog(HWND wnd);
 	void init_current_tab();
 
-	bool build_current_cfg(bool reset, bool bind);
+	bool build_current_cfg(bool reset);
 	void pushcfg(bool reset);
 
 	void save_searching_dialog(HWND wnd, bool dlgbind);

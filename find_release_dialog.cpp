@@ -93,9 +93,7 @@ void CFindReleaseDialog::enable(bool is_enabled) {
 
 void CFindReleaseDialog::pushcfg() {
 
-	bool conf_changed = build_current_cfg();
-
-	if (conf_changed) {
+	if (build_current_cfg()) {
 		CONF.save(CConf::cfgFilter::FIND, conf);
 		CONF.load();
 	}
@@ -104,7 +102,6 @@ void CFindReleaseDialog::pushcfg() {
 inline bool CFindReleaseDialog::build_current_cfg() {
 
 	bool bres = false;
-
 	bool bcheck = IsDlgButtonChecked(IDC_CHK_ONLY_EXACT_MATCHES);
 
 	if (CONF.display_exact_matches != bcheck) {
@@ -278,7 +275,6 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	cewb_release_filter.SetEnterEscHandlers();
 	cewb_artist_search.SetEnterEscHandlers();
 	cewb_release_url.SetEnterEscHandlers();
-
 
 	artist_link.SubclassWindow(GetDlgItem(IDC_STATIC_FIND_REL_STATS));
 	COLORREF lnktx = IsDark() ? GetSysColor(/*COLOR_BTNHIGHLIGHT*/COLOR_MENUHILIGHT) : (COLORREF)(-1);

@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 
 #include "libPPUI/clipboard.h"
 #include "preview_dialog.h"

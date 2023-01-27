@@ -1,5 +1,4 @@
 #pragma once
-
 #include "resource.h"
 #include "helpers/DarkMode.h"
 

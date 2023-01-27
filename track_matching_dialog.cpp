@@ -667,7 +667,7 @@ LRESULT CTrackMatchingDialog::OnButtonPreviewTags(WORD /*wNotifyCode*/, WORD wID
 
 	bool b_user_skip_artwork = IsDlgButtonChecked(IDC_CHK_SKIP_ARTWORK);
 	if (b_user_skip_artwork)  user_wants_skip |= ARTSAVE_SKIP_USER_FLAG;
-	else user_wants_skip &= ~ARTSAVE_SKIP_USER_FLAG;
+	else user_wants_skip &= ~(ARTSAVE_SKIP_USER_FLAG);
 
 	m_conf.album_art_skip_default_cust = MAKELPARAM(LOWORD(m_conf.album_art_skip_default_cust), user_wants_skip);
 	bool save_artwork = m_conf.save_album_art || m_conf.save_artist_art || m_conf.embed_album_art || m_conf.embed_artist_art;
@@ -692,7 +692,7 @@ LRESULT CTrackMatchingDialog::OnButtonWriteTags(WORD /*wNotifyCode*/, WORD wID, 
 
 	bool b_user_skip_artwork = IsDlgButtonChecked(IDC_CHK_SKIP_ARTWORK);
 	if (b_user_skip_artwork)  user_wants_skip |= ARTSAVE_SKIP_USER_FLAG;
-	else user_wants_skip &= ~ARTSAVE_SKIP_USER_FLAG;
+	else user_wants_skip &= ~(ARTSAVE_SKIP_USER_FLAG);
 
 	m_conf.album_art_skip_default_cust = MAKELPARAM(LOWORD(m_conf.album_art_skip_default_cust), user_wants_skip);
 
@@ -767,6 +767,7 @@ inline bool CTrackMatchingDialog::build_current_cfg() {
 		skip_art |= BST_INDETERMINATE;
 	}
 	else if (checkstate == BST_CHECKED) {
+
 		skip_art |= ARTSAVE_SKIP_USER_FLAG;
 	}
 	m_conf.album_art_skip_default_cust = (int)MAKELPARAM(LOWORD(m_conf.album_art_skip_default_cust), skip_art);
@@ -1162,7 +1163,8 @@ bool CTrackMatchingDialog::context_menu_track_show(HWND wnd, int idFrom, LPARAM 
 	return FALSE;
 }
 
-bool CTrackMatchingDialog::context_menu_track_switch(HWND wnd, POINT point, bool is_files, int cmd, bit_array_bittable selmask, bit_array_bittable mixedvals) {
+bool CTrackMatchingDialog::context_menu_track_switch(HWND wnd, POINT point, bool is_files, int cmd,
+	bit_array_bittable selmask, bit_array_bittable mixedvals) {
 
 	auto p_uilist = GetUIListByWnd(wnd);
 
@@ -1662,7 +1664,7 @@ LRESULT CTrackMatchingDialog::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hW
 
 LRESULT CTrackMatchingDialog::OnUpdateSkipButton(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) {
 	int not_user_skip = HIWORD(m_conf.album_art_skip_default_cust);
-	not_user_skip &= ~ARTSAVE_SKIP_USER_FLAG;
+	not_user_skip &= ~(ARTSAVE_SKIP_USER_FLAG);
 	m_conf.album_art_skip_default_cust =
 		MAKELPARAM(LOWORD(m_conf.album_art_skip_default_cust), not_user_skip);
 	init_track_matching_dialog();
@@ -1683,6 +1685,7 @@ void CTrackMatchingDialog::destroy_all() {
 	else {
 		log_msg("Tracing exit sequence... g_discogs gone.");
 	}
+
 	DestroyWindow();
 }
 

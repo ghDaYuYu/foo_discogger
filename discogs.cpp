@@ -28,7 +28,6 @@ string_encoded_array Discogs::ReleaseArtist::get_data(pfc::string8 &tag_name, th
 		return ExposedTags<ReleaseArtist>::get_data(tag_name, p_status, p_abort);
 	}
 	catch (missing_data_exception) {
-		pfc::string8 xxx = full_artist->name;
 		return full_artist->get_data(tag_name, p_status, p_abort);
 	}
 }

@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 
 #include "preview_dialog.h"
 #include "preview_list.h"
@@ -20,7 +20,7 @@ void CPreviewList::set_image_list() {
 	ListView_SetImageList(this->m_hWnd, m_hImageList, LVSIL_SMALL);
 }
 
-//default action 
+//default action
 
 void CPreviewList::Default_Action() {
 

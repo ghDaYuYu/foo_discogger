@@ -323,7 +323,7 @@ struct row_col_data {
 #ifndef FLAGREG
 #define FLAGREG
 
-struct flagreg { int ver; int flag; };
+struct flagreg { int ver; uint32_t flag; };
 
 #endif
 
@@ -376,7 +376,7 @@ struct filter_cache {
 			std::pair<row_col_data, flagreg >& my_rel_cache = it->second;
 			flagreg& fr = my_rel_cache.second;
 
-			if ((fr.flag & INDEXTOSTATEIMAGEMASK((int)flagtype)) == INDEXTOSTATEIMAGEMASK((int)flagtype)) {
+			if ((fr.flag & INDEXTOSTATEIMAGEMASK((uint32_t)flagtype)) == INDEXTOSTATEIMAGEMASK((uint32_t)flagtype)) {
 				bres = true;
 			}
 			else {
@@ -402,7 +402,7 @@ struct filter_cache {
 
 			flagreg& fr = it_cached_item->second.second;
 
-			if ((fr.flag & INDEXTOSTATEIMAGEMASK((int)flagtype)) == INDEXTOSTATEIMAGEMASK((int)flagtype)) {
+			if ((fr.flag & INDEXTOSTATEIMAGEMASK((uint32_t)flagtype)) == INDEXTOSTATEIMAGEMASK((uint32_t)flagtype)) {
 				bval = true;
 			}
 			else {
@@ -427,7 +427,7 @@ struct filter_cache {
 			std::pair<row_col_data, flagreg >& my_rel_cache = it->second;
 			flagreg& fr = my_rel_cache.second;
 
-			if ((fr.flag & INDEXTOSTATEIMAGEMASK((int)flagtype)) == INDEXTOSTATEIMAGEMASK((int)flagtype)) {
+			if ((fr.flag & INDEXTOSTATEIMAGEMASK((uint32_t)flagtype)) == INDEXTOSTATEIMAGEMASK((uint32_t)flagtype)) {
 				val = true;
 			}
 			else {
@@ -472,14 +472,14 @@ struct filter_cache {
 			}
 
 			if (val == -1) {
-				fr.flag ^= INDEXTOSTATEIMAGEMASK((int)flagtype);
-				val = (fr.flag & INDEXTOSTATEIMAGEMASK((int)flagtype)) == INDEXTOSTATEIMAGEMASK((int)flagtype);
+				fr.flag ^= INDEXTOSTATEIMAGEMASK((uint32_t)flagtype);
+				val = (fr.flag & INDEXTOSTATEIMAGEMASK((uint32_t)flagtype)) == INDEXTOSTATEIMAGEMASK((uint32_t)flagtype);
 			}
 			else if (val) {
-				fr.flag |= INDEXTOSTATEIMAGEMASK((int)flagtype);
+				fr.flag |= INDEXTOSTATEIMAGEMASK((uint32_t)flagtype);
 			}
 			else {
-				fr.flag &= ~INDEXTOSTATEIMAGEMASK((int)flagtype);
+				fr.flag &= ~(INDEXTOSTATEIMAGEMASK((uint32_t)flagtype));
 			}
 			bres = true;
 		}
@@ -518,10 +518,10 @@ struct filter_cache {
 			}
 
 			if (val) {
-				fr.flag |= INDEXTOSTATEIMAGEMASK((int)flagtype);
+				fr.flag |= INDEXTOSTATEIMAGEMASK((uint32_t)flagtype);
 			}
 			else {
-				fr.flag &= ~INDEXTOSTATEIMAGEMASK((int)flagtype);
+				fr.flag &= ~(INDEXTOSTATEIMAGEMASK((uint32_t)flagtype));
 			}
 			bres = true;
 		}
@@ -561,14 +561,14 @@ struct filter_cache {
 			}
 
 			if (*val == -1) {
-				fr.flag ^= INDEXTOSTATEIMAGEMASK((int)flagtype);
-				*val = (fr.flag & INDEXTOSTATEIMAGEMASK((int)flagtype)) == INDEXTOSTATEIMAGEMASK((int)flagtype);
+				fr.flag ^= INDEXTOSTATEIMAGEMASK((uint32_t)flagtype);
+				*val = (fr.flag & INDEXTOSTATEIMAGEMASK((uint32_t)flagtype)) == INDEXTOSTATEIMAGEMASK((uint32_t)flagtype);
 			}
 			else if (*val) {
-				fr.flag |= INDEXTOSTATEIMAGEMASK((int)flagtype);
+				fr.flag |= INDEXTOSTATEIMAGEMASK((uint32_t)flagtype);
 			}
 			else {
-				fr.flag &= ~INDEXTOSTATEIMAGEMASK((int)flagtype);
+				fr.flag &= ~(INDEXTOSTATEIMAGEMASK((uint32_t)flagtype));
 			}
 			bres = true;
 		}

@@ -7,8 +7,6 @@
 
 const char *whitespace = " \t\r\n";
 
-bool cfg_preview_dialog_track_map = true;
-
 float cfg_find_release_colummn_showid_width = 50.0f;
 bool cfg_find_release_colummn_showid = false;
 
@@ -161,7 +159,7 @@ void replace_track_volume_desc(const pfc::string& sometrack, nota_info& out, con
 		else {
 			out.disk = atoi(v_nota.at(0).c_str()) - 1;
 			out.track = is_number(v_nota.at(1).c_str()) ? (atoi(v_nota.at(1).c_str()) - 1) : ~0;;
-			out.is_number &= out.track != ~0;
+			out.is_number &= (out.track != ~0);
 		}
 		return;
 	}
@@ -732,11 +730,13 @@ bool sortByVal(const std::pair<int, int>& a, const std::pair<int, int>& b)
 }
 
 extern bool is_multivalue_meta(const pfc::string& field) {
-	std::vector<pfc::string8> vmvf;
-	split(CONF.multivalue_fields, ";", 0, vmvf);
-	for (auto k : vmvf) {
-		if (k.equals(field))
-			return true;
-	}
-	return false;
+	std::vector<pfc::string8> vmultis;
+	split(CONF.multivalue_fields, ";", 0, vmultis);
+
+	auto found_it =
+		std::find_if(vmultis.begin(), vmultis.end(), [&](const pfc::string8 & e) {
+		return e.equals(field);
+			});
+
+	return found_it != std::end(vmultis);
 }

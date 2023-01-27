@@ -28,7 +28,6 @@ typedef int(_cdecl* dll_deflateEnd)(z_stream*);
 
 typedef uLong(_cdecl* dll_adler32)(uLong adler, const Bytef* buf, uInt len);
 
-extern bool cfg_preview_dialog_track_map;
 extern bool cfg_find_release_dialog_idtracker;
 
 extern float cfg_find_release_colummn_showid_width;

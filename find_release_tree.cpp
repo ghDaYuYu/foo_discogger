@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 #include "foo_discogs.h"
 #include "multiformat.h"
 #include "db_fetcher_component.h"
@@ -1985,9 +1985,7 @@ void CFindReleaseTree::vkreturn_test_master_expand_release() {
 
 LRESULT CFindReleaseTree::OnReleaseTreeDoubleClickRelease(int, LPNMHDR hdr, BOOL& bHandled) {
 
-
 	hit_test_release_proceed();
-
 	return 0;
 }
 

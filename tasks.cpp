@@ -387,7 +387,6 @@ void download_art_paths_task::start() {
 	);
 }
 
-
 void download_art_paths_task::safe_run(threaded_process_status& p_status, abort_callback& p_abort) {
 	
 	size_t lkey = encode_mr(0, m_release_id);
@@ -399,8 +398,7 @@ void download_art_paths_task::safe_run(threaded_process_status& p_status, abort_
 	multi_uartwork multi_uartconf = multi_uartwork(CONF, release);
 
 	if (!multi_uartconf.vuart.size()) {
-		//do not save artwork configuration
-		//why are we here?
+		//do not save artwork configuration ?
 		return;
 	}
 
@@ -796,7 +794,7 @@ void get_various_artists_process_callback::on_error(HWND p_wnd) {
 
 
 search_artist_process_callback::search_artist_process_callback(const char* search, const int db_dc_flags) : m_search(search), m_db_dc_flags(db_dc_flags) {
-	//
+	//..
 }
 
 void search_artist_process_callback::start(HWND parent) {

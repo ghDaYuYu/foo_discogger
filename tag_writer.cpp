@@ -560,6 +560,7 @@ void TagWriter::write_tags_track_map() {
 					check_mem(result->tag_entry, value);
 
 					value->limit_depth(1);
+
 					write_tag(item, info, *(result->tag_entry), value->get_citems());
 				}
 				else {
@@ -612,11 +613,10 @@ void TagWriter::write_tags_track_map() {
 
 void TagWriter::write_tags () {
 
-	if (cfg_preview_dialog_track_map)
+	//if (cfg_preview_dialog_track_map)
 		write_tags_track_map();
-	else
-		write_tags_v23();
-
+	//else
+	//	write_tags_v23();
 }
 
 void TagWriter::write_tags_v23() {
@@ -662,7 +662,6 @@ void TagWriter::write_tags_v23() {
 
 					pfc::string8 catch_mem = value->get_value().get_ptr();
 					check_mem(result->tag_entry, value);
-
 					value->limit_depth(1);
 
 					write_tag(item, info, *(result->tag_entry), value->get_citems());
@@ -670,8 +669,6 @@ void TagWriter::write_tags_v23() {
 				else {
 					pfc::string8 value_lf;
 					value->get_cvalue_lf(value_lf);
-
-
 					pfc::string8 catch_mem = value_lf;
 					check_mem(result->tag_entry, value);
 

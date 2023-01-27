@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 
 #include "utils.h"
 #include "preview_leading_tag_dialog.h"

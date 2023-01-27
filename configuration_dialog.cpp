@@ -639,7 +639,7 @@ void CConfigurationDialog::save_tagging_dialog(HWND wnd, bool dlgbind) {
 	if (uButton_GetCheck(wnd, IDC_CHK_SKIP_PREVIEW_DIALOG))
 		conf_ptr->skip_mng_flag |= SkipMng::PREVIEW_DLG;
 	else
-		conf_ptr->skip_mng_flag &= ~SkipMng::PREVIEW_DLG;
+		conf_ptr->skip_mng_flag &= ~(SkipMng::PREVIEW_DLG);
 	
 	conf_ptr->remove_other_tags = uButton_GetCheck(wnd, IDC_CHK_REMOVE_OTHER_TAGS);
 	pfc::string8 text;

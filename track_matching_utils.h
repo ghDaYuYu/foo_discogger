@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "discogs.h"
 #include "conf.h"
 #include "utils.h"
@@ -94,7 +94,7 @@ const struct uartwork {
 	t_uint32 setbitflag(t_uint32& key, size_t pos, bool val) {
 		t_uint32 bitmask = 1 << pos;
 		if (val) key |= bitmask;
-		else key &= ~bitmask;
+		else key &= ~(bitmask);
 		
 		return key;
 	}
@@ -104,7 +104,7 @@ const struct uartwork {
 		for (size_t i = from; i < to; i++) {
 			t_uint32 bitmask = 1 << i;
 			if (val) *key |= bitmask;
-			else *key &= ~bitmask;
+			else *key &= ~(bitmask);
 		}
 		return *key;
 	}

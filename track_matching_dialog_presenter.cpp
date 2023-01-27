@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "stdafx.h"
 
 #include <gdiplus.h>
@@ -951,6 +951,7 @@ void discogs_artwork_presenter::define_columns() {
 		m_conf_col_woa.push_back(mp_conf->match_discogs_artwork_tl_index_width);
 	}
 }
+
 void discogs_artwork_presenter::build_cfg_columns() {
 
 	m_conf_col_woa = build_woas_libppui(m_ui_list, 1.0);

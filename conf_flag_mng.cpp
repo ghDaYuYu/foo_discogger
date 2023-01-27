@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 #include "conf.h"
 #include "conf_flag_mng.h"
 

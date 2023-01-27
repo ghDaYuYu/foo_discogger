@@ -162,7 +162,7 @@ bool CPreviewTagsDialog::build_current_cfg() {
 	case (BST_INDETERMINATE):
 		[[fallthrough]];
 	case (BST_UNCHECKED):
-		hi &= ~(int)ARTSAVE_SKIP_USER_FLAG;
+		hi &= ~(ARTSAVE_SKIP_USER_FLAG);
 		break;
 	default:
 		;
@@ -1087,7 +1087,6 @@ void CPreviewTagsDialog::enable(bool is_enabled, bool change_focus) {
 	::uEnableWindow(GetDlgItem(IDC_BTN_BACK), is_enabled);
 	::uEnableWindow(GetDlgItem(IDC_BTN_TAG_MAPPINGS), is_enabled);
 	::uEnableWindow(GetDlgItem(IDC_CHK_REPLACE_ANV), is_enabled);
-	::uEnableWindow(GetDlgItem(IDC_CHK_PREV_DLG_DIFF_TRACKS), is_enabled);
 	::uEnableWindow(GetDlgItem(IDC_PREVIEW_LIST), is_enabled);
 }
 

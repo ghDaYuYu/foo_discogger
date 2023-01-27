@@ -667,7 +667,7 @@ LRESULT CFindReleaseDialog::OnCheckboxFindReleaseFilterFlags(WORD /*wNotifyCode*
 		if (checked)
 			conf.find_release_filter_flag |= FilterFlag::RoleMain;
 		else
-			conf.find_release_filter_flag &= ~FilterFlag::RoleMain;
+			conf.find_release_filter_flag &= ~(FilterFlag::RoleMain);
 
 		force_refresh = force_rebuild = true;
 	}
@@ -676,7 +676,7 @@ LRESULT CFindReleaseDialog::OnCheckboxFindReleaseFilterFlags(WORD /*wNotifyCode*
 		if (checked)
 			conf.find_release_filter_flag |= FilterFlag::Versions;
 		else
-			conf.find_release_filter_flag &= ~FilterFlag::Versions;
+			conf.find_release_filter_flag &= ~(FilterFlag::Versions);
 
 		force_refresh = true; force_rebuild = false;
 		set_role_label(checked);

@@ -1,14 +1,14 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros">
     <FOO_COMPONENT_NAME>foo_discogger</FOO_COMPONENT_NAME>
+    <FOO_CMD_DIR>C:\Foobar\foobar2000.portable_v2_32</FOO_CMD_DIR>
+    <FOO_CMD>$(FOO_CMD_DIR)\foobar2000.exe</FOO_CMD>
+    <FOO_WORKING_DIR>$(FOO_CMD_DIR)</FOO_WORKING_DIR>
+    <FOO_USR_DIR>\profile\user-components</FOO_USR_DIR>
+    <FOO_WD_USR>$(FOO_WORKING_DIR)\$(FOO_USR_DIR)</FOO_WD_USR>
     <FOO_USR_FILE>\$(FOO_COMPONENT_NAME)\$(FOO_COMPONENT_NAME).dll</FOO_USR_FILE>
-    <FOO_USR_DIR_BETA>\profile\user-components</FOO_USR_DIR_BETA>
-    <FOO_WORKING_DIR_BETA>C:\_S\_MULTI\Foobar\foobar2000.portable - v2</FOO_WORKING_DIR_BETA>
-    <FOO_WD>$(FOO_WORKING_DIR_BETA)</FOO_WD>
-    <FOO_CMD>$(FOO_WD)\foobar2000.exe</FOO_CMD>
-    <FOO_USR>$(FOO_WD)$(FOO_USR_DIR_BETA)</FOO_USR>
   </PropertyGroup>
   <PropertyGroup>
     <_PropertySheetDisplayName>PlatformPropertySheet</_PropertySheetDisplayName>
@@ -18,20 +18,26 @@
     <BuildMacro Include="FOO_COMPONENT_NAME">
       <Value>$(FOO_COMPONENT_NAME)</Value>
     </BuildMacro>
-    <BuildMacro Include="FOO_USR_FILE">
-      <Value>$(FOO_USR_FILE)</Value>
-    </BuildMacro>
-    <BuildMacro Include="FOO_USR_DIR_BETA">
-      <Value>$(FOO_USR_DIR_BETA)</Value>
-    </BuildMacro>
-    <BuildMacro Include="FOO_WORKING_DIR_BETA">
-      <Value>$(FOO_WORKING_DIR_BETA)</Value>
-    </BuildMacro>
-    <BuildMacro Include="FOO_WD">
-      <Value>$(FOO_WD)</Value>
+    <BuildMacro Include="FOO_CMD_DIR">
+      <Value>$(FOO_CMD_DIR)</Value>
     </BuildMacro>
     <BuildMacro Include="FOO_CMD">
       <Value>$(FOO_CMD)</Value>
+    </BuildMacro>
+    <BuildMacro Include="FOO_WORKING_DIR">
+      <Value>$(FOO_WORKING_DIR)</Value>
+    </BuildMacro>
+    <BuildMacro Include="FOO_USR_DIR">
+      <Value>$(FOO_USR_DIR)</Value>
+    </BuildMacro>
+    <BuildMacro Include="FOO_WD_USR">
+      <Value>$(FOO_WD_USR)</Value>
+    </BuildMacro>
+    <BuildMacro Include="FOO_USR_FILE">
+      <Value>$(FOO_USR_FILE)</Value>
+    </BuildMacro>
+    <BuildMacro Include="FOO_COMP_WD">
+      <Value>$(FOO_COMP_WD)</Value>
     </BuildMacro>
     <BuildMacro Include="FOO_USR">
       <Value>$(FOO_USR)</Value>

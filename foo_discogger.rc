@@ -62,7 +62,7 @@ IDD_DIALOG_CONF_MATCHING DIALOGEX 0, 0, 319, 235
 STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_SYSMENU
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    GROUPBOX        "Track matching",IDC_GRP_STATIC_TRK_MATCHING,6,6,308,135,BS_FLAT
+    GROUPBOX        "Track matching",IDC_GRP_STATIC_TRK_MATCHING,6,6,308,135
     CONTROL         "Skip dialog if tracks auto-matched successfully",IDC_CHK_SKIP_RELEASE_DLG,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,18,167,10
     CONTROL         "Skip MusicBrainz id matching",IDC_CHK_SKIP_BRAINZ_MIBS_FETCH,
@@ -427,11 +427,6 @@ BEGIN
     COMBOBOX        IDC_COMBO_PLAYLIST,7,7,48,30,CBS_DROPDOWNLIST | WS_DISABLED | WS_VSCROLL | WS_TABSTOP,WS_EX_ACCEPTFILES
 END
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// AFX_DIALOG_LAYOUT
-//
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -490,8 +485,6 @@ IDB_BITMAP_TRACER_EXT_DRK BITMAP                  "ico\\bitmap_tracer_ext_drk.bm
 // remains consistent on all systems.
 IDI_DC                  ICON                    "ico\\dc.ico"
 
-#endif    // Neutral (Default) resources
-
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -520,6 +513,10 @@ BEGIN
 END
 
 #endif    // APSTUDIO_INVOKED
+
+#endif    // Neutral (Default) resources
+/////////////////////////////////////////////////////////////////////////////
+
 
 
 #ifndef APSTUDIO_INVOKED

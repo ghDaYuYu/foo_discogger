@@ -27,7 +27,6 @@
 #define IDD_CONFIG_NAME                 162
 #define IDD_CONFIG_EXP                  163
 #define IDB_BITMAP_TRACER               192
-#define IDB_PNG_DC_32C                  196
 #define IDB_BITMAP_REC                  197
 #define IDB_PNG_RECC_16                 198
 #define IDB_PNG_RECC_24                 199
@@ -39,30 +38,14 @@
 #define IDD_CONFIG_NAME_EXP             207
 #define IDD_DIALOG_YESNO                208
 #define IDB_BITMAP_TRACER_EXT_DRK       210
-#define IDI_QUIAN                       214
 #define IDB_PNG_QUIAN_24                215
 #define IDB_PNG_QUIAN_32                216
 #define IDB_PNG_QUIAN_48                217
-
-#define IDB_PNG_QUIAN_DARK_16                218
-#define IDB_PNG_QUIAN_DARK_24                219
-#define IDB_PNG_QUIAN_DARK_32                220
-#define IDB_PNG_QUIAN_DARK_48                221
-
-
-#define IDB_PNG_QUIAN_16                203
-#define IDD_TAB_PREVIEW_LEADING_TAG       206
-#define IDD_CONFIG_NAME_EXP             207
-#define IDB_BITMAP_TRACER_EXT_DRK       210
-#define IDB_PNG_QUIAN_24                215
-#define IDB_PNG_QUIAN_32                216
-#define IDB_PNG_QUIAN_48                217
-
-#define IDB_PNG_QUIAN_DARK_16                218
-#define IDB_PNG_QUIAN_DARK_24                219
-#define IDB_PNG_QUIAN_DARK_32                220
-#define IDB_PNG_QUIAN_DARK_48                221
-
+#define IDB_PNG_QUIAN_DARK_16           218
+#define IDB_PNG_QUIAN_DARK_24           219
+#define IDB_PNG_QUIAN_DARK_32           220
+#define IDB_PNG_QUIAN_DARK_48           221
+#define IDI_DC                          400
 #define IDC_STATIC_CREDIT_FILTER        900
 #define IDC_GRP_STATIC_CREDIT           901
 #define IDC_GRP_STATIC_TRK_MATCHING     902

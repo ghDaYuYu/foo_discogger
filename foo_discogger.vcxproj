@@ -100,7 +100,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
-      <AdditionalIncludeDirectories>../../../WTL10_9163/Include;zlib;jansson;oauthcpp;../discogger libs/sqlite-amal-336/Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;..;../..;../../../WTL10_9163/Include;zlib;jansson;oauthcpp;../disgogger libs/sqlite-amal-336/Include</AdditionalIncludeDirectories>
       <FloatingPointModel>Fast</FloatingPointModel>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <StringPooling>false</StringPooling>
@@ -120,7 +120,7 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PostBuildEvent>
-      <Command>mkdir "$(FOO_USR)\$(FOO_COMPONENT_NAME)" &amp; copy "$(TargetPath)" "$(FOO_USR)$(FOO_USR_FILE)"</Command>
+      <Command>mkdir "$(FOO_COMP_WD)" &amp; copy "$(TargetPath)" "$(FOO_COMP_WD)"</Command>
     </PostBuildEvent>
     <Bscmake>
       <PreserveSbr>true</PreserveSbr>
@@ -139,7 +139,7 @@
       <StringPooling>
       </StringPooling>
       <OmitFramePointers>false</OmitFramePointers>
-      <AdditionalIncludeDirectories>./../../WTL10_9163/Include;zlib;jansson;oauthcpp;../discogger libs/sqlite-amal-336/Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;..;../..;../../../WTL10_9163/Include;zlib;jansson;oauthcpp;../disgogger libs/sqlite-amal-336/Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FloatingPointModel>Precise</FloatingPointModel>
       <PreprocessorDefinitions>NDEBUG;_WINDLL;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -167,7 +167,7 @@
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
     </Link>
     <PostBuildEvent>
-      <Command>mkdir "$(FOO_USR)\$(FOO_COMPONENT_NAME)" &amp; copy "$(TargetPath)" "$(FOO_USR)$(FOO_USR_FILE)"</Command>
+      <Command>mkdir "$(FOO_COMP_WD)" &amp; copy "$(TargetPath)" "$(FOO_COMP_WD)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -180,14 +180,14 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
-      <AdditionalIncludeDirectories>./../../WTL10_9163/Include;zlib;jansson;oauthcpp;../discogger libs/sqlite-amal-336/Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;..;../..;../../../WTL10_9163/Include;zlib;jansson;oauthcpp;../disgogger libs/sqlite-amal-336/Include</AdditionalIncludeDirectories>
       <FloatingPointModel>Fast</FloatingPointModel>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <StringPooling>false</StringPooling>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <ForcedIncludeFiles>StdAfx.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <BrowseInformation>false</BrowseInformation>
-      <PreprocessorDefinitions>_WINDLL;_WIN64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WINDLL;_WIN64;_UNICODE; UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -195,12 +195,12 @@
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>
       </DataExecutionPrevention>
-      <AdditionalDependencies>../shared/shared-$(Platform).lib;kernel32.lib;user32.lib;gdi32.lib;comctl32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;$(SolutionDir)$(Platform)\$(Configuration)\jansson.lib;..\discogger libs\sqlite-amal-336\$(Platform)\$(Configuration)\sqlite3.lib;$(SolutionDir)$(Platform)\$(Configuration)\oauthcpp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>../shared/shared-$(Platform).lib;kernel32.lib;user32.lib;gdi32.lib;comctl32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;$(SolutionDir)$(Platform)\$(Configuration)\jansson.lib;..\disgogger libs\sqlite-amal-336\$(Platform)\$(Configuration)\sqlite3.lib;$(SolutionDir)$(Platform)\$(Configuration)\oauthcpp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PostBuildEvent>
-      <Command>mkdir "$(FOO_USR)\$(FOO_COMPONENT_NAME)" &amp; copy "$(TargetPath)" "$(FOO_USR)$(FOO_USR_FILE)"</Command>
+      <Command>mkdir "$(FOO_COMP_WD)" &amp; copy "$(TargetPath)" "$(FOO_COMP_WD)"</Command>
     </PostBuildEvent>
     <Bscmake>
       <PreserveSbr>true</PreserveSbr>
@@ -218,9 +218,9 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <StringPooling>true</StringPooling>
       <OmitFramePointers>true</OmitFramePointers>
-      <AdditionalIncludeDirectories>./../../WTL10_9163/Include;zlib;jansson;oauthcpp;../discogger libs/sqlite-amal-336/Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;..;../..;../../../WTL10_9163/Include;zlib;jansson;oauthcpp;../disgogger libs/sqlite-amal-336/Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FloatingPointModel>Fast</FloatingPointModel>
-      <PreprocessorDefinitions>NDEBUG;_WINDLL;_WIN64;_UNICODE;UNICODE;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_WIN64;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <ForcedIncludeFiles>StdAfx.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <Optimization>MinSpace</Optimization>
@@ -243,7 +243,7 @@
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
     </Link>
     <PostBuildEvent>
-      <Command>mkdir "$(FOO_USR)\$(FOO_COMPONENT_NAME)" &amp; copy "$(TargetPath)" "$(FOO_USR)$(FOO_USR_FILE)"</Command>
+      <Command>mkdir "$(FOO_COMP_WD)" &amp; copy "$(TargetPath)" "$(FOO_COMP_WD)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -261,11 +261,9 @@
     <ClCompile Include="tristate_skip_artwork.cpp" />
     <ClCompile Include="conf.cpp" />
     <ClCompile Include="configuration_dialog.cpp" />
-    <ClCompile Include="db_fetcher.cpp" />
     <ClCompile Include="db_fetcher_component.cpp" />
     <ClCompile Include="utils_db.cpp" />
     <ClCompile Include="discogs.cpp" />
-    <ClCompile Include="discogs_db_interface.cpp" />
     <ClCompile Include="discogs_interface.cpp" />
     <ClCompile Include="entities.cpp" />
     <ClCompile Include="fetcher.cpp" />
@@ -290,9 +288,7 @@
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="string_encoded_array.cpp" />
     <ClCompile Include="tags.cpp" />
-    <ClCompile Include="tag_mappings_credits_dlg.cpp" />
     <ClCompile Include="tag_mappings_dialog.cpp" />
-    <ClCompile Include="tag_mapping_credit_utils.cpp" />
     <ClCompile Include="tag_writer.cpp" />
     <ClCompile Include="tasks.cpp" />
     <ClCompile Include="track_matching_dialog.cpp" />
@@ -319,11 +315,9 @@
     <ClInclude Include="CGdiPlusBitmap.h" />
     <ClInclude Include="conf.h" />
     <ClInclude Include="configuration_dialog.h" />
-    <ClInclude Include="db_fetcher.h" />
     <ClInclude Include="db_fetcher_component.h" />
     <ClInclude Include="utils_db.h" />
     <ClInclude Include="discogs.h" />
-    <ClInclude Include="discogs_db_interface.h" />
     <ClInclude Include="discogs_interface.h" />
     <ClInclude Include="entities.h" />
     <ClInclude Include="error_manager.h" />
@@ -350,8 +344,6 @@
     <ClInclude Include="string_encoded_array.h" />
     <ClInclude Include="tags.h" />
     <ClInclude Include="tag_mappings_dialog.h" />
-    <ClInclude Include="tag_mappings_credits_dlg.h" />
-    <ClInclude Include="tag_mapping_credit_utils.h" />
     <ClInclude Include="tag_writer.h" />
     <ClInclude Include="tasks.h" />
     <ClInclude Include="track_matching_dialog.h" />
@@ -394,8 +386,8 @@
     <Image Include="ico\bitmap_tracer.bmp" />
     <Image Include="ico\bitmap_tracer_ext.bmp" />
     <Image Include="ico\bitmap_tracer_ext_drk.bmp" />
+    <Image Include="ico\dc.ico" />
     <Image Include="ico\ic_quian.ico" />
-    <Image Include="ico\png_dc_32_c.png" />
     <Image Include="ico\png_ic_quian_16c.png" />
     <Image Include="ico\png_ic_quian_24c.png" />
     <Image Include="ico\png_ic_quian_32c.png" />

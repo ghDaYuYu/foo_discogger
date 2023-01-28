@@ -319,6 +319,8 @@ pfc::string8 Discogs::remove_number_suffix(const pfc::string8& src) {
 	}
 	try {
 		dst.set_string(std::regex_replace(dst.get_ptr(), regex_v, "").c_str());
+		while (dst.length() > 0 && dst.endsWith(' '))
+			dst.truncate(dst.length() - 1);
 	}
 	catch (std::regex_error e) {
 		dst.set_string(e.what());
@@ -1956,7 +1958,6 @@ void Discogs::MasterRelease::load(threaded_process_status &p_status, abort_callb
 		pfc::string8 url;
 		url << "https://api.discogs.com/masters/" << id;
 		discogs_interface->fetcher->fetch_html(url, "", json, p_abort);
-
 
 		JSONParser jp(json);
 		parseMasterRelease(this, jp.root);

@@ -498,7 +498,7 @@ pfc::string8 substr(const pfc::string8 &s, size_t start, size_t count) {
 }
 
 //modes: 'a' 'r' 'w' for artist and release refs, and web links
-pfc::string8 extract_max_number(const pfc::string8& s, const char mode) {
+pfc::string8 extract_max_number(const pfc::string8& s, const char mode, const bool once) {
 
 	std::regex regex_v; // ("[\\d]+");
 
@@ -538,8 +538,10 @@ pfc::string8 extract_max_number(const pfc::string8& s, const char mode) {
 			str.data() + i->position() + prefix_len,
 			i->str().length() - (prefix_len + postfix_len)
 		};
-		if (size_t ival = atoi(sv.data()); ival > max)
+		if (size_t ival = atoi(sv.data()); ival > max) {
 			max = ival;
+			if (once) break;
+		}
 	}
 	return max ? std::to_string(max).c_str() : "";
 }

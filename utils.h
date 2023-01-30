@@ -140,7 +140,7 @@ extern inline pfc::string8 substr(const pfc::string8 &s, size_t start, size_t co
 extern void display_url(const pfc::string8 &url);
 //extern void list_replace_text(HWND list, int pos, const char *text);
 
-extern pfc::string8 extract_max_number(const pfc::string8& s, const char mode);
+extern pfc::string8 extract_max_number(const pfc::string8& s, const char mode, const bool once = false);
 extern pfc::string8 extract_musicbrainz_mib(const pfc::string8& s);
 
 extern int myUncompress(Bytef *dest, uLongf *destLen, const Bytef *source, uLong sourceLen);

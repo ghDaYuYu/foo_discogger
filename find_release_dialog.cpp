@@ -932,6 +932,7 @@ bool CFindReleaseDialog::id_from_url(HWND hwndCtrl, pfc::string8& out) {
 	pfc::string8 prefix;
 	pfc::string8 suffix = "]";
 	pfc::string8 url = "https://www.discogs.com/";
+	const bool is_dc_url = out.has_prefix(url);
 
 	char mode_param;
 	pfc::string8 buffer = trim(out);
@@ -960,12 +961,23 @@ bool CFindReleaseDialog::id_from_url(HWND hwndCtrl, pfc::string8& out) {
 		return false;
 	}
 
-	if (mode_param == 'w' || (buffer.has_prefix(prefix) && buffer.has_suffix(suffix))) {
-
-		if ((buffer = extract_max_number(buffer, mode_param)).get_length()) {
+	if (mode_param != 'w' && is_dc_url) {
+		//url not parsed, ej. with local codes (https://www.discogs.com/fr/release/34425)
+		if ((buffer = extract_max_number(buffer, 'w', true)).get_length()) {
 
 			out = buffer.c_str();
 			return true;
+		}
+	}
+	else {
+
+		if (mode_param == 'w' || (buffer.has_prefix(prefix) && buffer.has_suffix(suffix))) {
+
+			if ((buffer = extract_max_number(buffer, mode_param)).get_length()) {
+
+				out = buffer.c_str();
+				return true;
+			}
 		}
 	}
 	return false;

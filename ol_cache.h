@@ -325,7 +325,7 @@ namespace Offline {
 	bool static create_offline_entity_folder(pfc::string8 id, GetFrom getFrom, pfc::string8 secid = "") {
 
 		PFC_ASSERT(getFrom == GetFrom::Artist || getFrom == GetFrom::Release);
-		PFC_ASSERT(getFrom != GetFrom::Release || (!STR_EQUAL(id, secid) && secid.get_length()));
+		PFC_ASSERT(getFrom != GetFrom::Release || (/*!STR_EQUAL(id, secid) &&*/ secid.get_length()));
 
 		pfc::string8 n8_rel_path = get_offline_path(id, getFrom, secid, true);
 

@@ -186,6 +186,19 @@ size_t coord_presenters::GetUiColumnFormat(size_t icol, presenter *pres) {
 	return fmt;
 }
 
+bool coord_presenters::ColumnRowToggle() {
+
+	auto& bin = form_mode[lsmode::tracks_ui];
+
+	track_presenter* uipres = dynamic_cast<track_presenter*>(&bin->first);
+	uipres->SetUIList();
+
+	uipres = dynamic_cast<track_presenter*>(&bin->second);
+	uipres->SetUIList();
+
+	return true;
+}
+
 size_t coord_presenters::ListUserCmd(HWND hwnd, lsmode mode, int cmd,
 	bit_array_bittable cmdmask, bit_array_bittable are_albums, pfc::array_t<size_t> order, bool cmdmod) {
 	
@@ -545,6 +558,11 @@ void discogs_track_libui_presenter::define_columns() {
 
 void discogs_track_libui_presenter::build_cfg_columns() {
 
+	CHeaderCtrl header_ctrl = m_ui_list->GetHeaderCtrl();
+	if (!header_ctrl) return;
+	bool has_rowid = m_ui_list->GetColumnCount() > 2;
+	if (has_rowid) return;
+
 	m_conf_col_woa = build_woas_libppui(m_ui_list, /*m_tile ? 150 / 48 :*/ 1);
 
 	if (m_conf_col_woa.size()) {
@@ -596,6 +614,11 @@ void file_track_libui_presenter::define_columns() {
 }
 
 void file_track_libui_presenter::build_cfg_columns() {
+
+	CHeaderCtrl header_ctrl = m_ui_list->GetHeaderCtrl();
+	if (!header_ctrl) return;
+	bool has_rowid = m_ui_list->GetColumnCount() > 2;
+	if (has_rowid) return;
 
 	m_conf_col_woa = build_woas_libppui(m_ui_list, /*m_tile ? 150 / 48 :*/ 1);
 
@@ -719,7 +742,16 @@ void track_presenter::SetUIList(CListControlOwnerData* ui_replace_list) {
 	std::vector<int> vorder;
 	vorder.resize(m_vtitles.size());
 
-	if (m_ui_list->GetColumnCount()) return;
+	auto cols = m_ui_list->GetColumnCount();
+	if (cols == 3) {
+		m_ui_list->DeleteColumn(2,true);
+		return;
+	}
+	else if (cols == 2) {
+		auto scw = GetSystemMetrics(SM_CXVSCROLL);
+		m_ui_list->AddColumnEx("#", scw * 3, HDF_CENTER, true);
+		return;
+	}
 	
 	for (size_t walk = 0; walk < m_conf_col_woa.size(); walk++) {
 

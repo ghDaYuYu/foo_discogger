@@ -1147,8 +1147,10 @@ bool CTrackMatchingDialog::context_menu_track_show(HWND wnd, int idFrom, LPARAM 
 			if (icol_hit.first != pfc_infinite) {
 
 				size_t fmt = m_coord.GetUiColumnFormat(icol_hit.first, icol_hit.second);
-
-				uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+				if ((get_mode() == lsmode::tracks_ui)) {
+					uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+					uAppendMenu(menu, MF_STRING, ID_ROW_NUMBERS, "Show row number");
+				}
 				// display submenu
 				uAppendMenu(_childmenuAlign, MF_STRING | (fmt == HDF_LEFT ? MF_CHECKED | MF_DISABLED | MF_GRAYED : 0), ID_LEFT_ALIGN, "Left");
 				uAppendMenu(_childmenuAlign, MF_STRING | (fmt == HDF_CENTER ? MF_CHECKED | MF_DISABLED | MF_GRAYED : 0), ID_CENTER_ALIGN, "Center");
@@ -1283,6 +1285,9 @@ bool CTrackMatchingDialog::context_menu_track_switch(HWND wnd, POINT point, bool
 			}
 		return true; // found;
 	}
+	case ID_ROW_NUMBERS:
+		m_coord.ColumnRowToggle();
+		return true;
 	case ID_LEFT_ALIGN: {
 		std::pair<size_t, presenter*> icol_hit = m_coord.columnHitTest(point);
 		m_coord.SetUiColumnFormat(icol_hit.first, icol_hit.second, HDF_LEFT);

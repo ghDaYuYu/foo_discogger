@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 
 #include "track_matching_dialog_presenter.h"
 #include "track_matching_dialog.h"
@@ -64,12 +64,28 @@ pfc::string8 ILOD_track_matching::listGetSubItemText(ctx_t ctx, size_t item, siz
 
 	switch (ctx->GetDlgCtrlID()) {
 	case IDC_UI_LIST_DISCOGS: {
+
+		CHeaderCtrl header = ctx->GetHeaderCtrl();
+		auto cols = header.GetItemCount();
+		if (cols == 3) {
+			if (subItem == 2)
+				return std::to_string(item).c_str();
+		}
+
 		track_it track_match;
 		res = coord->GetDiscogsTrackUiAtLvPos(item, track_match);
 		buffer = !subItem ? track_match->first.first : track_match->first.second;
 		break;
 	}
 	case IDC_UI_LIST_FILES: {
+
+		CHeaderCtrl header = ctx->GetHeaderCtrl();
+		auto cols = header.GetItemCount();
+		if (cols == 3) {
+			if (subItem == 2)
+				return std::to_string(item).c_str();
+		}
+
 		file_it file_match;
 		res = coord->GetFileTrackUiAtLvPos(item, file_match);
 		buffer = !subItem ? file_match->first.first : file_match->first.second;

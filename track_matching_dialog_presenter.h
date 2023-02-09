@@ -706,6 +706,7 @@ public:
 	void InitUiList(HWND hwnd, lsmode mode, bool tracks, CListControlOwnerData* uilist);
 	std::pair<size_t, presenter*> columnHitTest(CPoint point);
 	void SetUiColumnFormat(size_t icol, presenter* pres, size_t fmt);
+	bool ColumnRowToggle();
 	size_t GetUiColumnFormat(size_t icol, presenter* pres);
 
 	std::vector<pfc::string8> Get_Titles(lsmode mode, bool tracks);

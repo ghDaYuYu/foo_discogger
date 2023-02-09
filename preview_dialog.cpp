@@ -392,6 +392,7 @@ bool CPreviewTagsDialog::context_menu_show(HWND wnd, size_t isel, LPARAM lParamP
 	bit_array_bittable selmask = m_uilist.GetSelectionMask();
 	isel = m_uilist.GetSingleSel();
 	bool bselection = isel != ~0;
+	size_t csel = m_uilist.GetSelectedCount();
 
 	POINT point;
 

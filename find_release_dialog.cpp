@@ -393,7 +393,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 		bool brelease_ided = m_tracer.release_tag && m_tracer.release_id != pfc_infinite;
 		bool bskip_ided = conf.skip_mng_flag & SkipMng::RELEASE_DLG_IDED;
 
-		bool cfg_always_load_artist_ided_preview = true;
+		bool cfg_always_load_artist_ided_preview = true && !CONF.mode_write_alt;
 
 		if (!(bskip_ided && brelease_ided)) {
 
@@ -970,7 +970,7 @@ void CFindReleaseDialog::route_artist_search(pfc::string8 artistname, bool dlgbu
 				task->start(m_hWnd);
 			}
 		}
-		else if (by_name) {
+		else if (by_name && !CONF.mode_write_alt) {
 			service_ptr_t<search_artist_process_callback> task =
 				new service_impl_t<search_artist_process_callback>(artistname.get_ptr(), 0);
 			task->start(m_hWnd);

@@ -89,6 +89,19 @@ void CFindReleaseDialog::hide() {
 void CFindReleaseDialog::enable(bool is_enabled) {
 }
 
+void CFindReleaseDialog::enable_alt(bool is_enabled) {
+
+	for (HWND walk = ::GetWindow(m_hWnd, GW_CHILD); walk != NULL; ) {
+		HWND next = ::GetWindow(walk, GW_HWNDNEXT);
+		if (is_enabled && next != GetDlgItem(IDC_BTN_CONFIGURE) && next != GetDlgItem(IDC_RELEASE_URL_TEXT) && next != GetDlgItem(IDC_BTN_PROCESS_RELEASE))
+			::uEnableWindow(next, !is_enabled);
+		else if (!is_enabled) {
+			//..
+		}
+		walk = next;
+	}
+}
+
 // settings
 
 void CFindReleaseDialog::pushcfg() {
@@ -492,6 +505,12 @@ LRESULT CFindReleaseDialog::OnButtonSearch(WORD /*wNotifyCode*/, WORD wID, HWND 
 
 void CFindReleaseDialog::on_get_artist_done(cupdRelSrc updsrc, Artist_ptr& artist) {
 
+	auto list_artist_p = m_alist.Get_Selected_Id();
+	auto selection_ok = !list_artist_p.get_length() || list_artist_p.equals(artist->id);
+	if (!selection_ok) {
+		return;
+	}
+
 	m_alist.on_get_artist_done(updsrc, artist);
 
 	if (m_dctree.Get_Artist().get() && atoi(m_dctree.Get_Artist()->id) == atoi(artist->id)) {
@@ -754,8 +773,14 @@ void CFindReleaseDialog::on_write_tags(const pfc::string8& release_id) {
 		}
 	}
 
-	service_ptr_t<process_release_callback> task = new service_impl_t<process_release_callback>(this, release_id, offline_artist_id, "", items);
-	task->start(m_hWnd);
+	try {
+		service_ptr_t<process_release_callback> task = new service_impl_t<process_release_callback>(this, release_id, offline_artist_id, "", items);
+		task->start(m_hWnd);
+	}
+	catch (locked_task_exception e)
+	{
+		log_msg(e.what());
+	}
 }
 
 // expand_master_release_process_done

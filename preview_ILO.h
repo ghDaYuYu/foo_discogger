@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "libPPUI\CListControlOwnerData.h"
 #include "foo_discogs.h"
 #include "tag_writer.h"
@@ -24,6 +24,7 @@ public:
 		//..
 	}
 
+	void Enabled(bool enable);
 	void SetResults(TagWriter_ptr tag_writer, PreView preview_mode, std::vector<preview_stats> m_vstats);
 
 	bool is_result_editable(size_t item);

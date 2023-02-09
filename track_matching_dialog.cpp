@@ -131,8 +131,14 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 		}
 		if (m_tag_writer->m_match_status == MATCH_SUCCESS && (m_conf.skip_mng_flag & SkipMng::RELEASE_DLG_MATCHED)) {
 			generate_track_mappings(m_tag_writer->m_track_mappings);
-			service_ptr_t<generate_tags_task> task = new service_impl_t<generate_tags_task>(this, m_tag_writer, false);
-			task->start();
+			try {
+				service_ptr_t<generate_tags_task> task = new service_impl_t<generate_tags_task>(this, m_tag_writer, false);
+				task->start();
+			}
+			catch (locked_task_exception e)
+			{
+				log_msg(e.what());
+			}
 			return FALSE;
 		}
 
@@ -680,8 +686,15 @@ LRESULT CTrackMatchingDialog::OnButtonPreviewTags(WORD /*wNotifyCode*/, WORD wID
 	}
 	pushcfg();
 	generate_track_mappings(m_tag_writer->m_track_mappings);
-	service_ptr_t<generate_tags_task> task = new service_impl_t<generate_tags_task>(this, m_tag_writer, true);
-	task->start();
+
+	try {
+		service_ptr_t<generate_tags_task> task = new service_impl_t<generate_tags_task>(this, m_tag_writer, true);
+		task->start();
+	}
+	catch (locked_task_exception e)
+	{
+		log_msg(e.what());
+	}
 	return TRUE;
 }
 

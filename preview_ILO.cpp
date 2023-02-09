@@ -1,11 +1,16 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 
 #include "utils.h"
 #include "preview_list.h"
 #include "preview_dialog.h"
 #include "preview_ILO.h"
 
-void ILOD_preview::SetResults(TagWriter_ptr ptag_writer, PreView preview_mode, std::vector<preview_stats> m_vstats) {
+void ILOD_preview::Enabled(bool enable) {
+	CPreviewList* uilist = (CPreviewList*)ilo_get_uilist();
+	uilist->EnableWindow(enable);
+}
+
+void ILOD_preview::SetResults(const std::weak_ptr<void>& ptag_wwriter, PreView preview_mode, std::vector<preview_stats> m_vstats) {
 
 	m_tag_writer = ptag_writer;
 	m_preview_mode = preview_mode;

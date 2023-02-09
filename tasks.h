@@ -1,7 +1,4 @@
 #pragma once
-#include <future>
-#include <condition_variable>
-#include <mutex>
 #include "sqlite3.h"
 #include "db_fetcher.h"
 
@@ -41,11 +38,21 @@ private:
 	void on_done(HWND p_wnd, bool p_was_aborted) override final;
 };
 
+class locked_task_exception : public foo_discogs_exception
+{
+public:
+	locked_task_exception() : foo_discogs_exception("Locked Task Exception") {}
+	locked_task_exception(const char* msg) : foo_discogs_exception(msg) {}
+};
 
 class foo_discogs_locked_threaded_process_callback : public foo_discogs_threaded_process_callback
 {
 public:
 	foo_discogs_locked_threaded_process_callback() {
+		if (g_discogs->locked_operation) {
+			locked_task_exception e("Operation locked");
+			throw e;
+		}
 		g_discogs->locked_operation++;
 	}
 
@@ -54,6 +61,21 @@ public:
 	}
 };
 
+class foo_discogs_write_tag_locked_threaded_process_callback : public foo_discogs_threaded_process_callback
+{
+public:
+	foo_discogs_write_tag_locked_threaded_process_callback() {
+		if (g_discogs->write_tag_locked_operation) {
+			locked_task_exception e("Write tag peration locked");
+			throw e;
+		}
+		g_discogs->write_tag_locked_operation++;
+	}
+
+	~foo_discogs_write_tag_locked_threaded_process_callback() {
+		g_discogs->write_tag_locked_operation--;
+	}
+};
 
 class generate_tags_task : public foo_discogs_locked_threaded_process_callback
 {
@@ -82,7 +104,7 @@ private:
 };
 
 
-class write_tags_task : public foo_discogs_threaded_process_callback
+class write_tags_task : public foo_discogs_write_tag_locked_threaded_process_callback
 {
 public:
 	write_tags_task(TagWriter_ptr tag_writer) : m_tag_writer(tag_writer) {}
@@ -185,9 +207,13 @@ private:
 	Artist_ptr m_artist;
 	cupdRelSrc m_cupdsrc;
 
+	bool check_in();
+	void check_out();
+
 	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
 	void on_error(HWND p_wnd) override;
+	void on_abort(HWND p_wnd) override;
 };
 
 

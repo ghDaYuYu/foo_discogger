@@ -55,6 +55,8 @@ public:
 	CConfigurationDialog *configuration_dialog = nullptr;
 
 	size_t locked_operation = 0;
+	size_t write_tag_locked_operation = 0;
+	std::vector<pfc::string8> vArtistLoadReleasesTasks;
 
 	void save_album_art(Release_ptr &release, metadb_handle_ptr item, art_download_attribs ada, pfc::array_t<GUID> album_art_ids, bit_array_bittable &saved_mask, pfc::array_t<pfc::string8> &done_files, std::map<pfc::string8, MemoryBlock> &done_fetches, threaded_process_status &p_status, abort_callback &p_abort);
 	void save_artist_art(Release_ptr &release, metadb_handle_ptr item, art_download_attribs ada, pfc::array_t<GUID> album_art_ids, bit_array_bittable& saved_mask, pfc::array_t<pfc::string8> &done_files, std::map<pfc::string8, MemoryBlock>& done_fetches, threaded_process_status &p_status, abort_callback &p_abort);

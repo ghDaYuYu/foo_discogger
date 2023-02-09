@@ -660,8 +660,14 @@ void CPreviewTagsDialog::generate_tag_results(bool computestat) {
 
 void CPreviewTagsDialog::tag_mappings_updated() {
 	m_generating_tags = true;
-	service_ptr_t<generate_tags_task> task = new service_impl_t<generate_tags_task>(this, m_tag_writer);
-	task->start();
+	try {
+		service_ptr_t<generate_tags_task> task = new service_impl_t<generate_tags_task>(this, m_tag_writer);
+		task->start();
+	}
+	catch (locked_task_exception e)
+	{
+		log_msg(e.what());
+	}
 }
 
 void CPreviewTagsDialog::GlobalReplace_ANV(bool state) {

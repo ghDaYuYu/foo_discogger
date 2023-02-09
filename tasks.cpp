@@ -74,12 +74,16 @@ void generate_tags_task::start() {
 }
 
 void generate_tags_task::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
-
+	if (m_preview_dialog && IsWindow(m_preview_dialog->m_hWnd)) {
+		m_preview_dialog->Enabled(false);
+	}
 	m_tag_writer->generate_tags(m_alt_mappings, p_status, p_abort);
 }
 
 void generate_tags_task::on_success(HWND p_wnd) {
 	if (m_preview_dialog) {
+
+		m_preview_dialog->Enabled(true);
 
 		// preview exist generate list tags
 
@@ -146,8 +150,17 @@ void generate_tags_task::on_success(HWND p_wnd) {
 		CTrackMatchingDialog* dlg = g_discogs->track_matching_dialog;
 		dlg->destroy_all();
 
-		service_ptr_t<write_tags_task> task = new service_impl_t<write_tags_task>(m_tag_writer);
-		task->start();
+		m_tag_writer->tag_results_mask = {};
+		m_tag_writer->tag_results_mask_mode = PreView::Undef;
+
+		try {
+			service_ptr_t<write_tags_task> task = new service_impl_t<write_tags_task>(m_tag_writer);
+			task->start();
+		}
+		catch (locked_task_exception e)
+		{
+			log_msg(e.what());
+		}
 	}
 }
 
@@ -695,10 +708,41 @@ void get_artist_process_callback::start(HWND parent) {
 	);
 }
 
+bool get_artist_process_callback::check_in() {
+	auto found_it =
+		std::find_if(g_discogs->vArtistLoadReleasesTasks.begin(), g_discogs->vArtistLoadReleasesTasks.end(), [&](const pfc::string8& e) {
+		return e.equals(m_artist_id); });
+	bool found = found_it != std::end(g_discogs->vArtistLoadReleasesTasks);
+
+	if (found) {
+		return false;
+	}
+	else {
+		g_discogs->vArtistLoadReleasesTasks.emplace_back(m_artist_id);
+	}
+	return true;
+}
+
+void get_artist_process_callback::check_out() {
+	auto found_it =
+		std::find_if(g_discogs->vArtistLoadReleasesTasks.begin(), g_discogs->vArtistLoadReleasesTasks.end(), [&](const pfc::string8& e) {
+		return e.equals(m_artist_id); });
+	bool found = found_it != std::end(g_discogs->vArtistLoadReleasesTasks);
+	if (found) {
+		g_discogs->vArtistLoadReleasesTasks.erase(found_it);
+	}
+}
+
 void get_artist_process_callback::safe_run(threaded_process_status &p_status, abort_callback &p_abort) {
 
 	bool bload_releases = m_cupdsrc != updRelSrc::ArtistProfile && m_cupdsrc != updRelSrc::UndefFast;
 	bload_releases |= m_cupdsrc.extended;
+
+	if (bload_releases) {
+		if (!check_in()) {
+			return;
+		}
+	}
 
 	m_artist = discogs_interface->get_artist(m_artist_id, bload_releases, p_status, p_abort,
 		false, false, m_cupdsrc != updRelSrc::ArtistProfile);
@@ -720,6 +764,14 @@ void get_artist_process_callback::safe_run(threaded_process_status &p_status, ab
 void get_artist_process_callback::on_success(HWND p_wnd) {
 
 	if (m_artist) {
+
+		bool bload_releases = m_cupdsrc != updRelSrc::ArtistProfile && m_cupdsrc != updRelSrc::UndefFast;
+		bload_releases |= m_cupdsrc.extended;
+
+		if (bload_releases) {
+			check_out();
+		}
+
 		//artist history
 		if (m_cupdsrc != updRelSrc::ArtistProfile) {
 			g_discogs->find_release_dialog->add_history(oplog_type::artist, kHistoryGetArtist, "", "", m_artist->id, m_artist->name);
@@ -730,9 +782,26 @@ void get_artist_process_callback::on_success(HWND p_wnd) {
 }
 
 void get_artist_process_callback::on_error(HWND p_wnd) {
+
+	bool bload_releases = m_cupdsrc != updRelSrc::ArtistProfile && m_cupdsrc != updRelSrc::UndefFast;
+	bload_releases |= m_cupdsrc.extended;
+
+	if (bload_releases) {
+		check_out();
+	}
+
 	//..
 }
 
+void get_artist_process_callback::on_abort(HWND p_wnd) {
+
+	bool bload_releases = m_cupdsrc != updRelSrc::ArtistProfile && m_cupdsrc != updRelSrc::UndefFast;
+	bload_releases |= m_cupdsrc.extended;
+
+	if (bload_releases) {
+		check_out();
+	}
+}
 
 void get_various_artists_process_callback::start(HWND parent) {
 	

@@ -141,7 +141,7 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 
 		size_t cartist_art = 0;
 
-		for (auto wra : m_tag_writer->release->artists) {
+		for (const auto& wra : m_tag_writer->release->artists) {
 			cartist_art += wra->full_artist->images.get_count();
 		}
 
@@ -166,7 +166,7 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 				m_vpreview_jobs.emplace_back(pj);
 			}
 			size_t acc_ndx = 0;
-			for (auto wra : m_tag_writer->release->artists) {
+			for (auto& wra : m_tag_writer->release->artists) {
 				for (size_t it = 0; it < wra->full_artist->images.get_count(); it++) {
 					preview_job pj(false, acc_ndx + it, true, it != 0, false);
 					m_vpreview_jobs.emplace_back(pj);
@@ -365,7 +365,7 @@ void CTrackMatchingDialog::process_download_art_paths_done(pfc::string8 callback
 
 	bit_array_bittable saved_mask(my_album_art_ids.get_count());
 	
-	for (auto done_walk : *vres) {
+	for (const auto& done_walk : *vres) {
 		bit_array_bittable saved_mask_walk = done_walk.second;
 		size_t true_pos = saved_mask_walk.find_first(true, 0, saved_mask_walk.size());
 		while (true_pos < saved_mask_walk.size()) {
@@ -616,7 +616,7 @@ bool CTrackMatchingDialog::generate_artwork_guids(pfc::array_t<GUID> &my_album_a
 		size_t calbum_art = m_tag_writer->GetArtCount(art_src::alb);
 		size_t cartist_art = 0;
 
-		for (auto wra : m_tag_writer->release->artists) {
+		for (auto& wra : m_tag_writer->release->artists) {
 			cartist_art += wra->full_artist->images.get_count();
 		}
 		if ((calbum_art + cartist_art) > 0) {
@@ -929,7 +929,7 @@ bool CTrackMatchingDialog::context_menu_form(HWND wnd, LPARAM lParamPos) {
 	bool hasMasterRelease = master_release_id.get_length();
 	bool hasArtist = artist_id.get_length();
 
-	bool diff_ids = local_release_id.get_length() && (!STR_EQUAL(discogs_release_id, local_release_id));
+	bool diff_ids = local_release_id.get_length() && (!(STR_EQUAL(discogs_release_id, local_release_id)));
 
 	pfc::string8 discogs_release_info (diff_ids ? "Discogs Release Id: " : "Release Id: ");
 	pfc::string8 local_release_info;
@@ -1163,7 +1163,7 @@ bool CTrackMatchingDialog::context_menu_track_show(HWND wnd, int idFrom, LPARAM 
 	return FALSE;
 }
 
-bool CTrackMatchingDialog::context_menu_track_switch(HWND wnd, POINT point, bool is_files, int cmd,
+bool CTrackMatchingDialog::context_menu_track_switch(HWND wnd, POINT point, bool is_files, size_t cmd,
 	bit_array_bittable selmask, bit_array_bittable mixedvals) {
 
 	auto p_uilist = GetUIListByWnd(wnd);

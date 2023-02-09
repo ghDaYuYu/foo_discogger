@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "resource.h"
 
 #include <variant>
@@ -89,7 +89,7 @@ public:
 
 	~presenter() {
 
-		for (auto hicon : m_vicons) {
+		for (auto& hicon : m_vicons) {
 			DeleteObject(hicon.first);
 			DeleteObject(hicon.second);
 		}
@@ -409,7 +409,7 @@ public:
 	discogs_artwork_presenter() { m_ui_list = NULL; }
 
 	~discogs_artwork_presenter() {
-		for (auto hicon : m_vicons) {
+		for (auto& hicon : m_vicons) {
 			DeleteObject(hicon.first);
 			DeleteObject(hicon.second);
 		}
@@ -512,14 +512,14 @@ public:
 
 	~files_artwork_presenter() {
 
-		for (auto hicon : m_vicons) {
+		for (auto& hicon : m_vicons) {
 			DeleteObject(hicon.first);
 			DeleteObject(hicon.second);
 		}
 
 		m_vicons.clear();
 
-		for (auto tmp_pair : m_vtemp_files) {
+		for (auto& tmp_pair : m_vtemp_files) {
 			uDeleteFile(tmp_pair.first);
 			uDeleteFile(tmp_pair.second);
 		}

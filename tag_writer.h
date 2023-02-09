@@ -17,6 +17,8 @@ struct track_mapping
 	t_size file_index;
 
 public:
+	track_mapping() : enabled(false), discogs_disc(0), discogs_track(0), file_index(0) {};
+
 	bool operator!=(track_mapping &other) {
 		return !(other.discogs_disc == discogs_disc &&
 			other.discogs_track == discogs_track &&

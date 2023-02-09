@@ -226,7 +226,7 @@ private:
 
 	bool context_menu_form(HWND wnd, LPARAM coords);
 	bool context_menu_track_show(HWND wnd, int idFrom, LPARAM coords);
-	bool context_menu_track_switch(HWND wnd, POINT point, bool isfiles, int cmd,
+	bool context_menu_track_switch(HWND wnd, POINT point, bool isfiles, size_t cmd,
 		bit_array_bittable selmask, bit_array_bittable mixedvals);
 	void context_menu_art_attrib_switch(HWND wnd, af afalbum, af afart, UINT IDATT, bool mixedvals/*, lsmode mode*/);
 	bool context_menu_art_attrib_show(HWND wnd, HMENU* menu, bit_array_bittable &mixedvals);

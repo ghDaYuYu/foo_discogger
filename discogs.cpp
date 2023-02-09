@@ -1052,7 +1052,7 @@ void parseTrackPositions_v23(pfc::array_t<ReleaseTrack_ptr>& intermediate_tracks
 
 	// renumber if we didn't get them all and number of headings matches number of formats
 	if (format_quantity && (disc_number != format_quantity)) {
-		if (release->total_headings == format_quantity && !STR_EQUAL(release->discs[0]->tracks[0]->title_heading, "")) {
+		if (release->total_headings == format_quantity && !(STR_EQUAL(release->discs[0]->tracks[0]->title_heading, ""))) {
 			pfc::string8 last_heading = "";
 			track_number = 1;
 			disc_track_number = 0;
@@ -1096,7 +1096,7 @@ void parseTrackPositions_v23(pfc::array_t<ReleaseTrack_ptr>& intermediate_tracks
 
 	// use index track duration for single tracks
 	for (size_t i = 0; i < disc->tracks.get_size(); i++) {
-		auto track = disc->tracks[i];
+		auto& track = disc->tracks[i];
 		if (!track->discogs_duration_seconds && track->discogs_indextrack_duration_seconds) {
 			if (i + 1 > disc->tracks.get_size() - 1 || disc->tracks[i + 1]->discogs_indextrack_duration_seconds != track->discogs_indextrack_duration_seconds) {
 				track->discogs_duration_seconds = track->discogs_indextrack_duration_seconds;
@@ -1282,11 +1282,11 @@ void Discogs::parseRelease(Release *release, json_t *root) {
 			}
 			else if (num_tokens == 3) {
 				release->release_year = tokens[0];
-				if (!STR_EQUAL(tokens[1], "00")) {
+				if (!(STR_EQUAL(tokens[1], "00"))) {
 					release->release_month = tokens[1];
 					release->release_date << MONTH_NAMES.at(tokens[1].get_ptr()) << " ";
 				}
-				if (!STR_EQUAL(tokens[2], "00")) {
+				if (!(STR_EQUAL(tokens[2], "00"))) {
 					release->release_day = tokens[2];
 					release->release_date << tokens[2] << " ";
 				}
@@ -1459,7 +1459,7 @@ void Discogs::parseArtistReleases(json_t *root, Artist *artist) {
 
 						bool duplicate = false;
 
-						for (auto walk_master_release : artist->master_releases) {
+						for (auto& walk_master_release : artist->master_releases) {
 							if (release->id == walk_master_release->id) {
 
 								
@@ -1513,8 +1513,8 @@ void Discogs::parseArtistReleases(json_t *root, Artist *artist) {
 
 						bool duplicate = false;
 
-						for (auto walk_release : artist->releases) {
-							if (release->id == walk_release->id) {
+						for (Release_ptr walk_release : artist->releases) {
+							if (release->id == walk_release.get()->id) {
 
 
 								if (!walk_release->id.equals("Main")) {
@@ -1581,7 +1581,7 @@ void Discogs::parseMasterVersions(json_t *root, MasterRelease *master_release) {
 				}
 
 				bool duplicate = false;
-				for (auto walk_subrelease : master_release->sub_releases) {
+				for (const auto& walk_subrelease : master_release->sub_releases) {
 
 					if (walk_subrelease->id == release->id) {
 						duplicate = true;

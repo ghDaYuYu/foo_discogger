@@ -746,6 +746,7 @@ LRESULT CPreviewTagsDialog::OnChangePreviewMode(WORD /*wNotifyCode*/, WORD wID, 
 }
 
 LRESULT CPreviewTagsDialog::OnButtonWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+	
 	if (m_uilist.TableEdit_IsActive()) {
 		m_uilist.TableEdit_Abort(true);
 		m_uilist.UpdateItem(m_uilist.GetSingleSel());

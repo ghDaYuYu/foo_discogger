@@ -66,7 +66,7 @@ namespace Discogs
 
 		~HasImages() {
 
-			for (auto i : images) {
+			for (auto& i : images) {
 
 				i.reset();
 

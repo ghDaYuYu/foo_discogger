@@ -1,7 +1,5 @@
 #include "stdafx.h"
-
 #include "libPPUI/gdiplus_helpers.h"
-
 #include "utils.h"
 #include "tags.h"
 #include "multiformat.h"
@@ -37,7 +35,7 @@ class initquit_discogs : public initquit
 			uMessageBox(core_api::get_main_window(),
 				"Error loading configuration.",
 				"foo_discogger initialization", MB_APPLMODAL | MB_ICONASTERISK);
-			
+
 			return;
 		}
 
@@ -643,9 +641,7 @@ void foo_discogs::save_artist_art(pfc::array_t<Artist_ptr>& artists, Release_ptr
 					if (art_id_name != nullptr) {
 						for (size_t walk_vw = 0; walk_vw < vwrite_it.size(); walk_vw++) {
 							if (vwrite_it[walk_vw]) {
-
 								if (walk_vw == i /*+ album_offset*/) break;
-								
 								if (pfc::guid_compare(my_album_art_ids[walk_vw + offset], my_album_art_ids[i + offset]) == 0)
 									postfix++;
 							}

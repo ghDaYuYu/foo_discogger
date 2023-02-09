@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 
 #include "track_matching_dialog_presenter.h"
 #include "track_matching_dialog.h"

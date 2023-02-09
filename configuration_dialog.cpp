@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "tag_mappings_dialog.h"
+
 #include "utils.h"
 #include "tasks.h"
 #include "utils_db.h"
@@ -177,6 +178,7 @@ LRESULT CConfigurationDialog::OnChangingTab(WORD /*wNotifyCode*/, LPNMHDR /*lPar
 	if (get_state() & preferences_state::changed) {
 
 		CYesNoApiDialog yndlg;
+
 		auto res = yndlg.query(m_hWnd, { "Configuration Changes","Apply Changes ?" }, true, false);
 
 		switch (res) {
@@ -1230,7 +1232,7 @@ void CConfigurationDialog::on_load_search_formatting(HWND wnd) {
 	HWND hwndCtrl = ::GetDlgItem(wnd, IDC_BTN_CONF_LOAD_FORMATTING);
 	::GetWindowRect(hwndCtrl, rcButton);
 
-	POINT pt;
+	POINT pt = {};
 	pt.x = rcButton.left;
 	pt.y = rcButton.bottom;
 

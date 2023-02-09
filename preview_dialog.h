@@ -45,6 +45,7 @@ public:
 		ID_PREVIEW_CMD_EDIT_RESULT_TAG,
 		ID_PREVIEW_CMD_EDIT_RESULT_TAGINP,
 		ID_PREVIEW_CMD_WRITE_TAGS,
+		ID_PREVIEW_CMD_WRITE_TAGS_MASK,
 		ID_PREVIEW_CMD_COPY,
 		ID_SELECT_ALL,
 		ID_INVERT_SELECTION,
@@ -190,6 +191,7 @@ private:
 	bool m_cfg_bshow_stats = false;
 
 	TagWriter_ptr m_tag_writer;
+	bool m_write_only_selected = false;
 
 	size_t m_tw_index = 0;
 	size_t m_tw_skip = 0;

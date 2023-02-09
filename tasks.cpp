@@ -204,20 +204,23 @@ void write_tags_task::on_success(HWND p_wnd) {
 
 	m_tag_writer->m_finfo_manager->write_infos();
 
-	int lpskip = CONF.album_art_skip_default_cust;
-	bool lo_skip_global_defs = (LOWORD(lpskip)) & ARTSAVE_SKIP_USER_FLAG;
-	bool user_wants_skip_write_artwork = (HIWORD(lpskip)) & ARTSAVE_SKIP_USER_FLAG;
+	if (!m_tag_writer->tag_results_mask.size()) {
+	
+		int lpskip = CONF.album_art_skip_default_cust;
+		bool lo_skip_global_defs = (LOWORD(lpskip)) & ARTSAVE_SKIP_USER_FLAG;
+		bool user_wants_skip_write_artwork = (HIWORD(lpskip)) & ARTSAVE_SKIP_USER_FLAG;
 
-	bool bskip_art = user_wants_skip_write_artwork || lo_skip_global_defs;
+		bool bskip_art = user_wants_skip_write_artwork || lo_skip_global_defs;
 
-	bool bconf_art_save = (CONF.save_album_art || CONF.save_artist_art || CONF.embed_album_art || CONF.embed_artist_art);
-	bool bcustom_art_save = !(CONF_MULTI_ARTWORK == multi_uartwork(CONF, m_tag_writer->release));
-	bool bfile_match = CONF_MULTI_ARTWORK.file_match;
+		bool bconf_art_save = (CONF.save_album_art || CONF.save_artist_art || CONF.embed_album_art || CONF.embed_artist_art);
+		bool bcustom_art_save = !(CONF_MULTI_ARTWORK == multi_uartwork(CONF, m_tag_writer->release));
+		bool bfile_match = CONF_MULTI_ARTWORK.file_match;
 
-	if (!bskip_art && (bconf_art_save || bcustom_art_save)) {
-		service_ptr_t<download_art_task> task =
-			new service_impl_t<download_art_task>(m_tag_writer->release->id, m_tag_writer->m_finfo_manager->items, bfile_match);
-		task->start();
+		if (!bskip_art && (bconf_art_save || bcustom_art_save)) {
+			service_ptr_t<download_art_task> task =
+				new service_impl_t<download_art_task>(m_tag_writer->release->id, m_tag_writer->m_finfo_manager->items, bfile_match);
+			task->start();
+		}
 	}
 
 	if (g_discogs->preview_tags_dialog && ::IsWindow(g_discogs->preview_tags_dialog->m_hWnd)) {

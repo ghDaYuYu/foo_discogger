@@ -136,6 +136,7 @@ public:
 	friend class CFindReleaseTree;
 	//..
 
+	void enable_alt(bool is_enabled);
 	void enable(bool is_enabled) override;
 	void setitems(metadb_handle_list track_matching_items) { items = track_matching_items; }
 

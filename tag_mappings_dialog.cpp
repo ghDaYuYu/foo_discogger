@@ -329,7 +329,13 @@ LRESULT CTagMappingDialog::OnExport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndC
 
 		stream_writer_formatter<false> swf(*f.get_ptr(), p_abort);
 		for (size_t i = 0; i < m_ptag_mappings->get_count(); i++) {
-			const tag_mapping_entry &e = m_ptag_mappings->get_item(i);
+			tag_mapping_entry &e = m_ptag_mappings->get_item(i);
+			bool release_id_mod = STR_EQUAL(TAG_RELEASE_ID, e.tag_name.get_ptr());
+			if (release_id_mod) {
+				if (!(e.enable_write)) {
+					e.enable_write = true;
+				}
+			}
 			swf << e;
 		}
 	}
@@ -441,6 +447,7 @@ void CTagMappingDialog::show_context_menu(CPoint& pt, pfc::bit_array_bittable& s
 			sop_wu &= entry.enable_write && entry.enable_update;
 			sop_nwu &= !entry.enable_write && !entry.enable_update;
 			bool release_id_mod = single_sel && STR_EQUAL(TAG_RELEASE_ID, entry.tag_name.get_ptr());
+			release_id_mod &= !CONF.mode_write_alt;
 			bool frozen_mod = single_sel && entry.freeze_tag_name;
 			bool nfsop_w, nfsop_u, nfsop_wu, nfsop_nwu;
 			nfsop_w = nfsop_u = nfsop_wu = nfsop_nwu = !bshift && (release_id_mod || frozen_mod);
@@ -516,6 +523,7 @@ void CTagMappingDialog::show_context_menu(CPoint& pt, pfc::bit_array_bittable& s
 				do {
 					entry = m_ptag_mappings->get_item(isel);
 					release_id_mod = STR_EQUAL(TAG_RELEASE_ID, entry.tag_name.get_ptr()) && !bl_write;
+					release_id_mod &= !CONF.mode_write_alt;
 
 					if ((entry.freeze_tag_name && bshift && !release_id_mod) || !entry.freeze_tag_name) {
 

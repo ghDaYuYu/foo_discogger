@@ -48,6 +48,9 @@ public:
 		int colw = MulDiv(rcwidth, dpiX, USER_DEFAULT_SCREEN_DPI);
 
 		AddColumnEx("Artist", colw, LVCFMT_LEFT, true);
+
+		if (CONF.mode_write_alt)
+			::EnableWindow(m_hWnd, FALSE);
 	}
 
 	// (nVKReturn)

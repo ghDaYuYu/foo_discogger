@@ -93,6 +93,8 @@ inline HBITMAP g_hIcon_rec;
 inline HFONT g_hFont;
 
 enum class PreView :int { Normal = 0, Diff, Original, Dbg, Undef, default = 0 };
+inline pfc::string8 preview_to_label(PreView pv) { return pv == PreView::Normal ? "Result" : pv == PreView::Diff ? "Difference" :
+	pv == PreView::Original ? "Original" : pv == PreView::Dbg ? "Debug" : "Undefine"; }
 
 enum class updRelSrc { Artist, Releases, Filter, ArtistList, ArtistListCheckExact, ArtistProfile, ArtistSearch, Undef, UndefFast };
 

@@ -71,15 +71,33 @@ FB2K_STREAM_READER_OVERLOAD(tag_mapping_entry) {
 		>> formatting_string;
 	value.tag_name = tag_name;
 	value.formatting_script = formatting_string;
+
+	bool release_id_mod = STR_EQUAL(TAG_RELEASE_ID, value.tag_name.get_ptr());
+	if (release_id_mod) {
+		if (!value.enable_write) {
+			value.enable_write = true;
+		}		
+	}
+
 	return stream;
 }
 
 
 FB2K_STREAM_WRITER_OVERLOAD(tag_mapping_entry) {
+	bool release_id_mod = STR_EQUAL(TAG_RELEASE_ID, value.tag_name.get_ptr());
+	if (release_id_mod) {
+		if (!value.enable_write) {
+			release_id_mod = true;
+		}
+		else
+		{
+			release_id_mod = value.enable_write;
+		}
+	}
 	pfc::string8 tag_name(value.tag_name.get_ptr());
 	pfc::string8 formatting_string((const char*)value.formatting_script);
 	stream << tag_name
-		<< value.enable_write
+		<< release_id_mod
 		<< value.enable_update
 		<< value.freeze_write
 		<< value.freeze_update

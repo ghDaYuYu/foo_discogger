@@ -683,6 +683,7 @@ public:
 	//..
 
 	std::vector<int> vflags;
+	bool mode_write_alt = false;
 
 	friend class FlgMng;
 };

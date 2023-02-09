@@ -503,6 +503,7 @@ void TagWriter::write_tags_track_map() {
 	
 	m_finfo_manager->invalidate_all();
 	bool binvalidate = false;
+	bool bhasmask = tag_results_mask.size();
 
 	for (size_t i = 0; i < m_track_mappings.get_count(); i++) {
 		const track_mapping &mapping = m_track_mappings[i];
@@ -520,9 +521,14 @@ void TagWriter::write_tags_track_map() {
 		metadb_handle_ptr item = m_finfo_manager->get_item_handle(file_index);
 		file_info &info = m_finfo_manager->get_item(file_index);
 
-		const size_t count = tag_results.get_size();
-		for (size_t j = 0; j < count; j++) {
-			const tag_result_ptr &result = tag_results[j];
+		for (size_t j = 0; j < tag_results.get_size(); j++) {
+
+			const tag_result_ptr& result = tag_results[j];
+
+			if (bhasmask && !tag_results_mask.get(j))
+			{
+				continue;
+			}
 			
 			string_encoded_array *value;
 
@@ -535,11 +541,27 @@ void TagWriter::write_tags_track_map() {
 						if (result->r_usr_modded.get(i)) {
 							approved = result->r_usr_approved.get(i);
 						}
+						else if (bhasmask) {
+							approved = tag_results_mask.get(j);
+						}
 					}
 			}
 			else {
-				if (result->r_usr_modded.get(i)) {
-					approved = result->r_usr_approved.get(i);
+
+				bool release_id_mod = STR_EQUAL(TAG_RELEASE_ID, result->tag_entry->tag_name.get_ptr());
+				release_id_mod &= !CONF.mode_write_alt;
+				if (release_id_mod) {
+					if (!(result->tag_entry->enable_write)) {
+						approved = true;
+					}
+				}
+				else {
+						if (result->r_usr_modded.get(i)) {
+							approved = result->r_usr_approved.get(i);
+						}
+						else if (bhasmask) {
+							approved = tag_results_mask.get(j);
+						}					
 				}
 			}
 			if (approved) {
@@ -613,10 +635,7 @@ void TagWriter::write_tags_track_map() {
 
 void TagWriter::write_tags () {
 
-	//if (cfg_preview_dialog_track_map)
-		write_tags_track_map();
-	//else
-	//	write_tags_v23();
+	write_tags_track_map();
 }
 
 void TagWriter::write_tags_v23() {

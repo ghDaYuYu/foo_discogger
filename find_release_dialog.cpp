@@ -273,6 +273,9 @@ bool OAuthCheck(const foo_conf& conf) {
 LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
 
 	SetIcon(g_discogs->icon);
+
+	enable_alt(CONF.mode_write_alt);
+
 	m_edit_artist = GetDlgItem(IDC_EDIT_SEARCH);
 	m_edit_filter = GetDlgItem(IDC_EDIT_FILTER);
 	m_edit_release = GetDlgItem(IDC_RELEASE_URL_TEXT);
@@ -335,8 +338,27 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 
 	//init artist search/release id textboxes
 
+	if (!m_tracer.has_release() && CONF.mode_write_alt) {
+		file_info_impl finfo;
+		metadb_handle_ptr item = items[0];
+		item->get_info(finfo);
+
+		pfc::string8 release_id;
+
+		if (g_discogs->file_info_get_tag(item, finfo, "WWW", release_id)) {
+			uSetWindowText(m_edit_release, m_tracer.has_release() ? std::to_string(m_tracer.release_id).c_str() : release_id);
+
+			if (id_from_url(m_edit_release, release_id)) {
+				m_tracer.release_id = std::atoi(release_id); //tracer
+				m_tracer.release_tag = true;
+			}
+		}
+	}
+	else {
+		uSetWindowText(m_edit_release, m_tracer.has_release() ? std::to_string(m_tracer.release_id).c_str() : "");
+	}
 	uSetWindowText(m_edit_artist, artist ? artist : "");
-	uSetWindowText(m_edit_release, m_tracer.has_release() ? std::to_string(m_tracer.release_id).c_str() : "");
+	
 
 	// dlg resize and dimensions
 
@@ -347,7 +369,12 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	m_alist.CreateInDialog(*this, IDC_ARTIST_LIST, wndReplace);
 	m_alist.InitializeHeaderCtrl(HDS_HIDDEN);	
 	m_artist_list = m_alist.m_hWnd;
-	m_alist.Inititalize();
+	if (CONF.mode_write_alt) {
+		//..
+	}
+	else {
+		m_alist.Inititalize();
+	}
 
 	m_dctree.Inititalize(m_release_tree, m_edit_filter, m_edit_release, items, frm_album /*ALBUM*/);
 

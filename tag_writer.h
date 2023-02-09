@@ -67,6 +67,8 @@ public:
 	
 	int m_match_status = -1;
 	tag_results_list_type tag_results;
+	pfc::bit_array_bittable tag_results_mask;
+	PreView tag_results_mask_mode;
 
 	Release_ptr release;
 

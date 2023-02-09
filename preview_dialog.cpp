@@ -462,8 +462,25 @@ bool CPreviewTagsDialog::context_menu_show(HWND wnd, size_t isel, LPARAM lParamP
 			}
 		}
 
+		if (bselection && csel == 1) {
+			PreView pv = get_preview_mode();
+			bool bshow_write_mask = false;
+			if (pv == PreView::Diff) {
+				auto tmpdif = ((ILOD_preview*)this)->GetListRow(isel, pv);
+				bshow_write_mask = tmpdif.get_length();
+			}
+			else if (pv == PreView::Normal) {
+				auto tmpdif = ((ILOD_preview*)this)->GetListRow(isel, pv);
+				bshow_write_mask = tmpdif.get_length();
+			}
+			pfc::string8 str;
+			str << "Write se&lected tag (" << (preview_to_label(pv).toLower()) << ")";
+
+			uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+			uAppendMenu(menu, MF_STRING | bshow_write_mask? 0 : MF_DISABLED | MF_GRAYED, ID_PREVIEW_CMD_WRITE_TAGS_MASK, str/*"Write se&lected tag"*/);
+		}
 		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
-		uAppendMenu(menu, MF_STRING, ID_PREVIEW_CMD_WRITE_TAGS, "&Write tags");
+		uAppendMenu(menu, MF_STRING | !bselection || csel == 1 ? 0 : MF_DISABLED | MF_GRAYED, ID_PREVIEW_CMD_WRITE_TAGS, !bselection || csel == 1 ? "&Write all tags" : "&Write tags");
 
 		int cmd = TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, 0, wnd, 0);
 		DestroyMenu(menu);
@@ -481,8 +498,9 @@ bool CPreviewTagsDialog::context_menu_switch(HWND wnd, POINT point, int cmd, bit
 
 	switch (cmd)
 	{
-	case ID_PREVIEW_CMD_WRITE_TAGS: {
-
+	case ID_PREVIEW_CMD_WRITE_TAGS:
+	case ID_PREVIEW_CMD_WRITE_TAGS_MASK: {
+		m_write_only_selected = selmask.size();
 		BOOL bDummy;
 		return OnButtonWriteTags(0, 0, NULL, bDummy);
 	}
@@ -760,8 +778,24 @@ LRESULT CPreviewTagsDialog::OnButtonWriteTags(WORD /*wNotifyCode*/, WORD wID, HW
 
 	pushcfg();
 
-	service_ptr_t<write_tags_task> task = new service_impl_t<write_tags_task>(m_tag_writer);
-	task->start();
+	if (m_write_only_selected) {
+		m_write_only_selected = false;
+		m_tag_writer->tag_results_mask = m_uilist.GetSelectionMask();
+		m_tag_writer->tag_results_mask_mode = get_preview_mode();
+	}
+	else {
+		m_tag_writer->tag_results_mask = {};
+		m_tag_writer->tag_results_mask_mode = PreView::Undef;
+	}
+
+	try {
+		service_ptr_t<write_tags_task> task = new service_impl_t<write_tags_task>(m_tag_writer);
+		task->start();
+	}
+	catch (locked_task_exception e)
+	{
+		log_msg(e.what());
+	}
 
 	if (!(CONF.tag_save_flags & TAGSAVE_PREVIEW_STICKY_FLAG)) {
 		destroy_all();
@@ -1089,12 +1123,25 @@ LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam, BOOL& bHand
 }
 
 void CPreviewTagsDialog::enable(bool is_enabled, bool change_focus) {
-	::uEnableWindow(GetDlgItem(IDC_BTN_WRITE_TAGS), !is_enabled ? FALSE : m_tag_writer->will_modify/*is_enabled*/);
-	::uEnableWindow(GetDlgItem(IDCANCEL), is_enabled);
-	::uEnableWindow(GetDlgItem(IDC_BTN_BACK), is_enabled);
-	::uEnableWindow(GetDlgItem(IDC_BTN_TAG_MAPPINGS), is_enabled);
-	::uEnableWindow(GetDlgItem(IDC_CHK_REPLACE_ANV), is_enabled);
-	::uEnableWindow(GetDlgItem(IDC_PREVIEW_LIST), is_enabled);
+
+	HWND ctrlWriteTags = GetDlgItem(IDC_BTN_WRITE_TAGS);
+	::uEnableWindow(ctrlWriteTags, !is_enabled ? FALSE : m_tag_writer->will_modify/*is_enabled*/);
+
+	for (HWND walk = ::GetWindow(m_hWnd, GW_CHILD); walk != NULL; ) {
+		HWND next = ::GetWindow(walk, GW_HWNDNEXT);
+		if (next != ctrlWriteTags) 
+			::uEnableWindow(next, is_enabled);
+		walk = next;
+	}
+
+	if (g_discogs->preview_modal_tag_dialog) {
+		CPreviewLeadingTagDialog* dlg = g_discogs->preview_modal_tag_dialog;
+		for (HWND walk = ::GetWindow(dlg->m_hWnd, GW_CHILD); walk != NULL; ) {
+			HWND next = ::GetWindow(walk, GW_HWNDNEXT);
+			::uEnableWindow(next, is_enabled);
+			walk = next;
+		}
+	}
 }
 
 void CPreviewTagsDialog::destroy_all() {

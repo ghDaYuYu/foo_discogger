@@ -198,6 +198,12 @@ pfc::string8 print_result_in_mode(const tag_result_ptr& result, PreView preview_
 	return mode_result;
 }
 
+//public (> preview dialog context menu)
+pfc::string8 ILOD_preview::GetListRow(size_t row, PreView mode) {
+	pfc::string8 mode_result = print_result_in_mode(m_tag_writer->tag_results[row], mode).c_str();
+	return mode_result;
+}
+
 // fb2k lib - get subitems
 
 pfc::string8 ILOD_preview::listGetSubItemText(ctx_t ctx, size_t item, size_t subItem) {

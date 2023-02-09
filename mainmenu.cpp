@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 #include "resource.h"
 #include "guids_discogger.h"
 
@@ -19,6 +19,9 @@ static const GUID guid_Configuration =
 // {87014504-4FC5-4520-83CC-49663675FA51}
 static const GUID guid_WriteTags =
 { 0x87014504, 0x4fc5, 0x4520, { 0x83, 0xcc, 0x49, 0x66, 0x36, 0x75, 0xfa, 0x51 } };
+// {ADA08D51-4013-4127-8970-13D4B59BACFE}
+static const GUID guid_WriteTagsAlt =
+{ 0xada08d51, 0x4013, 0x4127, { 0x89, 0x70, 0x13, 0xd4, 0xb5, 0x9b, 0xac, 0xfe } };
 // {D91BEF05-460B-43BB-A1CC-66BDD55DC177}
 static const GUID guid_DisplayReleasePage =
 { 0xd91bef05, 0x460b, 0x43bb, { 0xa1, 0xcc, 0x66, 0xbd, 0xd5, 0x5d, 0xc1, 0x77 } };
@@ -53,6 +56,7 @@ private:
 	enum MenuIndex
 	{
 		WriteTags,
+		WriteTagsAlt,
 		DisplayReleasePage,
 		DisplayMasterReleasePage,
 		DisplayArtistPage,
@@ -70,13 +74,16 @@ public:
 	}
 
 	unsigned get_num_items() override {
-		return 9;
+		return 10;
 	}
 
 	void get_item_name(unsigned p_index, pfc::string_base& p_out) override {
 		switch (p_index) {
 		case WriteTags:
 			p_out = "Write tags...";
+			break;
+		case WriteTagsAlt:
+			p_out = "Plain write tags ...";
 			break;
 		case DisplayReleasePage:
 			p_out = "Web release page";
@@ -117,9 +124,15 @@ public:
 
 		switch (p_index) {
 		case WriteTags:
+			CONF.mode_write_alt = false;
 			g_discogs->find_release_dialog = fb2k::newDialog<CFindReleaseDialog>(core_api::get_main_window(), p_data, CONF);
 			break;
-			
+		
+		case WriteTagsAlt:
+			CONF.mode_write_alt = true;
+			g_discogs->find_release_dialog = fb2k::newDialog<CFindReleaseDialog>(core_api::get_main_window(), p_data, CONF);
+			break;
+
 		case DisplayReleasePage:
 			g_discogs->item_display_web_page(p_data.get_item(0), foo_discogs::RELEASE_PAGE);
 			break;
@@ -166,6 +179,7 @@ public:
 
 		switch (p_index) {
 		case WriteTags:
+		case WriteTagsAlt:
 			p_displayflags =
 				!g_discogs->locked_operation &&
 				!g_discogs->find_release_dialog &&
@@ -205,6 +219,8 @@ public:
 		switch (p_index) {
 		case WriteTags:
 			return guid_WriteTags;
+		case WriteTagsAlt:
+			return guid_WriteTagsAlt;
 		case DisplayReleasePage:
 			return guid_DisplayReleasePage;
 		case DisplayMasterReleasePage:
@@ -229,6 +245,9 @@ public:
 		switch (p_index) {
 		case WriteTags:
 			p_out = "Write tags";
+			break;
+		case WriteTagsAlt:
+			p_out = "Plain write tags";
 			break;
 		case DisplayReleasePage:
 			p_out = "Web release page";

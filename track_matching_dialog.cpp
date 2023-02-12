@@ -149,7 +149,7 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 
 		size_t cartist_art = 0;
 
-		for (const auto& wra : m_tag_writer->release->artists) {
+		for (auto wra : m_tag_writer->release->artists) {
 			cartist_art += wra->full_artist->images.get_count();
 		}
 
@@ -174,7 +174,7 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 				m_vpreview_jobs.emplace_back(pj);
 			}
 			size_t acc_ndx = 0;
-			for (auto& wra : m_tag_writer->release->artists) {
+			for (auto wra : m_tag_writer->release->artists) {
 				for (size_t it = 0; it < wra->full_artist->images.get_count(); it++) {
 					preview_job pj(false, acc_ndx + it, true, it != 0, false);
 					m_vpreview_jobs.emplace_back(pj);
@@ -624,7 +624,7 @@ bool CTrackMatchingDialog::generate_artwork_guids(pfc::array_t<GUID> &my_album_a
 		size_t calbum_art = m_tag_writer->GetArtCount(art_src::alb);
 		size_t cartist_art = 0;
 
-		for (auto& wra : m_tag_writer->release->artists) {
+		for (auto wra : m_tag_writer->release->artists) {
 			cartist_art += wra->full_artist->images.get_count();
 		}
 		if ((calbum_art + cartist_art) > 0) {

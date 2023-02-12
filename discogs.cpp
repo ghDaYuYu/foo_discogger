@@ -1096,7 +1096,7 @@ void parseTrackPositions_v23(pfc::array_t<ReleaseTrack_ptr>& intermediate_tracks
 
 	// use index track duration for single tracks
 	for (size_t i = 0; i < disc->tracks.get_size(); i++) {
-		auto& track = disc->tracks[i];
+		auto track = disc->tracks[i];
 		if (!track->discogs_duration_seconds && track->discogs_indextrack_duration_seconds) {
 			if (i + 1 > disc->tracks.get_size() - 1 || disc->tracks[i + 1]->discogs_indextrack_duration_seconds != track->discogs_indextrack_duration_seconds) {
 				track->discogs_duration_seconds = track->discogs_indextrack_duration_seconds;
@@ -1459,7 +1459,7 @@ void Discogs::parseArtistReleases(json_t *root, Artist *artist) {
 
 						bool duplicate = false;
 
-						for (auto& walk_master_release : artist->master_releases) {
+						for (auto walk_master_release : artist->master_releases) {
 							if (release->id == walk_master_release->id) {
 
 								
@@ -1581,7 +1581,7 @@ void Discogs::parseMasterVersions(json_t *root, MasterRelease *master_release) {
 				}
 
 				bool duplicate = false;
-				for (const auto& walk_subrelease : master_release->sub_releases) {
+				for (auto walk_subrelease : master_release->sub_releases) {
 
 					if (walk_subrelease->id == release->id) {
 						duplicate = true;

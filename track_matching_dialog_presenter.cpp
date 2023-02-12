@@ -52,8 +52,8 @@ void coord_presenters::Set_Conf(foo_conf cfg) {
 
 std::vector<pfc::string8> coord_presenters::Get_Titles(lsmode mode, bool tracks) {
 	std::vector<pfc::string8> titles;
-	const auto& bin = form_mode[mode];
-	const auto& pres = tracks ? bin->first : bin->second;
+	auto bin = form_mode[mode];
+	auto& pres = tracks ? bin->first : bin->second;
 	return pres.m_vtitles;
 }
 
@@ -77,7 +77,7 @@ size_t coord_presenters::GetFileTrackUiAtLvPos(size_t list_position, file_it& ou
 	if (res == ~0) return ~0;
 
 	try {
-		auto& tryvar = std::get<1>(*var_it);
+		auto tryvar = std::get<1>(*var_it);
 		res = tryvar.first;
 		out = tryvar.second;
 	}
@@ -119,7 +119,7 @@ size_t coord_presenters::GetFileArtAtLvPos(size_t list_position, getimages_file_
 
 void coord_presenters::InitUiList(HWND hwnd, lsmode mode, bool tracks, CListControlOwnerData* uilist) {
 	
-	auto& bin = form_mode[mode];
+	auto bin = form_mode[mode];
 	track_presenter* uipres;
 
 	if (tracks) {
@@ -134,7 +134,7 @@ void coord_presenters::InitUiList(HWND hwnd, lsmode mode, bool tracks, CListCont
 
 std::pair<size_t, presenter*> coord_presenters::columnHitTest(CPoint point) {
 	
-	const auto& bin = form_mode[lsmode::tracks_ui];
+	auto bin = form_mode[lsmode::tracks_ui];
 
 	size_t icol = pfc_infinite;
 	
@@ -205,7 +205,7 @@ size_t coord_presenters::ListUserCmd(HWND hwnd, lsmode mode, int cmd,
 	size_t nextfocus = ~0;
 
 	presenter* pres = nullptr;
-	const auto& bin = form_mode[mode];
+	auto bin = form_mode[mode];
 
 	if (bin->first.GetListView() == hwnd)
 		pres = &bin->first;
@@ -230,7 +230,7 @@ size_t coord_presenters::ListUserCmdDELETE(HWND hwnd, lsmode mode, int cmd, bit_
 	t_size nextfocus = pfc_infinite;
 
 	presenter* pres = nullptr;
-	auto& bin = form_mode[mode];
+	auto bin = form_mode[mode];
 
 	if (bin->first.GetListView() == hwnd)
 		pres = &bin->first;
@@ -291,7 +291,7 @@ size_t coord_presenters::ListUserCmdDELETE(HWND hwnd, lsmode mode, int cmd, bit_
 size_t coord_presenters::ListUserCmdMOVE(HWND hwnd, lsmode mode, int cmd, bit_array_bittable cmdmask, bit_array_bittable are_albums, pfc::array_t<size_t> order, bool cmdmod) {
 
 	presenter* pres = nullptr;
-	auto& bin = form_mode[mode];
+	auto bin = form_mode[mode];
 
 	if (bin->first.GetListView() == hwnd) {
 		pres = &bin->first;
@@ -407,7 +407,7 @@ void coord_presenters::swap_map_elements(HWND hwnd, const size_t key1, const siz
 void coord_presenters::reorder_map_elements(HWND hwnd, size_t const* order, size_t count, lsmode mode) {
 
 	presenter* pres = nullptr;
-	auto& fm = form_mode[lsmode::tracks_ui];
+	auto fm = form_mode[lsmode::tracks_ui];
 
 	if (fm->first.GetListView() == hwnd)
 		pres = &fm->first;
@@ -1148,7 +1148,7 @@ void files_artwork_presenter::GetExistingArtwork() {
 	
 	std::swap(album_art_prefs[artist_num], album_art_prefs[disc_num]);
 
-	for (auto& fb_art_pref : album_art_prefs) {
+	for (auto fb_art_pref : album_art_prefs) {
 		std::pair<pfc::string8, pfc::string8> result;
 
 		pfc::string8 directory;
@@ -1358,7 +1358,7 @@ void files_artwork_presenter::ImageListReset(pfc::array_t<GUID> album_art_ids) {
 	m_lstimg.Destroy();
 	m_lstimg_small.Destroy();
 
-	for (auto& tmp_pair : m_vtemp_files) {
+	for (auto tmp_pair : m_vtemp_files) {
 		uDeleteFile(tmp_pair.first);
 		uDeleteFile(tmp_pair.second);
 	}
@@ -1406,7 +1406,7 @@ void discogs_artwork_presenter::Populate() {
 	pfc::array_t<Discogs::ReleaseArtist_ptr> release_artists = m_release->artists;
 
 	size_t cartist_img = 0;
-	for (const auto& wra : release_artists) {
+	for (auto wra : release_artists) {
 		cartist_img += wra->full_artist->images.get_count();
 	}
 
@@ -1439,7 +1439,7 @@ void discogs_artwork_presenter::Populate() {
 
 	}
 
-	for (const auto& wra : release_artists) {
+	for (auto wra : release_artists) {
 		//artist artwork
 		pfc::array_t<Discogs::Image_ptr> full_artist_images = wra->full_artist->images;
 		for (size_t i = 0; i < full_artist_images.get_count(); i++) {

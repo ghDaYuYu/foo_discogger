@@ -45,8 +45,10 @@ void CTrackMatchingDialog::pending_previews_done(size_t n) {
 		m_coord.Invalidate();
 	}
 }
+
 LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
 
+	showtitle();
 	SetIcon(g_discogs->icon);
 	DlgResize_Init(mygripp.enabled, true);
 
@@ -717,8 +719,16 @@ LRESULT CTrackMatchingDialog::OnButtonWriteTags(WORD /*wNotifyCode*/, WORD wID, 
 	}
 
 	generate_track_mappings(m_tag_writer->m_track_mappings);
-	service_ptr_t<generate_tags_task> task = new service_impl_t<generate_tags_task>(this, m_tag_writer, false);
-	task->start();
+
+	try {
+		service_ptr_t<generate_tags_task> task = new service_impl_t<generate_tags_task>(this, m_tag_writer, false);
+		task->start();
+	}
+	catch (locked_task_exception e)
+	{
+		log_msg(e.what());
+	}
+
 	return TRUE;
 }
 
@@ -1717,4 +1727,9 @@ LRESULT CTrackMatchingDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM
 	cfg_window_placement_track_matching_dlg.on_window_destruction(m_hWnd);
 
 	return 0;
+}
+
+void CTrackMatchingDialog::showtitle() {
+	if (CONF.awt_alt_mode()) { uSetWindowText(m_hWnd, "Preview Tags +"); }
+	else { uSetWindowText(m_hWnd, "Preview Tags"); }
 }

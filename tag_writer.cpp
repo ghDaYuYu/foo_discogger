@@ -549,7 +549,8 @@ void TagWriter::write_tags_track_map() {
 			else {
 
 				bool release_id_mod = STR_EQUAL(TAG_RELEASE_ID, result->tag_entry->tag_name.get_ptr());
-				release_id_mod &= !CONF.mode_write_alt;
+				release_id_mod &= !CONF.awt_alt_mode();
+				
 				if (release_id_mod) {
 					if (!(result->tag_entry->enable_write)) {
 						approved = true;

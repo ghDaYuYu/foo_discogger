@@ -69,6 +69,7 @@ public:
 	void load_column_layout();
 	bool build_current_cfg();
 	void pushcfg();
+	void showtitle();
 
 #pragma warning( push )
 #pragma warning( disable : 26454 )

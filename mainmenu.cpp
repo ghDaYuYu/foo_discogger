@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "resource.h"
 #include "guids_discogger.h"
 
@@ -10,6 +10,8 @@
 
 static const GUID contextmenu_group_discogs_id = { 0x73505390, 0x5ff3, 0x4ca0, { 0x91, 0x1e, 0xc1, 0xf9, 0xfd, 0xaa, 0x88, 0xed } }; //mod
 static service_factory_single_t<contextmenu_group_popup_impl> mygroup(contextmenu_group_discogs_id, contextmenu_groups::tagging, "Discogger", 0);
+static const GUID contextmenu_group_discogs_web_id = { 0x51d6ec22, 0x3bed, 0x46de, { 0x94, 0x71, 0xeb, 0xc8, 0x98, 0xed, 0x75, 0x62 } };
+static service_factory_single_t<contextmenu_group_popup_impl> mysep1(contextmenu_group_discogs_web_id, contextmenu_group_discogs_id, "Web", 0);
 static const GUID contextmenu_group_discogs_utilities_id = { 0x2fa5ff96, 0xf204, 0x4922, { 0xa6, 0x28, 0x40, 0x1d, 0xf8, 0xe0, 0xe8, 0xef } }; //mod
 static service_factory_single_t<contextmenu_group_popup_impl> mygroup2(contextmenu_group_discogs_utilities_id, contextmenu_group_discogs_id, "Utilities", 0);
 
@@ -50,41 +52,31 @@ static const GUID guid_FindDeletedReleases =
 static const GUID guid_FindReleasesNotInCollection =
 { 0x4197518e, 0x8cdf, 0x49e9, { 0xbb, 0xfc, 0xf9, 0x6c, 0x8b, 0x21, 0x64, 0x23 } };
 
-class contextmenu_discogs : public contextmenu_item_simple
-{
+
+class contextmenu_discogs_web : public contextmenu_item_simple {
+
 private:
 	enum MenuIndex
 	{
-		WriteTags,
-		WriteTagsAlt,
 		DisplayReleasePage,
 		DisplayMasterReleasePage,
 		DisplayArtistPage,
 		DisplayArtistArtPage,
 		DisplayLabelPage,
 		DisplayAlbumArtPage,
-		EditTagMappings,
-		Configuration,
 	};
 
 public:
-
 	GUID get_parent() override {
-		return contextmenu_group_discogs_id;
+		return contextmenu_group_discogs_web_id;
 	}
 
 	unsigned get_num_items() override {
-		return 10;
+		return 6;
 	}
 
 	void get_item_name(unsigned p_index, pfc::string_base& p_out) override {
 		switch (p_index) {
-		case WriteTags:
-			p_out = "Write tags...";
-			break;
-		case WriteTagsAlt:
-			p_out = "Plain write tags ...";
-			break;
 		case DisplayReleasePage:
 			p_out = "Web release page";
 			break;
@@ -103,36 +95,97 @@ public:
 		case DisplayAlbumArtPage:
 			p_out = "Web album artwork page";
 			break;
-		case EditTagMappings:
-			p_out = "Edit Tag Mappings...";
+		}
+		return;
+	}
+
+	bool context_get_display(unsigned p_index, metadb_handle_list_cref p_data, pfc::string_base& p_out, unsigned& p_displayflags, const GUID& p_caller) override {
+		PFC_ASSERT(p_index >= 0 && p_index < get_num_items());
+		get_item_name(p_index, p_out);
+
+		if (!g_discogs) {
+			//exit
+			p_displayflags = FLAG_GRAYED;
+			return true;
+		}
+
+		switch (p_index) {
+		case DisplayReleasePage:
+			p_displayflags = g_discogs->item_has_tag(p_data.get_item(0), TAG_RELEASE_ID) ? 0 : FLAG_GRAYED;
 			break;
-		case Configuration:
-			p_out = "Configuration...";
+		case DisplayMasterReleasePage:
+			p_displayflags = (g_discogs->item_has_tag(p_data.get_item(0), TAG_MASTER_RELEASE_ID) || g_discogs->item_has_tag(p_data.get_item(0), TAG_RELEASE_ID)) ? 0 : FLAG_GRAYED;
+			break;
+		case DisplayArtistPage:
+			p_displayflags = g_discogs->item_has_tag(p_data.get_item(0), TAG_ARTIST_ID, "DISCOGS_ARTIST_LINK") ? 0 : FLAG_GRAYED;
+			break;
+		case DisplayArtistArtPage:
+			p_displayflags = g_discogs->item_has_tag(p_data.get_item(0), TAG_ARTIST_ID, "DISCOGS_ARTIST_LINK") ? 0 : FLAG_GRAYED;
+			break;
+		case DisplayLabelPage:
+			p_displayflags = g_discogs->item_has_tag(p_data.get_item(0), TAG_LABEL_ID, "DISCOGS_LABEL_LINK") ? 0 : FLAG_GRAYED;
+			break;
+		case DisplayAlbumArtPage:
+			p_displayflags = g_discogs->item_has_tag(p_data.get_item(0), TAG_RELEASE_ID) ? 0 : FLAG_GRAYED;
 			break;
 		}
+		return true;
+	}
+
+	GUID get_item_guid(unsigned p_index) override {
+
+		switch (p_index) {
+		case DisplayReleasePage:
+			return guid_DisplayReleasePage;
+		case DisplayMasterReleasePage:
+			return guid_DisplayMasterReleasePage;
+		case DisplayArtistPage:
+			return guid_DisplayArtistPage;
+		case DisplayArtistArtPage:
+			return guid_DisplayArtistArtPage;
+		case DisplayLabelPage:
+			return guid_DisplayLabelPage;
+		case DisplayAlbumArtPage:
+			return guid_DisplayAlbumArtPage;
+		}
+		return GUID_NULL;
+	}
+
+	bool get_item_description(unsigned p_index, pfc::string_base& p_out) override {
+		switch (p_index) {
+		case DisplayReleasePage:
+			p_out = "Web release page";
+			break;
+		case DisplayMasterReleasePage:
+			p_out = "Web master release page";
+			break;
+		case DisplayArtistPage:
+			p_out = "Web artist page";
+			break;
+		case DisplayArtistArtPage:
+			p_out = "Web artist artwork page";
+			break;
+		case DisplayLabelPage:
+			p_out = "Web label page";
+			break;
+		case DisplayAlbumArtPage:
+			p_out = "Web album artwork page";
+			break;
+		}
+		return true;
 	}
 
 	void context_command(unsigned p_index, metadb_handle_list_cref p_data, const GUID& p_caller) override {
 		unsigned displayflags;
 		pfc::string8 out;
 		context_get_display(p_index, p_data, out, displayflags, p_caller);
-		
+
 		if (displayflags & FLAG_GRAYED) {
 			//exit
 			return;
 		}
 
 		switch (p_index) {
-		case WriteTags:
-			CONF.mode_write_alt = false;
-			g_discogs->find_release_dialog = fb2k::newDialog<CFindReleaseDialog>(core_api::get_main_window(), p_data, CONF);
-			break;
-		
-		case WriteTagsAlt:
-			CONF.mode_write_alt = true;
-			g_discogs->find_release_dialog = fb2k::newDialog<CFindReleaseDialog>(core_api::get_main_window(), p_data, CONF);
-			break;
-
 		case DisplayReleasePage:
 			g_discogs->item_display_web_page(p_data.get_item(0), foo_discogs::RELEASE_PAGE);
 			break;
@@ -156,9 +209,81 @@ public:
 		case DisplayAlbumArtPage:
 			g_discogs->item_display_web_page(p_data.get_item(0), foo_discogs::ALBUM_ART_PAGE);
 			break;
+		}
+	}
+};
+
+
+class contextmenu_discogs : public contextmenu_item_simple
+{
+private:
+	enum MenuIndex
+	{
+		WriteTags,
+		WriteTagsAlt,
+		EditTagMappings,
+		Configuration,
+	};
+
+public:
+
+	GUID get_parent() override {
+		return contextmenu_group_discogs_id;
+	}
+
+	unsigned get_num_items() override {
+		return 4;
+	}
+
+	void get_item_name(unsigned p_index, pfc::string_base& p_out) override {
+		switch (p_index) {
+		case WriteTags:
+			p_out = "Write tags...";
+			break;
+		case WriteTagsAlt:
+			p_out = "Plain write tags ...";
+			break;
+		case EditTagMappings:
+			p_out = "Edit Tag Mappings...";
+			break;
+		case Configuration:
+			p_out = "Configuration...";
+			break;
+		}
+	}
+
+	void context_command(unsigned p_index, metadb_handle_list_cref p_data, const GUID& p_caller) override {
+		unsigned displayflags;
+		pfc::string8 out;
+		context_get_display(p_index, p_data, out, displayflags, p_caller);
+		
+		if (displayflags & FLAG_GRAYED) {
+			//exit
+			return;
+		}
+
+		switch (p_index) {
+		case WriteTags:
+		case WriteTagsAlt:
+			//lo former, hi current
+			CONF.mode_write_alt = MAKELPARAM(HIWORD(CONF.mode_write_alt), p_index == WriteTagsAlt);
+			g_discogs->find_release_dialog = fb2k::newDialog<CFindReleaseDialog>(core_api::get_main_window(), p_data, CONF);
+			if (g_discogs->tag_mappings_dialog) {
+				if (CONF.awt_mode_changing()) {
+					if (g_discogs->tag_mappings_dialog) {
+						CTagMappingDialog* dlg = g_discogs->tag_mappings_dialog;
+						dlg->UpdateAltMode(true);						
+					}
+				}
+			}
 
 		case EditTagMappings:
-			g_discogs->tag_mappings_dialog = fb2k::newDialog<CTagMappingDialog>(core_api::get_main_window());
+			if (!g_discogs->tag_mappings_dialog) {
+				g_discogs->tag_mappings_dialog = fb2k::newDialog<CTagMappingDialog>(core_api::get_main_window());
+			}
+			else {
+				::SetFocus(g_discogs->tag_mappings_dialog->m_hWnd);
+			}
 			break;
 
 		case Configuration:
@@ -186,24 +311,6 @@ public:
 				!g_discogs->track_matching_dialog &&
 				!g_discogs->preview_tags_dialog ? 0 : FLAG_GRAYED;
 			break;
-		case DisplayReleasePage:
-			p_displayflags = g_discogs->item_has_tag(p_data.get_item(0), TAG_RELEASE_ID) ? 0 : FLAG_GRAYED;
-			break;
-		case DisplayMasterReleasePage:
-			p_displayflags = (g_discogs->item_has_tag(p_data.get_item(0), TAG_MASTER_RELEASE_ID) || g_discogs->item_has_tag(p_data.get_item(0), TAG_RELEASE_ID)) ? 0 : FLAG_GRAYED;
-			break;
-		case DisplayArtistPage:
-			p_displayflags = g_discogs->item_has_tag(p_data.get_item(0), TAG_ARTIST_ID, "DISCOGS_ARTIST_LINK") ? 0 : FLAG_GRAYED;
-			break;
-		case DisplayArtistArtPage:
-			p_displayflags = g_discogs->item_has_tag(p_data.get_item(0), TAG_ARTIST_ID, "DISCOGS_ARTIST_LINK") ? 0 : FLAG_GRAYED;
-			break;
-		case DisplayLabelPage:
-			p_displayflags = g_discogs->item_has_tag(p_data.get_item(0), TAG_LABEL_ID, "DISCOGS_LABEL_LINK") ? 0 : FLAG_GRAYED;
-			break;
-		case DisplayAlbumArtPage:
-			p_displayflags = g_discogs->item_has_tag(p_data.get_item(0), TAG_RELEASE_ID) ? 0 : FLAG_GRAYED;
-			break;
 		case EditTagMappings:
 			p_displayflags = g_discogs->tag_mappings_dialog ? FLAG_GRAYED : 0;
 			break;
@@ -221,18 +328,6 @@ public:
 			return guid_WriteTags;
 		case WriteTagsAlt:
 			return guid_WriteTagsAlt;
-		case DisplayReleasePage:
-			return guid_DisplayReleasePage;
-		case DisplayMasterReleasePage:
-			return guid_DisplayMasterReleasePage;
-		case DisplayArtistPage:
-			return guid_DisplayArtistPage;
-		case DisplayArtistArtPage:
-			return guid_DisplayArtistArtPage;
-		case DisplayLabelPage:
-			return guid_DisplayLabelPage;
-		case DisplayAlbumArtPage:
-			return guid_DisplayAlbumArtPage;
 		case EditTagMappings:
 			return guid_EditTagMappings;
 		case Configuration:
@@ -248,24 +343,6 @@ public:
 			break;
 		case WriteTagsAlt:
 			p_out = "Plain write tags";
-			break;
-		case DisplayReleasePage:
-			p_out = "Web release page";
-			break;
-		case DisplayMasterReleasePage:
-			p_out = "Web master release page";
-			break;
-		case DisplayArtistPage:
-			p_out = "Web artist page";
-			break;
-		case DisplayArtistArtPage:
-			p_out = "Web artist artwork page";
-			break;
-		case DisplayLabelPage:
-			p_out = "Web label page";
-			break;
-		case DisplayAlbumArtPage:
-			p_out = "Web album artwork page";
 			break;
 		case EditTagMappings:
 			p_out = "Edit tag mappings";
@@ -322,14 +399,26 @@ public:
 
 		switch (p_index) {
 		case FindDeletedReleases: {
-			service_ptr_t<find_deleted_releases_task> task = new service_impl_t<find_deleted_releases_task>(p_data);
-			task->start();
+			try {
+				service_ptr_t<find_deleted_releases_task> task = new service_impl_t<find_deleted_releases_task>(p_data);
+				task->start();
+			}
+			catch (locked_task_exception e)
+			{
+				log_msg(e.what());
+			}
 		}
 		break;
 
 		case FindReleasesNotInCollect: {
-			service_ptr_t<find_releases_not_in_collection_task> task = new service_impl_t<find_releases_not_in_collection_task>(p_data);
-			task->start();
+			try {
+				service_ptr_t<find_releases_not_in_collection_task> task = new service_impl_t<find_releases_not_in_collection_task>(p_data);
+				task->start();
+			}
+			catch (locked_task_exception e)
+			{
+				log_msg(e.what());
+			}
 		}
 		break;
 		}
@@ -380,4 +469,5 @@ public:
 };
 
 static contextmenu_item_factory_t<contextmenu_discogs> g_contextmenu_discogs_factory;
+static contextmenu_item_factory_t<contextmenu_discogs_web> g_contextmenu_discogs_separator;
 static contextmenu_item_factory_t<contextmenu_discogs_utilities> g_contextmenu_discogs_utilities_factory;

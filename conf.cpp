@@ -144,6 +144,7 @@ bool CConf::load() {
 	vspec v206{ &vec_specs, 27, 42, 15 }; // 1.0.8
 	vspec v207{ &vec_specs, 27, 50, 15 }; // 1.0.13
 	vspec v208{ &vec_specs, 27, 50, 16 }; // 1.0.15
+	vspec v209{ &vec_specs, 27, 51, 16 }; // 1.0.16.1
 
 	vspec* vlast = &vec_specs.at(vec_specs.size() - 1);
 	
@@ -236,6 +237,12 @@ bool CConf::load() {
 		);
 		cfg_int_entries.add_item(
 			make_conf_entry(CFG_CUSTOM_FONT, custom_font)
+		);
+	}
+
+	if (vLoad < v209) {
+		cfg_int_entries.add_item(
+			make_conf_entry(CFG_ALT_WRITE_FLAGS, alt_write_flags)
 		);
 	}
 
@@ -572,6 +579,11 @@ bool CConf::int_load(const conf_int_entry& item) {
 	
 	case CFG_CUSTOM_FONT:
 		custom_font = item.value;
+		break;
+
+	//v209 (1.0.16.1)
+	case CFG_ALT_WRITE_FLAGS:
+		alt_write_flags = item.value;
 		break;
 
 	//..
@@ -941,6 +953,10 @@ bool CConf::id_to_val_int(int id, const CConf& in_conf, int& out, bool assert) {
 		out = in_conf.custom_font;
 		break;
 
+	//v209 (1.0.16.1)
+	case CFG_ALT_WRITE_FLAGS:
+		out = in_conf.alt_write_flags;
+		break;
 	//..
 	default:
 		if (assert) {
@@ -1248,7 +1264,8 @@ void CConf::save() {
 	cfg_int_entries.add_item(make_conf_entry(CFG_DISCOGS_ARTWORK_TL_INDEX_WIDTH, match_discogs_artwork_tl_index_width));
 
 	cfg_int_entries.add_item(make_conf_entry(CFG_CUSTOM_FONT, custom_font));
-
+	//v209 (1.0.16.1)
+	cfg_int_entries.add_item(make_conf_entry(CFG_ALT_WRITE_FLAGS, alt_write_flags));
 	//..
 
 	cfg_string_entries.remove_all();
@@ -1303,4 +1320,12 @@ bool CConf::history_enabled() {
 
 bool CConf::history_max() {
 	return LOWORD(history_enabled_max);
+}
+
+bool CConf::awt_mode_changing() {
+	return LOWORD(mode_write_alt) != HIWORD(mode_write_alt);
+}
+
+bool CConf::awt_alt_mode() {
+	return HIWORD(CONF.mode_write_alt);
 }

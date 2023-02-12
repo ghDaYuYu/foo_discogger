@@ -28,13 +28,6 @@ inline void CTagMappingDialog::load_column_layout() {
 	}
 }
 
-void CTagMappingDialog::pushcfg() {
-	if (build_current_cfg()) {
-		CONF.save(CConf::cfgFilter::TAG, conf);
-		CONF.load();
-	}
-}
-
 inline bool CTagMappingDialog::build_current_cfg() {
 
 	bool bres = false;
@@ -58,7 +51,7 @@ inline bool CTagMappingDialog::build_current_cfg() {
 	if (stricmp_utf8(hl_word, conf.edit_tags_dlg_hl_keyword)) {
 		conf.edit_tags_dlg_hl_keyword = hl_word;
 		bres |= true;
-	}	
+	}
 	return bres;
 }
 
@@ -81,8 +74,34 @@ void CTagMappingDialog::on_mapping_changed(bool changed) {
 	::EnableWindow(uGetDlgItem(IDC_APPLY), changed);
 }
 
+void CTagMappingDialog::pushcfg() {
+
+	if (build_current_cfg()) {
+
+		CONF.load();
+	}
+}
+
+void CTagMappingDialog::UpdateAltMode(bool erase) {
+
+	showtitle();
+
+	if (g_discogs) {
+
+		awt_update_mod_flag(/*from entry*/true);
+
+	set_tag_mapping(copy_tag_mappings());
+
+	if (erase) {
+		m_tag_list.ReloadItems(bit_array_true());
+	}
+}
+
 LRESULT CTagMappingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
+
 	SetIcon(g_discogs->icon);
+	UpdateAltMode();
+
 	conf = CONF;
 
 	//darkmode
@@ -203,13 +222,25 @@ void CTagMappingDialog::update_list_width() {
 
 void CTagMappingDialog::applymappings() {
 
-	set_cfg_tag_mappings(m_ptag_mappings);
 	on_mapping_changed(check_mapping_changed());
+
+	set_cfg_tag_mappings(m_ptag_mappings);
+
+	if (awt_unmatched_flag()) {
+
+		awt_update_mod_flag(/*from flag*/false);
+		CONF.save(CConf::cfgFilter::TAG, CONF, CFG_ALT_WRITE_FLAGS);
+	}
 
 	if (g_discogs->preview_tags_dialog) {
 		CPreviewTagsDialog* dlg = g_discogs->preview_tags_dialog;
 		dlg->tag_mappings_updated();
 	}
+}
+
+void CTagMappingDialog::showtitle() {
+	if (CONF.awt_alt_mode()) { uSetWindowText(m_hWnd, "Tag Mapping +"); }
+	else { uSetWindowText(m_hWnd, "Tag Mapping"); }
 }
 
 LRESULT CTagMappingDialog::OnOk(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
@@ -447,7 +478,7 @@ void CTagMappingDialog::show_context_menu(CPoint& pt, pfc::bit_array_bittable& s
 			sop_wu &= entry.enable_write && entry.enable_update;
 			sop_nwu &= !entry.enable_write && !entry.enable_update;
 			bool release_id_mod = single_sel && STR_EQUAL(TAG_RELEASE_ID, entry.tag_name.get_ptr());
-			release_id_mod &= !CONF.mode_write_alt;
+			release_id_mod &= !CONF.awt_alt_mode();
 			bool frozen_mod = single_sel && entry.freeze_tag_name;
 			bool nfsop_w, nfsop_u, nfsop_wu, nfsop_nwu;
 			nfsop_w = nfsop_u = nfsop_wu = nfsop_nwu = !bshift && (release_id_mod || frozen_mod);
@@ -523,7 +554,7 @@ void CTagMappingDialog::show_context_menu(CPoint& pt, pfc::bit_array_bittable& s
 				do {
 					entry = m_ptag_mappings->get_item(isel);
 					release_id_mod = STR_EQUAL(TAG_RELEASE_ID, entry.tag_name.get_ptr()) && !bl_write;
-					release_id_mod &= !CONF.mode_write_alt;
+					release_id_mod &= !CONF.awt_alt_mode();
 
 					if ((entry.freeze_tag_name && bshift && !release_id_mod) || !entry.freeze_tag_name) {
 

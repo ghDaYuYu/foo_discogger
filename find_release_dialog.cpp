@@ -5,6 +5,7 @@
 #include "utils.h"
 #include "utils_db.h"
 
+#include "tag_mappings_dialog.h"
 #include "find_release_dialog.h"
 
 static const GUID guid_cfg_window_placement_find_release_dlg = { 0x7342d2f3, 0x235d, 0x4bed, { 0x86, 0x7e, 0x82, 0x7f, 0xa8, 0x8e, 0xd9, 0x87 } };
@@ -29,6 +30,10 @@ CFindReleaseDialog::CFindReleaseDialog(HWND p_parent, metadb_handle_list items, 
 cewb_artist_search(), cewb_release_filter(), cewb_release_url(), m_dctree(this, &m_tracer), m_alist(this, &m_tracer) {
 
 	load_global_icons();
+
+	if (CONF.awt_mode_changing()) {
+		awt_update_mod_flag(/*from map_entry*/true);
+	}
 
 	//HWND
 
@@ -55,6 +60,15 @@ CFindReleaseDialog::~CFindReleaseDialog() {
 	DeleteObject(g_hFont);
 
 	if (g_discogs) {
+
+		awt_save_normal_mode();
+
+		if (!g_discogs->tag_mappings_dialog) {
+			//back to normal mode
+			//lo former, hi current
+			CONF.mode_write_alt = MAKELPARAM(HIWORD(CONF.mode_write_alt), 0);		
+			//todo: destroy g_discogs->tag_mappings_dialog
+		}
 
 		g_discogs->find_release_dialog = nullptr;
 	}
@@ -90,13 +104,20 @@ void CFindReleaseDialog::enable(bool is_enabled) {
 }
 
 void CFindReleaseDialog::enable_alt(bool is_enabled) {
+	
+	HWND h1 = GetDlgItem(IDC_RELEASE_URL_TEXT);
+	HWND h2 = GetDlgItem(IDC_BTN_PROCESS_RELEASE);
+	HWND h3 = GetDlgItem(IDC_LABEL_RELEASE_ID);
+	HWND h4 = GetDlgItem(IDC_BTN_CONFIGURE);
+
 
 	for (HWND walk = ::GetWindow(m_hWnd, GW_CHILD); walk != NULL; ) {
 		HWND next = ::GetWindow(walk, GW_HWNDNEXT);
-		if (is_enabled && next != GetDlgItem(IDC_BTN_CONFIGURE) && next != GetDlgItem(IDC_RELEASE_URL_TEXT) && next != GetDlgItem(IDC_BTN_PROCESS_RELEASE))
+		if (is_enabled && next != h1 && next != h2 && next != h3 && next != h4)
 			::uEnableWindow(next, !is_enabled);
 		else if (!is_enabled) {
 			//..
+			return;
 		}
 		walk = next;
 	}
@@ -274,7 +295,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 
 	SetIcon(g_discogs->icon);
 
-	enable_alt(CONF.mode_write_alt);
+	enable_alt(CONF.awt_alt_mode());
 
 	m_edit_artist = GetDlgItem(IDC_EDIT_SEARCH);
 	m_edit_filter = GetDlgItem(IDC_EDIT_FILTER);
@@ -338,7 +359,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 
 	//init artist search/release id textboxes
 
-	if (!m_tracer.has_release() && CONF.mode_write_alt) {
+	if (!m_tracer.has_release() && CONF.awt_alt_mode()) {
 		file_info_impl finfo;
 		metadb_handle_ptr item = items[0];
 		item->get_info(finfo);
@@ -369,7 +390,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	m_alist.CreateInDialog(*this, IDC_ARTIST_LIST, wndReplace);
 	m_alist.InitializeHeaderCtrl(HDS_HIDDEN);	
 	m_artist_list = m_alist.m_hWnd;
-	if (CONF.mode_write_alt) {
+	if (CONF.awt_alt_mode()) {
 		//..
 	}
 	else {
@@ -970,7 +991,7 @@ void CFindReleaseDialog::route_artist_search(pfc::string8 artistname, bool dlgbu
 				task->start(m_hWnd);
 			}
 		}
-		else if (by_name && !CONF.mode_write_alt) {
+		else if (by_name && !CONF.awt_alt_mode()) {
 			service_ptr_t<search_artist_process_callback> task =
 				new service_impl_t<search_artist_process_callback>(artistname.get_ptr(), 0);
 			task->start(m_hWnd);

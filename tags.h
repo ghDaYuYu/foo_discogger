@@ -61,6 +61,7 @@ extern bool operator ==(const tag_mapping_entry &a, const tag_mapping_entry &b);
 
 
 FB2K_STREAM_READER_OVERLOAD(tag_mapping_entry) {
+
 	pfc::string8 tag_name, formatting_string;
 	stream >> tag_name
 		>> value.enable_write
@@ -72,33 +73,24 @@ FB2K_STREAM_READER_OVERLOAD(tag_mapping_entry) {
 	value.tag_name = tag_name;
 	value.formatting_script = formatting_string;
 
-	bool release_id_mod = STR_EQUAL(TAG_RELEASE_ID, value.tag_name.get_ptr());
-	if (release_id_mod) {
-		if (!value.enable_write) {
-			value.enable_write = true;
-		}		
-	}
-
 	return stream;
 }
 
 
 FB2K_STREAM_WRITER_OVERLOAD(tag_mapping_entry) {
+
 	bool release_id_mod = STR_EQUAL(TAG_RELEASE_ID, value.tag_name.get_ptr());
+	bool mod_write = value.enable_write;
+	bool mod_update = value.enable_update;
 	if (release_id_mod) {
-		if (!value.enable_write) {
-			release_id_mod = true;
-		}
-		else
-		{
-			release_id_mod = value.enable_write;
-		}
+		mod_write = LOWORD(CONF.alt_write_flags) & (1 << 0);
+		mod_update = LOWORD(CONF.alt_write_flags) & (1 << 1);
 	}
 	pfc::string8 tag_name(value.tag_name.get_ptr());
 	pfc::string8 formatting_string((const char*)value.formatting_script);
 	stream << tag_name
-		<< release_id_mod
-		<< value.enable_update
+		<< mod_write
+		<< mod_update
 		<< value.freeze_write
 		<< value.freeze_update
 		<< value.freeze_tag_name
@@ -106,11 +98,19 @@ FB2K_STREAM_WRITER_OVERLOAD(tag_mapping_entry) {
 	return stream;
 }
 
+
 typedef pfc::list_t<tag_mapping_entry> tag_mapping_list_type;
 typedef cfg_objList<tag_mapping_entry> cfg_tag_mapping_list_type;
 
 extern void init_tag_mappings();
 extern void init_with_default_tag_mappings();
+
+extern bool awt_get_release_mod_flag(tag_mapping_entry& out);
+extern bool awt_set_release_mod_flag(tag_mapping_entry e);
+extern void awt_update_mod_flag(bool fromFlag =	true);
+extern bool awt_unmatched_flag();
+extern void awt_save_normal_mode();
+
 extern pfc::list_t<tag_mapping_entry> * copy_tag_mappings();
 extern pfc::list_t<tag_mapping_entry> * copy_default_tag_mappings();
 extern void update_loaded_tagmaps_multivalues();

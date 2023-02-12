@@ -912,8 +912,7 @@ INT_PTR WINAPI CConfigurationDialog::on_tagging_dialog_message(HWND wnd, UINT ms
 				g_discogs->tag_mappings_dialog = fb2k::newDialog<CTagMappingDialog>(core_api::get_main_window());
 			}
 			else {
-				CDialogImpl* tmdlg = pfc::downcast_guarded<CDialogImpl*>(g_discogs->tag_mappings_dialog);
-				::SetFocus(tmdlg->m_hWnd);
+				::SetFocus(g_discogs->tag_mappings_dialog->m_hWnd);
 			}
 		}
 		else if (LOWORD(wp) == IDC_BTN_EDIT_CAT_CREDIT) {

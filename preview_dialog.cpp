@@ -220,6 +220,8 @@ inline bool get_diff_release_name(TagWriter_ptr tag_writer, pfc::string8& rel_de
 CPreviewTagsDialog::~CPreviewTagsDialog() {
 
 
+	awt_save_normal_mode();
+
 	if (m_uilist.TableEdit_IsActive()) {
 		m_uilist.TableEdit_Abort(true);
 	}
@@ -234,6 +236,7 @@ CPreviewTagsDialog::~CPreviewTagsDialog() {
 
 LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
 
+	showtitle();
 	SetIcon(g_discogs->icon);
 
 	conf = CConf(CONF);
@@ -1301,4 +1304,9 @@ LRESULT CPreviewTagsDialog::OnCheckPreviewShowStats(WORD /*wNotifyCode*/, WORD w
 	generate_tag_results(/*compute stats*/true);
 
 	return FALSE;
+}
+
+void CPreviewTagsDialog::showtitle() {
+	if (CONF.awt_alt_mode()) { uSetWindowText(m_hWnd, "Preview Tags +"); }
+	else { uSetWindowText(m_hWnd, "Preview Tags"); }
 }

@@ -108,8 +108,8 @@ void init_with_default_tag_mappings() {
 
 pfc::list_t<tag_mapping_entry> * copy_tag_mappings() {
 	pfc::list_t<tag_mapping_entry>* mappings = new pfc::list_t<tag_mapping_entry>();
-	for (size_t i = 0; i < cfg_tag_mappings.get_count(); i++) {
-		mappings->add_item(cfg_tag_mappings.get_item(i));
+	for (auto tag_entry : cfg_tag_mappings) {
+		mappings->add_item(tag_entry);
 	}
 	return mappings;
 }
@@ -124,9 +124,89 @@ pfc::list_t<tag_mapping_entry> * copy_default_tag_mappings() {
 	return mappings;
 }
 void set_cfg_tag_mappings(pfc::list_t<tag_mapping_entry> *mappings) {
+
 	cfg_tag_mappings.remove_all();
 	for (size_t i = 0; i < mappings->get_count(); i++) {
 		cfg_tag_mappings.add_item(mappings->get_item(i));
+	}
+}
+
+ bool awt_get_release_mod_flag(tag_mapping_entry& out) {
+	for (auto& tag_entry : cfg_tag_mappings) {		
+		bool release_id_mod = STR_EQUAL(TAG_RELEASE_ID, tag_entry.tag_name.get_ptr());
+		if (release_id_mod) {
+			out = tag_entry;
+			return true;
+		}
+	}
+	return false;
+}
+
+bool awt_set_release_mod_flag(tag_mapping_entry e) {
+	for (auto & tag_entry : cfg_tag_mappings) {
+		bool release_id_mod = STR_EQUAL(TAG_RELEASE_ID, tag_entry.tag_name.get_ptr());
+		if (release_id_mod) {
+			tag_entry.enable_write = e.enable_write;
+			tag_entry.enable_update = e.enable_update;
+			return true;
+		}
+	}
+	return false;
+}
+
+void awt_update_mod_flag(bool fromFlag) {
+
+	//lo former state, hi current
+
+	tag_mapping_entry forth;
+	tag_mapping_entry curr;
+	awt_get_release_mod_flag(curr);
+	auto leaving_val = (curr.enable_write ? 1 << 0 : 0) | (curr.enable_update ? 1 << 1 : 0);
+
+	if (!fromFlag) {
+		if (CONF.awt_alt_mode()) {
+			CONF.alt_write_flags = MAKELPARAM(LOWORD(CONF.alt_write_flags), leaving_val);
+		}
+		else {
+			CONF.alt_write_flags = MAKELPARAM(!leaving_val ? 1 : leaving_val, HIWORD(CONF.alt_write_flags));
+		}
+		return;
+	}
+
+	if (CONF.awt_alt_mode()) {
+			forth.enable_write = HIWORD(CONF.alt_write_flags) & (1 << 0);
+			forth.enable_update = HIWORD(CONF.alt_write_flags) & (1 << 1);
+	}
+	else {
+		//normal
+		forth.enable_write = LOWORD(CONF.alt_write_flags) & (1 << 0);
+		forth.enable_update = LOWORD(CONF.alt_write_flags) & (1 << 1);
+	}
+	awt_set_release_mod_flag(forth);
+}
+bool awt_unmatched_flag() {
+
+	//lo former state, hi current
+
+	tag_mapping_entry forth;
+	tag_mapping_entry curr;
+	awt_get_release_mod_flag(curr);
+	auto curr_val = (curr.enable_write ? 1 << 0 : 0) | (curr.enable_update ? 1 << 1 : 0);
+
+	if (CONF.awt_alt_mode()) {
+		//alt tag write
+		return HIWORD(CONF.alt_write_flags) != curr_val;		
+	}
+	else {
+		//normal tag write
+		return LOWORD(CONF.alt_write_flags) != curr_val;
+	}
+}
+
+void awt_save_normal_mode() {
+
+	if (!CONF.awt_alt_mode()) {
+		awt_update_mod_flag(/*from entry*/false);
 	}
 }
 

@@ -41,6 +41,18 @@ class initquit_discogs : public initquit
 
 		for (auto & entry :  cfg_tag_mappings) {
 
+			if (!CONF.alt_write_flags) {
+				//todo: clean up, use awt function
+				bool release_id_mod = STR_EQUAL(TAG_RELEASE_ID, entry.tag_name.get_ptr());
+				if (release_id_mod) {
+					int non_alt = ((entry.enable_write || /*force*/true) ? 1 << 0 : 0) | (entry.enable_update ? 1 << 1 : 0);
+					if (!entry.enable_write) {
+						entry.enable_write = true;
+					}
+					CONF.alt_write_flags = MAKELPARAM(non_alt, 1 << 3);
+				}
+			}
+
 			entry.is_multival_meta = is_multivalue_meta(entry.tag_name);
 		
 		}

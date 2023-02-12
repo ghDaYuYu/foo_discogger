@@ -220,6 +220,7 @@ private:
 
 	bool build_current_cfg();
 	void pushcfg();
+	void showtitle();
 
 	void generate_track_mappings(track_mappings_list_type& m_track_mappings);
 	bool generate_artwork_guids(pfc::array_t<GUID>& my_album_art_ids, bool cfg_default);

@@ -2,10 +2,6 @@
 #include "conf_flag_mng.h"
 #include "formatting_script.h"
 
-#pragma once
-#include "conf_flag_mng.h"
-#include "formatting_script.h"
-
 //CFG_SAVE_ALBUM_ART/save_album_art
 #define ARTSAVE_SKIP_USER_FLAG                 1 << 0
 #define ARTSAVE_SKIP_CUST_FLAG                 1 << 1
@@ -173,6 +169,9 @@
 #define CFG_DISCOGS_ARTWORK_TL_INDEX_WIDTH          2144
 
 #define CFG_CUSTOM_FONT                             2145
+
+//v209 (1.0.16.1)
+#define CFG_ALT_WRITE_FLAGS                         2146
 
 
 // STRINGS -------------------------------------
@@ -486,6 +485,9 @@ public:
 		{ asi(cfgFilter::TAG), CFG_EDIT_TAGS_DIALOG_COL3_WIDTH },
 		//v200
 		{ asi(cfgFilter::TAG), CFG_EDIT_TAGS_DIALOG_HL_KEYWORD },
+		//v209 (1.0.16.1)
+		{ asi(cfgFilter::TAG), CFG_ALT_WRITE_FLAGS },
+
 		//..
 
 		// **** TRACK (track_matching_dialog)
@@ -541,7 +543,10 @@ public:
 
 	bool history_enabled();
 	bool history_max();
-	
+
+	bool awt_mode_changing();
+	bool awt_alt_mode();
+		
 	bool replace_ANVs = false;
 	bool move_the_at_beginning = true;
 	bool discard_numeric_suffix = true;
@@ -680,10 +685,12 @@ public:
 
 	//v208
 	pfc::string8 multivalue_fields = "ARTIST;ALBUM ARTIST;PRODUCER;COMPOSER;PERFORMER;GENRE;STYLE";
+	//v209 (1.0.16.1)
+	int alt_write_flags = 0;
 	//..
 
 	std::vector<int> vflags;
-	bool mode_write_alt = false;
+	int mode_write_alt = 0;
 
 	friend class FlgMng;
 };

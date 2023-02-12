@@ -164,11 +164,7 @@ public:
 		return ::IsDialogMessage(m_hWnd, pMsg);
 	}
 
-	void load_column_layout();
-	bool build_current_cfg();
-	void pushcfg();
-	bool check_mapping_changed();
-	void on_mapping_changed(bool changed);
+	void UpdateAltMode(bool erase = false);
 
 #pragma warning( push )
 #pragma warning( disable : 26454 )
@@ -185,7 +181,6 @@ public:
 		COMMAND_ID_HANDLER(IDC_REMOVE_TAG, OnBtnRemoveTag)
 		MESSAGE_HANDLER_EX(MSG_ADD_NEW, OnAddNewTag)
 		MESSAGE_HANDLER_EX(WM_CONTEXTMENU, OnContextMenu)
-
 		CHAIN_MSG_MAP(CDialogResize<CTagMappingDialog>)
 	MY_END_MSG_MAP()
 
@@ -234,6 +229,14 @@ private:
 	bool update_freezer(int pos, bool enable_write, bool enable_update);
 
 	void applymappings();
+
+	void load_column_layout();
+	bool build_current_cfg();
+	void pushcfg();
+	void showtitle();
+
+	bool check_mapping_changed();
+	void on_mapping_changed(bool changed);
 
 	// IListControlOwnerDataSource 
 
@@ -409,6 +412,8 @@ private:
 		::GetClientRect(hwnd_cmb, &rc);
 		::RedrawWindow(hwnd_cmb, &rc, NULL, RDW_ERASENOW /*| RDW_VALIDATE*/ | RDW_INVALIDATE | RDW_ALLCHILDREN);
 	}
+
+private:
 
 	foo_conf conf;
 	tag_mapping_list_type* m_ptag_mappings = nullptr;

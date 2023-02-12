@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 
 #include "find_release_dialog.h"
 #include "find_artist_list.h"
@@ -214,7 +214,7 @@ void CArtistList::switch_find_releases(size_t op, bool append) {
 
 	auto citems = get_size();
 	bool bskip_idded_release_dlg = CONF.skip_mng_flag & SkipMng::RELEASE_DLG_IDED;
-	if (!bskip_idded_release_dlg && !append == true && ((CONF.enable_autosearch && op == 3) ||
+	if (!bskip_idded_release_dlg || (bskip_idded_release_dlg && !m_idtracer_p->has_release()) && !append == true && ((CONF.enable_autosearch && op == 3) ||
 		(CONF.auto_rel_load_on_open && op == 1 && citems == 1) ||
 		(CONF.auto_rel_load_on_open && op == 3) ||
 		(op == 0 && citems == 1 && append == false)))

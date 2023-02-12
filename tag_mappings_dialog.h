@@ -14,18 +14,18 @@ static const char* TEXT_UPDATE = "update";
 static const char* TEXT_DISABLED = "disabled";
 static const char* TEXT_WRITE_UPDATE = "write + update";
 
-class CTagMappingListControlOwnerData : public CListControlOwnerData, public fb2k::CDarkModeHooks {
+class CTagMappingList : public CListControlOwnerData, public fb2k::CDarkModeHooks {
 
 public:
 
-	CTagMappingListControlOwnerData(IListControlOwnerDataSource* h)
+	CTagMappingList(IListControlOwnerDataSource* h)
 		: CListControlOwnerData(h) {}
 
-	~CTagMappingListControlOwnerData() {
+	~CTagMappingList() {
 		//..
 	}
 
-	BEGIN_MSG_MAP_EX(CTagMappingListControlOwnerData)
+	BEGIN_MSG_MAP_EX(CTagMappingList)
 		CHAIN_MSG_MAP(CListControlOwnerData)
 	END_MSG_MAP()
 
@@ -120,6 +120,8 @@ private:
 		}
 		return bfreeze;
 	}
+
+private:
 
 	pfc::string8 m_hl_string;
 
@@ -417,10 +419,8 @@ private:
 
 	foo_conf conf;
 	tag_mapping_list_type* m_ptag_mappings = nullptr;
-	CTagMappingListControlOwnerData m_tag_list;
+	CTagMappingList m_tag_list;
 	CMyEditWithButtons cewb_highlight;
 	CHyperLink help_link;
 
-	HWND remove_button;
-	UINT default_button;
 };

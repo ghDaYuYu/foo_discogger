@@ -116,7 +116,6 @@ LRESULT CTagMappingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM
 	m_tag_list.AddColumn("Formatting String", 10);
 	m_tag_list.AddColumn("Action", MulDiv(WRITE_UPDATE_COL_WIDTH, DPI.cx, 96) );
 	m_tag_list.SetRowStyle(conf.list_style);
-	remove_button = GetDlgItem(IDC_REMOVE_TAG); 
 
 	HWND wnd_hledit = GetDlgItem(IDC_EDIT_TAG_MATCH_HL);
 	cewb_highlight.SubclassWindow(wnd_hledit);

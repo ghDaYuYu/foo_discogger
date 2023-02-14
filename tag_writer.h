@@ -1,5 +1,5 @@
 #pragma once
-
+#include <atomic>
 #include "foo_discogs.h"
 #include "file_info_manager.h"
 #include "error_manager.h"
@@ -67,6 +67,7 @@ public:
 	
 	int m_match_status = -1;
 	tag_results_list_type tag_results;
+	std::atomic<bool> atm_tag_results_ready = false;
 	pfc::bit_array_bittable tag_results_mask;
 	PreView tag_results_mask_mode;
 

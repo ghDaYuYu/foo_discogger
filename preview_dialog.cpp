@@ -1047,7 +1047,8 @@ void CPreviewTagsDialog::compute_stats_track_map() {
 
 LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam, BOOL& bHandled) {
 
-	if (m_generating_tags) {
+	if (!m_tag_writer || !m_tag_writer->atm_tag_results_ready) {
+
 		return CDRF_DODEFAULT;
 	}
 	LPNMLVCUSTOMDRAW lplvcd = (LPNMLVCUSTOMDRAW)lParam;

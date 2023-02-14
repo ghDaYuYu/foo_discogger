@@ -24,10 +24,10 @@ void ILOD_preview::SetResults(const std::weak_ptr<void>& ptag_wwriter, PreView p
 //IListControlOwnerDataSource overrides
 
 size_t ILOD_preview::listGetItemCount(ctx_t ctx) {
-	//todo: lock_guard generate_results (tag_writer)
-	if (!m_tag_writer ||
-			(m_tag_writer->tag_results.get_count() && m_tag_writer->tag_results[0].use_count() < 0)) {
-		return 0;	
+
+	if (m_tag_writer && !m_tag_writer->atm_tag_results_ready) {
+
+		return 0;
 	}
 
 	if (m_tag_writer) {

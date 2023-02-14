@@ -184,8 +184,6 @@ private:
 	std::vector<preview_stats> m_vstats;
 	std::vector<std::pair<int, int>> m_vcol_data_subitems;
 
-	bool m_generating_tags = false;
-
 	int m_totalwrites = 0;
 	int m_totalupdates = 0;
 

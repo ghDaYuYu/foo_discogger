@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 #include "resource.h"
 #include "guids_discogger.h"
 
@@ -276,6 +276,7 @@ public:
 					}
 				}
 			}
+			break;
 
 		case EditTagMappings:
 			if (!g_discogs->tag_mappings_dialog) {

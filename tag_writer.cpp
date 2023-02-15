@@ -506,10 +506,12 @@ void check_mem(const tag_mapping_entry* tag_entry, const string_encoded_array* v
 void TagWriter::write_tags_track_map() {
 	
 	m_finfo_manager->invalidate_all();
-	bool binvalidate = false;
+	
 	bool bhasmask = tag_results_mask.size();
 
+	//loop  tracks
 	for (size_t i = 0; i < m_track_mappings.get_count(); i++) {
+
 		const track_mapping &mapping = m_track_mappings[i];
 
 		if (!mapping.enabled) {
@@ -517,6 +519,7 @@ void TagWriter::write_tags_track_map() {
 		}
 
 		size_t file_index = mapping.file_index;
+		bool bvalidate = false;
 		
 		if (file_index >= m_finfo_manager.get()->get_item_count()) {
 			//run out of tracks... skip unmatched files
@@ -525,6 +528,7 @@ void TagWriter::write_tags_track_map() {
 		metadb_handle_ptr item = m_finfo_manager->get_item_handle(file_index);
 		file_info &info = m_finfo_manager->get_item(file_index);
 
+		//loop tag results in walk track
 		for (size_t j = 0; j < tag_results.get_size(); j++) {
 
 			const tag_result_ptr& result = tag_results[j];
@@ -599,43 +603,54 @@ void TagWriter::write_tags_track_map() {
 
 					write_tag(item, info, *(result->tag_entry), value_lf);
 				}
-				binvalidate = true;
+				bvalidate = true;
 			}
-		}
+		} // end loop tag results in walked track
+
+		// remove other tracks
 
 		if (CONF.remove_other_tags) {
-			size_t j = 0;
-			while (j < info.meta_get_count()) {
+			const size_t jcount = info.meta_get_count();
+			bit_array_bittable delete_mask(bit_array_true(), jcount);
+
+			//loop metas
+
+			for (size_t j = 0; j < jcount; j++) {
+				
 				const char * tag_name = info.meta_enum_name(j);
-				bool remove = true;
+				
+				//do not remove current map tags
 				for (size_t k = 0; k < TAGS.get_size(); k++) {
-					auto &tag = TAGS.get_item_ref(k);
-					//if (STR_EQUAL(tag_name, tag.tag_name)) {
-					if (pfc::stringCompareCaseInsensitive(tag_name, tag.tag_name) == 0) {
-						remove = false;
+					const auto &tag = TAGS.get_item_ref(k);
+					bool match = !pfc::stringCompareCaseInsensitive(tag_name, tag.tag_name);
+					if (match) {
+						delete_mask.set(j, false);
 						break;
 					}
 				}
-				if (remove) {
+
+				//do not remove from exclusion list
+				if (delete_mask.get(j)) {
 					for (size_t k = 0; k < CONF.remove_exclude_tags.get_size(); k++) {
-						if (pfc::stringCompareCaseInsensitive(tag_name, CONF.remove_exclude_tags[k]) == 0) {
-							remove = false;
+						bool match = !pfc::stringCompareCaseInsensitive(tag_name, CONF.remove_exclude_tags[k]);
+						if (match) {
+							delete_mask.set(j, false);
 							break;
 						}
 					}
 				}
-				if (remove) {
-					info.meta_remove_index(j);
-					binvalidate = true;
-				}
-				else {
-					j++;
-				}
-			}
-		}
-		if (binvalidate)
+			} //end loop metas
+
+			info.meta_remove_mask(delete_mask);
+			bvalidate |= jcount != info.meta_get_count();
+
+		} // end remove other tags
+
+		if (bvalidate) {
 			m_finfo_manager->validate_item(file_index);
-	}
+		}
+
+	}//end tracks loop
 }
 
 void TagWriter::write_tags () {
@@ -847,8 +862,9 @@ void TagWriter::write_tag(metadb_handle_ptr item, file_info &info, const tag_map
 	size_t meta = 0;
 	const size_t cvalues = tag_values.get_size();
 
-	if (cexist)
+	if (cexist) {
 		meta = info.meta_find(entry.tag_name);
+	}
 
 	std::vector<pfc::string8> valready_there;
 	bool already_there = cexist && cexist == cvalues;

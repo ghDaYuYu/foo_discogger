@@ -54,7 +54,6 @@ public:
 		ID_URL_MASTER_RELEASE,
 		ID_URL_ARTIST,
 		ID_URL_ARTISTS,
-		ID_WRITE_TAGS = 100,
 	};
 
 	enum {

@@ -33,7 +33,6 @@ size_t ILOD_preview::listGetItemCount(ctx_t ctx) {
 	if (m_tag_writer) {
 		return m_tag_writer->tag_results.get_count();
 	}
-
 	return 0;
 }
 

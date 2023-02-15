@@ -77,7 +77,7 @@ void CTagMappingDialog::on_mapping_changed(bool changed) {
 void CTagMappingDialog::pushcfg() {
 
 	if (build_current_cfg()) {
-
+		CONF.save(CConf::cfgFilter::TAG, conf);
 		CONF.load();
 	}
 }
@@ -88,7 +88,8 @@ void CTagMappingDialog::UpdateAltMode(bool erase) {
 
 	if (g_discogs) {
 
-		awt_update_mod_flag(/*from entry*/true);
+		conf.alt_write_flags = awt_update_mod_flag(/*from entry*/true);
+	}
 
 	set_tag_mapping(copy_tag_mappings());
 
@@ -211,7 +212,7 @@ void CTagMappingDialog::update_list_width() {
 
 	width -= WRITE_UPDATE_COL_WIDTH;
 	c1 = width / 3;
-	c2 = width / 3 * 2;
+	c2 = width / 3 * 2 - GetSystemMetrics(SM_CXVSCROLL);;
 	c3 = WRITE_UPDATE_COL_WIDTH;		
 
 	m_tag_list.ResizeColumn(0, c1, true);
@@ -221,13 +222,11 @@ void CTagMappingDialog::update_list_width() {
 
 void CTagMappingDialog::applymappings() {
 
-	on_mapping_changed(check_mapping_changed());
-
 	set_cfg_tag_mappings(m_ptag_mappings);
 
 	if (awt_unmatched_flag()) {
 
-		awt_update_mod_flag(/*from flag*/false);
+		conf.alt_write_flags = awt_update_mod_flag(/*from flag*/false);
 		CONF.save(CConf::cfgFilter::TAG, CONF, CFG_ALT_WRITE_FLAGS);
 	}
 
@@ -235,6 +234,27 @@ void CTagMappingDialog::applymappings() {
 		CPreviewTagsDialog* dlg = g_discogs->preview_tags_dialog;
 		dlg->tag_mappings_updated();
 	}
+}
+
+void CTagMappingDialog::add_new_tag(size_t pos, tag_mapping_entry entry) {
+
+	if (!pos) {
+		entry.tag_name = "[tag name]";
+		entry.formatting_script = "[formatting string]";
+		entry.enable_write = true;
+		entry.enable_update = false;
+		entry.freeze_tag_name = false;
+		entry.freeze_update = false;
+		entry.freeze_write = false;
+	}
+
+	size_t index = m_ptag_mappings->add_item(*entry.clone());
+
+	m_tag_list.OnItemsInserted(index, 1, true);
+	m_tag_list.EnsureItemVisible(index, true);
+	on_mapping_changed(check_mapping_changed());
+
+	return;
 }
 
 void CTagMappingDialog::showtitle() {
@@ -250,6 +270,8 @@ LRESULT CTagMappingDialog::OnOk(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/
 
 LRESULT CTagMappingDialog::OnApply(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	applymappings();
+	on_mapping_changed(check_mapping_changed());
+
 	return FALSE;
 }
 
@@ -275,19 +297,39 @@ LRESULT CTagMappingDialog::OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*hWn
 
 		delete m_ptag_mappings;
 
-		set_tag_mapping(copy_default_tag_mappings());
-		m_tag_list.Invalidate(true);
+		switch (wID) {
+		case 0:
+			set_tag_mapping(copy_default_tag_mappings());
+			break;
+		case 1:
+			//all id3
+			set_tag_mapping(copy_id3_default_tag_mappings(false, false));
+			break;
+		case 2:
+			//mp3 ms explorer set
+			set_tag_mapping(copy_id3_default_tag_mappings(true, false));
+			break;
+		}
+
+		//refresh sliders and invalidate
+		m_tag_list.OnItemsInserted(0, m_ptag_mappings->get_count(), false);
+		m_tag_list.EnsureItemVisible(1, false);
+
 		on_mapping_changed(check_mapping_changed());
 	}
 	return FALSE;
 }
 
 LRESULT CTagMappingDialog::OnImport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-
+	//todo: merge from file
+	pfc::string8 title = wID ? "Append from file..." : "Import from file...";
+	
 	std::wstring wfilename;
+	pfc::stringcvt::string_wide_from_utf8 wtext(title.get_ptr());
+	
 	const TCHAR wfilter[255] = L"Tag Mapping Files (*.tm)\0*.tm\0All Files (*.*)\0*.*\0";
 
-	if (!OpenImportDlg(m_hWnd, wfilter, wfilename)) {
+	if (!OpenImportDlg(m_hWnd, (LPCTSTR)const_cast<wchar_t*>(wtext.get_ptr()), wfilter, wfilename)) {
 
 		return FALSE;
 	}
@@ -307,10 +349,11 @@ LRESULT CTagMappingDialog::OnImport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndC
 
 		while (!f->is_eof(p_abort)) {
 			srf >> *buf;
-			if (!deleted) {
+			if (!deleted && !wID) {
 				m_ptag_mappings->remove_all();
 				deleted = true;
 			}
+			buf->is_multival_meta = is_multivalue_meta(buf->tag_name);
 			m_ptag_mappings->add_item(*buf);
 		}
 	}
@@ -323,8 +366,12 @@ LRESULT CTagMappingDialog::OnImport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndC
 	}
 
 	delete buf;
-	m_tag_list.Invalidate(true);
+
+	//refresh sliders and invalidate
+	m_tag_list.OnItemsInserted(0, m_ptag_mappings->get_count(), false);
+	m_tag_list.EnsureItemVisible(1, false);
 	on_mapping_changed(check_mapping_changed());
+
 	return FALSE;
 }
 
@@ -376,37 +423,6 @@ LRESULT CTagMappingDialog::OnExport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndC
 		display_errors();
 		clear_errors();
 	}
-	return FALSE;
-}
-LRESULT CTagMappingDialog::OnAddNewTag(UINT, WPARAM wparam, LPARAM) {
-
-	size_t index;
-	tag_mapping_entry * entry;
-
-	if (!wparam) {
-		entry = new tag_mapping_entry();
-		entry->tag_name = "[tag name]";
-		entry->formatting_script = "[formatting string]";
-		entry->enable_write = true;
-		entry->enable_update = false;
-		entry->freeze_tag_name = false;
-		entry->freeze_update = false;
-		entry->freeze_write = false;
-
-		index = m_ptag_mappings->add_item(*entry);
-		delete entry;
-	}
-	else {
-		pfc::list_t<tag_mapping_entry>* tmp_def_mappings = copy_default_tag_mappings();
-		entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(wparam-1)); //incoming ndx is 1 based
-		index = m_ptag_mappings->add_item(*entry);
-
-		delete tmp_def_mappings;
-	}
-
-	m_tag_list.OnItemsInserted(index, 1, true);
-	m_tag_list.EnsureItemVisible(index, true);
-	on_mapping_changed(check_mapping_changed());
 	return FALSE;
 }
 
@@ -592,12 +608,34 @@ LRESULT CTagMappingDialog::OnSplitDropDown(WORD wNotifyCode, WORD wID, HWND hWnd
 		pt.x = rcButton.left;
 		pt.y = rcButton.bottom;
 
-		enum { MENU_DEFAULT = 1, MENU_EXPORT , MENU_IMPORT };
+		enum { MENU_DEFAULT = 1, MENU_MORE, MENU_EXPORT , MENU_IMPORT, MENU_APPEND, MENU_MORE_ALL_ID3_23 = 10, MENU_MORE_ID3_23_MSEXPLORER };
 		HMENU hSplitMenu = CreatePopupMenu();
+		HMENU hSplitMenuMore = CreatePopupMenu();
 
 		AppendMenu(hSplitMenu, MF_STRING, MENU_DEFAULT, L"Restore defaults");
+
+		MENUITEMINFO menu_more_info;
+		menu_more_info = {};
+		menu_more_info.cbSize = sizeof(MENUITEMINFO);
+		menu_more_info.fMask = MIIM_SUBMENU | MIIM_STRING | MIIM_ID;
+		menu_more_info.hSubMenu = hSplitMenuMore;
+		menu_more_info.dwTypeData = L"Other defaults...";
+		menu_more_info.wID = MENU_MORE;
+		InsertMenuItem(hSplitMenu, MENU_MORE, true, &menu_more_info);
+
+		const size_t iSubs = 2;
+		HMENU submenu_other[iSubs];
+		LPWSTR submenus_data[iSubs] = {
+		_T("ID3 template"), _T("ID3 MS Explorer"), };
+
+		MENUITEMINFO submenus_infos[iSubs];
+		for (size_t walk_sub = 0; walk_sub < iSubs; walk_sub++) {
+			AppendMenu(hSplitMenuMore, MF_STRING, MENU_MORE_ALL_ID3_23 + walk_sub, submenus_data[walk_sub]);
+		}
+
 		AppendMenu(hSplitMenu, MF_STRING, MENU_EXPORT, L"Export...");
 		AppendMenu(hSplitMenu, MF_STRING, MENU_IMPORT, L"Import...");
+		AppendMenu(hSplitMenu, MF_STRING, MENU_APPEND, L"Append from ...");
 
 		int cmd = TrackPopupMenu(hSplitMenu, TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RETURNCMD, pt.x, pt.y, 0, m_hWnd, NULL);
 		DestroyMenu(hSplitMenu);
@@ -613,6 +651,14 @@ LRESULT CTagMappingDialog::OnSplitDropDown(WORD wNotifyCode, WORD wID, HWND hWnd
 			break;
 		case MENU_EXPORT:
 			OnExport(0, 0, NULL, bDummy);
+			break;
+		case MENU_APPEND:
+			OnImport(0, 1, NULL, bDummy);
+			break;
+		default:
+			if (cmd >= MENU_MORE_ALL_ID3_23 && cmd <= MENU_MORE_ID3_23_MSEXPLORER) {
+				OnDefaults(0, cmd - MENU_MORE_ALL_ID3_23 + 1, NULL, bDummy);
+			}
 			break;
 		}
 	}
@@ -724,25 +770,174 @@ LRESULT CTagMappingDialog::OnSplitDropDown(WORD wNotifyCode, WORD wID, HWND hWnd
 		}
 		InsertMenuItem(hSplitMenu, submenus_ids[item], true, &submenu_infos[item]);
 
-		delete tmp_def_mappings;
-
 		int cmd = TrackPopupMenu(hSplitMenu, TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RETURNCMD, pt.x, pt.y, 0, m_hWnd, NULL);
 		DestroyMenu(hSplitMenu);
 		
 		if (cmd) {
+			tag_mapping_entry entry;
+			size_t index  = 0;
 
-			if (cmd == 1) {
-				cmd = 0;
-			}
-			else {
+			if (cmd > 1) { //submenu or <add new>?
 				pfc::string8 strcmd = std::to_string(cmd).c_str();
-				cmd = atoi(substr(strcmd, 1, 2));
-				++cmd;				
+				strcmd = strcmd.subString(strcmd.length() - 2);
+				index = atoi(strcmd);			
+				if (tmp_def_mappings) {
+					entry = tmp_def_mappings->get_item(index);
+					entry.enable_write = true;
+				}
 			}
-			PostMessage(MSG_ADD_NEW, cmd, 0);
+			add_new_tag(index, entry);
 		}
+		delete tmp_def_mappings;
 	}
+	//ID3V23 template
+	else if (wID == IDC_SPLIT_BTN_TAG_ID3_ADD_NEW) {
 
+		POINT pt = { 0 };
+		pt.x = rcButton.left;
+		pt.y = rcButton.bottom;
+
+		enum {
+			MENU_ADD_NEW = 1,
+			MENU_SUB_A = 100, MENU_SUB_B = 200,
+			MENU_SUB_C = 300, MENU_SUB_D = 400,
+			MENU_SUB_E = 500, MENU_SUB_F = 600,
+			MENU_SUB_G = 700, MENU_SUB_H = 800,
+			MENU_SUB_I = 900, MENU_SUB_J = 1000,
+		};
+
+		HMENU hSplitMenu = CreatePopupMenu();
+		AppendMenu(hSplitMenu, MF_STRING, MENU_ADD_NEW, L"<Add new>");
+		size_t csubmenus = 10;
+		LPWSTR submenus_data[10] = {
+			_T("Titles"), _T("People && Organization"),
+			_T("Counts and Indexes"), _T("Dates"),
+			_T("Identifiers"), _T("Flags"),
+			_T("Ripping && Encoding"), _T("URL"),
+			_T("Style"), _T("Misc")
+		};
+		UINT submenus_ids[10] = {
+			MENU_SUB_A, MENU_SUB_B,
+			MENU_SUB_C, MENU_SUB_D,
+			MENU_SUB_E, MENU_SUB_F,
+			MENU_SUB_G, MENU_SUB_H,
+			MENU_SUB_I, MENU_SUB_J
+		};
+		pfc::array_t<HMENU> submenus; submenus.resize(csubmenus);
+		pfc::array_t<MENUITEMINFO> submenu_infos; submenu_infos.resize(csubmenus);
+		for (size_t n = 0; n < csubmenus; n++) {
+			submenus[n] = CreatePopupMenu();
+			submenu_infos[n] = { 0 };
+			submenu_infos[n].cbSize = sizeof(MENUITEMINFO);
+			submenu_infos[n].fMask = MIIM_SUBMENU | MIIM_STRING | MIIM_ID;
+			submenu_infos[n].hSubMenu = submenus[n];
+			submenu_infos[n].dwTypeData = submenus_data[n];
+			submenu_infos[n].wID = submenus_ids[n];
+		}
+
+		pfc::list_t<tag_mapping_entry>* tmp_def_mappings = copy_id3_default_tag_mappings(false, true);
+		tag_mapping_entry* entry;
+
+		//A TITLES
+		size_t item = 0;
+		for (size_t n = 0; n < 9; n++) {
+			entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(n));
+			uAppendMenu(submenus[item], MF_STRING, submenus_ids[item] + n, entry->tag_name);
+		}
+		InsertMenuItem(hSplitMenu, submenus_ids[item], true, &submenu_infos[item]);
+
+		//B PEOPLE ORGANIZATION
+		++item;
+		for (size_t n = 9; n < 24; n++) {
+			entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(n));
+			uAppendMenu(submenus[item], MF_STRING, submenus_ids[item] + n, entry->tag_name);
+		}
+		InsertMenuItem(hSplitMenu, submenus_ids[item], true, &submenu_infos[item]);
+
+		//C COUNTS INDEXES
+		++item;
+		for (size_t n = 24; n < 31; n++) {
+			entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(n));
+			uAppendMenu(submenus[item], MF_STRING, submenus_ids[item] + n, entry->tag_name);
+		}
+		InsertMenuItem(hSplitMenu, submenus_ids[item], true, &submenu_infos[item]);
+
+		//D DATES
+		++item;
+		for (size_t n = 31; n < 35; n++) {
+			entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(n));
+			uAppendMenu(submenus[item], MF_STRING, submenus_ids[item] + n, entry->tag_name);
+		}
+		InsertMenuItem(hSplitMenu, submenus_ids[item], true, &submenu_infos[item]);
+
+		//E IDENTIFIERS
+		++item;
+		/*for (size_t n = ..; n < ..; n++) {
+			entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(n));
+			uAppendMenu(submenus[item], MF_STRING, submenus_ids[item] + n, entry->tag_name);
+		}*/
+		InsertMenuItem(hSplitMenu, submenus_ids[item], true, &submenu_infos[item]);
+
+		//F FLAGS
+		++item;
+		for (size_t n = 35; n < 36; n++) {
+			entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(n));
+			uAppendMenu(submenus[item], MF_STRING, submenus_ids[item] + n, entry->tag_name);
+		}
+		InsertMenuItem(hSplitMenu, submenus_ids[item], true, &submenu_infos[item]);
+
+		//G RIPPING ENCODING
+		++item;
+		for (size_t n = 36; n < 39; n++) {
+			entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(n));
+			uAppendMenu(submenus[item], MF_STRING, submenus_ids[item] + n, entry->tag_name);
+		}
+		InsertMenuItem(hSplitMenu, submenus_ids[item], true, &submenu_infos[item]);
+
+		//H URL
+		++item;
+		for (size_t n = 39; n < 48; n++) {
+			entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(n));
+			uAppendMenu(submenus[item], MF_STRING, submenus_ids[item] + n, entry->tag_name);
+		}
+		InsertMenuItem(hSplitMenu, submenus_ids[item], true, &submenu_infos[item]);
+
+		//I STYLE
+		++item;
+		/*for (size_t n = ..; n < ..; n++) {
+			entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(n));
+			uAppendMenu(submenus[item], MF_STRING, submenus_ids[item] + n, entry->tag_name);
+		}*/
+		InsertMenuItem(hSplitMenu, submenus_ids[item], true, &submenu_infos[item]);
+
+		//J MISC
+		++item;
+		for (size_t n = 48; n < tmp_def_mappings->get_count(); n++) {
+			entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(n));
+			uAppendMenu(submenus[item], MF_STRING, submenus_ids[item] + n, entry->tag_name);
+		}
+		InsertMenuItem(hSplitMenu, submenus_ids[item], true, &submenu_infos[item]);
+
+		int cmd = TrackPopupMenu(hSplitMenu, TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RETURNCMD, pt.x, pt.y, 0, m_hWnd, NULL);
+		DestroyMenu(hSplitMenu);
+
+		if (cmd) {
+			tag_mapping_entry entry;
+			size_t index = 0;
+		
+			if (cmd > 1) { //submenu or <add new>?
+				pfc::string8 strcmd = std::to_string(cmd).c_str();
+				strcmd = strcmd.subString(strcmd.length() - 2);
+				index = atoi(strcmd);
+				if (tmp_def_mappings) {
+					entry = tmp_def_mappings->get_item(index);
+					entry.enable_write = true;
+				}
+			}
+			add_new_tag(index, entry);
+		}
+		delete tmp_def_mappings;
+	}
 
 	return FALSE;
 }

@@ -72,7 +72,6 @@ FB2K_STREAM_READER_OVERLOAD(tag_mapping_entry) {
 		>> formatting_string;
 	value.tag_name = tag_name;
 	value.formatting_script = formatting_string;
-
 	return stream;
 }
 
@@ -107,12 +106,14 @@ extern void init_with_default_tag_mappings();
 
 extern bool awt_get_release_mod_flag(tag_mapping_entry& out);
 extern bool awt_set_release_mod_flag(tag_mapping_entry e);
-extern void awt_update_mod_flag(bool fromFlag =	true);
+extern int awt_update_mod_flag(bool fromFlag =	true);
 extern bool awt_unmatched_flag();
 extern void awt_save_normal_mode();
 
 extern pfc::list_t<tag_mapping_entry> * copy_tag_mappings();
 extern pfc::list_t<tag_mapping_entry> * copy_default_tag_mappings();
+extern pfc::list_t<tag_mapping_entry> * copy_id3_default_tag_mappings(bool onlyms, bool menuctx);
+
 extern void update_loaded_tagmaps_multivalues();
 extern void set_cfg_tag_mappings(pfc::list_t<tag_mapping_entry> *mappings);
 

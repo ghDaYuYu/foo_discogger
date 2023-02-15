@@ -51,7 +51,7 @@ inline BOOL OpenExportDlg(HWND hWndparent, const TCHAR * filter, std::wstring& o
 	return FALSE;
 }
 
-inline BOOL OpenImportDlg(HWND hWndparent, const TCHAR * filter, std::wstring& out) {
+inline BOOL OpenImportDlg(HWND hWndparent, const TCHAR* title, const TCHAR * filter, std::wstring& out) {
 
 	TCHAR lpstrFile[MAX_PATH] = L"";
 	OPENFILENAME ofn;
@@ -61,7 +61,7 @@ inline BOOL OpenImportDlg(HWND hWndparent, const TCHAR * filter, std::wstring& o
 	ofn.lpstrFilter = filter;
 	ofn.lpstrFile = lpstrFile;
 	ofn.nMaxFile = MAX_PATH - 1;
-	ofn.lpstrTitle = L"Load from file...";
+	ofn.lpstrTitle = title;
 	ofn.Flags = OFN_DONTADDTORECENT | OFN_FILEMUSTEXIST;
 
 	if (GetOpenFileName(&ofn)) {

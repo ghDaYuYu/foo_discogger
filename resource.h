@@ -34,9 +34,7 @@
 #define IDB_PNG_RECC_48                 201
 #define IDB_BITMAP_TRACER_EXT           202
 #define IDB_PNG_QUIAN_16                203
-#define IDD_TAB_PREVIEW_LEADING_TAG     206
 #define IDD_CONFIG_NAME_EXP             207
-#define IDD_DIALOG_YESNO                208
 #define IDB_BITMAP_TRACER_EXT_DRK       210
 #define IDB_PNG_QUIAN_24                215
 #define IDB_PNG_QUIAN_32                216
@@ -234,6 +232,7 @@
 #define IDC_TAG_LIST                    1142
 #define IDC_SPLIT_BTN_TAG_ADD_NEW       1143
 #define IDC_STATIC_ARTIST_ART_IDS       1144
+#define IDC_SPLIT_BTN_TAG_ID3_ADD_NEW   1144
 #define IDC_SPLIT_BTN_TAG_CAT_CREDIT    1145
 #define IDC_STATIC_ARTIST_ART_PREFIX    1146
 #define IDC_CHK_RELEASE_ENTER_KEY_OVR   1147
@@ -285,6 +284,7 @@
 #define IDC_BTN_PREVIOUS                1200
 #define IDC_CHK_SKIP_VIDEO_TRACKS       1201
 #define IDC_STATIC_ALBUM_ART_DIR        1202
+#define IDC_CHK_PARSE_BETA              1202
 #define IDC_CHK_CFG_CACHE_READ_DSK_CACHE 1203
 #define IDC_CHK_MNG_ARTWORK             1204
 #define IDC_CHK_ARTIST_ART_EMBED        1205

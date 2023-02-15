@@ -681,7 +681,7 @@ void CPreviewTagsDialog::generate_tag_results(bool computestat) {
 }
 
 void CPreviewTagsDialog::tag_mappings_updated() {
-	m_generating_tags = true;
+
 	try {
 		service_ptr_t<generate_tags_task> task = new service_impl_t<generate_tags_task>(this, m_tag_writer);
 		task->start();
@@ -732,10 +732,8 @@ LRESULT CPreviewTagsDialog::OnButtonEditTagMappings(WORD /*wNotifyCode*/, WORD w
 	}
 	else
 	{
-		if (wID == IDC_BTN_TAG_MAPPINGS) {
-			::SetFocus(g_discogs->tag_mappings_dialog->m_hWnd);
-			::uPostMessage(g_discogs->tag_mappings_dialog->m_hWnd, WM_NEXTDLGCTL, (WPARAM)(HWND)GetDlgItem(IDC_APPLY), TRUE);
-		}
+		::SetFocus(g_discogs->tag_mappings_dialog->m_hWnd);
+		::uPostMessage(g_discogs->tag_mappings_dialog->m_hWnd, WM_NEXTDLGCTL, (WPARAM)(HWND)GetDlgItem(IDC_APPLY), TRUE);
 	}
 	return FALSE;
 }
@@ -774,7 +772,7 @@ LRESULT CPreviewTagsDialog::OnChangePreviewMode(WORD /*wNotifyCode*/, WORD wID, 
 }
 
 LRESULT CPreviewTagsDialog::OnButtonWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	
+
 	if (m_uilist.TableEdit_IsActive()) {
 		m_uilist.TableEdit_Abort(true);
 		m_uilist.UpdateItem(m_uilist.GetSingleSel());
@@ -808,7 +806,6 @@ LRESULT CPreviewTagsDialog::OnButtonWriteTags(WORD /*wNotifyCode*/, WORD wID, HW
 }
 
 void CPreviewTagsDialog::cb_generate_tags() {
-	m_generating_tags = false;
 	generate_tag_results(true);
 	enable(true, true);
 }
@@ -1048,7 +1045,6 @@ void CPreviewTagsDialog::compute_stats_track_map() {
 LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam, BOOL& bHandled) {
 
 	if (!m_tag_writer || !m_tag_writer->atm_tag_results_ready) {
-
 		return CDRF_DODEFAULT;
 	}
 	LPNMLVCUSTOMDRAW lplvcd = (LPNMLVCUSTOMDRAW)lParam;

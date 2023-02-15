@@ -52,7 +52,7 @@ private:
 	bool listEditCanAdvanceHere(ctx_t, size_t item, size_t subItem, uint32_t whatHappened) override;
 
 	TagWriter_ptr m_tag_writer;
-	PreView m_preview_mode = PreView::Undef ;
+	PreView m_preview_mode = PreView::Undef;
 	std::vector<preview_stats> m_v_stats;
 
 };

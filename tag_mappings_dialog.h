@@ -135,17 +135,14 @@ public:
 
 	enum {
 		IDD = IDD_DIALOG_TAG_MAPPINGS,
-		MSG_ADD_NEW
 	};
 
 	CTagMappingDialog::CTagMappingDialog(HWND p_parent, UINT default_button = IDOK)
-		: default_button(default_button), cewb_highlight(), m_tag_list(this), remove_button(nullptr) {
-
-		set_tag_mapping(copy_tag_mappings());
+		: cewb_highlight(), m_tag_list(this) {
+		//..
 	}
 
 	CTagMappingDialog::~CTagMappingDialog() {
-
 
 		g_discogs->tag_mappings_dialog = nullptr;
 		delete m_ptag_mappings;
@@ -179,9 +176,9 @@ public:
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		COMMAND_ID_HANDLER(IDC_EDIT_TAG_MATCH_HL, OnEditHLText)
 		COMMAND_ID_HANDLER(IDC_SPLIT_BTN_TAG_ADD_NEW, OnSplitDropDown)
+		COMMAND_ID_HANDLER(IDC_SPLIT_BTN_TAG_ID3_ADD_NEW, OnSplitDropDown)
 		COMMAND_ID_HANDLER(IDC_SPLIT_BTN_TAG_FILE_DEF, OnSplitDropDown)
 		COMMAND_ID_HANDLER(IDC_REMOVE_TAG, OnBtnRemoveTag)
-		MESSAGE_HANDLER_EX(MSG_ADD_NEW, OnAddNewTag)
 		MESSAGE_HANDLER_EX(WM_CONTEXTMENU, OnContextMenu)
 		CHAIN_MSG_MAP(CDialogResize<CTagMappingDialog>)
 	MY_END_MSG_MAP()
@@ -194,6 +191,7 @@ public:
 		DLGRESIZE_CONTROL(IDCANCEL, DLSZ_MOVE_X | DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_APPLY, DLSZ_MOVE_X | DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_SPLIT_BTN_TAG_ADD_NEW, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_SPLIT_BTN_TAG_ID3_ADD_NEW, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_REMOVE_TAG, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_TAG_LIST, DLSZ_SIZE_X | DLSZ_SIZE_Y)
 	END_DLGRESIZE_MAP()
@@ -215,7 +213,6 @@ public:
 	LRESULT OnExport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnBtnRemoveTag(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnSplitDropDown(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnAddNewTag(UINT, WPARAM, LPARAM);
 	LRESULT OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void enable(bool v) override {}
 
@@ -226,6 +223,7 @@ private:
 	}
 
 	void show_context_menu(CPoint& pt, pfc::bit_array_bittable& selmask);
+	void add_new_tag(size_t pos, tag_mapping_entry entry);
 	void update_list_width();
 	bool update_tag(int pos, const tag_mapping_entry* entry);
 	bool update_freezer(int pos, bool enable_write, bool enable_update);

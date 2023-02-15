@@ -1005,7 +1005,13 @@ bool CFindReleaseDialog::id_from_url(HWND hwndCtrl, pfc::string8& out) {
 	pfc::string8 prefix;
 	pfc::string8 suffix = "]";
 	pfc::string8 url = "https://www.discogs.com/";
-	const bool is_dc_url = out.has_prefix(url);
+	std::string tmpstr = out.c_str();
+	auto urlpos = tmpstr.find(url);
+	bool is_dc_url = urlpos != std::string::npos;
+
+	if (is_dc_url) {
+		out.remove_chars(0, urlpos + url.get_length());
+	}
 
 	char mode_param;
 	pfc::string8 buffer = trim(out);
@@ -1019,15 +1025,14 @@ bool CFindReleaseDialog::id_from_url(HWND hwndCtrl, pfc::string8& out) {
 		}
 
 		prefix = "[a";
-		url << "artist/";
-		mode_param = buffer.has_prefix(url) ? 'w' : 'a';
+		mode_param = buffer.has_prefix("artist/") ? 'w' : 'a';
 
 	}
 	else if (hwndCtrl == m_edit_release) {
 
 		prefix = "[r";
 		url << "release/";
-		mode_param = buffer.has_prefix(url) ? 'w' : 'r';
+		mode_param = buffer.has_prefix("release/") ? 'w' : 'r';
 	}
 	else {
 
@@ -1046,7 +1051,7 @@ bool CFindReleaseDialog::id_from_url(HWND hwndCtrl, pfc::string8& out) {
 
 		if (mode_param == 'w' || (buffer.has_prefix(prefix) && buffer.has_suffix(suffix))) {
 
-			if ((buffer = extract_max_number(buffer, mode_param)).get_length()) {
+			if ((buffer = extract_max_number(buffer, mode_param, true)).get_length()) {
 
 				out = buffer.c_str();
 				return true;

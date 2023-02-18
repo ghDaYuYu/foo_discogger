@@ -19,7 +19,10 @@ void load_global_icons() {
 	g_hIcon_rec = LoadDpiBitmapResource(Icon::Record, bdark);
 	LOGFONTW lf;
 	CWindowDC dc(core_api::get_main_window());
-	HTHEME theme = OpenThemeDataForDpi(core_api::get_main_window(), L"TEXTSTYLE", dpiX);
+
+	CTheme fbtheme;
+	HTHEME theme = fbtheme.OpenThemeData(core_api::get_main_window(), L"TEXTSTYLE");
+
 	GetThemeFont(theme, dc, TEXT_EXPANDED, 0, TMT_FONT, &lf);
 	g_hFont = CreateFontIndirectW(&lf);
 }
@@ -801,11 +804,11 @@ void CFindReleaseDialog::on_write_tags(const pfc::string8& release_id) {
 		offline_artist_id = std::to_string(artist_id).c_str();
 	}
 	else {
-	
+
 		//dlg button
 
 		if (m_alist.Get_Artist()) {
-			
+
 			// list selection artist has preference, even if is NOT the artist_id meta
 			offline_artist_id = m_alist.Get_Artist()->id;
 		}

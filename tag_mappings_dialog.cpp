@@ -238,7 +238,7 @@ void CTagMappingDialog::applymappings() {
 
 void CTagMappingDialog::add_new_tag(size_t pos, tag_mapping_entry entry) {
 
-	if (!pos) {
+	if (pos == ~0) {
 		entry.tag_name = "[tag name]";
 		entry.formatting_script = "[formatting string]";
 		entry.enable_write = true;
@@ -774,9 +774,10 @@ LRESULT CTagMappingDialog::OnSplitDropDown(WORD wNotifyCode, WORD wID, HWND hWnd
 		DestroyMenu(hSplitMenu);
 		
 		if (cmd) {
+
 			tag_mapping_entry entry;
 			size_t index  = 0;
-
+			bool addnew = cmd == 1;
 			if (cmd > 1) { //submenu or <add new>?
 				pfc::string8 strcmd = std::to_string(cmd).c_str();
 				strcmd = strcmd.subString(strcmd.length() - 2);
@@ -786,7 +787,7 @@ LRESULT CTagMappingDialog::OnSplitDropDown(WORD wNotifyCode, WORD wID, HWND hWnd
 					entry.enable_write = true;
 				}
 			}
-			add_new_tag(index, entry);
+			add_new_tag(addnew ? ~0 : index, entry);
 		}
 		delete tmp_def_mappings;
 	}
@@ -922,6 +923,8 @@ LRESULT CTagMappingDialog::OnSplitDropDown(WORD wNotifyCode, WORD wID, HWND hWnd
 		DestroyMenu(hSplitMenu);
 
 		if (cmd) {
+
+			bool addnew = cmd == 1;
 			tag_mapping_entry entry;
 			size_t index = 0;
 		
@@ -934,7 +937,7 @@ LRESULT CTagMappingDialog::OnSplitDropDown(WORD wNotifyCode, WORD wID, HWND hWnd
 					entry.enable_write = true;
 				}
 			}
-			add_new_tag(index, entry);
+			add_new_tag(addnew ? -1 : index, entry);
 		}
 		delete tmp_def_mappings;
 	}

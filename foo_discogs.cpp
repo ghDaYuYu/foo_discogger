@@ -27,7 +27,7 @@ class initquit_discogs : public initquit
 	virtual void on_init() override {
 
 		console::print("Loading foo_discogger");
-		
+
 		if (!CONF.load()) {
 
 			console::print("foo_discogger configuration error");
@@ -58,7 +58,6 @@ class initquit_discogs : public initquit
 		}
 		init_tag_mappings();
 		discogs_interface = new DiscogsInterface();
-
 
 		g_discogs = new foo_discogs();
 		g_os_is_wine = check_os_wine();

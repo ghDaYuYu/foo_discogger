@@ -306,7 +306,7 @@ bool check_multiple_results(pfc::array_t<string_encoded_array> where, string_enc
 	return false;
 }
 void TagWriter::generate_tags(tag_mapping_list_type* alt_mappings, threaded_process_status& p_status, abort_callback& p_abort) {
-	
+
 	tag_mapping_list_type* ptags = alt_mappings ? alt_mappings : &TAGS;
 
 	atm_tag_results_ready = false;
@@ -533,7 +533,10 @@ void TagWriter::write_tags_track_map() {
 
 			const tag_result_ptr& result = tag_results[j];
 
-			if (bhasmask && !tag_results_mask.get(j))
+			bool release_id_mod = STR_EQUAL(TAG_RELEASE_ID, result->tag_entry->tag_name.get_ptr());
+			release_id_mod &= !CONF.awt_alt_mode();
+
+			if (bhasmask && !tag_results_mask.get(j) && !release_id_mod)
 			{
 				continue;
 			}
@@ -656,6 +659,7 @@ void TagWriter::write_tags_track_map() {
 void TagWriter::write_tags () {
 
 	write_tags_track_map();
+
 }
 
 void TagWriter::write_tags_v23() {

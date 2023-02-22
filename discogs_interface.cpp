@@ -536,7 +536,9 @@ bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release, bool isArti
 	return bres;
 }
 
-bool DiscogsInterface::delete_artist_cache(const pfc::string8& artist_id) {
+bool DiscogsInterface::delete_artist_cache(const pfc::string8& artist_id, const pfc::string8& release_id) {
+
+	bool bonlyRelease = release_id.get_length();
 
 	Artist_ptr artist = get_artist_from_cache(artist_id);
 
@@ -544,18 +546,22 @@ bool DiscogsInterface::delete_artist_cache(const pfc::string8& artist_id) {
 
 		// cache memory
 
-		bool delres = cache_artists->remove(artist_id);
+		bool delres = bonlyRelease ? cache_releases-remove(release_id) : cache_artists->remove(artist_id);
 
-		for (size_t walk = 0; walk < artist->master_releases.get_count(); walk++) {
-			LPARAM lkey = MAKELPARAM(atoi(artist->master_releases[walk]->id), atoi(artist->id));
-
-			delres &= cache_master_releases->remove(lkey);
-		}
-
-		for (size_t walk = 0; walk < artist->releases.get_count(); walk++) {
-
-			size_t lkey = encode_mr(artist->search_role_list_pos, artist->releases[walk]->id);
+		if (bonlyRelease) {
+			size_t lkey = encode_mr(artist->search_role_list_pos, pfc::string8(release_id));
 			delres &= cache_releases->remove(lkey);
+		}
+		else {
+			for (size_t walk = 0; walk < artist->master_releases.get_count(); walk++) {
+				LPARAM lkey = MAKELPARAM(atoi(artist->master_releases[walk]->id), atoi(artist->id));
+
+				delres &= cache_master_releases->remove(lkey);
+			}
+			for (size_t walk = 0; walk < artist->releases.get_count(); walk++) {
+				size_t lkey = encode_mr(artist->search_role_list_pos, artist->releases[walk]->id);
+				delres &= cache_releases->remove(lkey);
+			}
 		}
 		
 		// disk cache
@@ -567,12 +573,55 @@ bool DiscogsInterface::delete_artist_cache(const pfc::string8& artist_id) {
 
 		if (fs::exists(os_path)) {
 
+			if (bonlyRelease) {
+
+				//del json
+				os_path.append("release");
+				os_path.append(release_id.c_str());
+				if (fs::exists(os_path)) {
+					std::error_code ec;
+					std::filesystem::remove_all(os_path, ec);
+					delres &= !(!!ec.value());
+				}
+				//del thumbs
+				parent_path = ol::get_offline_path("", ol::GetFrom::Thumbs, release_id, true);
+				os_path = std::filesystem::u8path(parent_path.c_str());
+				if (!fs::exists(os_path)) {
+					return false;
+				}
+				std::error_code ec;
+				std::filesystem::remove_all(os_path, ec);
+				return !(!!ec.value());
+			}
+
 			std::error_code ec;
 			std::filesystem::remove_all(os_path, ec);
 			delres &= !(!!ec.value());
+
+			//remove artist thumbs
+
+			parent_path = ol::get_offline_path(artist_id, ol::GetFrom::Thumbs, "", true);
+			os_path = std::filesystem::u8path(parent_path.c_str());
+			if (!fs::exists(os_path)) {
+				//..return false;
+			}
+
+			std::filesystem::remove_all(os_path, ec);
+			delres &= !(!!ec.value());
 			
+			//remove all artwork from its releases
+			for (size_t walk = 0; walk < artist->releases.get_count(); walk++) {
+
+				parent_path = ol::get_offline_path("", ol::GetFrom::Thumbs, artist->releases[walk]->id, true);
+				os_path = std::filesystem::u8path(parent_path.c_str());
+				if (!fs::exists(os_path)) {
+					//..
+				}
+				std::filesystem::remove_all(os_path, ec);
+				delres &= !(!!ec.value());
+			}
 			return !ec.value();
-		}		
+		}
 	}
 	return false;
 }

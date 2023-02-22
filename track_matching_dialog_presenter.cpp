@@ -909,7 +909,6 @@ void discogs_artwork_presenter::SetUIList(CListControlOwnerData* ui_replace_list
 		m_ui_list = ui_replace_list;
 	}
 
-	LPARAM woa;
 	size_t col_align, col_width;
 
 	auto DPI = QueryScreenDPIEx(mm_hWnd);

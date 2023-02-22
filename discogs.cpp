@@ -1035,7 +1035,7 @@ void parseTrackPositions_v23(pfc::array_t<ReleaseTrack_ptr>& intermediate_tracks
 		}
 		else {
 			disc->tracks[disc->tracks.get_size() - 1]->discogs_hidden_duration_seconds += track->discogs_duration_seconds;
-			if (!STR_EQUAL(track->discogs_track_number, "(silence)")) {
+			if (!(STR_EQUAL(track->discogs_track_number, "(silence)"))) {
 				disc->tracks[disc->tracks.get_size() - 1]->hidden_tracks.append_single(std::move(track));
 			}
 		}
@@ -1373,6 +1373,8 @@ void Discogs::parseRelease(Release *release, json_t *root) {
 			release->submitted_by = JSONAttributeString(submitter, "username");
 		}
 		release->discogs_data_quality = JSONAttributeString(community, "data_quality");
+		release->date_added = JSONAttributeString(root, "date_added");
+		release->date_changed = JSONAttributeString(root, "date_changed");
 	}
 }
 
@@ -1885,7 +1887,7 @@ void Discogs::Release::load(threaded_process_status &p_status, abort_callback &p
 				if (bFolderReady) {
 				
 					//mark PENDING
-					bool bmark_loading = ol::stamp_download("", n8_rel_path, false/*done*/);
+					bool bmark_loading = ol::stamp_download(pfc::string_formatter() << date_added << " " << date_changed, n8_rel_path, false/*done*/);
 
 					pfc::string8 page_path = ol::get_offline_path(target_artist_id, ol::GetFrom::Release, id, true);
 					page_path << "\\root.json";
@@ -1903,7 +1905,7 @@ void Discogs::Release::load(threaded_process_status &p_status, abort_callback &p
 			if (bCacheSaved) {
 				try {
 					//mark DONE
-					bool bmark_done = ol::stamp_download("", n8_rel_path, true/*done*/);
+					bool bmark_done = ol::stamp_download(pfc::string_formatter() << date_added << " " << date_changed, n8_rel_path, true/*done*/);
 				}
 				catch (...) {
 					//..

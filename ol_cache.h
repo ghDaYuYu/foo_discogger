@@ -24,6 +24,7 @@ namespace Offline {
 		Versions,
 		Artist,
 		Release,
+		Thumbs,
 	};
 
 	static bool can_read(const foo_conf& conf) { return conf.cache_offline_cache_flag & CacheFlags::OC_READ; }
@@ -47,6 +48,19 @@ namespace Offline {
 			break;
 		case GetFrom::Versions:
 			ol_path << "\\artists\\" << id << "\\masters\\" << secId << "\\versions";
+			break;
+		case GetFrom::Thumbs:
+			if (!secId.get_length()) {
+				ol_path << "\\thumbnails\\artists\\" << id;
+			}
+			else {
+				if (!id.get_length()) {
+					ol_path << "\\thumbnails\\releases\\" << secId;
+				}
+				else {
+					//..
+				}
+			}
 			break;
 		default:
 			PFC_ASSERT(false);
@@ -203,14 +217,12 @@ namespace Offline {
 				FILE* file;
 				errno = 0;
 				//ab+ : append; open or create binary file for update, writing at eof
-				if ((file = fopen(os_path.string().c_str(), "ab+")) != NULL)
+				if ((file = fopen(os_path.string().c_str(), "w")) != NULL)
 				{
 					int w = fwrite(fcontent.get_ptr(), fcontent.get_length(), 1, file);
-					bok = (w == fcontent.get_length());
+					bok = (w && !fclose(file));
 
-					// close and return status
-
-					return (fclose(file) == 0) && bok;
+					return bok;
 				}
 			}
 

@@ -543,7 +543,7 @@ bool CTrackMatchingDialog::generate_artwork_guids(pfc::array_t<GUID> &my_album_a
 			my_album_art_ids = pfc::array_t<GUID>();
 			my_album_art_ids.resize(m_tag_writer->GetArtCount());
 
-			GUID last_guid({ 0,0,0,0 });
+			GUID last_guid = { 0,0,0,0 };
 			pfc::fill_array_t(my_album_art_ids, last_guid);
 
 			getimages_file_it getimgfile_it;

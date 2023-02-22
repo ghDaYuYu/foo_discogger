@@ -248,8 +248,10 @@ bool CConfigurationDialog::build_current_cfg(bool reset) {
 void CConfigurationDialog::pushcfg(bool reset) {
 
 	if (build_current_cfg(reset)) {
-
-		discogs_interface->fetcher->update_oauth(conf.oauth_token, conf.oauth_token_secret);
+		std::pair<pfc::string8, pfc::string8> poa;
+		poa.first = reset ? conf.oauth_token : conf_edit.oauth_token;
+		poa.second = reset ? conf.oauth_token_secret : conf_edit.oauth_token_secret;
+		discogs_interface->fetcher->update_oauth(poa.first, poa.second);
 
 		if (!reset) conf = conf_edit;
 

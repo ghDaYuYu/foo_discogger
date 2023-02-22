@@ -6,17 +6,19 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Weverything"
 
-// Modify the following defines if you have to target a platform prior to the ones specified below.
-// Refer to MSDN for the latest info on corresponding values for different platforms.
-#ifndef WINVER				// Allow use of features specific to Vista or later.
-#define WINVER 0x600		// Change this to the appropriate value to target other versions of Windows.
+#ifndef WINVER
+#define WINVER 0x601
 #endif
 #ifndef _WIN32_WINNT
-#define _WIN32_WINNT 0x600  // Vista or later
+#define _WIN32_WINNT 0x601
 #endif
-#ifndef _WIN32_IE
-#define _WIN32_IE 0x0600
+#ifndef _WIN32_WINDOWS
+#define _WIN32_WINDOWS 0x601
 #endif
+
+#include <winsdkver.h>
+
+#include "../helpers/foobar2000+atl.h"
 
 #include <windows.h>
 #include <string>

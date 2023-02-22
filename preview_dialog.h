@@ -22,8 +22,6 @@ public:
 	CPreviewTagsDialog(HWND p_parent, TagWriter_ptr tag_writer)
 		: m_tag_writer(tag_writer), m_results_list(NULL), m_uilist(this), m_tristate(this), conf(CONF), m_preview_bitmap(NULL) {
 
-		multi_uartwork test = CONF_MULTI_ARTWORK;
-
 		conf.SetName("PreviewDlg");
 		g_discogs->preview_tags_dialog = this;
 	}

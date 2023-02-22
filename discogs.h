@@ -902,6 +902,8 @@ namespace Discogs
 		pfc::string8 discogs_my_rating;
 		pfc::string8 notes;
 		pfc::string8 submitted_by;
+		pfc::string8 date_added;
+		pfc::string8 date_changed;
 		pfc::string8 members_have;
 		pfc::string8 members_want;
 		pfc::string8 barcode;
@@ -980,6 +982,12 @@ namespace Discogs
 		string_encoded_array get_submitted_by() const {
 			return submitted_by;
 		}
+		string_encoded_array get_date_added() const {
+			return date_added;
+		}
+		string_encoded_array get_date_changed() const {
+			return date_changed;
+		}
 		string_encoded_array get_discogs_total_discs() const {
 			return discogs_total_discs;
 		}
@@ -1040,6 +1048,8 @@ namespace Discogs
 			m["DISCOGS_STATUS"] = { &Release::get_discogs_status, &Release::load };
 			m["DISCOGS_DATA_QUALITY"] = { &Release::get_discogs_data_quality, &Release::load };
 			m["DISCOGS_SUBMITTED_BY"] = { &Release::get_submitted_by, &Release::load };
+			m["DISCOGS_DATE_ADDED"] = { &Release::get_date_added, &Release::load };
+			m["DISCOGS_DATE_CHANGED"] = { &Release::get_date_changed, &Release::load };
 			m["GENRES"] = { &Release::get_genres, &Release::load };
 			m["STYLES"] = { &Release::get_styles, &Release::load };
 			m["VIDEOS"] = { &Release::get_videos, &Release::load };

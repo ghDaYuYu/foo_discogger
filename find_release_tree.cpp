@@ -2066,18 +2066,37 @@ void CFindReleaseTree::context_menu(size_t param_mr, POINT screen_pos) {
 	pfc::string8 sourcepage = myparam.brelease ? "Web &release page" : "Web mas&ter release page";
 	pfc::string8 copytitle = "Copy &title";
 	pfc::string8 copyrow = "&Copy";
+	pfc::string8 delReleaseCache = "&Delete release cache";
 	pfc::string8 filterversions = "&filter loaded versions";
 	pfc::string8 clearfilter = "C&lear filter";
 	pfc::string8 mainrole = "&main role";
 	try {
 
-		enum { ID_CMD_NEXT = 1, ID_VIEW_PAGE, ID_CLP_COPY_TITLE, ID_CLP_COPY_ROW, ID_DLG_CLEAR_FILTER, ID_DLG_FILTER_TOGGLE,  ID_DLG_MAIN_ROLE_TOGGLE };
+		enum { ID_CMD_NEXT = 1, ID_VIEW_PAGE, ID_CLP_COPY_TITLE, ID_CLP_COPY_ROW, ID_DLG_CLEAR_REL_CACHE, ID_DLG_CLEAR_FILTER, ID_DLG_FILTER_TOGGLE,  ID_DLG_MAIN_ROLE_TOGGLE };
 		HMENU menu = CreatePopupMenu();
 
 		foo_conf cfg = m_dlg->config();
 		bool enabled_versions = cfg.find_release_filter_flag & FilterFlag::Versions;
 		bool enabled_rolemain = cfg.find_release_filter_flag & FilterFlag::RoleMain;
 		bool enabled_filter = uGetDlgItemText(m_dlg->m_hWnd, IDC_EDIT_FILTER).get_length();
+
+		pfc::string8 release_id;
+		if (myparam.is_release()) {
+			release_id = m_find_release_artist->master_releases[myparam.master_ndx]->sub_releases[myparam.release_ndx]->id;
+		}
+		else if (!myparam.bmaster) {
+			release_id = m_find_release_artist->releases[myparam.release_ndx]->id;
+		}
+
+		bool boffExists = false;
+		if (release_id.get_length()) {
+			pfc::string8 parent_path = ol::get_offline_path(m_find_release_artist->id, ol::GetFrom::Release, release_id, true);
+			std::filesystem::path os_path = std::filesystem::u8path(parent_path.c_str());
+
+			if (fs::exists(os_path)) {							
+				boffExists = fs::exists(os_path);
+			}
+		}
 
 		uAppendMenu(menu, MF_STRING, ID_CMD_NEXT, "&Next");
 		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
@@ -2092,7 +2111,12 @@ void CFindReleaseTree::context_menu(size_t param_mr, POINT screen_pos) {
 		uAppendMenu(menu, MF_STRING | (enabled_versions ? MF_CHECKED: 0), ID_DLG_FILTER_TOGGLE, filterversions);
 		uAppendMenu(menu, MF_STRING | (enabled_rolemain ? MF_CHECKED : 0), ID_DLG_MAIN_ROLE_TOGGLE, mainrole);
 		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+		
+		if (boffExists && !empty_sel && release_id.get_length()) {
 
+			uAppendMenu(menu, MF_STRING, ID_DLG_CLEAR_REL_CACHE, delReleaseCache);
+			uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+		}
 		uAppendMenu(menu, MF_STRING | (enabled_filter ? 0 : MF_DISABLED | MF_GRAYED), ID_DLG_CLEAR_FILTER, clearfilter);
 
 		if (!empty_sel) {
@@ -2167,6 +2191,11 @@ void CFindReleaseTree::context_menu(size_t param_mr, POINT screen_pos) {
 		case ID_DLG_CLEAR_FILTER:
 		{
 			uSetDlgItemText(m_dlg->m_hWnd, IDC_EDIT_FILTER, "");
+			break;
+		}
+		case ID_DLG_CLEAR_REL_CACHE:
+		{
+			discogs_interface->delete_artist_cache(m_find_release_artist->id, release_id);
 			break;
 		}
 		case ID_DLG_FILTER_TOGGLE:

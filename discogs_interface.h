@@ -201,7 +201,7 @@ public:
 	pfc::string8 load_username(threaded_process_status &p_status, abort_callback &p_abort);
 	pfc::array_t<pfc::string8> get_collection(threaded_process_status &p_status, abort_callback &p_abort);
 
-	bool delete_artist_cache(const pfc::string8& artist_id);
+	bool delete_artist_cache(const pfc::string8& artist_id, const pfc::string8& release_id = "");
 };
 
 inline DiscogsInterface *discogs_interface;

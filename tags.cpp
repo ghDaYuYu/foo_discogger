@@ -44,6 +44,8 @@ static tag_mapping_entry default_tag_mappings[] = {
 	{"DISCOGS_RATING", true, true, false, false, false, "%RELEASE_DISCOGS_AVG_RATING%"},
 	{"DISCOGS_VOTES", true, true, false, false, false, "%RELEASE_DISCOGS_RATING_VOTES%"},
 	{"DISCOGS_SUBMITTED_BY", false, false, false, false, false, "%RELEASE_DISCOGS_SUBMITTED_BY%"},
+	{"DISCOGS_DATE_ADDED", false, false, false, false, false, "%RELEASE_DISCOGS_DATE_ADDED%"},
+	{"DISCOGS_DATE_CHANGED", false, false, false, false, false, "%RELEASE_DISCOGS_DATE_CHANGED%"},
 	{"DISCOGS_MEMBERS_HAVE", false, false, false, false, false, "%RELEASE_DISCOGS_USERS_WANT%"},
 	{"DISCOGS_MEMBERS_WANT", false, false, false, false, false, "%RELEASE_DISCOGS_USERS_HAVE%"},
 	{"DISCOGS_ARTISTS_ALIASES", false, false, false, false, false, "%<<ARTISTS_ALIASES>>%"},

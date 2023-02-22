@@ -506,7 +506,8 @@ bool CPreviewTagsDialog::context_menu_switch(HWND wnd, POINT point, int cmd, bit
 	case ID_PREVIEW_CMD_WRITE_TAGS_MASK: {
 		m_write_only_selected = selmask.size();
 		BOOL bDummy;
-		return OnButtonWriteTags(0, 0, NULL, bDummy);
+		//todo: 1 sent to always stick preview panel
+		return OnButtonWriteTags(0, 1, NULL, bDummy);
 	}
 	case ID_PREVIEW_CMD_BACK: {
 
@@ -672,7 +673,7 @@ void CPreviewTagsDialog::replace_tag_result(size_t item, tag_result_ptr result) 
 }
 
 void CPreviewTagsDialog::generate_tag_results(bool computestat) {
-	ListView_DeleteAllItems(m_results_list);
+
 	if (computestat) {
 		m_vstats.clear();
 		compute_stats();
@@ -799,7 +800,7 @@ LRESULT CPreviewTagsDialog::OnButtonWriteTags(WORD /*wNotifyCode*/, WORD wID, HW
 		log_msg(e.what());
 	}
 
-	if (!(CONF.tag_save_flags & TAGSAVE_PREVIEW_STICKY_FLAG)) {
+	if (!(CONF.tag_save_flags & TAGSAVE_PREVIEW_STICKY_FLAG) && !wID) {
 		destroy_all();
 	}
 	return TRUE;

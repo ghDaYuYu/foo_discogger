@@ -737,7 +737,7 @@ extern bool is_multivalue_meta(const pfc::string& field) {
 
 	auto found_it =
 		std::find_if(vmultis.begin(), vmultis.end(), [&](const pfc::string8 & e) {
-		return e.equals(field);
+		return pfc::stringLite::g_equalsCaseInsensitive(e, field);
 			});
 
 	return found_it != std::end(vmultis);

@@ -834,10 +834,15 @@ void TagWriter::write_tag(metadb_handle_ptr item, file_info &info, const tag_map
 			}
 		}
 		else {
-			for (size_t ws = 0; ws < tag_values.get_size(); ws++) {
-				if (ws) forced_flat << ";";
-				forced_flat << ltrim(tag_values[ws].get_pure_cvalue());
-			}
+			bool bneedsep = false;
+            for (size_t ws = 0; ws < tag_values.get_size(); ws++) {
+            	pfc::string8 str_ws = ltrim(tag_values[ws].get_pure_cvalue());
+            	if (str_ws.get_length()) {
+            	    if (bneedsep) forced_flat << ";";
+            		    forced_flat << ltrim(tag_values[ws].get_pure_cvalue());
+            		    bneedsep = true;
+            	}
+            }
 		}
 	}
 
@@ -892,7 +897,7 @@ void TagWriter::write_tag(metadb_handle_ptr item, file_info &info, const tag_map
 	size_t i = 0;
 
 	while (i < (bforce_flat ? 1 : cvalues)) {
-		if (tag_values[i].get_pure_cvalue().get_length()) {
+		if (bforce_flat || tag_values[i].get_pure_cvalue().get_length()) {
 
 			if (!already_there) {
 

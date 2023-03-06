@@ -2084,7 +2084,7 @@ void CFindReleaseTree::context_menu(size_t param_mr, POINT screen_pos) {
 		if (myparam.is_release()) {
 			release_id = m_find_release_artist->master_releases[myparam.master_ndx]->sub_releases[myparam.release_ndx]->id;
 		}
-		else if (!myparam.bmaster) {
+		else if (myparam.is_nmrelease()) {
 			release_id = m_find_release_artist->releases[myparam.release_ndx]->id;
 		}
 

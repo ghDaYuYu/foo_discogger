@@ -220,7 +220,7 @@ namespace Offline {
 				if ((file = fopen(os_path.string().c_str(), "w")) != NULL)
 				{
 					int w = fwrite(fcontent.get_ptr(), fcontent.get_length(), 1, file);
-					bok = (w && !fclose(file));
+					bok = ((w || !fcontent.get_length()) && !fclose(file));
 
 					return bok;
 				}

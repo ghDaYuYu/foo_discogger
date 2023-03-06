@@ -1346,7 +1346,11 @@ void Discogs::parseRelease(Release *release, json_t *root) {
 	json_t *extraartists = json_object_get(root, "extraartists");
 	parseReleaseCredits(extraartists, release->credits, release);
 
-	release->notes = remove_dot_2spaces(JSONAttributeString(root, "notes"));
+	pfc::string8 tmp = remove_dot_2spaces(JSONAttributeString(root, "notes"));
+    tmp.replace_char('\x01', ' ');
+    tmp.replace_char('\x02', ' ');
+    tmp.replace_char('\x03', ' ');
+	release->notes = tmp;
 
 	json_t* images = json_object_get(root, "images");
 	parseImages(images, release->images);

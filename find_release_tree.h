@@ -4,9 +4,6 @@
 #include "resource.h"
 #include "libPPUI\clipboard.h"
 
-#include "CGdiPlusBitmap.h"
-#include <gdiplus.h>
-
 #include "discogs.h"
 #include "discogs_interface.h"
 

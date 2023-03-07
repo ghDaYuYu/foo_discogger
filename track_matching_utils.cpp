@@ -10,6 +10,39 @@
 
 using namespace Gdiplus;
 
+inline bool GdipErrorMsg(int code, const pfc::string8 path, pfc::string8& outmsg) {
+	bool bret = 0;
+	outmsg << " | ";
+	switch (code) {
+	case Gdiplus::Ok:                         outmsg << "Ok";                           bret = 1;
+	case Gdiplus::GenericError:               outmsg << "Generic Error";                bret = 0;
+	case Gdiplus::InvalidParameter:           outmsg << "Invalid Parameter";            bret = 0;
+	case Gdiplus::OutOfMemory:                outmsg << "Out Of Memory";                bret = 0;
+	case Gdiplus::ObjectBusy:                 outmsg << "Object Busy";                  bret = 0;
+	case Gdiplus::InsufficientBuffer:         outmsg << "Insufficient Buffer";          bret = 0;
+	case Gdiplus::NotImplemented:             outmsg << "Not Implemented";              bret = 0;
+	case Gdiplus::Win32Error:                 outmsg << "Win32 Error";                  bret = 0;
+	case Gdiplus::Aborted:                    outmsg << "Aborted";                      bret = 0;
+	case Gdiplus::FileNotFound:               outmsg << "File Not Found";               bret = 0;
+	case Gdiplus::ValueOverflow:              outmsg << "Value Overflow";               bret = 0;
+	case Gdiplus::AccessDenied:               outmsg << "Access Denied";                bret = 0;
+	case Gdiplus::UnknownImageFormat:         outmsg << "Unknown Image Format";         bret = 0;
+	case Gdiplus::FontFamilyNotFound:         outmsg << "Font Family Not Found";        bret = 0;
+	case Gdiplus::FontStyleNotFound:          outmsg << "Font Style Not Found";         bret = 0;
+	case Gdiplus::NotTrueTypeFont:            outmsg << "Not TruType Font";             bret = 0;
+	case Gdiplus::UnsupportedGdiplusVersion:  outmsg << "Unsupported Gdiplus Version";  bret = 0;
+	case Gdiplus::GdiplusNotInitialized:      outmsg << "Gdiplus Not Initialized";      bret = 0;
+	case Gdiplus::PropertyNotFound:           outmsg << "Property Not Found";           bret = 0;
+	case Gdiplus::PropertyNotSupported:       outmsg << "Property Not Supported";       bret = 0;
+	default:                                  outmsg << "Unknown Error";                bret = 0;
+	}
+
+	outmsg << " | ";
+	outmsg << path;
+
+	return bret;
+}
+
 multi_uartwork::multi_uartwork(const CConf& conf, Discogs::Release_ptr release) {
 
 	size_t calbum_art = release->images.get_count();
@@ -222,6 +255,7 @@ imgpairs MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::string8> n8_cache_p
 			pfc::string8 msg("error writing ");
 			msg << temp_file_small;
 			log_msg(msg);
+			return imgpairs{ {nullptr, nullptr}, {nullptr, nullptr } };
 		}
 	}
 	if (fd != nullptr) {
@@ -282,15 +316,31 @@ imgpairs MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::string8> n8_cache_p
 		HRESULT hres = CLSIDFromString(L"{557cf406-1a04-11d3-9a73-0000f81ef32e}", &pngClsid);
 
 		//write mini thumb
-		imgMini.Save(os_file_mini.wstring().c_str(), &pngClsid, NULL);
+		hres = imgMini.Save(os_file_mini.wstring().c_str(), &pngClsid, NULL);
+
+		if (hres != Gdiplus::Status::Ok) {
+			pfc::string8 err = "Error saving small preview tmp bitmap: ";
+			GdipErrorMsg(hres, os_file_mini.u8string().c_str(), err);
+			log_msg(err);
+			return imgpairs{ {nullptr, nullptr}, {nullptr, nullptr } };
+		}
 
 		Bitmap bmMini(os_file_mini.wstring().c_str());
 
 		//Get hBmMini (48x48)
-		if (bmMini.GetHBITMAP(Color(255, 255, 255)/*Color::Black*/, &hBmMini) != Gdiplus::Ok) {
-			log_msg("GdiPlus error (GetHBITMAP Small preview 48x48)");
+		hres = bmMini.GetHBITMAP(Color(255, 255, 255)/*Color::Black*/, &hBmMini);
+		if (hres != Gdiplus::Ok) {
+			pfc::string8 err = "GdiPlus error (GetHBITMAP Small preview 48x48)";
+			GdipErrorMsg(hres, os_file_mini.u8string().c_str(), err);
+			log_msg(err);
+			return imgpairs{ {nullptr, nullptr}, {nullptr, nullptr } };
 		}
-		bmMini.GetHICON(&hIconMini);
+		else {
+			bmMini.GetHICON(&hIconMini);
+			DeleteObject(hBmMini);
+		}
+
+		DeleteObject(hBmSmall);
 	}
 	else {
 		log_msg("GdiPlus error (GetHBITMAP Small preview)");
@@ -306,6 +356,14 @@ imgpairs GenerateTmpBitmapsFromRealSize(pfc::string8 release_id, size_t pos,
 	std::filesystem::path os_src_full_path = std::filesystem::u8path(source_full_path.c_str());
 
 	Bitmap bmRealSize(os_src_full_path.wstring().c_str());
+
+	Gdiplus::Status status = bmRealSize.GetLastStatus();
+	if (status != Gdiplus::Status::Ok) {
+		pfc::string8 err = "Error opening real size bitmap";
+		GdipErrorMsg(status, os_src_full_path.u8string().c_str(), err);
+		log_msg(err);
+		return imgpairs{ {nullptr, nullptr}, {nullptr, nullptr } };
+	}
 
 	int inWidth = bmRealSize.GetWidth();
 	int inHeight = bmRealSize.GetHeight();
@@ -333,7 +391,7 @@ imgpairs GenerateTmpBitmapsFromRealSize(pfc::string8 release_id, size_t pos,
 	g.ScaleTransform(horizontalScalingFactor, verticalScalingFactor);
 
 	if (g.DrawImage((Gdiplus::Image*) & bmRealSize, 0, 0) == Gdiplus::Ok) {
-		int debug = 0;
+		//..
 	}
 	pfc::string8 temp_path, temp_file_name_small, temp_file_name_mini;
 
@@ -354,9 +412,24 @@ imgpairs GenerateTmpBitmapsFromRealSize(pfc::string8 release_id, size_t pos,
 	HRESULT hres = CLSIDFromString(L"{557cf406-1a04-11d3-9a73-0000f81ef32e}", &pngClsid);
 
 	//save small
-	imgSmall.Save(os_tmp.wstring().c_str(), &pngClsid, NULL);
+	hres = imgSmall.Save(os_tmp.wstring().c_str(), &pngClsid, NULL);
+
+	if (!SUCCEEDED(hres)) {
+		pfc::string8 err = "Error saving temp small png icon";
+		GdipErrorMsg(hres, os_tmp.u8string().c_str(), err);
+		log_msg(err);
+		return imgpairs{ {nullptr, nullptr}, {nullptr, nullptr } };
+	}
 
 	Bitmap bmSmall(os_tmp.wstring().c_str());
+
+	status = bmSmall.GetLastStatus();
+	if (status != Gdiplus::Status::Ok) {
+		pfc::string8 err = "Error opening small size temp path";
+		GdipErrorMsg(status, os_tmp.u8string().c_str(), err);
+		log_msg(err);
+		return imgpairs{ {nullptr, nullptr}, {nullptr, nullptr } };
+	}
 
 	HBITMAP hBmSmall, hBmMini;
 	HICON hIconSmall, hIconMini;
@@ -410,8 +483,8 @@ imgpairs GenerateTmpBitmapsFromRealSize(pfc::string8 release_id, size_t pos,
 		std::filesystem::path tmp_file_min = std::filesystem::u8path(temp_file_name_mini.c_str());
 
 		if (!std::filesystem::exists(tmp_file_min)) {
-			return imgpairs{ {nullptr, nullptr}, {nullptr, nullptr } };
-		
+
+			return std::pair(std::pair(hIconSmall, nullptr), std::pair(nullptr, nullptr));	
 		}
 		std::filesystem::path os_tmp_mini = std::filesystem::u8path(temp_file_name_mini.c_str());
 
@@ -419,28 +492,51 @@ imgpairs GenerateTmpBitmapsFromRealSize(pfc::string8 release_id, size_t pos,
 		hres = CLSIDFromString(L"{557cf406-1a04-11d3-9a73-0000f81ef32e}", &pngClsid);
 
 		//save mini
-		imgMini.Save(os_tmp_mini.wstring().c_str(), &pngClsid, NULL);
+		hres = imgMini.Save(os_tmp_mini.wstring().c_str(), &pngClsid, NULL);
+		if (!SUCCEEDED(hres)) {
+			pfc::string8 err = "Error saving minimal png icon";
+			GdipErrorMsg(hres, os_tmp_mini.u8string().c_str(), err);
+			log_msg(err);
+			return imgpairs{ {hIconSmall, nullptr}, {nullptr, nullptr } };
+		}
 
 		Bitmap bmMini(os_tmp_mini.wstring().c_str());
-		if (bmMini.GetHBITMAP(Color(255, 255, 255)/*Color::Black*/, &hBmMini) != Gdiplus::Ok) {
-			log_msg("GdiPlus error (GetHBITMAP 48x48 tmp artwork)");
+
+		Gdiplus::Status status = bmMini.GetLastStatus();
+		if (status != Gdiplus::Status::Ok) {
+			pfc::string8 err = "Error opening minimal size temp path";
+			GdipErrorMsg(status, os_tmp_mini.u8string().c_str(), err);
+			log_msg(err);
+			return imgpairs{ {hIconSmall, nullptr}, {nullptr, nullptr } };
 		}
-		bmMini.GetHICON(&hIconMini);
+
+		hres = bmMini.GetHBITMAP(Color(255, 255, 255)/*Color::Black*/, &hBmMini);
+		if (!SUCCEEDED(hres)) {
+			pfc::string8 err = "GdiPlus error (GetHBITMAP 48x48 tmp artwork)";
+			GdipErrorMsg(hres, os_tmp_mini.u8string().c_str(), err);
+			log_msg(err);
+			return imgpairs{ {hIconSmall, nullptr}, {nullptr, nullptr } };
+		}
+		else {
+			bmMini.GetHICON(&hIconMini);
+			DeleteObject(hBmMini);
+		}
+		DeleteObject(hBmSmall);
 	}
 	else {
 		log_msg("GdiPlus error (GetHBITMAP 150x150 tmp artwork)");
 	}
-
-	temp_file_names.first = temp_file_name_small;
-	temp_file_names.second = temp_file_name_mini;
-
-	DeleteObject(hBmSmall);
-	DeleteObject(hBmMini);
 	return std::pair(std::pair(hIconSmall, nullptr), std::pair(hIconMini, nullptr));
 }
 
 MemoryBlock MemoryBlockToPngIcon(MemoryBlock buffer) {
 	IStream* pStream = SHCreateMemStream((BYTE*)&buffer[0], buffer.get_count());
+
+	if (!pStream) {
+		log_msg("Bad memory stream allocation for PNG Icon");
+		return {};
+	}
+
 	Gdiplus::Bitmap bmFetch(pStream);
 
 	int inWidth = bmFetch.GetWidth();
@@ -453,8 +549,16 @@ MemoryBlock MemoryBlockToPngIcon(MemoryBlock buffer) {
 	else
 		ScalingFactor = (float)newHeight / (float)bmFetch.GetHeight();
 
+	HRESULT hr;
 	IStream* poutStream;
-	CreateStreamOnHGlobal(NULL, true, &poutStream);
+	hr = CreateStreamOnHGlobal(NULL, true, &poutStream);
+	if (!SUCCEEDED(hr)) {
+		log_msg("Bad global stream allocation for PNG Icon");
+		poutStream->Release();
+		pStream->Release();
+		return {};
+	}
+
 	Gdiplus::Bitmap bmIcon = Gdiplus::Bitmap((int)newWidth, (int)newHeight, PixelFormat24bppRGB);
 	Gdiplus::Graphics gmini(&bmIcon);
 	gmini.ScaleTransform(ScalingFactor, ScalingFactor);
@@ -467,20 +571,36 @@ MemoryBlock MemoryBlockToPngIcon(MemoryBlock buffer) {
 	li.QuadPart = 0;
 
 	status = bmIcon.Save(poutStream, &ClsidPNG, NULL);
+	if (status != Gdiplus::Status::Ok) {
+		pfc::string8 err = "Bad result saving to PNG Icon stream";
+		GdipErrorMsg(hres, "memory", err);
+		log_msg(err);
+
+		poutStream->Release();
+		pStream->Release();
+
+		return {};
+	}
+	
 	hres = poutStream->Seek(li, STREAM_SEEK_SET, NULL);
 	poutStream->Commit(STGC_DEFAULT);
+	
 	STATSTG outstats;
 	poutStream->Stat(&outstats, STATFLAG_NONAME);
 
 	ULONG read;
 	UINT length = outstats.cbSize.QuadPart;
 
+	MemoryBlock newbuffer = {};
 	BYTE* out_stream_bytes = new BYTE[outstats.cbSize.QuadPart];
-	poutStream->Read(out_stream_bytes, outstats.cbSize.QuadPart, &read); //Read entire stream into the array
-
-	MemoryBlock newbuffer; newbuffer.set_size(newWidth * newHeight * 3);
-	newbuffer.set_data_fromptr(out_stream_bytes, length);
-
+	hr = poutStream->Read(out_stream_bytes, outstats.cbSize.QuadPart, &read); //Read entire stream into the array
+	if (SUCCEEDED(hr)) {
+		newbuffer.set_size(newWidth * newHeight * 3);
+		newbuffer.set_data_fromptr(out_stream_bytes, length);
+	}
+	else {
+		log_msg("Bad result reading from PNG Icon stream");
+	}
 	poutStream->Release();
 	pStream->Release();
 

@@ -168,8 +168,8 @@ public:
 		}
 
 		/*local_*/ndx -= accimg;
-		artist = this_artist;
-		return this_artist.get() && /*local_*/ndx < this_artist->images.get_count();
+		artist = std::move(this_artist);
+		return artist.get() && /*local_*/ndx < artist->images.get_count();
 	}
 
 	bool artists_vid(Release_ptr p_release, std::vector<std::pair<std::string, std::string>> &out) {

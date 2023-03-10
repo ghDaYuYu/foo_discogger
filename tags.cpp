@@ -104,6 +104,7 @@ static tag_mapping_entry ID3_FrameDefs_MS[] =
 	{ "Lyricist"             , true,  false, false, false, false, "$flatten($multi_if($any($multi_strcmp($sextend(%<<TRACK_CREDITS_SHORT_ROLES>>%,%<<RELEASE_CREDITS_SHORT_ROLES>>%),'Lyrics By')),$multi_if($put(aj,$sextend(%<<TRACK_CREDITS_ARTISTS_JOIN>>%,%<<RELEASE_CREDITS_ARTISTS_JOIN>>%)),$joinnames($put(an,$sextend(%<<TRACK_CREDITS_ARTISTS_NAME>>%,%<<RELEASE_CREDITS_ARTISTS_NAME>>%)),$get(aj)),$get(an)),))"},
 	{ "Remixed by"           , true,  false, false, false, false, "$flatten($multi_if($any($multi_strcmp($sextend(%<<TRACK_CREDITS_SHORT_ROLES>>%,%<<RELEASE_CREDITS_SHORT_ROLES>>%),'Remix')),$multi_if($put(aj,$sextend(%<<TRACK_CREDITS_ARTISTS_JOIN>>%,%<<RELEASE_CREDITS_ARTISTS_JOIN>>%)),$joinnames($put(an,$sextend(%<<TRACK_CREDITS_ARTISTS_NAME>>%,%<<RELEASE_CREDITS_ARTISTS_NAME>>%)),$get(aj)),$get(an)),))"},
 	{ "Media type"           , true,  false, false, false, false, "$zip2($multi_if($multi_greater(%<RELEASE_FORMATS_QUANTITY>%,1),$zip(%<RELEASE_FORMATS_QUANTITY>%,' x '),),%<RELEASE_FORMATS_NAME>%,$multi_if($put(D,$join(%<<RELEASE_FORMATS_DESCRIPTIONS>>%)),', ',),$get(D),$multi_if($put(T,%<RELEASE_FORMATS_TEXT>%),', ',),$multi_if2($get(T),))"},
+	{ "Original release date", true,  false, false, false, false, "$if2(%MASTER_RELEASE_YEAR%,%RELEASE_YEAR%)"},
 };
 
 struct ID3_FrameDef {

@@ -75,6 +75,7 @@ private:
 	size_t m_ratelimit_threshold;
 	bool m_ratelimit_cruise;
 	double m_throttle_delta;
+	size_t m_current_minute;
 
 	http_client::ptr client;
 
@@ -92,6 +93,13 @@ public:
 		m_ratelimit_remaining = 60;
 		m_ratelimit_cruise = false;
 		m_throttle_delta = 0.0;
+
+		time_t currentTime;
+		struct tm* localTime;
+		time(&currentTime);
+		localTime = localtime(&currentTime);
+		
+		m_current_minute = localTime->tm_min;
 		
 		int n = 0;
 		while (!service_enum_t<http_client>().first(client)) {

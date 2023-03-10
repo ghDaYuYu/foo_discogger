@@ -250,7 +250,9 @@ const struct multi_uartwork {
 
 	void prep_block(size_t ndx) {
 		if (vuart.size() < ndx + 1) {
-			auto uart = vuart.emplace_back(uartwork(init));
+			while (vuart.size() < ndx + 1) {
+				auto uart = vuart.emplace_back(uartwork(init));
+			}
 		}
 	}
 

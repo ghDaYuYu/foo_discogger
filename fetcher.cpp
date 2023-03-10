@@ -74,12 +74,44 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 		return;
 	}
 
-	bool isImageUrl = url.has_prefix("https://img.discogs.com");
-	isImageUrl |= url.has_prefix("https://i.discogs.com");
-
 	if (params.get_length()) clean_url << "?" << params;
 	bool use_api = url.find_first("api") != ~0;
 	use_oauth &= use_api;
+
+	bool isImageUrl = url.has_prefix("https://img.discogs.com");
+	isImageUrl |= url.has_prefix("https://i.discogs.com");
+	isImageUrl &= !std::string(url.c_str()).find("h:150"); //ignore img previews
+	
+	if (isImageUrl) {
+
+		time_t currentTime;
+		struct tm* localTime;
+
+		time(&currentTime);
+		localTime = localtime(&currentTime);
+		int Min = localTime->tm_min;
+
+		m_ratelimit_max = 60/3;
+		m_ratelimit_threshold = 30/3;
+
+		if (!use_api) {
+			//constructor inits to 60
+			if (m_ratelimit_remaining > m_ratelimit_max) {
+				m_ratelimit_remaining = m_ratelimit_max;
+			}
+			else if (Min != m_current_minute) {
+				m_ratelimit_remaining = m_ratelimit_max;
+			}
+			else if (m_ratelimit_remaining < 0) {
+				m_ratelimit_remaining = 0;
+			}
+		}
+		m_current_minute = Min;
+	}
+	else {
+		m_ratelimit_max = 60;
+		m_ratelimit_threshold = 30;
+	}
 
 	//log: url and oauth status
 	log_msg(clean_url);
@@ -87,7 +119,7 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 		log_msg("Url OAuth enabled");
 	}
 
-	if (use_api) {
+	if (use_api || isImageUrl) {
 		chrono::steady_clock::time_point time_now = chrono::steady_clock::now();
 		chrono::duration<double> time_span = time_now - m_last_fetch;
 
@@ -115,11 +147,13 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 			msg_average << pfc::string8(human_read_time.str().c_str()) << msg_delta;
 		}
 
-		if (!isImageUrl)
-			log_msg(msg_average);
 
 		//reset when rate remaining reaches max m_value again
 		m_ratelimit_cruise &= (m_ratelimit_remaining < m_ratelimit_max); //60
+
+		m_ratelimit_cruise |= isImageUrl;
+
+		log_msg(msg_average);
 		
 		//apply delta/set cruise mode
 		if (m_ratelimit_cruise ||
@@ -128,8 +162,8 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 			m_ratelimit_cruise = true;
 
 			chrono::duration<double, std::milli> time_span_milli = time_span;
-			double sleep_base = m_ratelimit_remaining < 10 ? 5000 : m_ratelimit_remaining < 20 ? 2000 : 1000;	
-			m_throttle_delta = (std::max)(sleep_base - time_span_milli.count(), 0.0);
+			double sleep_base = m_ratelimit_remaining < (m_ratelimit_max / 6) ? 5000 : m_ratelimit_remaining < (m_ratelimit_max / 3) ? 2000 : 1000;
+			m_throttle_delta = (std::max)(sleep_base - (isImageUrl ? 0 : time_span_milli.count()), 0.0);
 			
 			DWORD dw = static_cast<DWORD>((int)m_throttle_delta);
 			Sleep(dw);
@@ -185,11 +219,25 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 					msg_ratelimits << " - RMNG: " << rate_header_buffer;
 				}
 
+				if (isImageUrl && !use_api) {
+					m_ratelimit_max = 20;
+					--m_ratelimit_remaining;
+					msg_ratelimits << "RL: " << m_ratelimit_max;
+					msg_ratelimits << " - Used: " << m_ratelimit_max - m_ratelimit_remaining;
+					msg_ratelimits << " - RMNG: " << m_ratelimit_remaining;
+				}
+
 				if (m_throttle_delta) {
 					std::stringstream human_read_time;
 					human_read_time << std::setprecision(3) << m_throttle_delta;
-					msg_ratelimits << " - Throttle engaged (" << pfc::string8(human_read_time.str().c_str()) << u8" \u03BCs)";
+					if (msg_ratelimits.get_length()) {
+						msg_ratelimits << " - Throttle engaged (" << pfc::string8(human_read_time.str().c_str()) << u8" \u03BCs)";
+					}
+					else {
+						msg_ratelimits << "Image Throttle engaged (" << pfc::string8(human_read_time.str().c_str()) << u8" \u03BCs)";
+					}
 				}
+
 				if (msg_ratelimits.length())
 					log_msg(msg_ratelimits);
 				else {

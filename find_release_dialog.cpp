@@ -441,9 +441,9 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	//autofill filter textbox (album)
 
 	block_filter_box_events(true);
-	if (m_tracer.is_multi_artist() || !m_tracer.has_amr() || !conf.enable_autosearch) {
+	//if (m_tracer.is_multi_artist() || !m_tracer.has_amr() || !conf.enable_autosearch) {
 		uSetWindowText(m_edit_filter, frm_album);
-	}
+	//}
 
 	block_filter_box_events(false);
 

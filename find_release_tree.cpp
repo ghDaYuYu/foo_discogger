@@ -565,6 +565,7 @@ void CFindReleaseTree::init_titles(Artist_ptr artist, pfc::string8 & filter_hint
 	if (m_idtracer_p->has_amr() && artist->loaded_releases) {
 
 		init_tracker_i(artist, "", "", false, true);
+		//m_inits empty on first call
 		init_tracker_i(artist, m_init_master_title, m_init_release_title, false, true);
 
 		pfc::string8 mtitle;
@@ -589,18 +590,20 @@ void CFindReleaseTree::init_titles(Artist_ptr artist, pfc::string8 & filter_hint
 			}
 		}
 
-		if (stricmp_utf8(filter, mtitle))
-		{
-			pfc::string8 buffer(filter);
-
-			if (buffer.has_prefix(mtitle))
+		if (mtitle.get_length()) {
+			if (stricmp_utf8(filter, mtitle))
 			{
-				filter.set_string(mtitle);
-			}
-			else {
-				if (!mtitle.has_prefix(buffer))
+				pfc::string8 buffer(filter);
+
+				if (buffer.has_prefix(mtitle))
 				{
-					filter = "";
+					filter.set_string(mtitle);
+				}
+				else {
+					if (!mtitle.has_prefix(buffer))
+					{
+						filter = "";
+					}
 				}
 			}
 		}
@@ -638,7 +641,7 @@ void CFindReleaseTree::on_get_artist_done(cupdRelSrc cupdsrc, Artist_ptr& artist
 	init_titles(artist, hint);
 	//
 	
-	if (m_dlg->is_filter_autofill_enabled() && get_artist()) {
+	if (m_dlg->is_filter_autofill_enabled() && artist.get()/*get_artist()*/) {
 
 		m_results_filter.set_string(hint);
 
@@ -2173,7 +2176,7 @@ void CFindReleaseTree::context_menu(size_t param_mr, POINT screen_pos) {
 			if (buffer.get_length()) {
 
 				ClipboardHelper::OpenScope scope;
-				scope.Open(core_api::get_main_window(), true);
+				scope.Open(core_api::get_main_window());
 				ClipboardHelper::SetString(buffer);
 			}
 			break;
@@ -2183,7 +2186,7 @@ void CFindReleaseTree::context_menu(size_t param_mr, POINT screen_pos) {
 			pfc::string8 utf_buffer;
 			row_col_data rcd_out;
 			/*bool bres =*/ m_rt_cache.get_cached_find_release_node(myparam.lparam(), utf_buffer, rcd_out);
-			ClipboardHelper::OpenScope scope; scope.Open(core_api::get_main_window(), true);
+			ClipboardHelper::OpenScope scope; scope.Open(core_api::get_main_window());
 			ClipboardHelper::SetString(trim(utf_buffer));
 
 			break;

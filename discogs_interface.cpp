@@ -451,9 +451,10 @@ bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release, bool isArti
 	if (!isArtist) {
 
 		id = release->id;
-		if (!release->images.get_size() || (!release->images[img_ndx]->url150.get_length())) {
+		if (!release->images.get_size() || release->images.get_size() < (img_ndx + 1) || (!release->images[img_ndx]->url150.get_length())) {
 			
-			pfc::string8 msg = "Unable to read thumbnail from cache (no artist), url: ";
+			pfc::string8 msg = "Unable to read album thumbnail from cache, index: ";
+			msg << img_ndx;
 			log_msg(msg);
 
 			return false;
@@ -471,10 +472,11 @@ bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release, bool isArti
 		id = this_artist->id;
 
 		if (!release->artists.get_size() || !this_artist.get() ||
-			!this_artist->images.get_size() ||
+			!this_artist->images.get_size() || this_artist->images.get_count() < (local_ndx + 1) ||
 			!this_artist->images[local_ndx]->url150.get_length()) {
 
-			pfc::string8 msg = "Unable to read thumbnail from cache (artist), url: ";
+			pfc::string8 msg = "Unable to read artist thumbnail from cache, index: ";
+			msg << local_ndx;
 			log_msg(msg);
 
 			return false;

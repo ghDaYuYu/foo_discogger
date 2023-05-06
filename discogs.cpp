@@ -1052,7 +1052,9 @@ void parseTrackPositions_v23(pfc::array_t<ReleaseTrack_ptr>& intermediate_tracks
 
 	// renumber if we didn't get them all and number of headings matches number of formats
 	if (format_quantity && (disc_number != format_quantity)) {
-		if (release->total_headings == format_quantity && !(STR_EQUAL(release->discs[0]->tracks[0]->title_heading, ""))) {
+		bool buse_heading = release->discs.get_count() && release->discs.begin()->get()->tracks.get_count();
+		buse_heading = buse_heading && !(STR_EQUAL(release->discs.begin()->get()->tracks[0]->title_heading, ""));
+		if (release->total_headings == format_quantity && buse_heading) {
 			pfc::string8 last_heading = "";
 			track_number = 1;
 			disc_track_number = 0;
@@ -1098,7 +1100,7 @@ void parseTrackPositions_v23(pfc::array_t<ReleaseTrack_ptr>& intermediate_tracks
 	for (size_t i = 0; i < disc->tracks.get_size(); i++) {
 		auto track = disc->tracks[i];
 		if (!track->discogs_duration_seconds && track->discogs_indextrack_duration_seconds) {
-			if (i + 1 > disc->tracks.get_size() - 1 || disc->tracks[i + 1]->discogs_indextrack_duration_seconds != track->discogs_indextrack_duration_seconds) {
+			if (i + 1 == disc->tracks.get_size() || disc->tracks[i + 1]->discogs_indextrack_duration_seconds != track->discogs_indextrack_duration_seconds) {
 				track->discogs_duration_seconds = track->discogs_indextrack_duration_seconds;
 				track->discogs_duration_raw = track->discogs_indextrack_duration_raw;
 			}

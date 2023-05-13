@@ -1,10 +1,11 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 #include "resource.h"
 #include "conf.h"
 #include "find_release_artist_dlg.h"
 
-static const GUID guid_cfg_window_placement_find_release_artist_dlg = { 0xbe0df069, 0x3e52, 0x4570, { 0xba, 0xbc, 0x59, 0xbe, 0x75, 0xb8, 0xe0, 0x45 } };
-static cfg_window_placement cfg_window_placement_find_release_artist_dlg(guid_cfg_window_placement_find_release_artist_dlg);
+// {8BD7D721-C9AF-4DC4-BAAD-A94C7A4CD0D5}
+static const GUID guid_cfg_dialog_position_find_release_artist_dlg = { 0x8bd7d721, 0xc9af, 0x4dc4, { 0xba, 0xad, 0xa9, 0x4c, 0x7a, 0x4c, 0xd0, 0xd5 } };
+static cfgDialogPosition cfg_dialog_position_find_release_artist_dlg(guid_cfg_dialog_position_find_release_artist_dlg);
 
 dialog_resize_helper::param CFindReleaseArtistDialog::m_resize_helper_table[] =
 {
@@ -73,7 +74,7 @@ LRESULT CFindReleaseArtistDialog::OnInitDialog(HWND hWnd, LPARAM lParam)
 	SetIcon(g_discogs->icon);
 	m_resize_helper.process_message(m_hWnd, WM_INITDIALOG, (WPARAM)hWnd, lParam);
 	m_resize_helper.add_sizegrip();
-	cfg_window_placement_find_release_artist_dlg.on_window_creation(m_hWnd, true);
+	cfg_dialog_position_find_release_artist_dlg.AddWindow(m_hWnd);
 
 	//darkmode
 	AddDialog(m_hWnd);
@@ -88,7 +89,7 @@ LRESULT CFindReleaseArtistDialog::OnInitDialog(HWND hWnd, LPARAM lParam)
 void CFindReleaseArtistDialog::OnDestroy()
 {
 	m_resize_helper.process_message(m_hWnd, WM_DESTROY, 0, 0);
-	cfg_window_placement_find_release_artist_dlg.on_window_destruction(m_hWnd);
+	cfg_dialog_position_find_release_artist_dlg.RemoveWindow(m_hWnd);
 }
 
 void CFindReleaseArtistDialog::OnClose()

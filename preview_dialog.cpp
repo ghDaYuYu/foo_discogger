@@ -16,8 +16,9 @@
 #define CHANGE_NOT_APPROVED_RGB	RGB(150, 100, 100)
 #define CHANGE_USR_APPROVED_RGB	RGB(50, 180, 50)
 
-static const GUID guid_cfg_window_placement_preview_dlg = { 0xcb1debbd, 0x1b0a, 0x4046, { 0x8c, 0x6f, 0x74, 0xee, 0x9d, 0x74, 0x7f, 0x83 } };
-static cfg_window_placement cfg_window_placement_preview_dlg(guid_cfg_window_placement_preview_dlg);
+// {07B5BC84-9798-4AD5-B8D9-E36C10E98F41}
+static const GUID guid_cfg_dialog_position_preview_dlg = { 0x7b5bc84, 0x9798, 0x4ad5, { 0xb8, 0xd9, 0xe3, 0x6c, 0x10, 0xe9, 0x8f, 0x41 } };
+static cfgDialogPosition cfg_dialog_position_preview_dlg(guid_cfg_dialog_position_preview_dlg);
 
 using namespace Gdiplus;
 
@@ -293,7 +294,7 @@ LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	// dlg resize and dimensions
 
 	DlgResize_Init(mygripp.enabled, true);
-	cfg_window_placement_preview_dlg.on_window_creation(m_hWnd, true);
+	cfg_dialog_position_preview_dlg.AddWindow(m_hWnd);
 
 	load_column_layout();
 	set_preview_mode((PreView)conf.preview_mode);
@@ -830,7 +831,7 @@ LRESULT CPreviewTagsDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /
 		(conf.edit_tags_dlg_flags & (FLG_TAGMAP_DLG_ATTACHED | FLG_TAGMAP_DLG_OPENED)) == (FLG_TAGMAP_DLG_ATTACHED | FLG_TAGMAP_DLG_OPENED)) {
 		g_discogs->tag_mappings_dialog->destroy();
 	}
-	cfg_window_placement_preview_dlg.on_window_destruction(m_hWnd);
+	cfg_dialog_position_preview_dlg.RemoveWindow(m_hWnd);
 	return 0;
 }
 

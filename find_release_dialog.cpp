@@ -8,8 +8,9 @@
 #include "tag_mappings_dialog.h"
 #include "find_release_dialog.h"
 
-static const GUID guid_cfg_window_placement_find_release_dlg = { 0x7342d2f3, 0x235d, 0x4bed, { 0x86, 0x7e, 0x82, 0x7f, 0xa8, 0x8e, 0xd9, 0x87 } };
-static cfg_window_placement cfg_window_placement_find_release_dlg(guid_cfg_window_placement_find_release_dlg);
+// {F924481B-17A0-423F-B1A6-07293DC46810}
+static const GUID guid_cfg_dialog_position_find_release_dlg = { 0xf924481b, 0x17a0, 0x423f, { 0xb1, 0xa6, 0x7, 0x29, 0x3d, 0xc4, 0x68, 0x10 } };
+static cfgDialogPosition cfg_dialog_position_find_release_dlg(guid_cfg_dialog_position_find_release_dlg);
 
 void load_global_icons() {
 
@@ -387,7 +388,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	// dlg resize and dimensions
 
 	DlgResize_Init(mygripp.enabled, true);
-	cfg_window_placement_find_release_dlg.on_window_creation(m_hWnd, true);
+	cfg_dialog_position_find_release_dlg.AddWindow(m_hWnd);
 
 	HWND wndReplace = ::GetDlgItem(m_hWnd, IDC_ARTIST_LIST);
 	m_alist.CreateInDialog(*this, IDC_ARTIST_LIST, wndReplace);
@@ -535,7 +536,7 @@ LRESULT CFindReleaseDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /
 		log_msg("Tracing exit sequence... g_discogs gone destroying Find Release dialog.");
 	}
 
-	cfg_window_placement_find_release_dlg.on_window_destruction(m_hWnd);
+	cfg_dialog_position_find_release_dlg.RemoveWindow(m_hWnd);
 	KillTimer(KTypeFilterTimerID);
 
 	return FALSE;

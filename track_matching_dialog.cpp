@@ -22,8 +22,9 @@
 #define DECODE_DISCOGS_DISK(i)	((i==-1) ? -1 : (i>>16))
 #define DECODE_DISCOGS_TRACK(i)	((i==-1) ? -1 : (i & 0xFFFF))
 
-static const GUID guid_cfg_window_placement_track_matching_dlg = { 0x45d482c4, 0xd6c5, 0x454a, { 0x9d, 0x42, 0x6d, 0x44, 0x17, 0x62, 0xb6, 0x9 } };
-static cfg_window_placement cfg_window_placement_track_matching_dlg(guid_cfg_window_placement_track_matching_dlg);
+// {F4939F4B-0B02-4B5C-8BD3-FACB68775A35}
+static const GUID guid_cfg_dialog_position_track_matching_dlg = { 0xf4939f4b, 0xb02, 0x4b5c, { 0x8b, 0xd3, 0xfa, 0xcb, 0x68, 0x77, 0x5a, 0x35 } };
+static cfgDialogPosition cfg_dialog_position_track_matching_dlg(guid_cfg_dialog_position_track_matching_dlg);
 
 //private
 void CTrackMatchingDialog::add_pending_previews(size_t n) {
@@ -104,7 +105,7 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 		m_coord.InitUiList(m_ida_list.m_hWnd, lsmode::art, true, &m_ida_list);
 		m_coord.InitUiList(m_ifa_list.m_hWnd, lsmode::art, false, &m_ifa_list);
 
-		cfg_window_placement_track_matching_dlg.on_window_creation(m_hWnd, true);
+		cfg_dialog_position_track_matching_dlg.AddWindow(m_hWnd);
 
 		LibUIAsTrackList(true);
 
@@ -506,7 +507,8 @@ LRESULT CTrackMatchingDialog::OnButtonBack(WORD /*wNotifyCode*/, WORD wID, HWND 
 	m_ifile_list.TooltipRemove();
 	m_ida_list.TooltipRemove();
 	m_ifa_list.TooltipRemove();
-	cfg_window_placement_track_matching_dlg.read_from_window(m_hWnd);
+
+	cfg_dialog_position_track_matching_dlg.RemoveWindow(m_hWnd);
 
 	go_back();
 
@@ -1724,7 +1726,7 @@ LRESULT CTrackMatchingDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM
 
 	pushcfg();
 
-	cfg_window_placement_track_matching_dlg.on_window_destruction(m_hWnd);
+	cfg_dialog_position_track_matching_dlg.RemoveWindow(m_hWnd);
 
 	return 0;
 }

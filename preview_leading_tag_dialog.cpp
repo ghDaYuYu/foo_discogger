@@ -4,8 +4,9 @@
 #include "preview_dialog.h"
 #include "preview_leading_tag_dialog.h"
 
-static const GUID guid_cfg_window_placement_preview_modal_tag_dlg = { 0x59e76248, 0x99ac, 0x4d54, { 0x98, 0x67, 0x79, 0x2e, 0x2c, 0x75, 0xb7, 0xaf } };
-static cfg_window_placement cfg_window_placement_preview_modal_tag_dlg(guid_cfg_window_placement_preview_modal_tag_dlg);
+// {7924918F-1A18-4873-AB52-8E2CC3C3C1F6}
+static const GUID guid_cfg_dialog_position_preview_modal_tag_dlg = { 0x7924918f, 0x1a18, 0x4873, { 0xab, 0x52, 0x8e, 0x2c, 0xc3, 0xc3, 0xc1, 0xf6 } };
+static cfgDialogPosition cfg_dialog_position_preview_modal_tag_dlg(guid_cfg_dialog_position_preview_modal_tag_dlg);
 
 static t_uint32 st_preview_current_tab;
 size_t CPreviewLeadingTagDialog::get_current_tab_index() { return st_preview_current_tab; }
@@ -13,7 +14,7 @@ size_t CPreviewLeadingTagDialog::get_current_tab_index() { return st_preview_cur
 
 LRESULT CPreviewLeadingTagDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
 	pushcfg();
-	cfg_window_placement_preview_modal_tag_dlg.on_window_destruction(m_hWnd);
+	cfg_dialog_position_preview_modal_tag_dlg.RemoveWindow(m_hWnd);
 	return 0;
 }
 
@@ -73,7 +74,7 @@ LRESULT CPreviewLeadingTagDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/,
 	init_tabs_defs();
 
 	DlgResize_Init(mygripp.enabled, true);
-	cfg_window_placement_preview_modal_tag_dlg.on_window_creation(m_hWnd, true);
+	cfg_dialog_position_preview_modal_tag_dlg.AddWindow(m_hWnd);
 
 	HWND hWndTab = uGetDlgItem(IDC_TAB_PREVIEW_MODAL);
 

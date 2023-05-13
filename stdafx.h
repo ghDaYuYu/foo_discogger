@@ -42,20 +42,21 @@
 #include <atlctrlx.h>
 #include <atlctrls.h>
 
-#include "../SDK/foobar2000.h"
-#include "../SDK/filesystem_helper.h"
-#include "../SDK/album_art.h"
+#include "SDK/foobar2000.h"
+#include "SDK/filesystem_helper.h"
+#include "SDK/album_art.h"
 
-#include "../helpers/helpers.h"
-#include "../helpers/atl-misc.h"
+#include "helpers/helpers.h"
+#include "helpers/atl-misc.h"
+#include "helpers/WindowPositionUtils.h"
 
-#include "../../libPPUI/win32_op.h"
+#include "libPPUI/win32_op.h"
 
-#include "../../libPPUI/win32_utility.h"
+#include "libPPUI/win32_utility.h"
 
-#include "../../libPPUI/CListControl-Cells.h"
-#include "../../libPPUI/InPlaceEdit.h"
-#include "../../libPPUI/InPlaceEditTable.h"
+#include "libPPUI/CListControl-Cells.h"
+#include "libPPUI/InPlaceEdit.h"
+#include "libPPUI/InPlaceEditTable.h"
 #include "liboauthcpp/liboauthcpp.h"
 
 #include "version.h"

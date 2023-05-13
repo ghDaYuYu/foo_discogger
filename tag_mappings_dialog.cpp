@@ -10,8 +10,9 @@
 #include "yesno_dialog.h"
 #include "tag_mappings_dialog.h"
 
-static const GUID guid_cfg_window_placement_tag_mapping_dlg = { 0x7056137a, 0x8fe9, 0x4b5e, { 0x89, 0x8e, 0x13, 0x59, 0x83, 0xfd, 0x3, 0x95 } };
-static cfg_window_placement cfg_window_placement_tag_mapping_dlg(guid_cfg_window_placement_tag_mapping_dlg);
+// {A84411C5-16F9-408D-A916-4DA40AC3196D}
+static const GUID guid_cfg_dialog_position_tag_mapping_dlg = { 0xa84411c5, 0x16f9, 0x408d, { 0xa9, 0x16, 0x4d, 0xa4, 0xa, 0xc3, 0x19, 0x6d } };
+static cfgDialogPosition cfg_dialog_position_tag_mapping_dlg(guid_cfg_dialog_position_tag_mapping_dlg);
 
 #define WRITE_UPDATE_COL_WIDTH  85
 
@@ -135,7 +136,7 @@ LRESULT CTagMappingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM
 	help_link.SetHyperLink((LPCTSTR)const_cast<wchar_t*>(wtext.get_ptr()));
 
 	DlgResize_Init(mygripp.enabled, true); 
-	cfg_window_placement_tag_mapping_dlg.on_window_creation(m_hWnd, true);
+	cfg_dialog_position_tag_mapping_dlg.AddWindow(m_hWnd);
 
 	//dark mode
 	AddControls(m_hWnd);
@@ -285,7 +286,7 @@ LRESULT CTagMappingDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*
 
 	m_tag_list.TableEdit_Abort(false);
 	pushcfg();
-	cfg_window_placement_tag_mapping_dlg.on_window_destruction(m_hWnd);
+	cfg_dialog_position_tag_mapping_dlg.RemoveWindow(m_hWnd);
 	return FALSE;
 }
 

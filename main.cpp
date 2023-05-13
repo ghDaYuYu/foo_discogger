@@ -16,6 +16,7 @@ FOO_DISCOGGER_VERSION,
 "Author: dayuyu\n"
 "Version: "FOO_DISCOGGER_VERSION"\n"
 "Compiled: "__DATE__ "\n"
+"fb2k SDK: "PLUGIN_FB2K_SDK"\n"
 "Website: https://github.com/ghDaYuYu/foo_discogs\n"
 "\nfoo_discogger is a fork of foo_discogs v2.23 repository by zoomorph (https://bitbucket.org/zoomorph/foo_discogs)\n\n"
 "Acknowledgements:\n"

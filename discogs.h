@@ -1125,7 +1125,8 @@ namespace Discogs
 	extern ReleaseArtist_ptr parseReleaseArtist(json_t *element, bool preload = false);
 	extern void parseReleaseArtists(json_t *element, pfc::array_t<ReleaseArtist_ptr> &artists, bool preload = false);
 	extern void parseReleaseCredits(json_t* element, pfc::array_t<ReleaseCredit_ptr> &credits, Release *release);
-	extern void addReleaseTrackCredits(const pfc::string8 &tracks, ReleaseCredit_ptr &credit, Release *release);
+
+	extern void addReleaseTrackCredits(const pfc::array_t<pfc::string8>& arrTracks, ReleaseCredit_ptr &credit, Release *release);
 
 	extern ReleaseLabel_ptr parseReleaseLabel(json_t *element);
 	extern void parseReleaseLabels(json_t *element, pfc::array_t<ReleaseLabel_ptr> &release_labels);

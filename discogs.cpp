@@ -291,7 +291,6 @@ inline void Discogs::MasterRelease::set_main_release(Release_ptr main) {
 	}
 }
 
-
 inline void Discogs::Release::set_master_release(MasterRelease_ptr master) {
 	master_release = master;
 	if (master) {

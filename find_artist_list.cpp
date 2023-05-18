@@ -208,7 +208,6 @@ void CArtistList::switch_find_releases(size_t op, bool append) {
 	for (size_t i = 0; !append && i < m_find_release_artists.get_count(); i++) {
 		m_find_release_artists[i]->search_role_list_pos = get_next_role_pos();
 	}
-	CFindReleaseDialog* dlg = static_cast<CFindReleaseDialog*>(m_host);
 
 	Invalidate();
 
@@ -456,7 +455,7 @@ void CArtistList::context_menu(size_t list_index, POINT screen_pos) {
 			uAppendMenu(menu, MF_STRING, ID_ARTIST_PROFILE, "&profile panel");
 			uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 			if (isArtistOffline) {
-				uAppendMenu(menu, MF_STRING | (!artist ? MF_DISABLED | MF_GRAYED : 0), ID_ARTIST_DEL_CACHE, "C&lear artist cache");
+				uAppendMenu(menu, MF_STRING | (!artist ? MF_DISABLED | MF_GRAYED : 0), ID_ARTIST_DEL_CACHE, "&Delete artist cache");
 				uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 			}
 			uAppendMenu(menu, MF_STRING | (!artist ? MF_DISABLED | MF_GRAYED : 0), ID_VIEW_PAGE, sourcepage);

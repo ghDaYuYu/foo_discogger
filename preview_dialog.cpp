@@ -588,7 +588,9 @@ bool CPreviewTagsDialog::context_menu_switch(HWND wnd, POINT point, int cmd, bit
 		if (isel != ~0) {
 			pfc::string8 out;
 			m_uilist.GetSubItemText(isel, 1, out);
-			ClipboardHelper::OpenScope scope; scope.Open(core_api::get_main_window(), true);
+
+			ClipboardHelper::OpenScope scope;
+			scope.Open(core_api::get_main_window(), true);
 			ClipboardHelper::SetString(out);
 		}
 		return true;

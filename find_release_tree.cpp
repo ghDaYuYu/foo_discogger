@@ -2067,7 +2067,7 @@ void CFindReleaseTree::context_menu(size_t param_mr, POINT screen_pos) {
 	mounted_param myparam(param_mr);
 
 	pfc::string8 sourcepage = myparam.brelease ? "Web &release page" : "Web mas&ter release page";
-	pfc::string8 copytitle = "Copy &title";
+	pfc::string8 copytitle = "Copy t&itle";
 	pfc::string8 copyrow = "&Copy";
 	pfc::string8 delReleaseCache = "&Delete release cache";
 	pfc::string8 filterversions = "&filter loaded versions";
@@ -2095,10 +2095,7 @@ void CFindReleaseTree::context_menu(size_t param_mr, POINT screen_pos) {
 		if (release_id.get_length()) {
 			pfc::string8 parent_path = ol::get_offline_path(m_find_release_artist->id, ol::GetFrom::Release, release_id, true);
 			std::filesystem::path os_path = std::filesystem::u8path(parent_path.c_str());
-
-			if (fs::exists(os_path)) {							
-				boffExists = fs::exists(os_path);
-			}
+			boffExists = fs::exists(os_path);
 		}
 
 		uAppendMenu(menu, MF_STRING, ID_CMD_NEXT, "&Next");
@@ -2176,18 +2173,20 @@ void CFindReleaseTree::context_menu(size_t param_mr, POINT screen_pos) {
 			if (buffer.get_length()) {
 
 				ClipboardHelper::OpenScope scope;
-				scope.Open(core_api::get_main_window());
+				scope.Open(core_api::get_main_window(), true);
 				ClipboardHelper::SetString(buffer);
 			}
 			break;
 		}
 		case ID_CLP_COPY_ROW:
 		{
-			pfc::string8 utf_buffer;
+			pfc::string8 buffer;
 			row_col_data rcd_out;
-			/*bool bres =*/ m_rt_cache.get_cached_find_release_node(myparam.lparam(), utf_buffer, rcd_out);
-			ClipboardHelper::OpenScope scope; scope.Open(core_api::get_main_window());
-			ClipboardHelper::SetString(trim(utf_buffer));
+			/*bool bres =*/ m_rt_cache.get_cached_find_release_node(myparam.lparam(), buffer, rcd_out);
+			
+			ClipboardHelper::OpenScope scope;
+			scope.Open(core_api::get_main_window(), true);
+			ClipboardHelper::SetString(trim(buffer));
 
 			break;
 		}

@@ -329,7 +329,7 @@ inline bool CPreviewLeadingTagDialog::build_current_cfg(int& out) {
 
 	out = (int)MAKELPARAM(colwidth1, colwidth2);
 
-	if (out != CONF.preview_leading_tags_dlg_cols_width) {		
+	if (out != CONF.preview_leading_tags_dlg_cols_width) {
 		bres |= true;
 	}
 	return bres;

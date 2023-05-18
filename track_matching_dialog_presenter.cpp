@@ -1095,7 +1095,6 @@ void files_artwork_presenter::update_list_width(bool initcontrols = false) {
 
 	for (pfc::string8 htitle : m_vtitles) {
 
-		pfc::stringcvt::string_os_from_utf8 labelOS(htitle.c_str());
 		DWORD fmtFlags = icol > 0 ? HDF_CENTER : HDF_LEFT;
 
 		if (icol == 0) col_width = slot * 4; //filename
@@ -1376,8 +1375,6 @@ void discogs_artwork_presenter::update_list_width(bool initcontrols = false) {
 	size_t col_width;
 
 	for (pfc::string8 htitle : m_vtitles) {
-
-		pfc::stringcvt::string_os_from_utf8 labelOS(htitle.c_str());
 
 		DWORD fmtFlags = icol > 1 ? HDF_CENTER : HDF_LEFT;
 				

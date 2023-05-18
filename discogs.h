@@ -771,11 +771,14 @@ namespace Discogs
 		pfc::string8 title;
 		pfc::string8 release_year;
 
-		pfc::string8 main_release_id;
 		Release_ptr main_release;
-
+		pfc::string8 main_release_id;
 		pfc::string8 main_release_url;
 		pfc::string8 main_release_api_url;
+
+		pfc::string8 most_recent_release_id;
+		pfc::string8 most_recent_release_url;
+
 		pfc::string8 versions_api_url;
 		pfc::array_t<pfc::string8> genres;
 		pfc::array_t<pfc::string8> styles;
@@ -815,6 +818,12 @@ namespace Discogs
 		string_encoded_array get_main_release_api_url() const {
 			return main_release_api_url;
 		}
+		string_encoded_array get_most_recent_release_id() const {
+			return most_recent_release_id;
+		}
+		string_encoded_array get_most_recent_release_url() const {
+			return most_recent_release_url;
+		}
 		string_encoded_array get_discogs_data_quality() const {
 			return discogs_data_quality;
 		}
@@ -842,6 +851,8 @@ namespace Discogs
 			m["MAIN_RELEASE_ID"] = { &MasterRelease::get_main_release_id, &MasterRelease::load_preview };
 			m["MAIN_RELEASE_URL"] = { &MasterRelease::get_main_release_url, &MasterRelease::load };
 			m["MAIN_RELEASE_API_URL"] = { &MasterRelease::get_main_release_api_url, &MasterRelease::load };
+			m["MOST_RECENT_RELEASE_ID"] = { &MasterRelease::get_most_recent_release_id, &MasterRelease::load_preview };
+			m["MOST_RECENT_RELEASE_URL"] = { &MasterRelease::get_most_recent_release_url, &MasterRelease::load };
 			m["DISCOGS_DATA_QUALITY"] = { &MasterRelease::get_discogs_data_quality, &MasterRelease::load };
 			m["GENRES"] = { &MasterRelease::get_genres, &MasterRelease::load };
 			m["STYLES"] = { &MasterRelease::get_styles, &MasterRelease::load };

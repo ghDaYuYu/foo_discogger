@@ -1392,10 +1392,12 @@ void Discogs::parseMasterRelease(MasterRelease *master_release, json_t *root) {
 
 	master_release->id = JSONAttributeString(root, "id");
 	master_release->main_release_id = JSONAttributeString(root, "main_release");
-	Release_ptr main_release = discogs_interface->get_release(encode_mr(0, master_release->main_release_id));
+	Release_ptr main_release = discogs_interface->get_release(encode_mr(0, master_release->main_release_id/*->id*/)/*,JSONAttributeString(root, "main_release")*/);
 	master_release->set_main_release(main_release);
 	master_release->main_release_api_url = JSONAttributeString(root, "main_release_url");
 	master_release->main_release_url << "https://www.discogs.com/release/" << master_release->main_release_id;
+	master_release->most_recent_release_id = JSONAttributeString(root, "most_recent_release");
+	master_release->most_recent_release_url << "https://www.discogs.com/release/" << master_release->most_recent_release_id;
 	master_release->release_year = JSONAttributeString(root, "year");
 	master_release->versions_api_url = JSONAttributeString(root, "versions_url");
 	master_release->title = JSONAttributeString(root, "title");

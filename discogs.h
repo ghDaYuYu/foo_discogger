@@ -419,11 +419,16 @@ namespace Discogs
 	class ReleaseFormat : public ExposedTags<ReleaseFormat>
 	{
 	public:
-		pfc::string8 name; 
+
 		pfc::string8 qty;
 		pfc::array_t<pfc::string8> descriptions;
 		pfc::string8 text;
 
+		bool format_incl_vol = false;
+
+		bool is_box() const {
+			return name.equals("Box Set") || name.equals("All Media");
+		}
 		string_encoded_array get_quantity() const {
 			return qty;
 		}
@@ -437,6 +442,11 @@ namespace Discogs
 			return text;
 		}
 
+		void set_name(pfc::string8 aname) {
+			name = aname;
+			format_incl_vol = name.equals("Vinyl") || name.equals("Cassette");
+		}
+
 		static ExposedMap<ReleaseFormat> create_tags_map() {
 			ExposedMap<ReleaseFormat> m;
 			m["QUANTITY"] = { &ReleaseFormat::get_quantity, &ReleaseFormat::load };
@@ -445,6 +455,9 @@ namespace Discogs
 			m["TEXT"] = { &ReleaseFormat::get_text, &ReleaseFormat::load };
 			return m;
 		}
+
+	private:
+		pfc::string8 name;
 	};
 	typedef std::shared_ptr<ReleaseFormat> ReleaseFormat_ptr;
 
@@ -545,6 +558,7 @@ namespace Discogs
 		int discogs_indextrack_duration_seconds = 0;
 		int track_number = 0;
 		int disc_track_number = 0;
+		bool disc_track_side = false;
 		pfc::string8 discogs_track_number;
 		pfc::array_t<std::shared_ptr<ReleaseTrack>> hidden_tracks;
 		int discogs_hidden_duration_seconds = 0;
@@ -554,6 +568,9 @@ namespace Discogs
 		}
 		string_encoded_array get_disc_track_number() const {
 			return disc_track_number;
+		}
+		string_encoded_array get_disc_track_side() const {
+			return disc_track_side;
 		}
 		string_encoded_array get_discogs_track_number() const {
 			return discogs_track_number;
@@ -595,6 +612,7 @@ namespace Discogs
 			ExposedMap<ReleaseTrack> m;
 			m["NUMBER"] = { &ReleaseTrack::get_track_number, &ReleaseTrack::load };
 			m["DISC_TRACK_NUMBER"] = { &ReleaseTrack::get_disc_track_number, &ReleaseTrack::load };
+			m["DISC_TRACK_SIDE"] = { &ReleaseTrack::get_disc_track_side, &ReleaseTrack::load };
 			m["DISCOGS_TRACK_NUMBER"] = { &ReleaseTrack::get_discogs_track_number, &ReleaseTrack::load };
 			m["TITLE"] = { &ReleaseTrack::get_title, &ReleaseTrack::load };
 			m["INDEXTRACK_TITLE"] = { &ReleaseTrack::get_title_index, &ReleaseTrack::load };
@@ -624,11 +642,15 @@ namespace Discogs
 			rt->index_ptr = index_ptr;
 			rt->discogs_duration_raw = discogs_duration_raw;
 			rt->discogs_duration_seconds = discogs_duration_seconds;
+			rt->track_number = track_number;
+			rt->disc_track_number = disc_track_number; 
+			rt->disc_track_side = disc_track_side; 
+			rt->discogs_track_number = discogs_track_number;
 			rt->artists = artists;
 			rt->credits = credits;
 			return rt;
 		}
-		
+
 		bool has_anv() const override {
 			if (HasArtists::has_anv()) {
 				return true;
@@ -1180,9 +1202,7 @@ namespace Discogs
 
 	extern ReleaseFormat_ptr parseReleaseFormat(json_t *element);
 	extern void parseReleaseFormats(json_t *element, pfc::array_t<ReleaseFormat_ptr> &formats);
-#ifdef PARSE_V23
-	extern void parseReleaseTracks_v23(json_t* element, HasTracklist* has_tracklist, HasArtists* has_artists);
-	extern void parseReleaseTrack_v23(json_t* element, pfc::array_t<ReleaseTrack_ptr>& tracks, unsigned& discogs_original_track_number, pfc::string8 heading, ReleaseTrack_ptr* index, HasArtists* has_artists);
-#else
-#endif
+
+	extern void parseAllReleaseTracks(json_t* element, bool isRelease, HasTracklist* has_tracklist, HasArtists* has_artists, HasIndexes* has_indexes);
+	extern void parseReleaseTrack(json_t* element, pfc::array_t<ReleaseTrack_ptr>& tracks, /*unsigned& discogs_original_track_number,*/ pfc::string8 heading, ReleaseTrack_ptr* index, HasArtists* has_artists, HasIndexes* has_indexes);
 }

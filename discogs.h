@@ -123,7 +123,7 @@ namespace Discogs
 		bool loaded_preview = false;
 		bool loaded_releases = false;
 		bool loaded_releases_offline = false;
-		size_t search_role_list_pos = ~0;
+		size_t search_role_list_pos = 0;
 
 		string_encoded_array get_id() const {
 			return id;

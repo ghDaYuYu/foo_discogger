@@ -112,8 +112,8 @@ void CArtistList::fill_artist_list(bool dlgexact, bool force_exact, updRelSrc up
 		// on change list selection with profile unavailable 
 		// on artist list doubled clicked on enter key
 
-		size_t prev_role_pos = m_find_release_artist ? m_find_release_artist->search_role_list_pos : ~0;
-		size_t prev_list_pos = ~0;
+		size_t prev_role_pos = m_find_release_artist ? m_find_release_artist->search_role_list_pos : 0/*~0*/;
+		size_t prev_list_pos = 0;
 		for (size_t w = 0; w < m_find_release_artists.get_count(); w++) {
 			if (m_find_release_artists[w]->search_role_list_pos == prev_role_pos) {
 				prev_list_pos = w + 1; //1 base
@@ -297,7 +297,9 @@ Artist_ptr CArtistList::get_selected_artist() {
 
 size_t CArtistList::get_artist_role_pos(size_t szartist_id) {
 
-	if (!get_size()) return ~0;
+	if (!get_size()) {
+		return ~0;
+	}
 
 	if (m_find_release_artist) {
 
@@ -316,7 +318,7 @@ size_t CArtistList::get_artist_role_pos(size_t szartist_id) {
 			}
 		}
 	}
-	return ~0;
+	return 0;
 }
 
 // on context menu

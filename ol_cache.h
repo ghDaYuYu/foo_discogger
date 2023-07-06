@@ -17,6 +17,9 @@ namespace Offline {
 		OC_READ = 1 << 0,
 		OC_WRITE = 1 << 1,
 		OC_OVERWRITE = 1 << 2,
+
+		MERGE_HIDDEN_TRACKS = 1 << 4, //todo
+		MERGE_SUBTRACKS = 1 << 5,
 	};
 
 	enum GetFrom {

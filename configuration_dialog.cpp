@@ -92,12 +92,6 @@ LRESULT CConfigurationDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 	AddDialog(m_hWnd);
 	AddTabCtrl(hWndTab);
 
-	INITCOMMONCONTROLSEX InitCtrls;
-	InitCtrls.dwSize = sizeof(InitCtrls);
-	InitCtrls.dwICC = ICC_STANDARD_CLASSES;
-	InitCommonControlsEx(&InitCtrls);
-	EnableThemeDialogTexture(hWndTab, ETDT_ENABLETAB);
-
 	// set up tabs and create (not visible) subdialogs
 	uTCITEM item = {0};
 	item.mask = TCIF_TEXT;
@@ -374,7 +368,7 @@ void CConfigurationDialog::init_searching_dialog(HWND wnd) {
 	FlgMng fv_skip;
 	conf.GetFlagVar(CFG_SKIP_MNG_FLAG, fv_skip);
 
-	uButton_SetCheck(wnd, IDC_CHK_SKIP_RELEASE_DLG_IDED, fv_skip.GetFlat(SkipMng::RELEASE_DLG_IDED));
+	uButton_SetCheck(wnd, IDC_CHK_SKIP_RELEASE_DLG_IDED, fv_skip.GetFlag(SkipMng::RELEASE_DLG_IDED));
 
 	uSetDlgItemText(wnd, IDC_EDIT_RELEASE_FORMATTING, conf.search_release_format_string);
 	uSetDlgItemText(wnd, IDC_EDIT_MASTER_FORMATTING, conf.search_master_format_string);
@@ -410,6 +404,9 @@ void CConfigurationDialog::init_tagging_dialog(HWND wnd) {
 	uButton_SetCheck(wnd, IDC_CHK_CFG_TAGSAVE_AUTO_MULTIV_FLAG, conf.tag_save_flags & TAGSAVE_AUTO_MULTIV_FLAG);
 	uButton_SetCheck(wnd, IDC_CHK_CFG_TAGSAVE_LOG_FLAG, conf.tag_save_flags & TAGSAVE_LOG_FLAG);
 	uButton_SetCheck(wnd, IDC_CHK_CFG_TAGSAVE_PRV_WRITECLOSE_FLAG, conf.tag_save_flags & TAGSAVE_PREVIEW_STICKY_FLAG);
+
+	HWND hwnd_tag_credits = ::uGetDlgItem(wnd, IDC_BTN_EDIT_CAT_CREDIT);
+	::ShowWindow(hwnd_tag_credits, SW_HIDE);
 
 	//dark mode
 	AddControls(wnd);
@@ -450,11 +447,13 @@ void CConfigurationDialog::init_caching_dialog(HWND wnd) {
 
 	FlgMng fv_offline_cache;
 	conf.GetFlagVar(CFG_CACHE_OFFLINE_CACHE_FLAG, fv_offline_cache);
-	bool bread = fv_offline_cache.GetFlat(ol::CacheFlags::OC_READ);
-	bool bwrite = fv_offline_cache.GetFlat(ol::CacheFlags::OC_WRITE);
+	bool bread = fv_offline_cache.GetFlag(ol::CacheFlags::OC_READ);
+	bool bwrite = fv_offline_cache.GetFlag(ol::CacheFlags::OC_WRITE);
+	bool bmerge_subtracks = fv_offline_cache.GetFlag(ol::CacheFlags::MERGE_SUBTRACKS);
 
 	uButton_SetCheck(wnd, IDC_CHK_CFG_CACHE_READ_DSK_CACHE, bread);
 	uButton_SetCheck(wnd, IDC_CHK_CFG_CACHE_WRITE_DSK_CACHE, bwrite);
+	uButton_SetCheck(wnd, IDC_CHK_SUBTRACKS_MERGE_TITLES_CACHE, bmerge_subtracks);
 
 	//memory cache
 
@@ -502,12 +501,14 @@ void CConfigurationDialog::init_ui_dialog(HWND wnd) {
 
 	FlgMng fv_stats;
 	conf.GetFlagVar(CFG_FIND_RELEASE_DIALOG_FLAG, fv_stats);
-	bool bstats = fv_stats.GetFlat(CFindReleaseDialog::FLG_SHOW_RELEASE_TREE_STATS);
+	bool bstats = fv_stats.GetFlag(CFindReleaseDialog::FLG_SHOW_RELEASE_TREE_STATS);
 	uButton_SetCheck(wnd, IDC_CHK_FIND_RELEASE_STATS, bstats);
 
 	//list style
+	HWND hwndcustFont = ::uGetDlgItem(wnd, IDC_CHK_CFG_CUSTOM_FONT_ENABLE);
+	::ShowWindow(hwndcustFont, SW_SHOW);
+	
 	uButton_SetCheck(wnd, IDC_CHK_CFG_CUSTOM_FONT_ENABLE, HIWORD(conf.custom_font));
-
 	InitComboRowStyle(wnd, IDC_CMB_CONFIG_LIST_STYLE, conf.list_style);
 	HWND hcmb = ::uGetDlgItem(wnd, IDC_CMB_CONFIG_LIST_STYLE);
 
@@ -697,18 +698,25 @@ void CConfigurationDialog::save_caching_dialog(HWND wnd, bool dlgbind) {
 	conf_ptr->parse_hidden_merge_titles = uButton_GetCheck(wnd, IDC_CHK_HIDDEN_MERGE_TITLES);
 	conf_ptr->parse_hidden_as_regular = uButton_GetCheck(wnd, IDC_CHK_HIDDEN_AS_REGULAR);
 	conf_ptr->skip_video_tracks = uButton_GetCheck(wnd, IDC_CHK_SKIP_VIDEO_TRACKS);
-	
-	if (uButton_GetCheck(wnd, IDC_CHK_CFG_CACHE_READ_DSK_CACHE)) 
+
+	if (uButton_GetCheck(wnd, IDC_CHK_CFG_CACHE_READ_DSK_CACHE))
 		conf_ptr->cache_offline_cache_flag |= ol::CacheFlags::OC_READ;
 	else
 		conf_ptr->cache_offline_cache_flag &= ~(ol::CacheFlags::OC_READ);
-	
+
 	if (uButton_GetCheck(wnd, IDC_CHK_CFG_CACHE_WRITE_DSK_CACHE))
 		conf_ptr->cache_offline_cache_flag |= ol::CacheFlags::OC_WRITE;
 	else
 		conf_ptr->cache_offline_cache_flag &= ~(ol::CacheFlags::OC_WRITE);
-	
-	if (original_parsing_merge_titles != conf_ptr->parse_hidden_merge_titles || original_parsing != conf_ptr->parse_hidden_as_regular || original_skip_video != conf_ptr->skip_video_tracks) {
+
+	if (uButton_GetCheck(wnd, IDC_CHK_SUBTRACKS_MERGE_TITLES_CACHE))
+		conf_ptr->cache_offline_cache_flag |= ol::CacheFlags::MERGE_SUBTRACKS;
+	else
+		conf_ptr->cache_offline_cache_flag &= ~(ol::CacheFlags::MERGE_SUBTRACKS);
+
+	if (original_parsing_merge_titles != conf_ptr->parse_hidden_merge_titles ||
+		original_parsing != conf_ptr->parse_hidden_as_regular ||
+		original_skip_video != conf_ptr->skip_video_tracks) {
 		discogs_interface->reset_release_cache();
 	}
 
@@ -773,7 +781,7 @@ void CConfigurationDialog::save_art_dialog(HWND wnd, bool dlgbind) {
 		art_app_flag |= ARTSAVE_FILEMATCH_APP_FLAG;
 	}
 	else {
-		art_app_flag &= ~ARTSAVE_FILEMATCH_APP_FLAG;
+		art_app_flag &= ~(ARTSAVE_FILEMATCH_APP_FLAG);
 	}
 	conf_ptr->album_art_skip_default_cust = MAKELPARAM(art_app_flag, HIWORD(conf_ptr->album_art_skip_default_cust));
 }
@@ -934,7 +942,7 @@ INT_PTR WINAPI CConfigurationDialog::on_tagging_dialog_message(HWND wnd, UINT ms
 
 INT_PTR WINAPI CConfigurationDialog::tagging_dialog_proc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
-	CConfigurationDialog * p_this;
+	CConfigurationDialog * p_this = nullptr;
 
 	if (msg == WM_INITDIALOG) {
 		p_this = (CConfigurationDialog*)(lParam);

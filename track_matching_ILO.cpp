@@ -67,8 +67,9 @@ pfc::string8 ILOD_track_matching::listGetSubItemText(ctx_t ctx, size_t item, siz
 		CHeaderCtrl header = ctx->GetHeaderCtrl();
 		auto cols = header.GetItemCount();
 		if (cols == 3) {
-			if (subItem == 2)
-				return std::to_string(item).c_str();
+			if (subItem == 2) {
+				return std::to_string(++item).c_str();
+			}
 		}
 
 		track_it track_match;
@@ -80,8 +81,10 @@ pfc::string8 ILOD_track_matching::listGetSubItemText(ctx_t ctx, size_t item, siz
 		CHeaderCtrl header = ctx->GetHeaderCtrl();
 		auto cols = header.GetItemCount();
 		if (cols == 3) {
-			if (subItem == 2)
-				return std::to_string(item).c_str();
+			if (subItem == 2) {
+				return std::to_string(++item).c_str();
+
+			}
 		}
 
 		file_it file_match;

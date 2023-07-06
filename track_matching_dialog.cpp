@@ -1155,14 +1155,14 @@ bool CTrackMatchingDialog::context_menu_track_show(HWND wnd, int idFrom, LPARAM 
 		uAppendMenu(menu, MF_STRING | (csel? 0 : MF_DISABLED | MF_GRAYED), ID_CROP, "Crop");
 
 		if (is_uilist) {
+			if ((get_mode() == lsmode::tracks_ui)) {
+				uAppendMenu(menu, MF_SEPARATOR, 0, 0);
+				uAppendMenu(menu, MF_STRING, ID_ROW_NUMBERS, "Show row number");
+			}
 			std::pair<size_t, presenter*> icol_hit = m_coord.columnHitTest(point);
 			if (icol_hit.first != pfc_infinite) {
 
 				size_t fmt = m_coord.GetUiColumnFormat(icol_hit.first, icol_hit.second);
-				if ((get_mode() == lsmode::tracks_ui)) {
-					uAppendMenu(menu, MF_SEPARATOR, 0, 0);
-					uAppendMenu(menu, MF_STRING, ID_ROW_NUMBERS, "Show row number");
-				}
 				// display submenu
 				uAppendMenu(_childmenuAlign, MF_STRING | (fmt == HDF_LEFT ? MF_CHECKED | MF_DISABLED | MF_GRAYED : 0), ID_LEFT_ALIGN, "Left");
 				uAppendMenu(_childmenuAlign, MF_STRING | (fmt == HDF_CENTER ? MF_CHECKED | MF_DISABLED | MF_GRAYED : 0), ID_CENTER_ALIGN, "Center");
@@ -1732,6 +1732,6 @@ LRESULT CTrackMatchingDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM
 }
 
 void CTrackMatchingDialog::showtitle() {
-	if (CONF.awt_alt_mode()) { uSetWindowText(m_hWnd, "Preview Tags +"); }
-	else { uSetWindowText(m_hWnd, "Preview Tags"); }
+	if (CONF.awt_alt_mode()) { uSetWindowText(m_hWnd, "Track Matching & Artwork +"); }
+	else { uSetWindowText(m_hWnd, "Track Matching & Artwork"); }
 }

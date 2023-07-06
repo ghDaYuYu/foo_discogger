@@ -490,8 +490,47 @@ namespace Discogs
 		virtual ~HasHeadings() {}
 	};
 
+	class ReleaseIndexes : public ExposedTags<ReleaseIndexes>
+	{
+	public:
+		pfc::string8 position;
+		pfc::string8 title;
+		pfc::string8 duration;
 
-	class ReleaseTrack : public HasArtists, public HasCredits, public ExposedTags<ReleaseTrack>
+		pfc::string8 dc_track_first;
+		pfc::string8 dc_track_last;
+		bool dc_track_closed = false;
+
+		string_encoded_array get_position() const {
+			return position;
+		}
+		string_encoded_array get_title() const {
+			return title;
+		}
+		string_encoded_array get_duration() const {
+			return duration;
+		}
+
+		static ExposedMap<ReleaseIndexes> create_tags_map() {
+			ExposedMap<ReleaseIndexes> m;
+			m["POSITION"] = { &ReleaseIndexes::get_position,  &ReleaseIndexes::load };
+			m["TITLE"] = { &ReleaseIndexes::get_title, &ReleaseIndexes::load };
+			m["DURATION"] = { &ReleaseIndexes::get_duration, &ReleaseIndexes::load };
+			return m;
+		}
+	};
+
+	typedef std::shared_ptr<ReleaseIndexes> ReleaseIndexes_ptr;
+
+	class HasIndexes
+	{
+	public:
+		pfc::array_t<ReleaseIndexes_ptr> indexes;
+
+		virtual ~HasIndexes() {}
+	};
+
+	class ReleaseTrack : public HasArtists, public HasCredits, public HasCatCredits, public ExposedTags<ReleaseTrack>
 	{
 	public:
 		pfc::string8 title;
@@ -499,6 +538,7 @@ namespace Discogs
 		pfc::string8 title_subtrack;
 		pfc::string8 title_heading;
 		ReleaseHeading_ptr heading_ptr;
+		ReleaseIndexes_ptr index_ptr;
 		pfc::string8 discogs_duration_raw;
 		pfc::string8 discogs_indextrack_duration_raw;
 		int discogs_duration_seconds = 0;
@@ -581,6 +621,7 @@ namespace Discogs
 			rt->title_subtrack = title_subtrack;
 			rt->title_heading = title_heading;
 			rt->heading_ptr = heading_ptr;
+			rt->index_ptr = index_ptr;
 			rt->discogs_duration_raw = discogs_duration_raw;
 			rt->discogs_duration_seconds = discogs_duration_seconds;
 			rt->artists = artists;
@@ -880,7 +921,7 @@ namespace Discogs
 	};
 
 
-	class Release : public HasImages, public HasArtists, public HasCredits, public HasCatCredits, public HasTracklist, public HasHeadings, public ExposedTags<Release>
+	class Release : public HasImages, public HasArtists, public HasCredits, public HasCatCredits, public HasTracklist, public HasHeadings, public HasIndexes, public ExposedTags<Release>
 	{
 	public:
 		pfc::string8 id;
@@ -1126,7 +1167,7 @@ namespace Discogs
 	extern void parseReleaseArtists(json_t *element, pfc::array_t<ReleaseArtist_ptr> &artists, bool preload = false);
 	extern void parseReleaseCredits(json_t* element, pfc::array_t<ReleaseCredit_ptr> &credits, Release *release);
 
-	extern void addReleaseTrackCredits(const pfc::array_t<pfc::string8>& arrTracks, ReleaseCredit_ptr &credit, Release *release);
+	extern void DistReleaseTrackCredits(const pfc::array_t<pfc::string8>& arrTracks, ReleaseCredit_ptr &credit, Release *release);
 
 	extern ReleaseLabel_ptr parseReleaseLabel(json_t *element);
 	extern void parseReleaseLabels(json_t *element, pfc::array_t<ReleaseLabel_ptr> &release_labels);

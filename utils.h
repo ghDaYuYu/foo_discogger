@@ -100,6 +100,7 @@ struct nota_info {
 
 extern pfc::string8 sanitize_track_semi_media(const pfc::string8& tracks);
 extern pfc::string8 sanitize_track_commas(const pfc::string8& tracks);
+extern pfc::string8 sanitize_track_to(const pfc::string8& tracks);
 extern void replace_track_volume_desc(const pfc::string& sometrack, nota_info& out, std::vector<pfc::string8>alldescs);
 
 // Trim whitespace from strings
@@ -130,7 +131,7 @@ extern pfc::string8 join(const pfc::array_t<pfc::string8> &in, const pfc::string
 // Tokenize string
 extern int tokenize(const pfc::string8 &src, const pfc::string8 &delim, pfc::array_t<pfc::string8> &tokens, bool remove_blanks);
 extern int tokenize_non_bracketed(const pfc::string8& src, const pfc::string8& delim, pfc::array_t<pfc::string8>& tokens, bool remove_blanks);
-extern int tokenize_multi(const pfc::string8 &src, const pfc::array_t<pfc::string8> &delims, pfc::array_t<pfc::string8> &tokens, bool remove_blanks);
+extern int tokenize_multi(const pfc::string8 &src, const pfc::array_t<pfc::string8> &delims, pfc::array_t<pfc::string8> &tokens, bool trim_tokens, bool remove_blanks);
 
 extern void makeFsCompliant(pfc::string8 &str);
 extern pfc::string8 urlEscape(const pfc::string8 &src);

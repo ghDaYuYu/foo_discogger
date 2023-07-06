@@ -139,6 +139,42 @@ pfc::string8 sanitize_track_commas(const pfc::string8& tracks) {
 	}
 	return res;
 }
+
+pfc::string8 sanitize_track_to(const pfc::string8& tracks) {
+
+	std::regex regex_v;
+
+	regex_v = std::regex("[A - Za - z1 - 9 - ][^, ]{1,8} to [A - Za - z1 - 9 - ][^, ]{1,8}");
+
+	std::string res_no_extra_comma_spc(tracks.c_str());
+	std::sregex_iterator begin = std::sregex_iterator(res_no_extra_comma_spc.begin(), res_no_extra_comma_spc.end(), regex_v);
+	std::sregex_iterator end = std::sregex_iterator();
+
+	if (begin == end) {
+		//EXIT
+		return tracks;
+	}
+
+	int occurrences = 0;
+	pfc::string8 res;
+	std::sregex_iterator i = begin;
+
+	if (i->prefix().matched) {
+		res << i->prefix().str().c_str();
+	}
+	res << i->str().c_str();
+	std::string str_suffix = trim(i->suffix().str().c_str());
+	if (i->suffix().matched && str_suffix.length()) {
+		if (str_suffix.at(0) != ',') {
+			res << ",";
+		}
+		//recursion
+		res << sanitize_track_to(trim(i->suffix().str().c_str()));
+	}
+	
+	return res;
+}
+
 void replace_track_volume_desc(const pfc::string& sometrack, nota_info& out, const std::vector<pfc::string8> vvoldescs) {
 
 	pfc::string8 res;
@@ -223,7 +259,7 @@ size_t split(pfc::string8 str, pfc::string8 token, size_t index, std::vector<pfc
 		pfc::string8 notoken;
 		if ((notoken = substr(str, last_index, str.get_length())).get_length())
 			out.push_back(notoken);
-		return pfc_infinite; //end
+		return out.size();
 	}
 }
 
@@ -360,7 +396,7 @@ int tokenize_non_bracketed(const pfc::string8& src, const pfc::string8& delim, p
 	return (int)tokens.get_size();
 }
 
-int tokenize_multi(const pfc::string8 &src, const pfc::array_t<pfc::string8> &delims, pfc::array_t<pfc::string8> &tokens, bool remove_blanks) {
+int tokenize_multi(const pfc::string8 &src, const pfc::array_t<pfc::string8> &delims, pfc::array_t<pfc::string8> &tokens, bool trim_tokens, bool remove_blanks) {
 	size_t pos, pos2, dlen;
 	tokens.force_reset();
 	pfc::string8 tmp = src;
@@ -378,16 +414,20 @@ int tokenize_multi(const pfc::string8 &src, const pfc::array_t<pfc::string8> &de
 			break;
 		}
 		pfc::string8 token = substr(tmp, 0, pos);
-		if (remove_blanks) {
+		if (trim_tokens) {
 			token = trim(token);
 		}
-		tokens.append_single(token);
+		if (!remove_blanks || token.get_length()) {
+			tokens.append_single(token);
+		}
 		tmp = substr(tmp, pos + dlen, tmp.length() - 1);
 	}
-	if (remove_blanks) {
+	if (trim_tokens) {
 		tmp = trim(tmp);
 	}
-	tokens.append_single(tmp);
+	if (!remove_blanks || tmp.get_length()) {
+		tokens.append_single(tmp);
+	}
 	return (int)tokens.get_size();
 }
 

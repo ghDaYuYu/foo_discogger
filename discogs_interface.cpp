@@ -534,6 +534,12 @@ bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release, bool isArti
 			throw(e);
 			return false;
 		}
+		catch (...) {
+			foo_discogs_exception e;
+			e << "Unknown exception";
+			throw(e);
+			return false;
+		}
 	}
 	return bres;
 }

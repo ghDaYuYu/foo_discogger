@@ -3,23 +3,38 @@
 #include "multiformat.h"
 #include "tag_writer.h"
 
-TagWriter::TagWriter(file_info_manager_ptr finfo_manager, Release_ptr release) : m_finfo_manager(finfo_manager), release(release) {
+TagWriter::TagWriter(file_info_manager_ptr finfo_manager, Release_ptr release) : m_finfo_manager(finfo_manager), release(release), tag_results_mask_mode(PreView::Undef) {
 
 	static_api_ptr_t<titleformat_compiler>()->compile_force(m_track_script, (PFC_string_formatter() << "[%" << "track" << "%]").c_str());
 }
 
-TagWriter::TagWriter(file_info_manager_ptr finfo_manager, pfc::string8 p_error) : m_finfo_manager(finfo_manager), release(nullptr), error(p_error) {
+TagWriter::TagWriter(file_info_manager_ptr finfo_manager, pfc::string8 p_error) : m_finfo_manager(finfo_manager), release(nullptr), error(p_error), tag_results_mask_mode(PreView::Undef) {
 	skip = true;
 	force_skip = true;
 	static_api_ptr_t<titleformat_compiler>()->compile_force(m_track_script, (PFC_string_formatter() << "[%" << "track" << "%]").c_str());
 }
 
 const t_size TagWriter::GetArtCount(art_src artsrc) {
+	if (!release) {
+		return 0;
+	}
 	if (artsrc == art_src::alb) return release->images.get_count();
 	else return get_art_count();
 }
 
+const pfc::array_t<ReleaseArtist_ptr> TagWriter::GetArtists() {
+	if (!release) {
+		return pfc::array_t<ReleaseArtist_ptr>{};
+	}
+	else {
+		return release->artists;
+	}
+}
+
 const t_size TagWriter::get_art_count() {
+	if (!release) {
+		return 0;
+	}
 	size_t res = release->images.get_count();
 	for (auto wra : release->artists) {
 		res += wra->full_artist->images.get_count();
@@ -62,13 +77,13 @@ int TagWriter::compute_discogs_track_order(track_mappings_list_type &mappings) {
 	std::map<int, bool> track_number_exist;
 
 	const size_t citems = m_finfo_manager->items.get_count();
-	const size_t ctracks = release->get_total_track_count();
+	const size_t ctracks = release ? release->get_total_track_count() : 0;
 	const size_t cmappings = ctracks;
 	mappings.force_reset();
 	mappings.resize(cmappings);
 	size_t cf_ndx = 0;
-	for (size_t i = 0; i < release->discs.get_count(); i++) {
-		for (size_t j = 0; j < release->discs[i]->tracks.get_count(); j++) {
+	for (size_t i = 0; i < (release ? release->discs.get_count() : 0); i++) {
+		for (size_t j = 0; j < (release ? release->discs[i]->tracks.get_count() : 0); j++) {
 			track_mapping& tm = mappings[cf_ndx];
 			tm.file_index = cf_ndx < citems ? cf_ndx : -1;
 			tm.enabled = false;			
@@ -150,7 +165,7 @@ int TagWriter::order_tracks_by_duration(track_mappings_list_type &mappings) {
 	// first try to match tracks on nearest track length if the release has lengths
 	metadb_handle_ptr item;
 	
-	if (release->has_tracklengths()) {
+	if (release && release->has_tracklengths()) {
 		// max delta of 5 seconds per track
 		const unsigned MAX_DELTA = citems * 5;
 		unsigned total_delta = 0;
@@ -305,6 +320,7 @@ bool check_multiple_results(pfc::array_t<string_encoded_array> where, string_enc
 	}
 	return false;
 }
+
 void TagWriter::generate_tags(tag_mapping_list_type* alt_mappings, threaded_process_status& p_status, abort_callback& p_abort) {
 
 	tag_mapping_list_type* ptags = alt_mappings ? alt_mappings : &TAGS;
@@ -320,7 +336,7 @@ void TagWriter::generate_tags(tag_mapping_list_type* alt_mappings, threaded_proc
 	persistent_store prompt_store;
 
 	//mr from any artist
-	size_t lkey = encode_mr(0, atoi(release->master_id));
+	size_t lkey = encode_mr(0, release ? atoi(release->master_id): 0);
 	//..
 	MasterRelease_ptr master = discogs_interface->get_master_release(lkey/*release->master_id*/);
 
@@ -532,7 +548,7 @@ void TagWriter::write_tags_track_map() {
 		for (size_t j = 0; j < tag_results.get_size(); j++) {
 
 			const tag_result_ptr& result = tag_results[j];
-
+			//todo:
 			bool release_id_mod = STR_EQUAL(TAG_RELEASE_ID, result->tag_entry->tag_name.get_ptr());
 			release_id_mod &= !CONF.awt_alt_mode();
 
@@ -662,99 +678,6 @@ void TagWriter::write_tags () {
 
 }
 
-void TagWriter::write_tags_v23() {
-
-	m_finfo_manager->invalidate_all();
-	bool binvalidate = false;
-
-	for (size_t i = 0; i < m_track_mappings.get_count(); i++) {
-		const track_mapping& mapping = m_track_mappings[i];
-
-		if (!mapping.enabled) {
-			continue;
-		}
-
-		size_t file_index = mapping.file_index;
-
-		if (file_index > m_finfo_manager.get()->get_item_count() - 1) {
-			//run out of tracks... skip unmatched files
-			break;
-		}
-		metadb_handle_ptr item = m_finfo_manager->get_item_handle(file_index);
-		file_info& info = m_finfo_manager->get_item(file_index);
-
-		const size_t count = tag_results.get_size();
-		for (size_t j = 0; j < count; j++) {
-			const tag_result_ptr& result = tag_results[j];
-
-			if (!stricmp_utf8(result->tag_entry->tag_name, "DISCOGS_TRACK_CREDITS")) {
-				int debug = 1;
-			}
-
-			string_encoded_array* value;
-
-			if (result->result_approved) {
-				if (result->value.get_size() == 1) {
-					value = &(result->value[0]);
-				}
-				else {
-					value = &(result->value[i]);
-				}
-
-				if (value->has_array()) {
-
-					pfc::string8 catch_mem = value->get_value().get_ptr();
-					check_mem(result->tag_entry, value);
-					value->limit_depth(1);
-
-					write_tag(item, info, *(result->tag_entry), value->get_citems());
-				}
-				else {
-					pfc::string8 value_lf;
-					value->get_cvalue_lf(value_lf);
-					pfc::string8 catch_mem = value_lf;
-					check_mem(result->tag_entry, value);
-
-					write_tag(item, info, *(result->tag_entry), value_lf);
-				}
-				binvalidate = true;
-			}
-		}
-
-		if (CONF.remove_other_tags) {
-			size_t j = 0;
-			while (j < info.meta_get_count()) {
-				const char* tag_name = info.meta_enum_name(j);
-				bool remove = true;
-				for (size_t k = 0; k < TAGS.get_size(); k++) {
-					auto& tag = TAGS.get_item_ref(k);
-					if (pfc::stringCompareCaseInsensitive(tag_name, tag.tag_name) == 0) {
-						remove = false;
-						break;
-					}
-				}
-				if (remove) {
-					for (size_t k = 0; k < CONF.remove_exclude_tags.get_size(); k++) {
-						if (pfc::stringCompareCaseInsensitive(tag_name, CONF.remove_exclude_tags[k]) == 0) {
-							remove = false;
-							break;
-						}
-					}
-				}
-				if (remove) {
-					info.meta_remove_index(j);
-					binvalidate = true;
-				}
-				else {
-					j++;
-				}
-			}
-		}
-		if (binvalidate)
-			m_finfo_manager->validate_item(file_index);
-	}
-}
-
 void TagWriter::write_tag(metadb_handle_ptr item, file_info &info, const tag_mapping_entry &entry, const pfc::string8 &tag_value) {
 
 	bool blog = CONF.tag_save_flags & TAGSAVE_LOG_FLAG;
@@ -794,8 +717,12 @@ void TagWriter::write_tag(metadb_handle_ptr item, file_info &info, const tag_map
 			logmsg << logtrack << "Tw < set " << entry.tag_name << " = " << (tag_value.get_length() ? tag_value : "(empty)");
 			log_msg(logmsg); logmsg = "";		
 		}	//..log
-
-		info.meta_set(entry.tag_name, tag_value);
+		try {
+			auto res = info.meta_set(entry.tag_name, tag_value);
+		}
+		catch (...) {
+			throw;
+		}
 
 	}
 	else {
@@ -908,7 +835,7 @@ void TagWriter::write_tag(metadb_handle_ptr item, file_info &info, const tag_map
 						// PRE-WRITE DELETE
 						 
 						//log
-						if (blog) {							
+						if (blog) {
 							logmsg << logtrack << "TD < pre-write clear " << entry.tag_name;
 							log_msg(logmsg); logmsg = "";
 						}//..log
@@ -923,7 +850,7 @@ void TagWriter::write_tag(metadb_handle_ptr item, file_info &info, const tag_map
 
 					//log
 					if (blog) {
-						pfc::string8 dbgflat(setval);					
+						pfc::string8 dbgflat(setval);
 						logmsg << logtrack << "TW < sets " << entry.tag_name << " = " << (setval.get_length() ? setval : "(empty)");
 						log_msg(logmsg); logmsg = "";
 					}//..log

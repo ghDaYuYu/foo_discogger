@@ -54,6 +54,9 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 	DlgResize_Init(mygripp.enabled, true);
 
 	::ShowWindow(uGetDlgItem(IDC_BTN_WRITE_TAGS), true);
+	if (!m_tag_writer->release) {
+		::EnableWindow(uGetDlgItem(IDC_BTN_WRITE_TAGS), false);
+	}
 	::ShowWindow(uGetDlgItem(IDC_BTN_PREVIEW_TAGS), true);
 	::ShowWindow(uGetDlgItem(IDC_BTN_PREVIOUS), false);
 	::ShowWindow(uGetDlgItem(IDC_BTN_NEXT), false);
@@ -150,8 +153,10 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 
 		size_t cartist_art = 0;
 
-		for (auto wra : m_tag_writer->release->artists) {
-			cartist_art += wra->full_artist->images.get_count();
+		for (auto wra : m_tag_writer->GetArtists()) {
+			if (wra->full_artist) {
+				cartist_art += wra->full_artist->images.get_count();
+			}
 		}
 
 		if (CONF_MULTI_ARTWORK.isEmpty() || m_tag_writer->GetArtCount(art_src::alb) > kMax_Artwork ||
@@ -175,7 +180,7 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 				m_vpreview_jobs.emplace_back(pj);
 			}
 			size_t acc_ndx = 0;
-			for (auto wra : m_tag_writer->release->artists) {
+			for (auto wra : m_tag_writer->GetArtists()) {
 				for (size_t it = 0; it < wra->full_artist->images.get_count(); it++) {
 					preview_job pj(false, acc_ndx + it, true, it != 0, false);
 					m_vpreview_jobs.emplace_back(pj);
@@ -1652,10 +1657,12 @@ void CTrackMatchingDialog::go_back() {
 	}
 
 	// prepare find release dlg controls
-
-	dlg_artist_id = m_tag_writer->release->artists[0]->full_artist->id;
-	dlg_artist_name = m_tag_writer->release->artists[0]->full_artist->name;
-	dlg_release_id = m_tag_writer->release->id;
+	
+	if (m_tag_writer->release) {
+		dlg_artist_id = m_tag_writer->release->artists[0]->full_artist->id;
+		dlg_artist_name = m_tag_writer->release->artists[0]->full_artist->name;
+		dlg_release_id = m_tag_writer->release->id;
+	}
 
 	CFindReleaseDialog* find_release_dlg = g_discogs->find_release_dialog;
 	HWND hwndReleases = g_discogs->find_release_dialog->m_hWnd;

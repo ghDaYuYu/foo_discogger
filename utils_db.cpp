@@ -18,7 +18,7 @@ size_t sqldb::open(pfc::string8 dbname, size_t openmode) {
 	}
 
 	if (NULL != m_query) {
-		m_error_msg << "query not null opening sqldb";
+		m_error_msg << "sqldb: error opening sqldb, query member should be null";
 		close();
 		return pfc_infinite;
 	}
@@ -33,7 +33,7 @@ size_t sqldb::open(pfc::string8 dbname, size_t openmode) {
 
 		if (SQLITE_OK != (m_ret = sqlite3_initialize()))
 		{
-			m_error_msg << "Failed to initialize DB library: " << m_ret;
+			m_error_msg << "sqldb: failed to initialize DB library: " << m_ret;
 			break;
 		}
 
@@ -42,7 +42,7 @@ size_t sqldb::open(pfc::string8 dbname, size_t openmode) {
 			std::lock_guard<std::mutex> guard(open_readwrite_mutex);
 			if (SQLITE_OK != (m_ret = sqlite3_open_v2(n8_dbPath, &m_pDb, openmode, NULL)))
 			{
-				m_error_msg << "Failed to open DB connection: " << m_ret << ". ";
+				m_error_msg << "sqldb: failed to open DB connection: " << m_ret << ". ";
 				m_error_msg << sqlite3_errmsg(m_pDb);
 				break;
 			}
@@ -62,18 +62,25 @@ size_t sqldb::open(pfc::string8 dbname, size_t openmode) {
 
 void sqldb::close() {
 
+	bool query_finalized_ok = true;
+
 	if (nullptr != m_query) {
-		m_ret = sqlite3_finalize(*m_query);
+		if (SQLITE_OK == (m_ret = sqlite3_finalize(*m_query))) {
+			m_query = nullptr;
+			query_finalized_ok = (m_ret == SQLITE_OK);
+		};
 	}
 
 	if (nullptr != m_pDb) {
 		m_ret = sqlite3_close(m_pDb);
-		if (m_ret == SQLITE_OK) m_pDb = nullptr;
+		if (m_ret == SQLITE_OK) {
+			m_pDb = nullptr;
+		}
 	}
 
-	if (SQLITE_OK != m_ret)
+	if (SQLITE_OK != m_ret || !query_finalized_ok)
 	{
-		m_error_msg << "Failed to close DB connection (Err. " << m_ret << "). ";
+		m_error_msg << "sqldb: failed to close DB connection (Err. " << m_ret << "). ";
 		m_error_msg << (m_pDb != nullptr ? sqlite3_errmsg(m_pDb) : "");
 	}
 
@@ -87,7 +94,7 @@ int sqldb::prepare(pfc::string8 query, sqlite3_stmt** stmt_query, pfc::string8& 
 
 	if (SQLITE_OK != (m_ret = sqlite3_prepare_v2(m_pDb, query, -1, stmt_query, NULL)))
 	{
-		m_error_msg << "Failed to prepare insert. (Err. " << m_ret << ") " << error_msg;
+		m_error_msg << "sqldb: failed to prepare query. (Err. " << m_ret << ") " << error_msg;
 		m_error_msg << sqlite3_errmsg(m_pDb);
 	}
 
@@ -106,6 +113,17 @@ bool sqldb::debug_sql_return(int ret, pfc::string8 op, pfc::string8 msg_subject,
 	bool bres = true;
 
 	do {
+
+		if (!stricmp_utf8(op, "open")) {
+		
+			if (SQLITE_OK != ret && SQLITE_DONE != ret)
+			{
+				out_msg = ext_subject << ": " << sqlite3_errmsg(m_pDb);
+				bres = false;
+			}
+			break;
+		}
+
 		if (!stricmp_utf8(op, "bind")) {
 			if (SQLITE_OK != ret)
 			{

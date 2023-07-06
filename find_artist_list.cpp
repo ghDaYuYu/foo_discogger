@@ -491,6 +491,7 @@ void CArtistList::context_menu(size_t list_index, POINT screen_pos) {
 				ClipboardHelper::OpenScope scope;
 				scope.Open(core_api::get_main_window(), true);
 				ClipboardHelper::SetString(out);
+				scope.Close();
 			}
 			break;
 		}

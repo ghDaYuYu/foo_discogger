@@ -2184,7 +2184,7 @@ void Discogs::ReleaseArtist::load(threaded_process_status& p_status, abort_callb
 			log_msg(PFC_string_formatter() << "Error 404 loading release artist " << id);
 		}
 	}
-
+	full_artist = std::move(artist);
 	loaded = true;
 }
 
@@ -2345,7 +2345,7 @@ void Discogs::Release::load(threaded_process_status& p_status, abort_callback& p
 	}
 }
 void Discogs::Release::load(threaded_process_status &p_status, abort_callback &p_abort, bool throw_all, pfc::string8 offlineArtistId, db_fetcher* dbfetcher) {
-	
+
 	if (loaded) {
 		return;
 	}
@@ -2580,6 +2580,9 @@ void Discogs::Artist::load_releases(threaded_process_status &p_status, abort_cal
 						bCacheSaved = false;
 					}
 				}
+				catch (std::exception e) {
+					//..
+				}
 				catch (...) {
 					//..
 				}
@@ -2590,7 +2593,7 @@ void Discogs::Artist::load_releases(threaded_process_status &p_status, abort_cal
 					
 					try {
 
-						loaded_releases_offline = ol::stamp_download("", n8_rel_path, true/*done*/);						
+						loaded_releases_offline = ol::stamp_download("", n8_rel_path, true/*done*/);
 					}
 					catch (...) {
 						//..

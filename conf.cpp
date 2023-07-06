@@ -156,7 +156,7 @@ bool CConf::load() {
 	};
 
 	if (vLoad == v000) {
-
+		console::print("Installing foo_discogger");
 		save();
 		//EXIT
 		return prepare_dbf_and_cache(false);

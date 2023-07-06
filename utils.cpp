@@ -677,7 +677,7 @@ void ensure_directory_exists(const char* dir) {
 
 				for (int i = missing.get_size(); i > 0; i--) {
 					pfc::string8 make = missing[i - 1];
-					pfc::string8 msg("creating directory: %s");
+					pfc::string8 msg("creating directory: ");
 					msg << make;
 					log_msg(msg);
 

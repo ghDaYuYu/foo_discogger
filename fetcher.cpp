@@ -61,6 +61,13 @@ void Fetcher::fetch_html(const pfc::string8 &url, const pfc::string8 &params, pf
 
 void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc::array_t<t_uint8> & out, abort_callback &p_abort, bool use_oauth, const pfc::string8 &content_type) {
 
+	try {
+		p_abort.check();
+	}
+	catch (exception_aborted) {
+		return;
+	}
+
 	pfc::string8 msg_average;
 	pfc::string8 status;
 	pfc::string8 request_url = "";
@@ -95,7 +102,7 @@ void Fetcher::fetch_url(const pfc::string8 &url, const pfc::string8 &params, pfc
 		m_ratelimit_threshold = 30/3;
 
 		if (!use_api) {
-			//constructor inits to 60
+			m_ratelimit_max = 20;
 			if (m_ratelimit_remaining > m_ratelimit_max) {
 				m_ratelimit_remaining = m_ratelimit_max;
 			}

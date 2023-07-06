@@ -163,7 +163,8 @@ inline bool CFindReleaseDialog::build_current_cfg() {
 	conf.find_release_dlg_flags &= ~(FLG_PROFILE_DLG_SHOW | FLG_PROFILE_DLG_ATTACHED);
 	conf.find_release_dlg_flags |= (attach_flagged | open_flagged);
 
-	if (CONF.find_release_dlg_flags != conf.find_release_dlg_flags) {		
+	int mask = ~(~0 << 3);
+	if ((CONF.find_release_dlg_flags & mask) != (conf.find_release_dlg_flags & mask)) {		
 		bres |= true;
 	}
 
@@ -413,7 +414,6 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 
 	CustomFont(m_hWnd, HIWORD(conf.custom_font));
 
-	bool bvisible_dlg;
 	{
 		bool brelease_ided = m_tracer.release_tag && m_tracer.release_id != pfc_infinite;
 		bool bskip_ided = conf.skip_mng_flag & SkipMng::RELEASE_DLG_IDED;
@@ -424,7 +424,6 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 
 			//route
 			route_artist_search(artist, false, m_tracer.artist_tag);
-			bvisible_dlg = true;
 		}
 		else 
 		{
@@ -433,7 +432,6 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 				//route
 				route_artist_search(artist, false, true);
 			}
-			bvisible_dlg = false;
 		}
 	}
 

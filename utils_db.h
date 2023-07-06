@@ -31,8 +31,8 @@ static int sizet_type_sqlite3_exec_callback(void* data, int argc, char** argv, c
 	return 0; //callback status
 }
 
-static pfc::string8 db_dbl_apos(pfc::string8 field_data) { pfc::string8 tmp = field_data; tmp.replace_string("'", "''", 0); return tmp; }
-static pfc::string8 db_slh_apos(pfc::string8 field_data) { return PFC_string_formatter() << "\'" << field_data << "\'"; }
+static pfc::string8 db_dblq_apos(pfc::string8 field_data) { pfc::string8 tmp = field_data; tmp.replace_string("'", "''", 0); return tmp; }
+static pfc::string8 db_slhq_apos(pfc::string8 field_data) { return PFC_string_formatter() << "\'" << field_data << "\'"; }
 
 class sqldb {
 
@@ -46,23 +46,25 @@ public:
 	};
 
 	sqlite3* db_handle() { return m_pDb; }
+
 	size_t open(pfc::string8 dbname, size_t openmode);
 	void close();
+
 	int prepare(pfc::string8 query, sqlite3_stmt** m_query, pfc::string8& error_msg);
+
 	bool debug_sql_return(int ret, pfc::string8 op, pfc::string8 msg_subject, pfc::string8 ext_subject, size_t top, pfc::string8& msg);
 
 	//history
 	size_t insert_history(oplog_type optype, std::string cmd, rppair& out);	
 	bool recharge_history(std::string delete_cmd, size_t top_rows, std::map<oplog_type, vppair*>allout);
-	bool test_dc_database(pfc::string8 db_path, abort_callback& p_abort, threaded_process_status& p_status);
 
 	
 private:
 
 	pfc::string8 m_dbname;
-	size_t m_openmode = SQLITE_OPEN_READONLY;
 	sqlite3* m_pDb = nullptr;
 	sqlite3_stmt** m_query = nullptr;
+	size_t m_openmode = SQLITE_OPEN_READONLY;
 
 	int m_ret = -1;
 	pfc::string8 m_error_msg;

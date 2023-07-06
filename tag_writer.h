@@ -4,10 +4,10 @@
 #include "file_info_manager.h"
 #include "error_manager.h"
 
-#define MATCH_NA		-1
-#define MATCH_SUCCESS	0
-#define MATCH_FAIL		1
-#define MATCH_ASSUME	2
+#define MATCH_NA       -1
+#define MATCH_SUCCESS   0
+#define MATCH_FAIL      1
+#define MATCH_ASSUME    2
 
 struct track_mapping
 {
@@ -54,13 +54,13 @@ public:
 	TagWriter(file_info_manager_ptr finfo_manager, pfc::string8 p_error);
 
 	void write_tags();
-	void write_tags_v23();
 	void write_tags_track_map();
 
 	void match_tracks();
 	void generate_tags(tag_mapping_list_type* alt_mappings, threaded_process_status& p_status, abort_callback& p_abort);
 
 	const t_size GetArtCount(art_src artsrc = art_src::unknown);
+	const pfc::array_t<ReleaseArtist_ptr> GetArtists();
 
 	file_info_manager_ptr m_finfo_manager;
 	track_mappings_list_type m_track_mappings;
@@ -69,7 +69,7 @@ public:
 	tag_results_list_type tag_results;
 	std::atomic<bool> atm_tag_results_ready = false;
 	pfc::bit_array_bittable tag_results_mask;
-	PreView tag_results_mask_mode;
+	PreView tag_results_mask_mode = PreView::Undef;
 
 	Release_ptr release;
 
@@ -82,6 +82,7 @@ private:
 
 	void write_tag(metadb_handle_ptr item, file_info &info, const tag_mapping_entry &entry, const pfc::string8 &tag_value);
 	void write_tag(metadb_handle_ptr item, file_info &info, const tag_mapping_entry &entry, const pfc::array_t<string_encoded_array> &tag_values);
+
 	const t_size get_art_count();
 
 	int compute_discogs_track_order(track_mappings_list_type &mappings);

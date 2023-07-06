@@ -46,12 +46,12 @@ int db_fetcher_component::insert_history(sqldb* db, oplog_type optype, std::stri
 			query = "INSERT INTO history_releases (release_id, title, date, cmd_id, cmd_text, artist_id, artist_name) ";
 			query << "VALUES(";
 			query << "\'" << release_id << "\', ";
-			query << "\'" << db_dbl_apos(release_title) << "\', ";
+			query << "\'" << db_dblq_apos(release_title) << "\', ";
 			query << "DateTime(\'now\') " << ", ";
 			query << "\'" << cmd_log.c_str() << "\', ";
-			query << "\'" << db_dbl_apos(cmd_param) << "\', ";
+			query << "\'" << db_dblq_apos(cmd_param) << "\', ";
 			query << "\'" << artist_id << "\' , ";
-			query << "\'" << db_dbl_apos(artist_name) << "\'";
+			query << "\'" << db_dblq_apos(artist_name) << "\'";
 			query << ");";
 
 			char* err;

@@ -1943,7 +1943,7 @@ void Discogs::parseMasterRelease(MasterRelease *master_release, json_t *root) {
 
 	json_t *jsTracklist = json_object_get(root, "tracklist");
 
-	parseAllReleaseTracks(jsTracklist, false, master_release, master_release, nullptr);
+	parseAllReleaseTracks(jsTracklist, false, master_release, master_release, master_release);
 
 }
 

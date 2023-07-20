@@ -827,7 +827,7 @@ namespace Discogs
 	};
 
 
-	class MasterRelease : public HasImages, public HasArtists, public HasTracklist, public HasHeadings, public ExposedTags<MasterRelease>
+	class MasterRelease : public HasImages, public HasArtists, public HasTracklist, public HasHeadings, public HasIndexes, public ExposedTags<MasterRelease>
 	{
 	public:
 		pfc::string8 id;

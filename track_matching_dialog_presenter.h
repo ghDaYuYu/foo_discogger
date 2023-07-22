@@ -108,7 +108,7 @@ public:
 	
 	void SetTagWriter(TagWriter_ptr tag_writer) {
 		m_tag_writer = tag_writer;		
-		m_release = tag_writer->release;
+		m_release = tag_writer->GetRelease();
 	}
 
 	void SetRelease(Release_ptr release) { m_release = release; }

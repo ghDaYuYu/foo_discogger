@@ -52,7 +52,7 @@ public:
 
 	// constructor
 
-	CTrackMatchingDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags = false) : ILOD_track_matching(tag_writer->release),
+	CTrackMatchingDialog(HWND p_parent, TagWriter_ptr tag_writer, bool use_update_tags = false) : ILOD_track_matching(tag_writer->GetRelease()),
 		m_tag_writer(tag_writer),	m_conf(CONF), m_coord(p_parent, CONF),
 		m_idc_list(this), m_ifile_list(this), m_ida_list(this), m_ifa_list(this), m_tristate(this)
 	{
@@ -154,7 +154,7 @@ public:
 	void match_message_update(pfc::string8 local_msg = "");
 
 	//serves credit preview
-	pfc::string8 get_discogs_release_id() { return m_tag_writer->release->id; };
+	pfc::string8 get_discogs_release_id() { return m_tag_writer->GetRelease()->id; };
 
 	const metadb_handle_list get_tag_writer_items() {return m_tag_writer->m_finfo_manager->items; }
 

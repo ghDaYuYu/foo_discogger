@@ -283,8 +283,9 @@ LRESULT CTagMappingDialog::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndC
 }
 
 LRESULT CTagMappingDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
-
-	m_tag_list.TableEdit_Abort(false);
+	if (m_tag_list.TableEdit_IsActive()) {
+		m_tag_list.TableEdit_Abort(false);
+	}
 	pushcfg();
 	cfg_dialog_position_tag_mapping_dlg.RemoveWindow(m_hWnd);
 	return FALSE;
@@ -314,7 +315,7 @@ LRESULT CTagMappingDialog::OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*hWn
 
 		//refresh sliders and invalidate
 		m_tag_list.OnItemsInserted(0, m_ptag_mappings->get_count(), false);
-		m_tag_list.EnsureItemVisible(1, false);
+		m_tag_list.EnsureItemVisible(0, false);
 
 		on_mapping_changed(check_mapping_changed());
 	}
@@ -370,7 +371,7 @@ LRESULT CTagMappingDialog::OnImport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndC
 
 	//refresh sliders and invalidate
 	m_tag_list.OnItemsInserted(0, m_ptag_mappings->get_count(), false);
-	m_tag_list.EnsureItemVisible(1, false);
+	m_tag_list.EnsureItemVisible(0, false);
 	on_mapping_changed(check_mapping_changed());
 
 	return FALSE;

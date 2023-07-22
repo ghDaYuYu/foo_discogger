@@ -30,7 +30,7 @@ void coord_presenters::InitFormMode(lsmode mode, UINT id_lvleft, UINT id_lvright
 }
 void coord_presenters::SetTagWriter(TagWriter_ptr tag_writer) {
 	m_tag_writer = tag_writer;
-	m_tag_writer_release = tag_writer->release;
+	m_tag_writer_release = tag_writer->GetRelease();
 	
 	m_discogs_track_libui_presenter.SetTagWriter(tag_writer);
 	m_file_track_libui_presenter.SetTagWriter(tag_writer);
@@ -489,7 +489,7 @@ void presenter::Init(HWND hDlg, TagWriter_ptr tag_writer, UINT ID) {
 
 	mm_hWnd = hDlg;
 	m_tag_writer = tag_writer;
-	m_release = tag_writer->release;
+	m_release = tag_writer->GetRelease();
 
 	m_listID = ID;
 
@@ -1283,7 +1283,7 @@ void files_artwork_presenter::update_img_defs(size_t img_ndx, size_t album_art_i
 	if (splitfile.get_count()) file_name = *splitfile.first();
 	file_name << ".jpg";
 
-	Release_ptr release = m_tag_writer->release;
+	Release_ptr tw_release = m_tag_writer->GetRelease();
 	metadb_handle_ptr item = m_tag_writer->m_finfo_manager->get_item_handle(0);
 
 	pfc::string8 directory;
@@ -1292,7 +1292,7 @@ void files_artwork_presenter::update_img_defs(size_t img_ndx, size_t album_art_i
 	threaded_process_status kk;
 
 	threaded_process_status p_status;
-	titleformat_hook_impl_multiformat hook(p_status, &release);
+	titleformat_hook_impl_multiformat hook(p_status, &tw_release);
 	CONF.album_art_directory_string->run_hook(item->get_location(), &info, &hook, directory, nullptr);
 
 	std::pair<pfc::string8, pfc::string8> result;
@@ -1481,7 +1481,7 @@ void discogs_artwork_presenter::PopulateConfArtWork() {
 	if (bfirstRun) {
 
 		bool bfilematch = CONF_MULTI_ARTWORK.file_match;
-		CONF_MULTI_ARTWORK = multi_uartwork(CONF, m_tag_writer->release);
+		CONF_MULTI_ARTWORK = multi_uartwork(CONF, m_tag_writer->GetRelease());
 		CONF_MULTI_ARTWORK.file_match = bfilematch;
 		m_multi_uart = CONF_MULTI_ARTWORK;
 	}
@@ -1559,7 +1559,7 @@ bool discogs_artwork_presenter::AddArtwork(size_t img_ndx, art_src artSrc, Memor
 
 	imgpairs hRES = MemoryBlockToTmpBitmap(std::pair(n8_cache_path_small,	n8_cache_path_mini), small_art);
 	size_t list_pos = ~0;
-	size_t list_param_ndx = artSrc == art_src::alb ? img_ndx : img_ndx + m_tag_writer->release->images.get_count();
+	size_t list_param_ndx = artSrc == art_src::alb ? img_ndx : img_ndx + m_tag_writer->GetRelease()->images.get_count();
 
 	size_t citems = m_lvimages.size();
 	if (citems) {
@@ -1715,23 +1715,25 @@ void coord_presenters::populate_track_ui_mode() {
 			ReleaseDisc_ptr disc;
 			ReleaseTrack_ptr track;
 
+			auto tw_release = m_tag_writer->GetRelease();
+
 			const track_mapping& mapping = m_tag_writer->m_track_mappings[i];
 
 			if (mapping.discogs_disc == -1 || mapping.discogs_track == -1) {
 				int d, t;
-				if (!m_tag_writer->release->find_disc_track(i, &d, &t)) {
+				if (!tw_release->find_disc_track(i, &d, &t)) {
 					continue;
 				}
 
-				disc = m_tag_writer->release->discs[d];
+				disc = tw_release->discs[d];
 				track = disc->tracks[t];
 			}
 			else {
-				disc = m_tag_writer->release->discs[mapping.discogs_disc];
+				disc = tw_release->discs[mapping.discogs_disc];
 				track = disc->tracks[mapping.discogs_track];
 			}
 			
-			m_hook.set_release(&m_tag_writer->release);
+			m_hook.set_release(&tw_release);
 			m_hook.set_disc(&disc);
 			m_hook.set_track(&track);
 
@@ -1746,7 +1748,7 @@ void coord_presenters::populate_track_ui_mode() {
 					local_release_id = ch_local_rel;
 				}
 
-				bool bdiffid = (local_release_id.get_length() && !(STR_EQUAL(m_tag_writer->release->id, local_release_id)));
+				bool bdiffid = (local_release_id.get_length() && !(STR_EQUAL(tw_release->id, local_release_id)));
 
 				pfc::string8 compact_release;
 				CONF.search_master_sub_format_string->run_hook(m_location, &m_info, &m_hook, compact_release, nullptr);

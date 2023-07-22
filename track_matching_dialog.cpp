@@ -54,7 +54,7 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 	DlgResize_Init(mygripp.enabled, true);
 
 	::ShowWindow(uGetDlgItem(IDC_BTN_WRITE_TAGS), true);
-	if (!m_tag_writer->release) {
+	if (!m_tag_writer->GetRelease()) {
 		::EnableWindow(uGetDlgItem(IDC_BTN_WRITE_TAGS), false);
 	}
 	::ShowWindow(uGetDlgItem(IDC_BTN_PREVIEW_TAGS), true);
@@ -73,7 +73,7 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 	::SendMessageW(write_btn, BM_SETIMAGE, IMAGE_BITMAP, (LPARAM)g_hIcon_rec);
 	if (m_tag_writer) {
 
-		CONF_MULTI_ARTWORK = multi_uartwork(m_conf, m_tag_writer->release);
+		CONF_MULTI_ARTWORK = multi_uartwork(m_conf, m_tag_writer->GetRelease());
 
 		match_message_update();
 
@@ -340,14 +340,14 @@ void CTrackMatchingDialog::match_message_update(pfc::string8 local_msg) {
 
 void CTrackMatchingDialog::request_preview(size_t img_ndx, bool artist_art, bool onlycache, bool get_mibs) {
 	service_ptr_t<process_artwork_preview_callback> task =
-		new service_impl_t<process_artwork_preview_callback>(this, m_tag_writer->release, img_ndx, artist_art, onlycache, get_mibs);
+		new service_impl_t<process_artwork_preview_callback>(this, m_tag_writer->GetRelease(), img_ndx, artist_art, onlycache, get_mibs);
 	task->start(m_hWnd);
 }
 
 void CTrackMatchingDialog::request_file_preview(size_t img_ndx, bool artist_art) {
 	service_ptr_t<process_file_artwork_preview_callback> file_art_task =
 		new service_impl_t<process_file_artwork_preview_callback>(this,
-			m_tag_writer->release, m_tag_writer->m_finfo_manager->items, img_ndx, artist_art);
+			m_tag_writer->GetRelease(), m_tag_writer->m_finfo_manager->items, img_ndx, artist_art);
 	file_art_task->start(m_hWnd);
 }
 
@@ -373,7 +373,7 @@ void CTrackMatchingDialog::process_file_artwork_preview_done(size_t img_ndx, boo
 void CTrackMatchingDialog::process_download_art_paths_done(pfc::string8 callback_release_id,
 	std::shared_ptr<std::vector<std::pair<pfc::string8, bit_array_bittable>>> vres,
 	pfc::array_t<GUID> my_album_art_ids) {
-	if (m_tag_writer->release->id != callback_release_id || get_mode() != lsmode::art) {
+	if (m_tag_writer->GetRelease()->id != callback_release_id || get_mode() != lsmode::art) {
 		return;
 	}
 
@@ -512,7 +512,6 @@ LRESULT CTrackMatchingDialog::OnButtonBack(WORD /*wNotifyCode*/, WORD wID, HWND 
 	m_ifile_list.TooltipRemove();
 	m_ida_list.TooltipRemove();
 	m_ifa_list.TooltipRemove();
-
 	cfg_dialog_position_track_matching_dlg.RemoveWindow(m_hWnd);
 
 	go_back();
@@ -535,7 +534,7 @@ bool CTrackMatchingDialog::generate_artwork_guids(pfc::array_t<GUID> &my_album_a
 		if (want_file_match) return false;
 
 		bool bfile_match = CONF_MULTI_ARTWORK.file_match;
-		CONF_MULTI_ARTWORK = multi_uartwork(CONF, m_tag_writer->release);
+		CONF_MULTI_ARTWORK = multi_uartwork(CONF, m_tag_writer->GetRelease());
 		CONF_MULTI_ARTWORK.file_match = bfile_match;
 	}
 
@@ -631,7 +630,7 @@ bool CTrackMatchingDialog::generate_artwork_guids(pfc::array_t<GUID> &my_album_a
 		size_t calbum_art = m_tag_writer->GetArtCount(art_src::alb);
 		size_t cartist_art = 0;
 
-		for (auto wra : m_tag_writer->release->artists) {
+		for (auto wra : m_tag_writer->GetRelease()->artists) {
 			cartist_art += wra->full_artist->images.get_count();
 		}
 		if ((calbum_art + cartist_art) > 0) {
@@ -666,7 +665,7 @@ LRESULT CTrackMatchingDialog::OnButtonWriteArtwork(WORD /*wNotifyCode*/, WORD wI
 
 	//write art
 	service_ptr_t<download_art_paths_task> task_ids =
-		new service_impl_t<download_art_paths_task>(this, m_tag_writer->release->id,
+		new service_impl_t<download_art_paths_task>(this, m_tag_writer->GetRelease()->id,
 			m_tag_writer->m_finfo_manager->items,	my_album_art_ids, false, bfile_match);
 
 	task_ids->start();
@@ -949,11 +948,13 @@ bool CTrackMatchingDialog::context_menu_form(HWND wnd, LPARAM lParamPos) {
 		local_release_id = ch_local_rel;
 	}
 
-	pfc::string8 discogs_release_id(m_tag_writer->release->id);
-	pfc::string8 master_release_id(m_tag_writer->release->master_id);
-	pfc::string8 artist_id(m_tag_writer->release->artists[0]->full_artist->id);
+	auto tw_release = m_tag_writer->GetRelease();
+
+	pfc::string8 discogs_release_id(tw_release->id);
+	pfc::string8 master_release_id(tw_release->master_id);
+	pfc::string8 artist_id(tw_release->artists[0]->full_artist->id);
 	std::vector<std::pair<std::string, std::string>>vartists;
-	bool is_multiartist = discogs_interface->artists_vid(m_tag_writer->release, vartists);
+	bool is_multiartist = discogs_interface->artists_vid(tw_release, vartists);
 
 	bool hasRelease = discogs_release_id.get_length();
 	bool hasMasterRelease = master_release_id.get_length();
@@ -1599,8 +1600,8 @@ void CTrackMatchingDialog::init_track_matching_dialog() {
 	else {
 		multi_current = CONF_MULTI_ARTWORK;
 	}
-	
-	multi_uartwork multi_defaults = multi_uartwork(CONF, m_tag_writer->release);
+
+	multi_uartwork multi_defaults = multi_uartwork(CONF, m_tag_writer->GetRelease());
 	
 	bool managed_artwork = !(multi_current == multi_defaults);
 	bool user_wants_skip = HIWORD(m_conf.album_art_skip_default_cust) & ARTSAVE_SKIP_USER_FLAG;
@@ -1657,11 +1658,11 @@ void CTrackMatchingDialog::go_back() {
 	}
 
 	// prepare find release dlg controls
-	
-	if (m_tag_writer->release) {
-		dlg_artist_id = m_tag_writer->release->artists[0]->full_artist->id;
-		dlg_artist_name = m_tag_writer->release->artists[0]->full_artist->name;
-		dlg_release_id = m_tag_writer->release->id;
+	auto tw_release = m_tag_writer->GetRelease();
+	if (tw_release) {
+		dlg_artist_id = tw_release->artists[0]->full_artist->id;
+		dlg_artist_name = tw_release->artists[0]->full_artist->name;
+		dlg_release_id = tw_release->id;
 	}
 
 	CFindReleaseDialog* find_release_dlg = g_discogs->find_release_dialog;

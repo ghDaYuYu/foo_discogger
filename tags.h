@@ -21,6 +21,8 @@ static pfc::string8 TAG_MASTER_RELEASE_ID("DISCOGS_MASTER_RELEASE_ID");
 class tag_mapping_entry
 {
 public:
+
+	GUID guid_tag = pfc::guid_null;
 	pfc::string8 tag_name = "";
 	bool is_multival_meta = false;
 	bool enable_write = false;
@@ -30,7 +32,13 @@ public:
 	bool freeze_tag_name = false;
 	formatting_script formatting_script;
 
-	tag_mapping_entry() {};
+	tag_mapping_entry() {
+		//..
+	};
+
+	~tag_mapping_entry() {
+		//..
+	};
 
 	tag_mapping_entry(const char *tn, bool ew, bool eu, bool fw, bool fu, bool ft, const char *fs) :
 		tag_name(tn), enable_write(ew), enable_update(eu), freeze_write(fw), freeze_update(fu), freeze_tag_name(ft), formatting_script(fs) {
@@ -46,7 +54,8 @@ public:
 	}
 
 	const bool equals(const tag_mapping_entry& a) {
-		return (STR_EQUAL(tag_name, a.tag_name) &&
+		return pfc::guid_equal(guid_tag, a.guid_tag) &&
+			(STR_EQUAL(tag_name, a.tag_name) &&
 			enable_write == a.enable_write &&
 			enable_update == a.enable_update &&
 			freeze_write == a.freeze_write &&
@@ -56,15 +65,31 @@ public:
 	}
 };
 
+// == operator
 
-extern bool operator ==(const tag_mapping_entry &a, const tag_mapping_entry &b);
+inline bool operator ==(const tag_mapping_entry& a, const tag_mapping_entry& b) {
+
+	return pfc::guid_equal(a.guid_tag, b.guid_tag);
+}
 
 
 FB2K_STREAM_READER_OVERLOAD(tag_mapping_entry) {
 
+	pfc::string8 buffer;
+	stream >> buffer;
+	// from v0.19
+	GUID guid_check = pfc::GUID_from_text(buffer);
+
 	pfc::string8 tag_name, formatting_string;
-	stream >> tag_name
-		>> value.enable_write
+	if (pfc::guid_equal(guid_check, pfc::guid_null)) {
+		value.guid_tag = pfc::createGUID();
+		tag_name = buffer;
+	}
+	else {
+		value.guid_tag = guid_check;
+		stream >> tag_name;
+	}
+	stream >> value.enable_write
 		>> value.enable_update
 		>> value.freeze_write
 		>> value.freeze_update
@@ -85,9 +110,11 @@ FB2K_STREAM_WRITER_OVERLOAD(tag_mapping_entry) {
 		mod_write = LOWORD(CONF.alt_write_flags) & (1 << 0);
 		mod_update = LOWORD(CONF.alt_write_flags) & (1 << 1);
 	}
+	pfc::string8 guid_tag = pfc::print_guid(value.guid_tag);
 	pfc::string8 tag_name(value.tag_name.get_ptr());
 	pfc::string8 formatting_string((const char*)value.formatting_script);
-	stream << tag_name
+	stream << guid_tag
+		<< tag_name
 		<< mod_write
 		<< mod_update
 		<< value.freeze_write

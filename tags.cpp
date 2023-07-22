@@ -236,9 +236,6 @@ static ID3_FrameDef ID3_FrameDefs[] =
 	{false, false, false, false,"TXXX", false, false, "User defined text information"},
 };
 
-bool operator ==(const tag_mapping_entry &a, const tag_mapping_entry &b) {
-	return a.tag_name == b.tag_name;  // compares memory...?
-}
 void init_tag_mappings() {
 
 	if (!cfg_tag_mappings.get_count()) {

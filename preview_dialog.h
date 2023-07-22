@@ -44,6 +44,7 @@ public:
 		ID_PREVIEW_CMD_EDIT_RESULT_TAGINP,
 		ID_PREVIEW_CMD_WRITE_TAGS,
 		ID_PREVIEW_CMD_WRITE_TAGS_MASK,
+		ID_PREVIEW_CMD_WRITE_TAGS_MASK_FORCE_WU,
 		ID_PREVIEW_CMD_COPY,
 		ID_SELECT_ALL,
 		ID_INVERT_SELECTION,
@@ -142,9 +143,9 @@ public:
 	LRESULT OnCustomDraw(int idCtrl, LPNMHDR pnmh, BOOL& bHandled);
 
 	void replace_tag_result(size_t item, tag_result_ptr result);
-	void generate_tag_results(bool computestat);
-	void tag_mappings_updated();
-	void cb_generate_tags();
+	void refresh_ui_tag_results(bool computestat, pfc::bit_array_bittable tag_mask = {});
+	void spawn_generate_tag_mappings();
+	void cb_refresh_ui_tag_results(pfc::bit_array_bittable tag_mask);
 	void enable(bool v) override { enable(v, true); };
 	void enable(bool v, bool change_focus);
 	bool check_write_tags_status();
@@ -156,10 +157,13 @@ private:
 	void reset_default_columns(bool breset, bool bshowstats);
 	void fix_sorted_icol_map(bool reset, bool bshowstats);
 
-	void compute_stats();
-	void compute_stats_track_map();
+	void compute_stats(pfc::bit_array_bittable tag_mask = {});
+	void compute_stats_track_map(pfc::bit_array_bittable tag_mask = {});
 
-	void reset_stats() { m_vstats.clear(); }
+	void reset_stats() {
+		m_vstats.clear();
+	}
+
 	void reset_tag_result_stats();
 
 	void set_preview_mode(PreView mode);
@@ -179,15 +183,13 @@ private:
 	foo_conf conf;
 
 	std::vector<preview_stats> m_vstats;
-	std::vector<std::pair<int, int>> m_vcol_data_subitems;
+	pfc::bit_array_bittable m_vstats_mask;
 
-	int m_totalwrites = 0;
-	int m_totalupdates = 0;
+	std::vector<std::pair<int, int>> m_vcol_data_subitems;
 
 	bool m_cfg_bshow_stats = false;
 
 	TagWriter_ptr m_tag_writer;
-	bool m_write_only_selected = false;
 
 	size_t m_tw_index = 0;
 	size_t m_tw_skip = 0;

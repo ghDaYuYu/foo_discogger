@@ -25,7 +25,7 @@ void ILOD_preview::SetResults(const std::weak_ptr<void>& ptag_wwriter, PreView p
 
 size_t ILOD_preview::listGetItemCount(ctx_t ctx) {
 
-	if (m_tag_writer && !m_tag_writer->atm_tag_results_ready) {
+	if (m_tag_writer && !m_tag_writer->ResultsReady()) {
 
 		return 0;
 	}
@@ -305,7 +305,10 @@ void ILOD_preview::listSetEditField(ctx_t ctx, size_t item, size_t subItem, cons
 
 			m_tag_writer->tag_results[item]->value.force_reset();
 			m_tag_writer->tag_results[item]->value.append_single(sea_val);
-			((CPreviewTagsDialog*)this)->cb_generate_tags();
+
+			pfc::bit_array_bittable tag_mask(bit_array_false(), m_tag_writer->tag_results.get_count());
+			tag_mask.set(item, true);
+			((CPreviewTagsDialog*)this)->cb_refresh_ui_tag_results(tag_mask);
 		}
 	}
 }

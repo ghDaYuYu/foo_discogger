@@ -152,7 +152,9 @@ void CPreviewLeadingTagDialog::push_updates() {
 
 		CPreviewTagsDialog* dlg = g_discogs->preview_tags_dialog;
 		dlg->replace_tag_result(m_isel, m_ptag_result);
-		dlg->cb_generate_tags();
+		pfc::bit_array_bittable tag_mask(bit_array_false(), m_tag_writer->tag_results.get_count());
+		tag_mask.set(m_isel, true);
+		dlg->cb_refresh_ui_tag_results(tag_mask);
 	}
 }
 
@@ -264,6 +266,8 @@ bool CPreviewLeadingTagDialog::context_menu_switch(HWND wnd, POINT point, bool i
 		ClipboardHelper::OpenScope scope;
 		scope.Open(core_api::get_main_window(), true);
 		ClipboardHelper::SetString(out);
+		scope.Close();
+
 		return true;
 	}
 	case ID_CMD_APPLY:

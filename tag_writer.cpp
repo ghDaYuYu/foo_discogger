@@ -5,13 +5,13 @@
 
 TagWriter::TagWriter(file_info_manager_ptr finfo_manager, Release_ptr release) : m_finfo_manager(finfo_manager), release(release), tag_results_mask_mode(PreView::Undef) {
 
-	static_api_ptr_t<titleformat_compiler>()->compile_force(m_track_script, (PFC_string_formatter() << "[%" << "track" << "%]").c_str());
+	pfc::string8 buffer;
+	buffer << "[%" << "track" << "%]";
+	static_api_ptr_t<titleformat_compiler>()->compile_force(m_track_script, buffer.c_str());
 }
 
-TagWriter::TagWriter(file_info_manager_ptr finfo_manager, pfc::string8 p_error) : m_finfo_manager(finfo_manager), release(nullptr), error(p_error), tag_results_mask_mode(PreView::Undef) {
-	skip = true;
-	force_skip = true;
-	static_api_ptr_t<titleformat_compiler>()->compile_force(m_track_script, (PFC_string_formatter() << "[%" << "track" << "%]").c_str());
+Release_ptr TagWriter::GetRelease() {
+	return release;
 }
 
 const t_size TagWriter::GetArtCount(art_src artsrc) {
@@ -19,7 +19,7 @@ const t_size TagWriter::GetArtCount(art_src artsrc) {
 		return 0;
 	}
 	if (artsrc == art_src::alb) return release->images.get_count();
-	else return get_art_count();
+	else return get_artists_art_count();
 }
 
 const pfc::array_t<ReleaseArtist_ptr> TagWriter::GetArtists() {
@@ -31,7 +31,7 @@ const pfc::array_t<ReleaseArtist_ptr> TagWriter::GetArtists() {
 	}
 }
 
-const t_size TagWriter::get_art_count() {
+const t_size TagWriter::get_artists_art_count() {
 	if (!release) {
 		return 0;
 	}
@@ -42,6 +42,21 @@ const t_size TagWriter::get_art_count() {
 	return res;
 }
 
+bool TagWriter::Staging_Results() {
+	for (auto wr : tag_results) {
+		if (wr->result_approved) {
+			return true;
+		}
+	}
+	return false;
+}
+
+void TagWriter::ResetMask() {
+	tag_results_mask = {};
+	tag_results_mask_force_wu = false;
+	tag_results_mask_mode = PreView::Undef;
+}
+
 const std::vector<int(TagWriter::*)(track_mappings_list_type &)> TagWriter::m_matching_functions = {
 	&TagWriter::order_tracks_by_duration,
 	&TagWriter::order_tracks_by_number,
@@ -49,7 +64,7 @@ const std::vector<int(TagWriter::*)(track_mappings_list_type &)> TagWriter::m_ma
 };
 
 void TagWriter::match_tracks() {
-	m_match_status = compute_discogs_track_order(m_track_mappings);
+	m_match_status = route_discogs_track_order(m_track_mappings);
 	if (m_match_status != MATCH_SUCCESS) {
 		const size_t citems = m_finfo_manager->items.get_count();
 		size_t ctracks = 0;
@@ -73,7 +88,7 @@ void TagWriter::match_tracks() {
 	}
 }
 
-int TagWriter::compute_discogs_track_order(track_mappings_list_type &mappings) {
+int TagWriter::route_discogs_track_order(track_mappings_list_type &mappings) {
 	std::map<int, bool> track_number_exist;
 
 	const size_t citems = m_finfo_manager->items.get_count();
@@ -323,26 +338,27 @@ bool check_multiple_results(pfc::array_t<string_encoded_array> where, string_enc
 
 void TagWriter::generate_tags(tag_mapping_list_type* alt_mappings, threaded_process_status& p_status, abort_callback& p_abort) {
 
-	tag_mapping_list_type* ptags = alt_mappings ? alt_mappings : &TAGS;
+	tag_mapping_list_type* ptags = &TAGS;
 
 	atm_tag_results_ready = false;
 	tag_results.force_reset();
-	will_modify = false;
 
 	pfc::array_t<persistent_store> track_stores;
 	for (size_t j = 0; j < m_track_mappings.get_count(); j++) {
 		track_stores.append_single(persistent_store());
 	}
+
 	persistent_store prompt_store;
 
-	//mr from any artist
 	size_t lkey = encode_mr(0, release ? atoi(release->master_id): 0);
-	//..
-	MasterRelease_ptr master = discogs_interface->get_master_release(lkey/*release->master_id*/);
+	MasterRelease_ptr master = discogs_interface->get_master_release(lkey);
 
 	for (size_t wtags = 0; wtags < ptags->get_size(); wtags++) {
+
 		const tag_mapping_entry& entry = ptags->get_item_ref(wtags);
+
 		if ((entry.enable_write) || (entry.enable_update)) {
+
 			tag_result_ptr result = std::make_shared<tag_result>();
 
 			bool multiple_results = false;
@@ -475,7 +491,8 @@ void TagWriter::generate_tags(tag_mapping_list_type* alt_mappings, threaded_proc
 					ex << "Error reading tag " << entry.tag_name << " [" << e.what() << "] for file " << item->get_path();
 					throw ex;
 				}
-			}
+			} //tracks
+
 			if (!multiple_results) {
 				result->value.set_size_discard(1);
 			}
@@ -483,12 +500,14 @@ void TagWriter::generate_tags(tag_mapping_list_type* alt_mappings, threaded_proc
 				result->old_value.set_size_discard(1);
 			}
 
-			will_modify |= result->result_approved;
-
 			result->tag_entry = &entry;
+
 			tag_results.append_single(std::move(result));
-		}
-	}
+
+		} //write or update enabled
+
+	} //tags
+
 	atm_tag_results_ready = true;
 }
 
@@ -503,12 +522,12 @@ void check_mem(const tag_mapping_entry* tag_entry, const string_encoded_array* v
 			for (size_t i = 0; i < value->get_citems().get_count(); i++) {
 				buffer = value->get_item(i);
 				if (berror = !is_number(buffer)) {
-					break;					
+					break;
 				}
 			}
 		}
-		else {			
-			buffer = value->print().c_str();					
+		else {
+			buffer = value->print().c_str();
 			berror = !is_number(buffer);
 		}
 		if (berror) {
@@ -519,13 +538,124 @@ void check_mem(const tag_mapping_entry* tag_entry, const string_encoded_array* v
 	}
 }
 
-void TagWriter::write_tags_track_map() {
+struct write_tag_nfo {
+
+	metadb_handle_ptr item = nullptr;
+	file_info* info;
+	tag_mapping_entry entry;
+	pfc::string8 tag_value;
+	pfc::array_t<string_encoded_array> tag_values_array;
+};
+
+void process_result(const metadb_handle_ptr item, file_info* info, size_t ndx_track_mappings, const tag_result_ptr& result, bool bhasmask, bool bforce_wu, bool bmasked, bool &bvalidate, write_tag_nfo &out_write_info) {
+
+
+	string_encoded_array* value;
+
+	bool approved = false;
+	if (result->result_approved) {
+
+		approved = result->r_approved[ndx_track_mappings];
+		if (!approved) {
+
+			if (result->r_usr_modded.get(ndx_track_mappings)) {
+				approved = result->r_usr_approved.get(ndx_track_mappings);
+			}
+			/*else*/
+			if (bhasmask && bforce_wu) {
+
+				auto old_val = result->old_value.get_count() > ndx_track_mappings ? result->old_value[ndx_track_mappings] : result->old_value[0].print();
+				auto new_val = result->value.get_count() > ndx_track_mappings ? result->value[ndx_track_mappings] : result->value[0].print();
+				bool beq = old_val.print().equals(new_val.print());
+
+				if (!beq) {
+
+					approved = bmasked;
+				}
+			}
+		}
+	}
+	else {
+
+		bool release_id_mod = STR_EQUAL(TAG_RELEASE_ID, result->tag_entry->tag_name.get_ptr());
+		release_id_mod &= !CONF.awt_alt_mode();
+
+		if (release_id_mod) {
+			if (!(result->tag_entry->enable_write)) {
+				approved = true;
+			}
+		}
+		else {
+			//todo: rev maybe remove turn else into two sequencial ifs
+			if (result->r_usr_modded.get(ndx_track_mappings)) {
+				approved = result->r_usr_approved.get(ndx_track_mappings);
+			}
+			/*else*/
+			if (bhasmask && bforce_wu) {
+
+				auto old_val = result->old_value.get_count() > ndx_track_mappings ? result->old_value[ndx_track_mappings] : result->old_value[0].print();
+				auto new_val = result->value.get_count() > ndx_track_mappings ? result->value[ndx_track_mappings] : result->value[0].print();
+				bool beq = old_val.print().equals(new_val.print());
+
+				if (!beq) {
+
+					approved = bmasked;
+				}
+			}
+		}
+	}
+	if (approved) {
+		if (result->value.get_count() > ndx_track_mappings) {
+
+
+
+			value = &(result->value[ndx_track_mappings]);
+		}
+		else {
+
+			value = &(result->value[0]);
+		}
+
+		if (value->has_array()) {
+
+			pfc::string8 catch_mem = value->get_cvalue();
+			check_mem(result->tag_entry, value);
+
+			value->limit_depth(1);
+			
+			//WRITE array
+			out_write_info.item = item;
+			out_write_info.info = info;
+			out_write_info.entry = *(result->tag_entry);
+			out_write_info.tag_values_array = value->get_citems();
+
+		}
+		else {
+			pfc::string8 value_lf;
+			value->get_cvalue_lf(value_lf);
+
+			pfc::string8 catch_mem = value_lf;
+			check_mem(result->tag_entry, value);
+			
+			//WRITE single
+			out_write_info.item = item;
+			out_write_info.info = info;
+			out_write_info.entry = *(result->tag_entry);
+			out_write_info.tag_value = value_lf;
+		}
+		bvalidate = true;
+	}
+}
+
+void TagWriter::write_tags() {
 	
 	m_finfo_manager->invalidate_all();
+
+	bit_array_bittable info_man_validate_mask(bit_array_false(), m_finfo_manager->items.get_count());
 	
 	bool bhasmask = tag_results_mask.size();
 
-	//loop  tracks
+	//tracks
 	for (size_t i = 0; i < m_track_mappings.get_count(); i++) {
 
 		const track_mapping &mapping = m_track_mappings[i];
@@ -535,8 +665,7 @@ void TagWriter::write_tags_track_map() {
 		}
 
 		size_t file_index = mapping.file_index;
-		bool bvalidate = false;
-		
+
 		if (file_index >= m_finfo_manager.get()->get_item_count()) {
 			//run out of tracks... skip unmatched files
 			break;
@@ -544,89 +673,77 @@ void TagWriter::write_tags_track_map() {
 		metadb_handle_ptr item = m_finfo_manager->get_item_handle(file_index);
 		file_info &info = m_finfo_manager->get_item(file_index);
 
-		//loop tag results in walk track
-		for (size_t j = 0; j < tag_results.get_size(); j++) {
 
-			const tag_result_ptr& result = tag_results[j];
-			//todo:
-			bool release_id_mod = STR_EQUAL(TAG_RELEASE_ID, result->tag_entry->tag_name.get_ptr());
-			release_id_mod &= !CONF.awt_alt_mode();
-
-			if (bhasmask && !tag_results_mask.get(j) && !release_id_mod)
-			{
-				continue;
-			}
+		if (!tag_results_mask.size()) {
+		
+			// bulk
 			
-			string_encoded_array *value;
+			// walk track results
+			for (size_t j = 0; j < tag_results.get_size(); j++) {
 
-			bool approved = false;
-			if (result->result_approved) {
-
-					approved = result->r_approved[i];
-					if (!approved) {
-
-						if (result->r_usr_modded.get(i)) {
-							approved = result->r_usr_approved.get(i);
-						}
-						else if (bhasmask) {
-							approved = tag_results_mask.get(j);
-						}
-					}
-			}
-			else {
-
+				const tag_result_ptr& result = tag_results[j];
+				//todo:
 				bool release_id_mod = STR_EQUAL(TAG_RELEASE_ID, result->tag_entry->tag_name.get_ptr());
 				release_id_mod &= !CONF.awt_alt_mode();
 
-				if (release_id_mod) {
-					if (!(result->tag_entry->enable_write)) {
-						approved = true;
+				if (bhasmask && !tag_results_mask.get(j) && !release_id_mod /*&& (!(result->tag_entry->freeze_tag_name && result->tag_entry->enable_write))*/)
+				{
+					continue;
+				}
+
+				bool bvalidate = false;
+				write_tag_nfo out_write_info = { 0 };
+				process_result(item, &info, i /*ndx_track_mappings*/, result, bhasmask, tag_results_mask_force_wu, false, bvalidate, out_write_info);
+
+				if (out_write_info.item.get_ptr()) {
+					if (out_write_info.tag_values_array.get_count()) {
+						write_tag(out_write_info.item, *(out_write_info.info), out_write_info.entry, out_write_info.tag_values_array);
 					}
+					else {
+						write_tag(out_write_info.item, *(out_write_info.info), out_write_info.entry, out_write_info.tag_value);
+					}
+					info_man_validate_mask.set(file_index, bvalidate);
 				}
-				else {
-						if (result->r_usr_modded.get(i)) {
-							approved = result->r_usr_approved.get(i);
-						}
-						else if (bhasmask) {
-							approved = tag_results_mask.get(j);
-						}					
+
+			} // walked results in track
+
+		}
+
+		else {
+		
+			//selection
+		
+			size_t mask_size = tag_results_mask.size();
+			size_t fpos = 0;
+
+			while ((fpos = tag_results_mask.find_first(true, fpos, mask_size)) < mask_size) {
+			
+				const tag_result_ptr& result = tag_results[fpos];
+				//todo:
+				bool release_id_mod = STR_EQUAL(TAG_RELEASE_ID, result->tag_entry->tag_name.get_ptr());
+				release_id_mod &= !CONF.awt_alt_mode();
+
+				bool bvalidate = false;
+				write_tag_nfo out_write_info = { 0 };
+				process_result(item, &info, i , result, bhasmask, tag_results_mask_force_wu, mask_size, bvalidate, out_write_info);
+				
+				if (out_write_info.item.get_ptr()) {
+					if (out_write_info.tag_values_array.get_count()) {
+						write_tag(out_write_info.item, *(out_write_info.info), out_write_info.entry, out_write_info.tag_values_array);
+					}
+					else {
+						write_tag(out_write_info.item, *(out_write_info.info), out_write_info.entry, out_write_info.tag_value);
+					}
+					info_man_validate_mask.set(file_index, bvalidate);
 				}
+
+				fpos++;
 			}
-			if (approved) {
-				if (result->value.get_count() > i) {
+		
+		}
 
-
-
-					value = &(result->value[i]);
-				}
-				else {
-
-					value = &(result->value[0]);
-				}
-
-				if (value->has_array()) {
-					
-					pfc::string8 catch_mem = value->get_cvalue();
-					check_mem(result->tag_entry, value);
-
-					value->limit_depth(1);
-
-					write_tag(item, info, *(result->tag_entry), value->get_citems());
-				}
-				else {
-					pfc::string8 value_lf;
-					value->get_cvalue_lf(value_lf);
-
-					pfc::string8 catch_mem = value_lf;
-					check_mem(result->tag_entry, value);
-
-					write_tag(item, info, *(result->tag_entry), value_lf);
-				}
-				bvalidate = true;
-			}
-		} // end loop tag results in walked track
-
-		// remove other tracks
+		// keep on walking this track...
+		// remove other tags
 
 		if (CONF.remove_other_tags) {
 			const size_t jcount = info.meta_get_count();
@@ -661,22 +778,20 @@ void TagWriter::write_tags_track_map() {
 			} //end loop metas
 
 			info.meta_remove_mask(delete_mask);
+			bool bvalidate = info_man_validate_mask.get(file_index);
 			bvalidate |= jcount != info.meta_get_count();
+			info_man_validate_mask.set(file_index, bvalidate);
 
 		} // end remove other tags
 
-		if (bvalidate) {
+		if (info_man_validate_mask.get(file_index)) {
 			m_finfo_manager->validate_item(file_index);
 		}
 
 	}//end tracks loop
 }
 
-void TagWriter::write_tags () {
-
-	write_tags_track_map();
-
-}
+// single vals
 
 void TagWriter::write_tag(metadb_handle_ptr item, file_info &info, const tag_mapping_entry &entry, const pfc::string8 &tag_value) {
 
@@ -736,7 +851,10 @@ void TagWriter::write_tag(metadb_handle_ptr item, file_info &info, const tag_map
 	}
 }
 
-void TagWriter::write_tag(metadb_handle_ptr item, file_info &info, const tag_mapping_entry &entry/*, const pfc::array_t<bool> &r_approved*/, const pfc::array_t<string_encoded_array> &tag_values) {
+// multi-val
+
+void TagWriter::write_tag(metadb_handle_ptr item, file_info &info, const tag_mapping_entry &entry, const pfc::array_t<string_encoded_array> &tag_values) {
+
 	bool blog = CONF.tag_save_flags & TAGSAVE_LOG_FLAG;
 	pfc::string logmsg, logtrack;
 
@@ -746,6 +864,7 @@ void TagWriter::write_tag(metadb_handle_ptr item, file_info &info, const tag_map
 	if (!entry.is_multival_meta) {
 
 		if (bauto_add_mfield) {
+
 			if (is_multivalue_meta(entry.tag_name)) {
 				bauto_fresh_mfield = true;
 			}
@@ -761,15 +880,18 @@ void TagWriter::write_tag(metadb_handle_ptr item, file_info &info, const tag_map
 			}
 		}
 		else {
+
 			bool bneedsep = false;
-            for (size_t ws = 0; ws < tag_values.get_size(); ws++) {
-            	pfc::string8 str_ws = ltrim(tag_values[ws].get_pure_cvalue());
-            	if (str_ws.get_length()) {
-            	    if (bneedsep) forced_flat << ";";
-            		    forced_flat << ltrim(tag_values[ws].get_pure_cvalue());
-            		    bneedsep = true;
-            	}
-            }
+			for (size_t ws = 0; ws < tag_values.get_size(); ws++) {
+
+				pfc::string8 str_ws = ltrim(tag_values[ws].get_pure_cvalue());
+
+				if (str_ws.get_length()) {
+					if (bneedsep) forced_flat << ";";
+					forced_flat << ltrim(tag_values[ws].get_pure_cvalue());
+					bneedsep = true;
+				}
+			}
 		}
 	}
 

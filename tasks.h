@@ -115,6 +115,8 @@ private:
 
 	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;
+	void on_abort(HWND p_wnd) override;
+	void on_error(HWND p_wnd) override;
 };
 
 
@@ -292,6 +294,8 @@ private:
 	pfc::string8 m_offline_artist_id;
 	pfc::string8 m_inno;
 	Release_ptr m_release;
+
+	void generate_track_mapping(TagWriter& tagwriter, const Release *p_release);
 
 	void safe_run(threaded_process_status &p_status, abort_callback &p_abort) override;
 	void on_success(HWND p_wnd) override;

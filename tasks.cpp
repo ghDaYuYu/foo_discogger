@@ -92,7 +92,10 @@ void generate_tags_task::on_success(HWND p_wnd) {
 			size_t debug = ptags->get_count();
 			size_t new_res_count = m_tag_writer->tag_results.get_count();
 
-			m_preview_dialog->cb_generate_tags();
+			m_preview_dialog->cb_refresh_ui_tag_results(m_tag_writer->tag_results_mask);
+
+			m_tag_writer->ResetMask();
+
 
 			// preview exist generate list tags
 			CPreviewLeadingTagDialog* preview_modal_tag_dialog = g_discogs->preview_modal_tag_dialog;
@@ -150,9 +153,6 @@ void generate_tags_task::on_success(HWND p_wnd) {
 		CTrackMatchingDialog* dlg = g_discogs->track_matching_dialog;
 		dlg->destroy_all();
 
-		m_tag_writer->tag_results_mask = {};
-		m_tag_writer->tag_results_mask_mode = PreView::Undef;
-
 		try {
 			service_ptr_t<write_tags_task> task = new service_impl_t<write_tags_task>(m_tag_writer);
 			task->start();
@@ -165,11 +165,15 @@ void generate_tags_task::on_success(HWND p_wnd) {
 }
 
 void generate_tags_task::on_abort(HWND p_wnd) {
-
+	
+	m_tag_writer->ResetMask();
+	
 	on_error(p_wnd);
 }
 
 void generate_tags_task::on_error(HWND p_wnd) {
+	
+	m_tag_writer->ResetMask();
 
 	if (m_preview_dialog) {
 		
@@ -213,19 +217,24 @@ void write_tags_task::on_success(HWND p_wnd) {
 		bool bskip_art = user_wants_skip_write_artwork || lo_skip_global_defs;
 
 		bool bconf_art_save = (CONF.save_album_art || CONF.save_artist_art || CONF.embed_album_art || CONF.embed_artist_art);
-		bool bcustom_art_save = !(CONF_MULTI_ARTWORK == multi_uartwork(CONF, m_tag_writer->release));
+		bool bcustom_art_save = !(CONF_MULTI_ARTWORK == multi_uartwork(CONF, m_tag_writer->GetRelease()));
 		bool bfile_match = CONF_MULTI_ARTWORK.file_match;
 
 		if (!bskip_art && (bconf_art_save || bcustom_art_save)) {
 			service_ptr_t<download_art_task> task =
-				new service_impl_t<download_art_task>(m_tag_writer->release->id, m_tag_writer->m_finfo_manager->items, bfile_match);
+				new service_impl_t<download_art_task>(m_tag_writer->GetRelease()->id, m_tag_writer->m_finfo_manager->items, bfile_match);
 			task->start();
 		}
 	}
 
 	if (g_discogs->preview_tags_dialog && ::IsWindow(g_discogs->preview_tags_dialog->m_hWnd)) {
-		HWND hwndOriginal = uGetDlgItem(g_discogs->preview_tags_dialog->m_hWnd, IDC_VIEW_ORIGINAL);
-		SendMessage(hwndOriginal, BM_CLICK, 0, 0);
+
+		//todo: rev
+		bool cfg_jump_to_original = false;
+		if (cfg_jump_to_original) {
+			HWND hwndOriginal = uGetDlgItem(g_discogs->preview_tags_dialog->m_hWnd, IDC_VIEW_ORIGINAL);
+			SendMessage(hwndOriginal, BM_CLICK, 0, 0);
+		}
 
 		if (g_discogs->preview_modal_tag_dialog && ::IsWindow(g_discogs->preview_modal_tag_dialog->m_hWnd)) {
 			DestroyWindow(g_discogs->preview_modal_tag_dialog->m_hWnd);
@@ -233,7 +242,15 @@ void write_tags_task::on_success(HWND p_wnd) {
 		g_discogs->preview_tags_dialog->tag_mappings_updated();
 	}
 
+void write_tags_task::on_abort(HWND p_wnd) {
+	m_tag_writer->ResetMask();
+	on_error(p_wnd);
 }
+
+void write_tags_task::on_error(HWND p_wnd) {
+	m_tag_writer->ResetMask();
+}
+
 
 class att_vcmp {
 	af m_att = af::alb_emb;
@@ -1024,13 +1041,16 @@ void process_release_callback::safe_run(threaded_process_status& p_status, abort
 	m_dialog->hide();
 
 	m_tag_writer = std::make_shared<TagWriter>(m_finfo_manager, p_release);
-	m_tag_writer->match_tracks();
+	if (p_release) {
+		m_tag_writer->match_tracks();
+	}
 }
 
 void process_release_callback::on_success(HWND p_wnd) {
-
-	rppair row = std::pair(std::pair(m_tag_writer->release->id, m_tag_writer->release->title),
-		std::pair(m_tag_writer->release->artists[0]->full_artist->id, m_tag_writer->release->artists[0]->full_artist->name));
+	auto tw_release = m_tag_writer->GetRelease();
+	if (tw_release) {
+		rppair row = std::pair(std::pair(tw_release->id, tw_release->title),
+			std::pair(tw_release->artists[0]->full_artist->id, tw_release->artists[0]->full_artist->name));
 	
 	//release history
 	m_dialog->add_history(oplog_type::release, kHistoryProccessRelease, row);

@@ -49,6 +49,7 @@ public:
 	tag_mapping_entry * clone() {
 		tag_mapping_entry *t = new tag_mapping_entry();
 		*t = *this;
+		t->guid_tag = pfc::createGUID();
 		t->is_multival_meta = this->is_multival_meta;
 		return t;
 	}
@@ -77,6 +78,12 @@ FB2K_STREAM_READER_OVERLOAD(tag_mapping_entry) {
 
 	pfc::string8 buffer;
 	stream >> buffer;
+	
+	//todo: rev. fix nulls introduced by uncomplete fix v1.0.19.1
+	if (buffer.equals(pfc::print_guid(pfc::guid_null))) {
+		buffer = pfc::print_guid(pfc::createGUID());
+	}
+
 	// from v0.19
 	GUID guid_check = pfc::GUID_from_text(buffer);
 

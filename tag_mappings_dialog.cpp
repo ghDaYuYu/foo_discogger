@@ -240,6 +240,7 @@ void CTagMappingDialog::applymappings() {
 void CTagMappingDialog::add_new_tag(size_t pos, tag_mapping_entry entry) {
 
 	if (pos == ~0) {
+		entry.guid_tag = pfc::createGUID();
 		entry.tag_name = "[tag name]";
 		entry.formatting_script = "[formatting string]";
 		entry.enable_write = true;

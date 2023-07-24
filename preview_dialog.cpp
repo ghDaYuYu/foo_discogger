@@ -229,9 +229,14 @@ inline bool get_diff_release_name(TagWriter_ptr tag_writer, pfc::string8& rel_de
 CPreviewTagsDialog::~CPreviewTagsDialog() {
 
 	awt_save_normal_mode();
-
-	if (m_uilist.TableEdit_IsActive()) {
-		m_uilist.TableEdit_Abort(true);
+	
+	if (::IsWindow(m_uilist.m_hWnd)) {
+		//todo: rev latest libPPUI updates
+		m_uilist.SetSelection(bit_array_true(), bit_array_false());
+		if (m_uilist.TableEdit_IsActive()) {
+			m_uilist.TableEdit_Abort(true);
+		}
+		ListView_SetItemCount(m_uilist.m_hWnd, 0);
 	}
 
 	if (g_discogs->preview_modal_tag_dialog) {

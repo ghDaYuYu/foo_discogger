@@ -339,6 +339,7 @@ pfc::list_t<tag_mapping_entry>* copy_id3_default_tag_mappings(bool onlyms, bool 
 
 			tag_mapping_entry entry;
 
+			entry.guid_tag = pfc::createGUID();
 			entry.tag_name = tagname;
 			entry.formatting_script = formatstring;
 

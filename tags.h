@@ -80,8 +80,14 @@ FB2K_STREAM_READER_OVERLOAD(tag_mapping_entry) {
 	// from v0.19
 	GUID guid_check = pfc::GUID_from_text(buffer);
 
-	pfc::string8 tag_name, formatting_string;
-	if (pfc::guid_equal(guid_check, pfc::guid_null)) {
+	//TODO: rev (quick fix 0.19.1 tag mapping guids)
+	auto ol = buffer.get_length();           // 36
+	auto tb = buffer.replace_char('-', '-'); //  4
+	auto fp = buffer.find_first('-');        //  8
+	auto fl = buffer.find_last('-');         // 23
+	bool bpattern = (ol == 36 && tb == 4 && fp == 8 && fl == 23);
+
+	if (!bpattern || pfc::guid_equal(guid_check, pfc::guid_null)) {
 		value.guid_tag = pfc::createGUID();
 		tag_name = buffer;
 	}

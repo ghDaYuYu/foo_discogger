@@ -166,7 +166,7 @@ void generate_tags_task::on_success(HWND p_wnd) {
 
 void generate_tags_task::on_abort(HWND p_wnd) {
 	
-	m_tag_writer->ResetMask();
+	//m_tag_writer->ResetMask();
 	
 	on_error(p_wnd);
 }

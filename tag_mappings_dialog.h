@@ -14,7 +14,7 @@ static const char* TEXT_UPDATE = "update";
 static const char* TEXT_DISABLED = "disabled";
 static const char* TEXT_WRITE_UPDATE = "write + update";
 
-class CTagMappingList : public CListControlOwnerData, public fb2k::CDarkModeHooks {
+class CTagMappingList : public CListControlOwnerData {
 
 public:
 
@@ -29,19 +29,11 @@ public:
 		CHAIN_MSG_MAP(CListControlOwnerData)
 	END_MSG_MAP()
 
-	void ui_colors_changed() override {
-
-		this->SetDark(fb2k::isDarkMode());
-		CRect rc_visible;
-		GetClientRect(&rc_visible);
-		::RedrawWindow(m_hWnd, &rc_visible, 0, RDW_INVALIDATE);
-	}
-
 	void RenderHLBackground(CDCHandle p_dc, const CRect& p_itemRect, size_t item, uint32_t bkColor, pfc::string8 str, pfc::string8 hlstr, bool freeze) {
 
 		Gdiplus::Color gdiHLColor, gdiROColor;
 
-		if (IsDark()) {
+		if (m_dark.IsDark()) {
 			gdiHLColor.SetFromCOLORREF(GetSysColor(COLOR_HOTLIGHT));
 		}
 		else {
@@ -123,13 +115,14 @@ private:
 
 private:
 
+	fb2k::CDarkModeHooks m_dark;
 	pfc::string8 m_hl_string;
 
 };
 
 class CTagMappingDialog : public MyCDialogImpl<CTagMappingDialog>,	
 	public CMessageFilter,	private IListControlOwnerDataSource,
-	public CDialogResize<CTagMappingDialog>, public fb2k::CDarkModeHooks {
+	public CDialogResize<CTagMappingDialog> {
 
 public:
 
@@ -139,13 +132,17 @@ public:
 
 	CTagMappingDialog::CTagMappingDialog(HWND p_parent, UINT default_button = IDOK)
 		: cewb_highlight(), m_tag_list(this) {
-		//..
+
+		m_ptag_map = new pfc::list_t<tag_mapping_entry>();
 	}
 
 	CTagMappingDialog::~CTagMappingDialog() {
 
 		g_discogs->tag_mappings_dialog = nullptr;
-		delete m_ptag_mappings;
+		if (m_ptag_map) {
+
+			delete m_ptag_map;
+		}
 	}
 
 
@@ -192,6 +189,7 @@ public:
 		DLGRESIZE_CONTROL(IDC_APPLY, DLSZ_MOVE_X | DLSZ_MOVE_Y)
 		DLGRESIZE_CONTROL(IDC_SPLIT_BTN_TAG_ADD_NEW, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_SPLIT_BTN_TAG_ID3_ADD_NEW, DLSZ_MOVE_X)
+		DLGRESIZE_CONTROL(IDC_STATIC_TAG_TIP, DLSZ_MOVE_Y | DLSZ_SIZE_X)
 		DLGRESIZE_CONTROL(IDC_REMOVE_TAG, DLSZ_MOVE_X)
 		DLGRESIZE_CONTROL(IDC_TAG_LIST, DLSZ_SIZE_X | DLSZ_SIZE_Y)
 	END_DLGRESIZE_MAP()
@@ -210,17 +208,15 @@ public:
 	LRESULT OnEditHLText(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnImport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	bool ImportJSON(std::filesystem::path os_file, tag_mapping_list_type & out_tag_mapping);
 	LRESULT OnExport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	bool ExportJSON(std::filesystem::path os_file);
 	LRESULT OnBtnRemoveTag(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnSplitDropDown(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void enable(bool v) override {}
 
 private:
-
-	void set_tag_mapping(tag_mapping_list_type* ptag_mapping) {
-		m_ptag_mappings = ptag_mapping;
-	}
 
 	void show_context_menu(CPoint& pt, pfc::bit_array_bittable& selmask);
 	void add_new_tag(size_t pos, tag_mapping_entry entry);
@@ -246,7 +242,7 @@ private:
 
 		//pointer to object calling us
 		PFC_ASSERT(ctx == &m_tag_list);
-		return m_ptag_mappings->get_count();
+		return m_ptag_map->get_count();
 	}
 
 	// get subitems
@@ -254,9 +250,9 @@ private:
 	pfc::string8 listGetSubItemText(ctx_t ctx, size_t item, size_t subItem) override {
 
 		pfc::string8 buffer;
-		if (item < m_ptag_mappings->get_count()) {
+		if (item < m_ptag_map->get_count()) {
 
-			const tag_mapping_entry* entry = &m_ptag_mappings->get_item_ref(item);
+			const tag_mapping_entry* entry = &m_ptag_map->get_item_ref(item);
 
 			if (subItem == 0) {
 				buffer = entry->tag_name;
@@ -295,7 +291,7 @@ private:
 
 	bool listReorderItems(ctx_t ctx, const size_t* order, size_t count) override {
 
-		pfc::reorder_t(*m_ptag_mappings, order, m_ptag_mappings->get_count());
+		pfc::reorder_t(*m_ptag_map, order, m_ptag_map->get_count());
 		on_mapping_changed(check_mapping_changed());
 		return true;
 	}
@@ -308,14 +304,14 @@ private:
 
 		size_t deleted = 0;
 		size_t walk = -1;
-		size_t max = m_ptag_mappings->get_count();
+		size_t max = m_ptag_map->get_count();
 
 		while ((walk = mask.find_next(true, walk, max)) < max) {
 
-			auto entry = m_ptag_mappings->get_item(walk - deleted);
+			auto entry = m_ptag_map->get_item(walk - deleted);
 
 			if (!entry.freeze_tag_name) {
-				m_ptag_mappings->remove_by_idx(walk - deleted);
+				m_ptag_map->remove_by_idx(walk - deleted);
 				++deleted;
 			}
 		}
@@ -329,7 +325,7 @@ private:
 	// item action
 
 	void listItemAction(ctx_t, size_t item) override {
-		tag_mapping_entry& entry = (*m_ptag_mappings)[item];
+		tag_mapping_entry& entry = (*m_ptag_map)[item];
 		if (!entry.freeze_tag_name) {
 			m_tag_list.TableEdit_Start(item, 1);
 		}
@@ -339,7 +335,7 @@ private:
 
 	void listSubItemClicked(ctx_t, size_t item, size_t subItem) override {
 
-		tag_mapping_entry& entry = (*m_ptag_mappings)[item];
+		tag_mapping_entry& entry = (*m_ptag_map)[item];
 
 		if ((!entry.freeze_tag_name) && (subItem == 0 || subItem == 1)) {	
 			m_tag_list.TableEdit_Start(item, subItem);
@@ -356,7 +352,7 @@ private:
 
 	void listSetEditField(ctx_t ctx, size_t item, size_t subItem, const char* val) override {
 
-		tag_mapping_entry& entry = (*m_ptag_mappings)[item];
+		tag_mapping_entry& entry = (*m_ptag_map)[item];
 
 		if (subItem == 0) {
 			entry.tag_name = val;
@@ -372,6 +368,20 @@ private:
 
 	bool listIsColumnEditable(ctx_t, size_t subItem) override {
 		return (subItem == 0 || subItem == 1);
+	}
+
+	// focus
+
+	void listFocusChanged(ctx_t) {
+		auto ifocus = m_tag_list.GetFocusItem();
+		if (ifocus != ~0 && (*m_ptag_map)[ifocus].freeze_tag_name) {
+			uSetDlgItemText(m_hWnd, IDC_STATIC_TAG_TIP, "Tip: Shift+RClick");
+			::ShowWindow(uGetDlgItem(IDC_STATIC_TAG_TIP), SW_SHOW);
+		}
+		else {
+			uSetDlgItemText(m_hWnd, IDC_STATIC_TAG_TIP, "");
+			::ShowWindow(uGetDlgItem(IDC_STATIC_TAG_TIP), SW_HIDE);
+		}
 	}
 
 	//..end IListControlOwnerDataSource
@@ -416,9 +426,11 @@ private:
 private:
 
 	foo_conf conf;
-	tag_mapping_list_type* m_ptag_mappings = nullptr;
+	tag_mapping_list_type* m_ptag_map = nullptr;
+
 	CTagMappingList m_tag_list;
 	CMyEditWithButtons cewb_highlight;
 	CHyperLink help_link;
+	fb2k::CDarkModeHooks m_dark;
 
 };

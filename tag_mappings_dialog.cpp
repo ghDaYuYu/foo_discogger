@@ -58,11 +58,11 @@ inline bool CTagMappingDialog::build_current_cfg() {
 
 bool CTagMappingDialog::check_mapping_changed() {
 
-	bool mapping_changed = cfg_tag_mappings.get_count() != m_ptag_mappings->get_count();
+	bool mapping_changed = cfg_tag_mappings.get_count() != m_ptag_map->get_count();
 	if (!mapping_changed) {
 		for (unsigned int i = 0; i < cfg_tag_mappings.get_count(); i++) {
 
-			if (!cfg_tag_mappings.get_item(i).equals(m_ptag_mappings->get_item(i))) {
+			if (!cfg_tag_mappings.get_item(i).equals(m_ptag_map->get_item(i))) {
 				mapping_changed = true;
 				break;
 			}
@@ -92,7 +92,7 @@ void CTagMappingDialog::UpdateAltMode(bool erase) {
 		conf.alt_write_flags = awt_update_mod_flag(/*from entry*/true);
 	}
 
-	set_tag_mapping(copy_tag_mappings());
+	copy_tag_mappings(m_ptag_map);
 
 	if (erase) {
 		m_tag_list.ReloadItems(bit_array_true());
@@ -106,8 +106,13 @@ LRESULT CTagMappingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM
 
 	conf = CONF;
 
+	HWND hwnd_tag_credits = uGetDlgItem(IDC_SPLIT_BTN_TAG_CAT_CREDIT);
+	HWND hwnd_tag_id3 = uGetDlgItem(IDC_SPLIT_BTN_TAG_ID3_ADD_NEW);
+	::ShowWindow(hwnd_tag_id3, SW_SHOW);
+	::ShowWindow(hwnd_tag_credits, SW_HIDE);
+
 	//darkmode
-	AddDialog(m_hWnd);
+	m_dark.AddDialog(m_hWnd);
 	HWND listctrl = uGetDlgItem(IDC_TAG_LIST);
 
 	m_tag_list.CreateInDialog(*this, IDC_TAG_LIST);
@@ -126,7 +131,7 @@ LRESULT CTagMappingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM
 	uSetWindowText(wnd_hledit, conf.edit_tags_dlg_hl_keyword);
 
 	help_link.SubclassWindow(GetDlgItem(IDC_SYNTAX_HELP));
-	COLORREF lnktx = IsDark() ? GetSysColor(/*COLOR_BTNHIGHLIGHT*/COLOR_MENUHILIGHT) : (COLORREF)(-1);
+	COLORREF lnktx = m_dark.IsDark() ? GetSysColor(/*COLOR_BTNHIGHLIGHT*/COLOR_MENUHILIGHT) : (COLORREF)(-1);
 	help_link.m_clrLink = lnktx;
 	help_link.m_clrVisited = lnktx;
 	pfc::string8 url = profile_usr_components_path();
@@ -139,7 +144,7 @@ LRESULT CTagMappingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM
 	cfg_dialog_position_tag_mapping_dlg.AddWindow(m_hWnd);
 
 	//dark mode
-	AddControls(m_hWnd);
+	m_dark.AddControls(m_hWnd);
 
 	load_column_layout();
 	show();
@@ -152,9 +157,9 @@ LRESULT CTagMappingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM
 
 bool CTagMappingDialog::update_tag(int pos, const tag_mapping_entry *entry) {
 
-	if (!(*m_ptag_mappings)[pos].equals(*entry)) {
+	if (!(*m_ptag_map)[pos].equals(*entry)) {
 
-		m_ptag_mappings->replace_item(pos, *entry);
+		m_ptag_map->replace_item(pos, *entry);
 		m_tag_list.InvalidateRect(m_tag_list.GetItemRect(pos), true);
 		return true;
 	}
@@ -164,7 +169,7 @@ bool CTagMappingDialog::update_tag(int pos, const tag_mapping_entry *entry) {
 bool CTagMappingDialog::update_freezer(int pos, bool enable_write, bool enable_update) {
 
 	bool bchanged = false;
-	tag_mapping_entry& entry = (*m_ptag_mappings)[pos];
+	tag_mapping_entry& entry = (*m_ptag_map)[pos];
 
 	if (!STR_EQUAL(TAG_RELEASE_ID, entry.tag_name.get_ptr())) {
 		if (!(entry.enable_write == enable_write) &&
@@ -177,9 +182,9 @@ bool CTagMappingDialog::update_freezer(int pos, bool enable_write, bool enable_u
 		return false;
 	}
 
-	for (size_t walk = 0; walk < m_ptag_mappings->get_count(); walk++) {
+	for (size_t walk = 0; walk < m_ptag_map->get_count(); walk++) {
 
-		tag_mapping_entry& entry = (*m_ptag_mappings)[walk];
+		tag_mapping_entry& entry = (*m_ptag_map)[walk];
 
 		bool bwalk_update = false;
 		if (entry.freeze_tag_name) {
@@ -190,7 +195,7 @@ bool CTagMappingDialog::update_freezer(int pos, bool enable_write, bool enable_u
 			bwalk_update = entry.enable_write != enable_write;
 			bwalk_update |= entry.enable_update != enable_update;
 
-			if (bwalk_update) {				
+			if (bwalk_update) {
 				entry.enable_write = enable_write;
 				entry.enable_update = enable_update;
 			}
@@ -223,7 +228,7 @@ void CTagMappingDialog::update_list_width() {
 
 void CTagMappingDialog::applymappings() {
 
-	set_cfg_tag_mappings(m_ptag_mappings);
+	set_cfg_tag_mappings(m_ptag_map);
 
 	if (awt_unmatched_flag()) {
 
@@ -233,7 +238,7 @@ void CTagMappingDialog::applymappings() {
 
 	if (g_discogs->preview_tags_dialog) {
 		CPreviewTagsDialog* dlg = g_discogs->preview_tags_dialog;
-		dlg->tag_mappings_updated();
+		dlg->spawn_generate_tag_mappings();
 	}
 }
 
@@ -250,7 +255,7 @@ void CTagMappingDialog::add_new_tag(size_t pos, tag_mapping_entry entry) {
 		entry.freeze_write = false;
 	}
 
-	size_t index = m_ptag_mappings->add_item(*entry.clone());
+	size_t index = m_ptag_map->add_item(*entry.clone());
 
 	m_tag_list.OnItemsInserted(index, 1, true);
 	m_tag_list.EnsureItemVisible(index, true);
@@ -294,28 +299,26 @@ LRESULT CTagMappingDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*
 
 LRESULT CTagMappingDialog::OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 
-	CYesNoDialog yndlg;
-	auto res = yndlg.query(m_hWnd, { "Tag mapping configuration", "Restore default configuration ?" });
+	CYesNoApiDialog yndlg;
+	auto res = yndlg.query(m_hWnd, { "Tag mapping configuration", "Replace current configuration ?" });
 	if (res) {
-
-		delete m_ptag_mappings;
 
 		switch (wID) {
 		case 0:
-			set_tag_mapping(copy_default_tag_mappings());
+			copy_default_tag_mappings(m_ptag_map);
 			break;
 		case 1:
 			//all id3
-			set_tag_mapping(copy_id3_default_tag_mappings(false, false));
+			copy_id3_default_tag_mappings(m_ptag_map, false, false);
 			break;
 		case 2:
 			//mp3 ms explorer set
-			set_tag_mapping(copy_id3_default_tag_mappings(true, false));
+			copy_id3_default_tag_mappings(m_ptag_map, true, false);
 			break;
 		}
 
 		//refresh sliders and invalidate
-		m_tag_list.OnItemsInserted(0, m_ptag_mappings->get_count(), false);
+		m_tag_list.OnItemsInserted(0, m_ptag_map->get_count(), false);
 		m_tag_list.EnsureItemVisible(0, false);
 
 		on_mapping_changed(check_mapping_changed());
@@ -324,7 +327,10 @@ LRESULT CTagMappingDialog::OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*hWn
 }
 
 LRESULT CTagMappingDialog::OnImport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	//todo: merge from file
+
+	LRESULT RES = FALSE;
+
+	//todo: merge
 	pfc::string8 title = wID ? "Append from file..." : "Import from file...";
 	
 	std::wstring wfilename;
@@ -339,25 +345,113 @@ LRESULT CTagMappingDialog::OnImport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndC
 
 	service_ptr_t<file> f;
 	abort_callback_impl p_abort;
-	tag_mapping_entry *buf = new tag_mapping_entry();
 
 	try {
 		char fullpath[MAX_PATH] = "";
 		pfc::stringcvt::convert_wide_to_utf8(fullpath, MAX_PATH, wfilename.c_str(), MAX_PATH);
 
 		foobar2000_io::filesystem::g_open(f, fullpath, foobar2000_io::filesystem::open_mode_read, p_abort);
+
+		try {
+			p_abort.check();
+		}
+		catch (exception_aborted) {
+			return FALSE;
+		}
+
 		stream_reader_formatter<false> srf(*f.get_ptr(), p_abort);
 
 		bool deleted = false;
 
-		while (!f->is_eof(p_abort)) {
-			srf >> *buf;
+		tag_mapping_list_type tmp_tag_mapping;
+		bool res = ImportJSON(wfilename, tmp_tag_mapping);
+		RES = (BOOL)res;
+
+		if (!res) {
+
+			// try v23
+
+			tag_mapping_entry* buf = new tag_mapping_entry();
+
+			try {
+
+				while (!f->is_eof(p_abort)) {
+					srf >> *buf;
+					if (!deleted && !wID) {
+						m_ptag_map->remove_all();
+						deleted = true;
+					}
+					buf->is_multival_meta = is_multivalue_meta(buf->tag_name);
+
+					bool badd_new = true;
+
+					//check dups while importing
+					if (wID) {
+						//already there?
+						bool bfound = false;
+						for (auto w = 0; w < m_ptag_map->get_count(); w++) {
+							if (pfc::guid_equal(buf->guid_tag, m_ptag_map->get_item_ref(w).guid_tag)) {
+								bfound = true;
+								break;
+							}
+						}
+						badd_new = !bfound;
+					}
+
+					if (badd_new) {
+						m_ptag_map->add_item(*buf);
+					}
+
+				} // endwhile
+
+				delete buf;
+				RES = TRUE;
+
+				goto exit;
+
+			}
+			catch (const foobar2000_io::exception_io& e) {
+				foo_discogs_exception ex;
+				ex << "Error importing tags: " << e.what();
+				add_error(ex);
+				display_errors();
+				clear_errors();
+			}
+
+			// EXIT
+			delete buf;
+			f.release();
+			return FALSE;
+		}
+
+		for (auto w = 0; w < tmp_tag_mapping.get_count(); w++) {
+
+			tag_mapping_entry wentry = tmp_tag_mapping.get_item(w);
+
 			if (!deleted && !wID) {
-				m_ptag_mappings->remove_all();
+				m_ptag_map->remove_all();
 				deleted = true;
 			}
-			buf->is_multival_meta = is_multivalue_meta(buf->tag_name);
-			m_ptag_mappings->add_item(*buf);
+			wentry.is_multival_meta = is_multivalue_meta(wentry.tag_name);
+
+			bool badd_new = true;
+
+			//check dups while importing
+			if (wID) {
+				//already there?
+				bool bfound = false;
+				for (auto w = 0; w < m_ptag_map->get_count(); w++) {
+					if (pfc::guid_equal(wentry.guid_tag, m_ptag_map->get_item_ref(w).guid_tag)) {
+						bfound = true;
+						break;
+					}
+				}
+				badd_new = !bfound;
+			}
+
+			if (badd_new) {
+				m_ptag_map->add_item(wentry);
+			}
 		}
 	}
 	catch (const foobar2000_io::exception_io &e) {
@@ -368,14 +462,15 @@ LRESULT CTagMappingDialog::OnImport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndC
 		clear_errors();
 	}
 
-	delete buf;
+	exit:
 
-	//refresh sliders and invalidate
-	m_tag_list.OnItemsInserted(0, m_ptag_mappings->get_count(), false);
+	f.release();
+
+	m_tag_list.OnItemsInserted(0, m_ptag_map->get_count(), false);
 	m_tag_list.EnsureItemVisible(0, false);
 	on_mapping_changed(check_mapping_changed());
 
-	return FALSE;
+	return RES;
 }
 
 LRESULT CTagMappingDialog::OnExport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
@@ -391,7 +486,8 @@ LRESULT CTagMappingDialog::OnExport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndC
 	std::filesystem::path os_file(wfilename);
 
 	if (std::filesystem::exists(os_file)) {
-		CYesNoDialog yndlg;
+
+		CYesNoApiDialog yndlg;
 		if (!yndlg.query(m_hWnd, { "Export tag mappings", "Overwrite existing file ?" })) {
 
 			return FALSE;
@@ -403,21 +499,8 @@ LRESULT CTagMappingDialog::OnExport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndC
 
 	try {
 		char fullpath[MAX_PATH] = "";
-		pfc::stringcvt::convert_wide_to_utf8(fullpath, MAX_PATH, wfilename.c_str(), MAX_PATH);
 
-		foobar2000_io::filesystem::g_open(f, fullpath, foobar2000_io::filesystem::open_mode_write_new, p_abort);
-
-		stream_writer_formatter<false> swf(*f.get_ptr(), p_abort);
-		for (size_t i = 0; i < m_ptag_mappings->get_count(); i++) {
-			tag_mapping_entry &e = m_ptag_mappings->get_item(i);
-			bool release_id_mod = STR_EQUAL(TAG_RELEASE_ID, e.tag_name.get_ptr());
-			if (release_id_mod) {
-				if (!(e.enable_write)) {
-					e.enable_write = true;
-				}
-			}
-			swf << e;
-		}
+		ExportJSON(wfilename);
 	}
 	catch (const foobar2000_io::exception_io &e) {
 		foo_discogs_exception ex;
@@ -427,6 +510,269 @@ LRESULT CTagMappingDialog::OnExport(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndC
 		clear_errors();
 	}
 	return FALSE;
+}
+
+void add_rec(std::vector<json_t*>& vjson, const std::vector<pfc::string8>& vlbl, /*std::vector<json_t*>& vjs_val,*/ const tag_mapping_entry& rec) {
+
+	const int nfields = static_cast<int>(vlbl.size());
+
+	std::vector<pfc::string8> vrec = {
+
+		pfc::print_guid(rec.guid_tag),                   //guid
+		rec.tag_name,                                    //name
+		pfc::string8(rec.formatting_script),             //script
+		std::to_string(rec.is_multival_meta).c_str(),    //multivalue
+		std::to_string(rec.enable_write).c_str(),        //write
+		std::to_string(rec.enable_update).c_str(),       //update
+		std::to_string(rec.freeze_write).c_str(),        //freeze write
+		std::to_string(rec.freeze_update).c_str(),       //freeze update
+		std::to_string(rec.freeze_tag_name).c_str(),     //freeze name
+
+	};
+
+	vjson.emplace_back(json_object());
+
+	auto nobj = vjson.size() - 1;
+	for (auto wfield = 0; wfield < nfields; wfield++) {
+		int res = json_object_set_new_nocheck(vjson[nobj], vlbl[wfield], json_string_nocheck(vrec[wfield].get_ptr()));
+	}
+}
+
+//save masterList to persistent storage
+bool CTagMappingDialog::ExportJSON(std::filesystem::path os_file) {
+
+	std::filesystem::path os_root = std::filesystem::u8path(os_file.generic_u8string());
+
+	// maybe abort file access delays...
+
+	service_ptr_t<file> f;
+	abort_callback_impl p_abort;
+	char fullpath[MAX_PATH] = "";
+	pfc::stringcvt::convert_wide_to_utf8(fullpath, MAX_PATH, os_file.wstring().c_str(), MAX_PATH);
+	foobar2000_io::filesystem::g_open(f, fullpath, foobar2000_io::filesystem::open_mode_write_new, p_abort);
+
+	try {
+		p_abort.check();
+	}
+	catch (exception_aborted) {
+		return false;
+	}
+
+	f.release();
+
+	// file should be online now...
+
+	if (!m_ptag_map->get_count()) {
+		std::filesystem::path os_file_name = std::filesystem::u8path(os_file.generic_u8string());
+		if (std::filesystem::exists(os_file_name)) {
+			std::error_code ec;
+			std::filesystem::remove(os_file_name, ec);
+		}
+		return true;
+	}
+
+
+	try {
+
+		log_msg("Preparing to write data file.");
+
+		size_t n_entries = m_ptag_map->get_count();
+
+		std::vector<json_t*> vjson;
+		std::vector<pfc::string8> vlbl = { "guid", "name", "script", "multivalue", "write", "update", "freeze write", "freeze update", "freeze name" };
+
+		//first pass
+
+		for (size_t i = 0; i < n_entries; i++) {
+			//add boolmark_t to vjson as json object
+			add_rec(vjson, vlbl, m_ptag_map->get_item(i));
+		}
+
+		//second pass, maybe to be done in pass one...
+
+		json_t* arr_top = json_array();
+
+		for (auto wobj : vjson) {
+			auto res = json_array_append(arr_top, wobj);
+		}
+
+		// dump object array
+
+		std::filesystem::path os_root = std::filesystem::u8path(os_file.u8string());
+
+		auto res = json_dump_file(arr_top, os_file.generic_string().c_str() /*os_file.u8string().c_str() os_file.c_str()os_file.string.c_str()*/ /*os_root.u8string().c_str()*/, JSON_INDENT(5));
+
+		for (auto w : vjson) {
+			free(w);
+		}
+
+		log_msg(PFC_string_formatter() << "Wrote " << std::to_string(n_entries).c_str() << " tag mapping entries to file");
+	}
+	catch (foobar2000_io::exception_io e) {
+		log_msg(PFC_string_formatter() << "Could not write tag mappings to file, " << e);
+		return false;
+	}
+	catch (...) {
+		log_msg(PFC_string_formatter() << "Could not write tag mappings to file, " << "Unhandled Exception");
+		return false;
+	}
+
+	return true;
+
+}
+
+bool CTagMappingDialog::ImportJSON(std::filesystem::path os_file, tag_mapping_list_type& out_tag_mapping) {
+
+	// maybe abort file access delays...
+
+	service_ptr_t<file> f;
+	abort_callback_impl p_abort;
+	char fullpath[MAX_PATH] = "";
+	pfc::stringcvt::convert_wide_to_utf8(fullpath, MAX_PATH, os_file.wstring().c_str(), MAX_PATH);
+	foobar2000_io::filesystem::g_open(f, fullpath/*.generic_string().c_str()*/ /*os_root.u8string().c_str()*/, foobar2000_io::filesystem::open_mode_read, p_abort);
+
+	try {
+		p_abort.check();
+	}
+	catch (exception_aborted) {
+		return false;
+	}
+
+	f.release();
+
+	//
+
+	try {
+
+		log_msg("Reading tag mappings from file");
+
+		size_t clines = 0;
+		std::vector<tag_mapping_entry> temp_data;
+
+		try {
+
+			json_error_t error;
+			auto json = json_load_file(os_file.generic_string().c_str(), JSON_DECODE_ANY, &error);
+			if (!json) {
+			
+				return false;
+			}
+			if (error.line) {
+				log_msg(PFC_string_formatter() << "Error reading tag mappings JSON: " << error.line << ": " << error.text);
+			}
+
+			size_t clines = json_array_size(json);
+
+			tag_mapping_entry elem = tag_mapping_entry();
+
+			size_t index;
+			json_t* js_wobj;
+
+			json_array_foreach(json, index, js_wobj) {
+
+				if (!json_is_object(js_wobj)) break;
+
+				json_t* js_fld;
+				{
+					elem.guid_tag = pfc::guid_null;
+					js_fld = json_object_get(js_wobj, "guid");
+					const char* dmp_str = json_string_value(js_fld);
+					if (dmp_str) {
+						elem.guid_tag = pfc::GUID_from_text(pfc::string8(dmp_str));
+					}
+				}
+
+				{
+					elem.tag_name = "";
+					js_fld = json_object_get(js_wobj, "name");
+					const char* dmp_str = json_string_value(js_fld);
+					if (dmp_str) {
+						elem.tag_name = pfc::string8(dmp_str);
+					}
+				}
+
+				{
+					elem.formatting_script = "";
+					js_fld = json_object_get(js_wobj, "script");
+					const char* dmp_str = json_string_value(js_fld);
+					if (dmp_str) {
+						elem.formatting_script = pfc::string8(dmp_str);
+					}
+				}
+
+				{
+					elem.enable_write = false;
+					json_t* js_fld = json_object_get(js_wobj, "write");
+					const char* dmp_str = json_string_value(js_fld);
+					if (dmp_str) {
+						elem.enable_write = !strcmp(dmp_str, "1");
+					}
+				}
+
+				{
+					elem.enable_update = false;
+					json_t* js_fld = json_object_get(js_wobj, "update");
+					const char* dmp_str = json_string_value(js_fld);
+					if (dmp_str) {
+						elem.enable_update = !strcmp(dmp_str, "1");
+					}
+				}
+
+				{
+					elem.freeze_write = false;
+					json_t* js_fld = json_object_get(js_wobj, "freeze write");
+					const char* dmp_str = json_string_value(js_fld);
+					if (dmp_str) {
+						elem.freeze_write = !strcmp(dmp_str, "1");
+					}
+				}
+
+				{
+					elem.freeze_update = false;
+					json_t* js_fld = json_object_get(js_wobj, "freeze update");
+					const char* dmp_str = json_string_value(js_fld);
+					if (dmp_str) {
+						elem.freeze_update = !strcmp(dmp_str, "1");
+					}
+				}
+
+				{
+					elem.freeze_tag_name = false;
+					json_t* js_fld = json_object_get(js_wobj, "freeze name");
+					const char* dmp_str = json_string_value(js_fld);
+					if (dmp_str) {
+						elem.freeze_tag_name = !strcmp(dmp_str, "1");
+					}
+				}
+
+
+				temp_data.push_back(elem);	//save to vector
+
+			}
+		}
+		catch (foobar2000_io::exception_io e) {
+			log_msg(PFC_string_formatter() << "Reading data from file failed:" << e);
+			return false;
+		}
+		catch (...) {
+			log_msg(PFC_string_formatter() << "Reading data from file failed, " << "Unhandled Exception");
+			return false;
+		}
+
+		log_msg(PFC_string_formatter() << "Restored " << std::to_string(clines).c_str() << " tag mappings entries from file");
+
+		//update masteList
+		out_tag_mapping.remove_all();
+		for (auto w : temp_data) {
+			out_tag_mapping.add_item(w);
+		}
+		
+	}
+	catch (...) {
+
+		//..
+	}
+	return true;
 }
 
 LRESULT CTagMappingDialog::OnEditHLText(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& /*bHandled*/) {
@@ -476,7 +822,7 @@ void CTagMappingDialog::show_context_menu(CPoint& pt, pfc::bit_array_bittable& s
 		{
 			size_t sel = selmask.find_first(true, 0, m_tag_list.GetItemCount());
 			do {
-				tag_mapping_entry tmp_entry = m_ptag_mappings->get_item(sel);
+				tag_mapping_entry tmp_entry = m_ptag_map->get_item(sel);
 				if (!tmp_entry.freeze_tag_name) {
 					return false;					
 				}
@@ -485,10 +831,10 @@ void CTagMappingDialog::show_context_menu(CPoint& pt, pfc::bit_array_bittable& s
 			return true;
 		}();
 
-		if (csel >= 0 && isel < m_ptag_mappings->get_count()) {
+		if (csel >= 0 && isel < m_ptag_map->get_count()) {
 
 			bool single_sel = (csel == 1);
-			tag_mapping_entry entry = m_ptag_mappings->get_item(isel);
+			tag_mapping_entry entry = m_ptag_map->get_item(isel);
 			bool sop_w, sop_u, sop_wu, sop_nwu;
 			sop_w = sop_u = sop_wu = sop_nwu = single_sel; 
 			sop_w &= entry.enable_write && !entry.enable_update;
@@ -570,7 +916,7 @@ void CTagMappingDialog::show_context_menu(CPoint& pt, pfc::bit_array_bittable& s
 			if (bloop && !(cmd == ID_RESTORE && (csel >= 1))) {
 
 				do {
-					entry = m_ptag_mappings->get_item(isel);
+					entry = m_ptag_map->get_item(isel);
 					release_id_mod = STR_EQUAL(TAG_RELEASE_ID, entry.tag_name.get_ptr()) && !bl_write;
 					release_id_mod &= !CONF.awt_alt_mode();
 
@@ -706,13 +1052,14 @@ LRESULT CTagMappingDialog::OnSplitDropDown(WORD wNotifyCode, WORD wID, HWND hWnd
 			submenu_infos[n].wID = submenus_ids[n];
 		}
 
-		pfc::list_t<tag_mapping_entry>* tmp_def_mappings = copy_default_tag_mappings();
+		pfc::list_t<tag_mapping_entry> tmp_def_mappings;
+		copy_default_tag_mappings(&tmp_def_mappings);
 		tag_mapping_entry* entry;
 
 		//A BASIC
 		size_t item = 0;
 		for (size_t n = 0; n < 14; n++) {
-			entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(n));
+			entry = (tag_mapping_entry*)&(tmp_def_mappings.get_item_ref(n));
 			uAppendMenu(submenus[item], MF_STRING, submenus_ids[item] + n, entry->tag_name);
 		}
 		InsertMenuItem(hSplitMenu, submenus_ids[item], true, &submenu_infos[item]);
@@ -720,7 +1067,7 @@ LRESULT CTagMappingDialog::OnSplitDropDown(WORD wNotifyCode, WORD wID, HWND hWnd
 		//B LABEL
 		++item;
 		for (size_t n = 14; n < 17; n++) {
-			entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(n));
+			entry = (tag_mapping_entry*)&(tmp_def_mappings.get_item_ref(n));
 			uAppendMenu(submenus[item], MF_STRING, submenus_ids[item] + n, entry->tag_name);
 		}
 		InsertMenuItem(hSplitMenu, submenus_ids[item], true, &submenu_infos[item]);
@@ -728,47 +1075,47 @@ LRESULT CTagMappingDialog::OnSplitDropDown(WORD wNotifyCode, WORD wID, HWND hWnd
 		//C IDS
 		++item;
 		for (size_t n = 17; n < 21; n++) {
-			entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(n));
+			entry = (tag_mapping_entry*)&(tmp_def_mappings.get_item_ref(n));
 			uAppendMenu(submenus[item], MF_STRING | MF_DISABLED | MF_GRAYED, submenus_ids[item] + n, entry->tag_name);
 		}
 		InsertMenuItem(hSplitMenu, submenus_ids[item], true, &submenu_infos[item]);
 
 		//D FORMAT, SERIES
 		++item;
-		for (size_t n = 21; n < 27; n++) {
-			entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(n));
+		for (size_t n = 21; n < 29; n++) {
+			entry = (tag_mapping_entry*)&(tmp_def_mappings.get_item_ref(n));
 			uAppendMenu(submenus[item], MF_STRING, submenus_ids[item] + n, entry->tag_name);
 		}
 		InsertMenuItem(hSplitMenu, submenus_ids[item], true, &submenu_infos[item]);
 
 		//E COMMUNITY
 		++item;
-		for (size_t n = 27; n < 32; n++) {
-			entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(n));
+		for (size_t n = 29; n < 36; n++) {
+			entry = (tag_mapping_entry*)&(tmp_def_mappings.get_item_ref(n));
 			uAppendMenu(submenus[item], MF_STRING, submenus_ids[item] + n, entry->tag_name);
 		}
 		InsertMenuItem(hSplitMenu, submenus_ids[item], true, &submenu_infos[item]);
 
 		//F ARTISTS
 		++item;
-		for (size_t n = 32; n < 39; n++) {
-			entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(n));
+		for (size_t n = 36; n < 43; n++) {
+			entry = (tag_mapping_entry*)&(tmp_def_mappings.get_item_ref(n));
 			uAppendMenu(submenus[item], MF_STRING, submenus_ids[item] + n, entry->tag_name);
 		}
 		InsertMenuItem(hSplitMenu, submenus_ids[item], true, &submenu_infos[item]);
 
 		//G NOTES, CREDITS
 		++item;
-		for (size_t n = 39; n < 48; n++) {
-			entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(n));
+		for (size_t n = 43; n < 52; n++) {
+			entry = (tag_mapping_entry*)&(tmp_def_mappings.get_item_ref(n));
 			uAppendMenu(submenus[item], MF_STRING, submenus_ids[item] + n, entry->tag_name);
 		}
 		InsertMenuItem(hSplitMenu, submenus_ids[item], true, &submenu_infos[item]);
 
 		//H TRACK
 		++item;
-		for (size_t n = 48; n < tmp_def_mappings->get_count(); n++) {
-			entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(n));
+		for (size_t n = 52; n < tmp_def_mappings.get_count(); n++) {
+			entry = (tag_mapping_entry*)&(tmp_def_mappings.get_item_ref(n));
 			uAppendMenu(submenus[item], MF_STRING, submenus_ids[item] + n, entry->tag_name);
 		}
 		InsertMenuItem(hSplitMenu, submenus_ids[item], true, &submenu_infos[item]);
@@ -777,7 +1124,6 @@ LRESULT CTagMappingDialog::OnSplitDropDown(WORD wNotifyCode, WORD wID, HWND hWnd
 		DestroyMenu(hSplitMenu);
 		
 		if (cmd) {
-
 			tag_mapping_entry entry;
 			size_t index  = 0;
 			bool addnew = cmd == 1;
@@ -785,14 +1131,13 @@ LRESULT CTagMappingDialog::OnSplitDropDown(WORD wNotifyCode, WORD wID, HWND hWnd
 				pfc::string8 strcmd = std::to_string(cmd).c_str();
 				strcmd = strcmd.subString(strcmd.length() - 2);
 				index = atoi(strcmd);			
-				if (tmp_def_mappings) {
-					entry = tmp_def_mappings->get_item(index);
+				if (tmp_def_mappings.get_count()) {
+					entry = tmp_def_mappings.get_item(index);
 					entry.enable_write = true;
 				}
 			}
 			add_new_tag(addnew ? ~0 : index, entry);
 		}
-		delete tmp_def_mappings;
 	}
 	//ID3V23 template
 	else if (wID == IDC_SPLIT_BTN_TAG_ID3_ADD_NEW) {
@@ -839,13 +1184,14 @@ LRESULT CTagMappingDialog::OnSplitDropDown(WORD wNotifyCode, WORD wID, HWND hWnd
 			submenu_infos[n].wID = submenus_ids[n];
 		}
 
-		pfc::list_t<tag_mapping_entry>* tmp_def_mappings = copy_id3_default_tag_mappings(false, true);
+		pfc::list_t<tag_mapping_entry> tmp_def_mappings;
+		copy_id3_default_tag_mappings(&tmp_def_mappings, false, true);
 		tag_mapping_entry* entry;
 
 		//A TITLES
 		size_t item = 0;
 		for (size_t n = 0; n < 9; n++) {
-			entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(n));
+			entry = (tag_mapping_entry*)&(tmp_def_mappings.get_item_ref(n));
 			uAppendMenu(submenus[item], MF_STRING, submenus_ids[item] + n, entry->tag_name);
 		}
 		InsertMenuItem(hSplitMenu, submenus_ids[item], true, &submenu_infos[item]);
@@ -853,7 +1199,7 @@ LRESULT CTagMappingDialog::OnSplitDropDown(WORD wNotifyCode, WORD wID, HWND hWnd
 		//B PEOPLE ORGANIZATION
 		++item;
 		for (size_t n = 9; n < 24; n++) {
-			entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(n));
+			entry = (tag_mapping_entry*)&(tmp_def_mappings.get_item_ref(n));
 			uAppendMenu(submenus[item], MF_STRING, submenus_ids[item] + n, entry->tag_name);
 		}
 		InsertMenuItem(hSplitMenu, submenus_ids[item], true, &submenu_infos[item]);
@@ -861,7 +1207,7 @@ LRESULT CTagMappingDialog::OnSplitDropDown(WORD wNotifyCode, WORD wID, HWND hWnd
 		//C COUNTS INDEXES
 		++item;
 		for (size_t n = 24; n < 31; n++) {
-			entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(n));
+			entry = (tag_mapping_entry*)&(tmp_def_mappings.get_item_ref(n));
 			uAppendMenu(submenus[item], MF_STRING, submenus_ids[item] + n, entry->tag_name);
 		}
 		InsertMenuItem(hSplitMenu, submenus_ids[item], true, &submenu_infos[item]);
@@ -869,14 +1215,14 @@ LRESULT CTagMappingDialog::OnSplitDropDown(WORD wNotifyCode, WORD wID, HWND hWnd
 		//D DATES
 		++item;
 		for (size_t n = 31; n < 35; n++) {
-			entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(n));
+			entry = (tag_mapping_entry*)&(tmp_def_mappings.get_item_ref(n));
 			uAppendMenu(submenus[item], MF_STRING, submenus_ids[item] + n, entry->tag_name);
 		}
 		InsertMenuItem(hSplitMenu, submenus_ids[item], true, &submenu_infos[item]);
 
 		//E IDENTIFIERS
 		++item;
-		/*for (size_t n = ..; n < ..; n++) {
+		/*for (size_t n = 24; n < 28; n++) {
 			entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(n));
 			uAppendMenu(submenus[item], MF_STRING, submenus_ids[item] + n, entry->tag_name);
 		}*/
@@ -885,7 +1231,7 @@ LRESULT CTagMappingDialog::OnSplitDropDown(WORD wNotifyCode, WORD wID, HWND hWnd
 		//F FLAGS
 		++item;
 		for (size_t n = 35; n < 36; n++) {
-			entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(n));
+			entry = (tag_mapping_entry*)&(tmp_def_mappings.get_item_ref(n));
 			uAppendMenu(submenus[item], MF_STRING, submenus_ids[item] + n, entry->tag_name);
 		}
 		InsertMenuItem(hSplitMenu, submenus_ids[item], true, &submenu_infos[item]);
@@ -893,7 +1239,7 @@ LRESULT CTagMappingDialog::OnSplitDropDown(WORD wNotifyCode, WORD wID, HWND hWnd
 		//G RIPPING ENCODING
 		++item;
 		for (size_t n = 36; n < 39; n++) {
-			entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(n));
+			entry = (tag_mapping_entry*)&(tmp_def_mappings.get_item_ref(n));
 			uAppendMenu(submenus[item], MF_STRING, submenus_ids[item] + n, entry->tag_name);
 		}
 		InsertMenuItem(hSplitMenu, submenus_ids[item], true, &submenu_infos[item]);
@@ -901,23 +1247,20 @@ LRESULT CTagMappingDialog::OnSplitDropDown(WORD wNotifyCode, WORD wID, HWND hWnd
 		//H URL
 		++item;
 		for (size_t n = 39; n < 48; n++) {
-			entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(n));
+			entry = (tag_mapping_entry*)&(tmp_def_mappings.get_item_ref(n));
 			uAppendMenu(submenus[item], MF_STRING, submenus_ids[item] + n, entry->tag_name);
 		}
 		InsertMenuItem(hSplitMenu, submenus_ids[item], true, &submenu_infos[item]);
 
 		//I STYLE
 		++item;
-		/*for (size_t n = ..; n < ..; n++) {
-			entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(n));
-			uAppendMenu(submenus[item], MF_STRING, submenus_ids[item] + n, entry->tag_name);
-		}*/
+
 		InsertMenuItem(hSplitMenu, submenus_ids[item], true, &submenu_infos[item]);
 
 		//J MISC
 		++item;
-		for (size_t n = 48; n < tmp_def_mappings->get_count(); n++) {
-			entry = (tag_mapping_entry*)&(tmp_def_mappings->get_item_ref(n));
+		for (size_t n = 48; n < tmp_def_mappings.get_count(); n++) {
+			entry = (tag_mapping_entry*)&(tmp_def_mappings.get_item_ref(n));
 			uAppendMenu(submenus[item], MF_STRING, submenus_ids[item] + n, entry->tag_name);
 		}
 		InsertMenuItem(hSplitMenu, submenus_ids[item], true, &submenu_infos[item]);
@@ -926,23 +1269,21 @@ LRESULT CTagMappingDialog::OnSplitDropDown(WORD wNotifyCode, WORD wID, HWND hWnd
 		DestroyMenu(hSplitMenu);
 
 		if (cmd) {
-
 			bool addnew = cmd == 1;
 			tag_mapping_entry entry;
 			size_t index = 0;
-		
+
 			if (cmd > 1) { //submenu or <add new>?
 				pfc::string8 strcmd = std::to_string(cmd).c_str();
 				strcmd = strcmd.subString(strcmd.length() - 2);
 				index = atoi(strcmd);
-				if (tmp_def_mappings) {
-					entry = tmp_def_mappings->get_item(index);
+				if (tmp_def_mappings.get_count()) {
+					entry = tmp_def_mappings.get_item(index);
 					entry.enable_write = true;
 				}
 			}
 			add_new_tag(addnew ? -1 : index, entry);
 		}
-		delete tmp_def_mappings;
 	}
 
 	return FALSE;

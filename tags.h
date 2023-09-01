@@ -11,12 +11,19 @@ typedef struct
 	char *description;
 } data_mapping_entry;
 
+// {FF683FD9-6B6B-43F4-927D-872EAF92A1CF}
+static GUID TAG_GUID_MASTER_RELEASE_ID = { 0xff683fd9, 0x6b6b, 0x43f4, { 0x92, 0x7d, 0x87, 0x2e, 0xaf, 0x92, 0xa1, 0xcf } };
+// {4614FE13-E81D-4E67-8220-E2EB73CAA32B}
+static GUID TAG_GUID_RELEASE_ID = { 0x4614fe13, 0xe81d, 0x4e67, { 0x82, 0x20, 0xe2, 0xeb, 0x73, 0xca, 0xa3, 0x2b } };
+// {2A902FA0-5550-40A6-AC1B-1027AA29EC31}
+static GUID TAG_GUID_ARTIST_ID = { 0x2a902fa0, 0x5550, 0x40a6, { 0xac, 0x1b, 0x10, 0x27, 0xaa, 0x29, 0xec, 0x31 } };
+// {85F3D596-C8AD-480B-80D6-F787AB1515F0}
+static GUID TAG_GUID_LABEL_ID = { 0x85f3d596, 0xc8ad, 0x480b, { 0x80, 0xd6, 0xf7, 0x87, 0xab, 0x15, 0x15, 0xf0 } };
 
+static pfc::string8 TAG_MASTER_RELEASE_ID("DISCOGS_MASTER_RELEASE_ID");
 static pfc::string8 TAG_RELEASE_ID("DISCOGS_RELEASE_ID");
 static pfc::string8 TAG_ARTIST_ID("DISCOGS_ARTIST_ID");
 static pfc::string8 TAG_LABEL_ID("DISCOGS_LABEL_ID");
-static pfc::string8 TAG_MASTER_RELEASE_ID("DISCOGS_MASTER_RELEASE_ID");
-
 
 class tag_mapping_entry
 {
@@ -36,11 +43,7 @@ public:
 		//..
 	};
 
-	~tag_mapping_entry() {
-		//..
-	};
-
-	tag_mapping_entry(const char *tn, bool ew, bool eu, bool fw, bool fu, bool ft, const char *fs) :
+	tag_mapping_entry(GUID guid, const char *tn, bool ew, bool eu, bool fw, bool fu, bool ft, const char *fs) : guid_tag(guid),
 		tag_name(tn), enable_write(ew), enable_update(eu), freeze_write(fw), freeze_update(fu), freeze_tag_name(ft), formatting_script(fs) {
 	
 		is_multival_meta = is_multivalue_meta(pfc::string8(tn));
@@ -49,7 +52,9 @@ public:
 	tag_mapping_entry * clone() {
 		tag_mapping_entry *t = new tag_mapping_entry();
 		*t = *this;
-		t->guid_tag = pfc::createGUID();
+		if (pfc::guid_equal(this->guid_tag, pfc::guid_null)) {
+			t->guid_tag = pfc::createGUID();
+		}
 		t->is_multival_meta = this->is_multival_meta;
 		return t;
 	}
@@ -76,7 +81,10 @@ inline bool operator ==(const tag_mapping_entry& a, const tag_mapping_entry& b) 
 
 FB2K_STREAM_READER_OVERLOAD(tag_mapping_entry) {
 
+	pfc::string8 tag_name, formatting_string;
+
 	pfc::string8 buffer;
+
 	stream >> buffer;
 	
 	//todo: rev. fix nulls introduced by uncomplete fix v1.0.19.1
@@ -150,9 +158,9 @@ extern int awt_update_mod_flag(bool fromFlag =	true);
 extern bool awt_unmatched_flag();
 extern void awt_save_normal_mode();
 
-extern pfc::list_t<tag_mapping_entry> * copy_tag_mappings();
-extern pfc::list_t<tag_mapping_entry> * copy_default_tag_mappings();
-extern pfc::list_t<tag_mapping_entry> * copy_id3_default_tag_mappings(bool onlyms, bool menuctx);
+extern void copy_tag_mappings(tag_mapping_list_type* out_tmt);
+extern void copy_default_tag_mappings(tag_mapping_list_type* out_tmt);
+extner void copy_id3_default_tag_mappings(tag_mapping_list_type* out_tmt, bool onlyms, bool menuctx);
 
 extern void update_loaded_tagmaps_multivalues();
 extern void set_cfg_tag_mappings(pfc::list_t<tag_mapping_entry> *mappings);

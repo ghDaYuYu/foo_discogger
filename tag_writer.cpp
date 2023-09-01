@@ -48,6 +48,13 @@ bool TagWriter::Staging_Results() {
 			return true;
 		}
 	}
+	for (auto wr : tag_results) {
+		bool usr_app = wr->r_usr_approved.find_first(true, 0, wr->r_usr_approved.size() < wr->r_usr_approved.size());
+		if (usr_app) {
+			return true;
+		}
+	}
+
 	return false;
 }
 
@@ -338,10 +345,42 @@ bool check_multiple_results(pfc::array_t<string_encoded_array> where, string_enc
 
 void TagWriter::generate_tags(tag_mapping_list_type* alt_mappings, threaded_process_status& p_status, abort_callback& p_abort) {
 
-	tag_mapping_list_type* ptags = &TAGS;
+	tag_mapping_list_type* ptags;
+	if (alt_mappings) {
+		ptags = alt_mappings;
+	}
+	else {
+		ptags = &TAGS;
+	} 
 
 	atm_tag_results_ready = false;
-	tag_results.force_reset();
+
+	auto masksize = tag_results_mask.size();
+
+	// CAN NOT PROPERLY CALCUALTE WHICH RESULTS TO UPDATE
+	// IN MASKED MODE SO FALSE FOR NOW:
+
+	masksize = false;
+
+	auto mask_left = 0;
+	size_t mask_count_enabled = 0;
+
+	std::vector<GUID> vmaskguids;
+
+	if (tag_results.get_count() && masksize) {
+		size_t fpos = 0;
+		while ((fpos = tag_results_mask.find_first(true, fpos, masksize)) < masksize) {
+			auto dbg = tag_results[fpos];
+			vmaskguids.emplace_back(dbg->tag_entry->guid_tag);
+			++fpos;
+		}
+		mask_left = vmaskguids.size();
+		mask_count_enabled = 0;
+	}
+	else {
+		tag_results.force_reset();
+		//will_modify = false;
+	}
 
 	pfc::array_t<persistent_store> track_stores;
 	for (size_t j = 0; j < m_track_mappings.get_count(); j++) {
@@ -358,6 +397,31 @@ void TagWriter::generate_tags(tag_mapping_list_type* alt_mappings, threaded_proc
 		const tag_mapping_entry& entry = ptags->get_item_ref(wtags);
 
 		if ((entry.enable_write) || (entry.enable_update)) {
+
+
+			if (masksize) {
+				
+				++mask_count_enabled;
+
+				if (!mask_left) {
+					break;
+				}
+
+				bool bskip = false;
+
+				GUID guid_wtag = entry.guid_tag;
+
+				auto found_it = std::find_if(vmaskguids.begin(), vmaskguids.end(), [&](const GUID& elem) {
+					return pfc::guid_equal(elem, guid_wtag);
+					});
+
+				//todo: protected to mask
+				if (found_it == vmaskguids.end()) {
+					continue;
+				}
+
+				--mask_left;
+			}
 
 			tag_result_ptr result = std::make_shared<tag_result>();
 
@@ -502,11 +566,14 @@ void TagWriter::generate_tags(tag_mapping_list_type* alt_mappings, threaded_proc
 
 			result->tag_entry = &entry;
 
-			tag_results.append_single(std::move(result));
-
+			if (masksize) {
+				tag_results[mask_count_enabled] = std::move(result);
+			}
+			else {
+				tag_results.append_single(std::move(result));
+			}
 		} //write or update enabled
-
-	} //tags
+	} //walk tracks
 
 	atm_tag_results_ready = true;
 }

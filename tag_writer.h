@@ -64,8 +64,8 @@ public:
 	const pfc::array_t<ReleaseArtist_ptr> GetArtists();
 	bool Staging_Results();
 	void ResetMask();
-	void ResultsReady() { return atm_tag_results_ready; }
-	
+	bool ResultsReady() { return atm_tag_results_ready; }
+
 private:
 
 	void write_tag(metadb_handle_ptr item, file_info &info, const tag_mapping_entry &entry, const pfc::string8 &tag_value);

@@ -174,15 +174,7 @@ void foo_discogs::item_display_web_page(const metadb_handle_ptr item, discog_web
 			url << url_prefix << tag_value << url_postfix;
 			display_url(url);
 		}
-		else if (web_page == MASTER_RELEASE_PAGE) {
-			tag = TAG_RELEASE_ID;
-			url_prefix = "https://www.discogs.com/release/";
-			if (file_info_get_tag(item, finfo, tag, tag_value, backup_tag)) {
-				url << url_prefix << tag_value << url_postfix;
-				display_url(url);
-			}
-		}
-	}
+
 	catch (foo_discogs_exception &e) {
 		add_error(e);
 		display_errors();
@@ -340,7 +332,7 @@ void foo_discogs::save_album_art(Release_ptr& release, metadb_handle_ptr item,
 						for (size_t walk_vw = 0; walk_vw < vwrite_it.size(); walk_vw++) {
 							if (vwrite_it[walk_vw]) {
 								if (walk_vw == i /*+ offset*/) break;
-								if (pfc::guid_compare(my_album_art_ids[walk_vw + offset], my_album_art_ids[i + offset]) == 0)
+								if (pfc::guid_equal(my_album_art_ids[walk_vw + offset], my_album_art_ids[i + offset]))
 									postfix++;
 							}
 						}
@@ -559,13 +551,7 @@ void foo_discogs::save_artist_art(pfc::array_t<Artist_ptr>& artists, Release_ptr
 		CONF.artist_art_directory_string->run_hook(item->get_location(), &info, &hook, directory, nullptr);
 
 		// hardcoded "nullptr" ?
-		if (!STR_EQUAL(directory, "nullptr")) {
-			if (directory[directory.get_length() - 1] != '\\') {
-				directory.add_char('\\');
-			}
-			ensure_directory_exists(directory);
-		}
-		else {
+		if (STR_EQUAL(directory, "nullptr")) {
 			ada.write_it = false;
 		}
 	}
@@ -618,6 +604,17 @@ void foo_discogs::save_artist_art(pfc::array_t<Artist_ptr>& artists, Release_ptr
 		discogs_interface->img_artists_ndx_to_artist(release, i, artist, artist_img_ndx);
 
 		hook.set_artist(&artist);
+		CONF.artist_art_directory_string->run_hook(item->get_location(), &info, &hook, directory, nullptr);
+
+		if (vwrite_it[i] && !(STR_EQUAL(directory, "nullptr"))) {
+			if (directory[directory.get_length() - 1] != '\\') {
+				directory.add_char('\\');
+			}
+			ensure_directory_exists(directory);
+		}
+		else {
+			vwrite_it[i] = false;
+		}
 
 		if (i == 0) {
 			pfc::string8 tmp_str, tmp_file;
@@ -653,7 +650,7 @@ void foo_discogs::save_artist_art(pfc::array_t<Artist_ptr>& artists, Release_ptr
 						for (size_t walk_vw = 0; walk_vw < vwrite_it.size(); walk_vw++) {
 							if (vwrite_it[walk_vw]) {
 								if (walk_vw == i /*+ album_offset*/) break;
-								if (pfc::guid_compare(my_album_art_ids[walk_vw + offset], my_album_art_ids[i + offset]) == 0)
+								if (pfc::guid_equal(my_album_art_ids[walk_vw + offset], my_album_art_ids[i + offset]))
 									postfix++;
 							}
 						}

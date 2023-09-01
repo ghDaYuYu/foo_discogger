@@ -301,6 +301,7 @@
 #define IDC_UI_LIST                     1215
 #define IDC_STATIC_CFG_MULTIVAL_LIST    2501
 #define IDC_STATIC_QUESTION             2502
+#define IDC_CHK_CFG_ART_SIM_VA          2503
 
 // Next default values for new objects
 // 

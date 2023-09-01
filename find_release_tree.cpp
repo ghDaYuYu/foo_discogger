@@ -1943,7 +1943,7 @@ void CFindReleaseTree::hit_test_release_proceed() {
 
 			pfc::string8 release_id = get_param_id(myparam);
 
-			m_dlg->on_write_tags(release_id);
+			m_dlg->trigger_release(release_id);
 		}
 	}
 }
@@ -1963,7 +1963,7 @@ void CFindReleaseTree::vkreturn_test_master_expand_release() {
 
 			pfc::string8 release_id = get_param_id(myparam);
 
-			m_dlg->on_write_tags(release_id);
+			m_dlg->trigger_release(release_id);
 		}
 		else {
 
@@ -2174,7 +2174,8 @@ void CFindReleaseTree::context_menu(size_t param_mr, POINT screen_pos) {
 
 				ClipboardHelper::OpenScope scope;
 				scope.Open(core_api::get_main_window(), true);
-				ClipboardHelper::SetString(buffer);
+				ClipboardHelper::SetString(trim(buffer).get_ptr());
+				scope.Close();
 			}
 			break;
 		}
@@ -2183,10 +2184,10 @@ void CFindReleaseTree::context_menu(size_t param_mr, POINT screen_pos) {
 			pfc::string8 buffer;
 			row_col_data rcd_out;
 			/*bool bres =*/ m_rt_cache.get_cached_find_release_node(myparam.lparam(), buffer, rcd_out);
-			
 			ClipboardHelper::OpenScope scope;
 			scope.Open(core_api::get_main_window(), true);
-			ClipboardHelper::SetString(trim(buffer));
+			ClipboardHelper::SetString(trim(buffer).get_ptr());
+			scope.Close();
 
 			break;
 		}

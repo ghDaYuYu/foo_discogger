@@ -89,8 +89,8 @@ LRESULT CConfigurationDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 	HWND hWndTab = uGetDlgItem(IDC_TAB_CFG);
 
 	//darkmode
-	AddDialog(m_hWnd);
-	AddTabCtrl(hWndTab);
+	m_dark.AddDialog(m_hWnd);
+	m_dark.AddTabCtrl(hWndTab);
 
 	// set up tabs and create (not visible) subdialogs
 	uTCITEM item = {0};
@@ -104,7 +104,7 @@ LRESULT CConfigurationDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 		g_hWndTabDialog[n] = tab_table[n].CreateTabDialog(m_hWnd, (LPARAM)this);
 
 		//darkmode
-		AddDialog(g_hWndTabDialog[n]);
+		m_dark.AddDialog(g_hWndTabDialog[n]);
 	}
 
 	// get the size of the inner part of the tab control
@@ -131,7 +131,7 @@ LRESULT CConfigurationDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 	uSendMessage(hWndTab, TCM_ADJUSTRECT, FALSE, (LPARAM)&rcTabDialog);
 
 	// fix left white stripe
-	if (!IsDark()) {
+	if (!m_dark.IsDark()) {
 		InflateRect(&rcTabDialog, 2, 1);
 		OffsetRect(&rcTabDialog, -1, 1);
 	}
@@ -149,7 +149,7 @@ LRESULT CConfigurationDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 	uSendMessage(hWndTab, TCM_SETCURSEL, g_current_tab, 0);
 
 	help_link.SubclassWindow(GetDlgItem(IDC_SYNTAX_HELP));
-	COLORREF lnktx = IsDark() ? GetSysColor(COLOR_MENUHILIGHT) : (COLORREF)(-1);
+	COLORREF lnktx = m_dark.IsDark() ? GetSysColor(COLOR_MENUHILIGHT) : (COLORREF)(-1);
 	help_link.m_clrLink = lnktx;
 	help_link.m_clrVisited = lnktx;
 	pfc::string8 n8_url = profile_usr_components_path(true);
@@ -305,6 +305,15 @@ LRESULT CConfigurationDialog::OnCustomAnvChanged(UINT /*uMsg*/, WPARAM /*wParam*
 	return FALSE;
 }
 
+LRESULT CConfigurationDialog::OnCustomVAMulti_Changed(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/) {
+
+	if (g_hWndTabDialog[CONF_ART_TAB]) {
+		uButton_SetCheck(g_hWndTabDialog[CONF_ART_TAB],
+			IDC_CHK_CFG_ART_SIM_VA, false);
+	}
+	return FALSE;
+}
+
 LRESULT CConfigurationDialog::OnDestroy(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled) {
 
 	if (conf.last_conf_tab != g_current_tab) {
@@ -375,7 +384,7 @@ void CConfigurationDialog::init_searching_dialog(HWND wnd) {
 	uSetDlgItemText(wnd, IDC_EDIT_MASTER_SUB_FORMATTING, conf.search_master_sub_format_string);
 
 	//dark mode
-	AddControls(wnd);
+	m_dark.AddControls(wnd);
 }
 
 void CConfigurationDialog::init_matching_dialog(HWND wnd) {
@@ -388,7 +397,7 @@ void CConfigurationDialog::init_matching_dialog(HWND wnd) {
 	uSetDlgItemText(wnd, IDC_EDIT_FILE_FORMATTING, conf.release_file_format_string);
 
 	//dark mode
-	AddControls(wnd);
+	m_dark.AddControls(wnd);
 }
 
 void CConfigurationDialog::init_tagging_dialog(HWND wnd) {
@@ -409,7 +418,7 @@ void CConfigurationDialog::init_tagging_dialog(HWND wnd) {
 	::ShowWindow(hwnd_tag_credits, SW_HIDE);
 
 	//dark mode
-	AddControls(wnd);
+	m_dark.AddControls(wnd);
 }
 
 void CConfigurationDialog::init_memory_cache_buttons(HWND wnd) {
@@ -427,7 +436,7 @@ void CConfigurationDialog::init_memory_cache_buttons(HWND wnd) {
 	set_window_text(wnd, IDC_BTN_CLEAR_CACHE_COLLECTION, text);
 
 	//dark mode
-	AddControls(wnd);
+	m_dark.AddControls(wnd);
 
 	::EnableWindow(::uGetDlgItem(wnd, IDC_BTN_CLEAR_CACHE_RELEASES), discogs_interface->release_cache_size() ? TRUE : FALSE);
 	::EnableWindow(::uGetDlgItem(wnd, IDC_BTN_CLEAR_CACHE_MASTERS), discogs_interface->master_release_cache_size() ? TRUE : FALSE);
@@ -436,9 +445,9 @@ void CConfigurationDialog::init_memory_cache_buttons(HWND wnd) {
 }
 
 void CConfigurationDialog::init_caching_dialog(HWND wnd) {
-	
+
 	//hidden regular & skip videp
-	
+
 	uButton_SetCheck(wnd, IDC_CHK_HIDDEN_MERGE_TITLES, conf.parse_hidden_merge_titles);
 	uButton_SetCheck(wnd, IDC_CHK_HIDDEN_AS_REGULAR, conf.parse_hidden_as_regular);
 	uButton_SetCheck(wnd, IDC_CHK_SKIP_VIDEO_TRACKS, conf.skip_video_tracks);
@@ -484,8 +493,17 @@ void CConfigurationDialog::init_art_dialog(HWND wnd) {
 	uSetDlgItemText(wnd, IDC_EDIT_ARTIST_ART_PREFIX, conf.artist_art_filename_string);
 	uButton_SetCheck(wnd, IDC_CHK_ARTIST_ART_OVERWRITE, conf.artist_art_overwrite);
 
+	HWND wndSimVA = ::uGetDlgItem(wnd, IDC_CHK_CFG_ART_SIM_VA);
+#ifdef SIM_VA_MA_BETA_VER
+	::ShowWindow(wndSimVA, SW_SHOW);
+	bool sim_va_as_ma = conf.find_release_dlg_flags & CFindReleaseDialog::FLG_VARIOUS_AS_MULTI_ARTIST;
+	uButton_SetCheck(wnd, IDC_CHK_CFG_ART_SIM_VA, sim_va_as_ma);
+#else
+	::ShowWindow(wndSimVA,SW_HIDE);
+#endif
+
 	//dark mode
-	AddControls(wnd);
+	m_dark.AddControls(wnd);
 }
 
 void CConfigurationDialog::init_ui_dialog(HWND wnd) {
@@ -507,7 +525,7 @@ void CConfigurationDialog::init_ui_dialog(HWND wnd) {
 	//list style
 	HWND hwndcustFont = ::uGetDlgItem(wnd, IDC_CHK_CFG_CUSTOM_FONT_ENABLE);
 	::ShowWindow(hwndcustFont, SW_SHOW);
-	
+
 	uButton_SetCheck(wnd, IDC_CHK_CFG_CUSTOM_FONT_ENABLE, HIWORD(conf.custom_font));
 	InitComboRowStyle(wnd, IDC_CMB_CONFIG_LIST_STYLE, conf.list_style);
 	HWND hcmb = ::uGetDlgItem(wnd, IDC_CMB_CONFIG_LIST_STYLE);
@@ -515,7 +533,7 @@ void CConfigurationDialog::init_ui_dialog(HWND wnd) {
 	BOOL res = ::SendMessage(hcmb, CB_SETMINVISIBLE, 10, 0L);
 
 	//dark mode
-	AddControls(wnd);
+	m_dark.AddControls(wnd);
 }
 
 void CConfigurationDialog::init_oauth_dialog(HWND wnd) {
@@ -530,7 +548,7 @@ void CConfigurationDialog::init_oauth_dialog(HWND wnd) {
 	uSetWindowText(m_hwndOAuthMsg, "Click to test if OAuth is working.");
 
 	//dark mode
-	AddControls(wnd);
+	m_dark.AddControls(wnd);
 }
 
 void CConfigurationDialog::show_oauth_msg(pfc::string8 msg, bool iserror) {
@@ -784,6 +802,16 @@ void CConfigurationDialog::save_art_dialog(HWND wnd, bool dlgbind) {
 		art_app_flag &= ~(ARTSAVE_FILEMATCH_APP_FLAG);
 	}
 	conf_ptr->album_art_skip_default_cust = MAKELPARAM(art_app_flag, HIWORD(conf_ptr->album_art_skip_default_cust));
+
+#ifdef SIM_VA_MA_BETA_VER
+	bool bsim_va_as_ma = uButton_GetCheck(wnd, IDC_CHK_CFG_ART_SIM_VA);
+	if (bsim_va_as_ma)
+		conf_ptr->find_release_dlg_flags |= CFindReleaseDialog::FLG_VARIOUS_AS_MULTI_ARTIST;
+	else
+		conf_ptr->find_release_dlg_flags &= ~CFindReleaseDialog::FLG_VARIOUS_AS_MULTI_ARTIST;
+#else
+	conf_ptr->find_release_dlg_flags &= ~CFindReleaseDialog::FLG_VARIOUS_AS_MULTI_ARTIST;
+#endif
 }
 
 bool CConfigurationDialog::cfg_art_has_changed() {
@@ -818,6 +846,12 @@ bool CConfigurationDialog::cfg_art_has_changed() {
 	bres |= conf.artist_art_overwrite != conf_edit.artist_art_overwrite;
 
 	bres |= conf.album_art_skip_default_cust != conf_edit.album_art_skip_default_cust;
+
+	bool sim_va_as_ma = conf.find_release_dlg_flags & CFindReleaseDialog::FLG_VARIOUS_AS_MULTI_ARTIST;
+	bool sim_va_as_ma_edit = conf_edit.find_release_dlg_flags & CFindReleaseDialog::FLG_VARIOUS_AS_MULTI_ARTIST;
+	
+	bres |= (sim_va_as_ma != sim_va_as_ma_edit);
+
 	return bres;
 }
 
@@ -840,7 +874,7 @@ void CConfigurationDialog::save_ui_dialog(HWND wnd, bool dlgbind) {
 
 	//todo: move this to on apply
 	if (g_discogs->find_release_dialog) {
-		g_discogs->find_release_dialog->Set_Config_Flag(fv_stats.id(), CFindReleaseDialog::FLG_SHOW_RELEASE_TREE_STATS, val);
+		g_discogs->find_release_dialog->SetConfigFlag(fv_stats.id(), CFindReleaseDialog::FLG_SHOW_RELEASE_TREE_STATS, val);
 	}
 	conf_ptr->list_style = ::uSendDlgItemMessage(wnd, IDC_CMB_CONFIG_LIST_STYLE, CB_GETCURSEL, 0, 0);
 }
@@ -1152,7 +1186,21 @@ INT_PTR WINAPI CConfigurationDialog::on_ui_dialog_message(HWND wnd, UINT msg, WP
 
 			switch (idFrom) {
 				case IDC_BTN_UI_CLEAR_HISTORY:
-					on_delete_history(wnd, 0, true);
+					try {
+						on_delete_history(wnd, 0, true);
+					}
+					catch (foo_discogs_exception e) {
+						pfc::string8 error;
+						error << ("(skipped) ") << e.what() << "\n";
+						completion_notify::ptr reply;
+						popup_message_v3::query_t query = { "Information",
+							PFC_string_formatter() << "Error(s)", popup_message::icon_error,
+							popup_message_v3::buttonOK,							
+							popup_message_v3::iconQuestion,
+							reply
+						};
+						popup_message_v3::get()->show_query_modal(query);
+					}
 					break;
 				case IDC_CMB_CONFIG_LIST_STYLE:
 					if (!setting_dlg) {
@@ -1281,11 +1329,11 @@ void CConfigurationDialog::on_load_search_formatting(HWND wnd) {
 
 	case MENU_4:
 		uid = IDC_EDIT_RELEASE_FORMATTING;
-		frm_string << "\'[\'%RELEASE_SEARCH_ROLES%\']\' $join($append(%RELEASE_TITLE%,%RELEASE_SEARCH_LABELS%,%RELEASE_SEARCH_MAJOR_FORMATS%,%RELEASE_SEARCH_FORMATS%,%RELEASE_YEAR%,%RELEASE_SEARCH_CATNOS%))";
+		frm_string << "[\'[\'%RELEASE_SEARCH_ROLES%\']\' ]$join($append(%RELEASE_TITLE%,%RELEASE_SEARCH_LABELS%,%RELEASE_SEARCH_MAJOR_FORMATS%,%RELEASE_SEARCH_FORMATS%,%RELEASE_YEAR%,%RELEASE_SEARCH_CATNOS%))";
 		break;
 	case MENU_5:
 		uid = IDC_EDIT_MASTER_FORMATTING;
-		frm_string << "\'[T]\' \'[\'%MASTER_RELEASE_SEARCH_ROLES%\']\' $join($append(%MASTER_RELEASE_TITLE%,%MASTER_RELEASE_YEAR%))";
+		frm_string << "\'[T]\' [\'[\'%MASTER_RELEASE_SEARCH_ROLES%\']\' ]$join($append(%MASTER_RELEASE_TITLE%,%MASTER_RELEASE_YEAR%))";
 		break;
 	defualt:
 		//quit

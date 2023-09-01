@@ -46,7 +46,7 @@ struct preview_job {
 
 class CTrackMatchingDialog : public MyCDialogImpl<CTrackMatchingDialog>,
 	public CDialogResize<CTrackMatchingDialog>,	public CMessageFilter,
-	private ILOD_track_matching, fb2k::CDarkModeHooks {
+	private ILOD_track_matching {
 
 public:
 
@@ -189,6 +189,8 @@ public:
 protected:
 
 		void LibUIAsTrackList(bool OwnerToLibUi);
+		void GlobalReplace_VA_AS_MULTI_ARTIST(bool state);
+		void enable_VA_AS_MULTI(bool is_enabled);
 
 private:
 
@@ -233,6 +235,10 @@ private:
 	bool context_menu_art_attrib_show(HWND wnd, HMENU* menu, bit_array_bittable &mixedvals);
 
 	virtual coord_presenters* ilo_get_coord() override { return &m_coord; }
+
+
+private:
+
 	foo_conf m_conf;
 
 	size_t m_pending_previews = 0;
@@ -255,6 +261,8 @@ private:
 	CArtworkList m_ifa_list;
 
 	CTristate m_tristate;
+
+	fb2k::CDarkModeHooks m_dark;
 
 	coord_presenters m_coord;
 	CImageList m_hImageList;

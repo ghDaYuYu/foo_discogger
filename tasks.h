@@ -219,11 +219,11 @@ private:
 };
 
 
-class get_various_artists_process_callback : public foo_discogs_threaded_process_callback
+class get_multi_artists_process_callback : public foo_discogs_threaded_process_callback
 
 {
 public:
-	get_various_artists_process_callback(cupdRelSrc cupdsrc, const std::vector<size_t> & artist_ids)
+	get_multi_artists_process_callback(cupdRelSrc cupdsrc, const std::vector<size_t> & artist_ids)
 		: m_cupdsrc(cupdsrc), m_artist_ids(artist_ids) {}
 	void start(HWND parent);
 
@@ -242,12 +242,14 @@ private:
 class search_artist_process_callback : public foo_discogs_locked_threaded_process_callback
 {
 public:
-	search_artist_process_callback(const char* search, const int db_dc_flags);
+	search_artist_process_callback(const char* search, const bool va, const int db_dc_flags);
+	~search_artist_process_callback();
 	void start(HWND parent);
 
 private:
 	pfc::string8 m_search;
 	int m_db_dc_flags;
+	bool m_va = false;
 
 	pfc::array_t<Artist_ptr> m_artist_exact_matches;
 	pfc::array_t<Artist_ptr> m_artist_other_matches;

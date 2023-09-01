@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 
 #include <GdiPlus.h>
 #include "CGdiPlusBitmap.h"
@@ -45,10 +45,17 @@ inline bool GdipErrorMsg(int code, const pfc::string8 path, pfc::string8& outmsg
 
 multi_uartwork::multi_uartwork(const CConf& conf, Discogs::Release_ptr release) {
 
+	if (!release) {
+		return;
+	}
+
 	size_t calbum_art = release->images.get_count();
 	size_t cartist_art = 0;
+
 	for (auto wra : release->artists) {
-		cartist_art += wra->full_artist->images.get_count();
+		if (wra->full_artist) {
+			cartist_art += wra->full_artist->images.get_count();
+		}
 	}
 
 	size_t ctotal_art = calbum_art + cartist_art;
@@ -81,7 +88,6 @@ multi_uartwork::multi_uartwork(const CConf& conf, Discogs::Release_ptr release) 
 				setbitflag_range(af::alb_ovr, true, 0, calbum_art);
 		}
 	}
-
 
 	// artist attributes
 
@@ -346,8 +352,6 @@ imgpairs MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::string8> n8_cache_p
 		log_msg("GdiPlus error (GetHBITMAP Small preview)");
 	}
 
-	DeleteObject(hBmSmall);
-	DeleteObject(hBmMini);
 	return std::pair(std::pair(hIconSmall, nullptr), std::pair(hIconMini, nullptr));
 }
 imgpairs GenerateTmpBitmapsFromRealSize(pfc::string8 release_id, size_t pos,
@@ -484,7 +488,7 @@ imgpairs GenerateTmpBitmapsFromRealSize(pfc::string8 release_id, size_t pos,
 
 		if (!std::filesystem::exists(tmp_file_min)) {
 
-			return std::pair(std::pair(hIconSmall, nullptr), std::pair(nullptr, nullptr));	
+			return std::pair(std::pair(hIconSmall, nullptr), std::pair(nullptr, nullptr));
 		}
 		std::filesystem::path os_tmp_mini = std::filesystem::u8path(temp_file_name_mini.c_str());
 
@@ -549,7 +553,7 @@ MemoryBlock MemoryBlockToPngIcon(MemoryBlock buffer) {
 	else
 		ScalingFactor = (float)newHeight / (float)bmFetch.GetHeight();
 
-	HRESULT hr;
+	HRESULT hr = S_FALSE;
 	IStream* poutStream;
 	hr = CreateStreamOnHGlobal(NULL, true, &poutStream);
 	if (!SUCCEEDED(hr)) {

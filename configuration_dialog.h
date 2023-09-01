@@ -37,25 +37,9 @@ public:
 	bool service_query(service_ptr& p_out, const GUID& p_guid) override;
 };
 
-class CConfigurationDialog : public MyCDialogImpl<CConfigurationDialog>, public CMessageFilter, public preferences_page_instance,
-	public fb2k::CDarkModeHooks
+class CConfigurationDialog : public MyCDialogImpl<CConfigurationDialog>, public CMessageFilter, public preferences_page_instance
 {
 private:
-
-	my_threaded_process m_tp;
-
-	pfc::array_t<tab_entry> tab_table;
-	foo_conf conf;
-	foo_conf conf_edit;
-
-	bool original_parsing_merge_titles = false;
-	bool original_parsing = false;
-	bool original_skip_video = false;
-
-	bool setting_dlg = false;
-	bool cancel_dlg = true;
-
-	CHyperLink help_link;
 
 	static INT_PTR WINAPI searching_dialog_proc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 	INT_PTR WINAPI on_searching_dialog_message(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -143,6 +127,7 @@ public:
 		NOTIFY_HANDLER(IDC_TAB_CFG, TCN_SELCHANGE, OnChangeTab)
 		COMMAND_ID_HANDLER(IDC_BTN_CONF_DEFAULTS, OnDefaults)
 		MESSAGE_HANDLER(WM_CUSTOM_ANV_CHANGED, OnCustomAnvChanged)
+		MESSAGE_HANDLER(WM_CUSTOM_VA_AS_MULTI_ARTIST_CHANGED, OnCustomVAMulti_Changed)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 	MY_END_MSG_MAP()
 
@@ -171,6 +156,7 @@ public:
 	LRESULT OnChangeTab(WORD /*wNotifyCode*/, LPNMHDR /*lParam*/, BOOL& /*bHandled*/); 
 	LRESULT OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCustomAnvChanged(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+	LRESULT OnCustomVAMulti_Changed(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnDestroy(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled);
 
 	HWND m_hwndTokenEdit;
@@ -181,6 +167,25 @@ public:
 	void show_oauth_msg(pfc::string8 msg, bool iserror);
 
 	void enable(bool v) override {}
+
+private:
+
+	my_threaded_process m_tp;
+
+	pfc::array_t<tab_entry> tab_table;
+	foo_conf conf;
+	foo_conf conf_edit;
+
+	bool original_parsing_merge_titles = false;
+	bool original_parsing = false;
+	bool original_skip_video = false;
+
+	bool setting_dlg = false;
+	bool cancel_dlg = true;
+
+	CHyperLink help_link;
+	fb2k::CDarkModeHooks m_dark;
+
 };
 
 class preferences_page_myimpl : public preferences_page_impl<CConfigurationDialog> {

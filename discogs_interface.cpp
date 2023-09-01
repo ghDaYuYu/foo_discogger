@@ -214,6 +214,35 @@ void DiscogsInterface::search_artist(const pfc::string8 &query, pfc::array_t<Art
 	other_matches.append(wtf_matches);
 }
 
+void DiscogsInterface::search_va_artist(const pfc::string8& query, pfc::array_t<Artist_ptr>& exact_matches, pfc::array_t<Artist_ptr>& other_matches, threaded_process_status& p_status, abort_callback& p_abort) {
+
+	pfc::string8 json;
+
+	exact_matches.force_reset();
+	other_matches.force_reset();
+
+	pfc::string8 params = PFC_string_formatter()  << "type=all&q=" << urlEscape(query) << "&per_page=100";
+
+	fetcher->fetch_html("https://api.discogs.com/database/search", params, json, p_abort);
+
+	JSONParser jp(json);
+
+	Artist_ptr tmpArtist;
+	tmpArtist = std::make_shared<Artist>("194"); //Various Artists
+	tmpArtist->name = "VA Search";
+	tmpArtist->loaded = true;
+	tmpArtist->loaded_preview = true;
+	tmpArtist->loaded_releases = true;
+	
+	parseArtistReleases(jp.root, tmpArtist.get(), true /*is va*/);
+
+	//missing main release ids
+	for (auto mr : tmpArtist->master_releases) {
+		mr->load_preview(p_status, p_abort, false);
+	}
+	exact_matches.add_item(tmpArtist);
+}
+
 pfc::array_t<JSONParser_ptr> DiscogsInterface::get_all_pages(pfc::string8 &url, pfc::string8 params, abort_callback &p_abort) {
 
 	pfc::array_t<JSONParser_ptr> results;

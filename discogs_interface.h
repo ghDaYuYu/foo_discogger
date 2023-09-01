@@ -63,8 +63,9 @@ private:
 	}
 
 	inline void add_release_to_cache(const size_t lkey, Release_ptr &release) {
-
-		cache_releases->put(lkey, release);
+		if (!(CONF.find_release_dlg_flags & 1 << 5/*CFindReleaseDialog::FLG_VARIOUS_AS_MULTI_ARTIST*/)) {
+			cache_releases->put(lkey, release);
+		}
 	}
 
 	inline void add_master_release_to_cache(const size_t lkey, MasterRelease_ptr &master) {
@@ -184,6 +185,7 @@ public:
 		threaded_process_status& p_status, abort_callback& p_abort);
 
 	void search_artist(const pfc::string8 &name, pfc::array_t<Artist_ptr> &exact_matches, pfc::array_t<Artist_ptr> &other_matches, threaded_process_status &p_status, abort_callback &p_abort);
+	void search_va_artist(const pfc::string8 &name, pfc::array_t<Artist_ptr> &exact_matches, pfc::array_t<Artist_ptr> &other_matches, threaded_process_status &p_status, abort_callback &p_abort);
 	
 	Release_ptr get_release(const size_t lkey, bool bypass_is_cache = true, bool bypass = false);
 	Release_ptr get_release(const size_t lkey, threaded_process_status& p_status, abort_callback& p_abort, bool bypass_cache = false, bool throw_all = false);

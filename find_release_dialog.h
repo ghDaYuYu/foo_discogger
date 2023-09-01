@@ -22,7 +22,7 @@ class search_artist_process_callback;
 
 class CFindReleaseDialog : public MyCDialogImpl<CFindReleaseDialog>,
 	public CMessageFilter, public ILOD_artist_list, 
-	public CDialogResize<CFindReleaseDialog>, public fb2k::CDarkModeHooks {
+	public CDialogResize<CFindReleaseDialog> {
 
 public:
 
@@ -129,24 +129,24 @@ public:
 	//todo: 
 	friend class expand_master_release_process_callback;
 	friend class get_artist_process_callback;
-	friend class get_various_artists_process_callback;
+	friend class get_multi_artists_process_callback;
 	friend class search_artist_process_callback;
 
 	friend class CArtistList;
 	friend class CFindReleaseTree;
 	//..
 
-	void enable_alt(bool is_enabled);
-	void enable(bool is_enabled) override;
-	void setitems(metadb_handle_list track_matching_items) { items = track_matching_items; }
+	void show() override;
+	void hide() override;
+	void enable(bool enabled) override;
 
-	//serves credits dlg test/preview
-	metadb_handle_list getitems() {	return items; }
+	void enable_alt(bool enabled);
+
+	//serves track_matching dlg->go_back()
+	void SetItems(metadb_handle_list track_matching_items) { m_items = track_matching_items; }
 
 	//serves EnterKeySubclassProc
 	bool ForwardVKReturn();
-
-public:
 
 	enum { IDD = IDD_DIALOG_FIND_RELEASE };
 
@@ -154,11 +154,11 @@ public:
 	enum flg_fr {
 		FLG_PROFILE_DLG_SHOW        = 1 << 0,
 		FLG_PROFILE_DLG_ATTACHED    = 1 << 1,
-		FLG_SHOW_RELEASE_TREE_STATS = 1 << 2
+		FLG_SHOW_RELEASE_TREE_STATS = 1 << 2,
+		FLG_RESERVED                = 1 << 3,
+		FLG_RESERVED2               = 1 << 4,
+		FLG_VARIOUS_AS_MULTI_ARTIST = 1 << 5
 	};
-
-	void show() override;
-	void hide() override;
 
 	history_oplog* get_oplogger() { return &m_oplogger; }
 
@@ -176,16 +176,21 @@ public:
 	bool add_history(oplog_type optype, std::string cmd, pfc::string8 ff, pfc::string8 fs, pfc::string8 sf, pfc::string8 ss);
 	bool add_history(oplog_type optype, std::string cmd, rppair row);
 
-	bool Set_Config_Flag(int ID, int flag, bool flagvalue);
+	bool SetConfigFlag(int ID, int flag, bool flagvalue);
 	std::mutex m_loading_selection_rw_mutex;
 	size_t m_loading_selection_id = pfc_infinite;
 
 private:
 
+	//timer
+
 	enum {
 		KTypeFilterTimerID = 0xd21e0907,
 		KTypeFilterTimeOut = 500
 	};
+
+	void KFilterTimerOn(CWindow parent) { m_tickCount = 0; SetTimer(KTypeFilterTimerID, KTypeFilterTimeOut); }
+	void KTurnOffFilterTimer() throw() { KillTimer(KTypeFilterTimerID); }
 
 	//controls
 
@@ -215,6 +220,9 @@ private:
 			hwnd == this->m_edit_release ? oplog_type::release :
 			hwnd == this->m_edit_filter ? oplog_type::filter : oplog_type::filter;
 
+		if (optype == oplog_type::artist && m_va) {
+			return false;
+		}
 
 		//show & capture menu cmd
 
@@ -235,7 +243,7 @@ private:
 			_tcscpy_s(wstrt, MAX_PATH, wide_menu_cmd);
 
 			//input != output ?
-			return (stricmp_utf8(in, menu_cmd) != 0);
+			return ((bool)stricmp_utf8(in, menu_cmd));
 		}
 
 		return false;
@@ -260,7 +268,18 @@ private:
 		}
 	}
 
+	void set_role_label(bool filtered) {
+
+		pfc::string8 note = (PFC_string_formatter() << "main role " << (filtered ? "&& filtered versions" : ""));
+		uSetDlgItemText(m_hWnd, IDC_CHK_FIND_RELEASE_FILTER_ROLEMAIN, note);
+	}
+
 	void init_cfged_dialog_controls();
+
+	bool get_VA_search_str(pfc::string8& out);
+
+	// dlg config
+
 	bool build_current_cfg();
 	void pushcfg();
 
@@ -268,7 +287,7 @@ private:
 
 	std::pair<rppair_t, rppair_t> update_releases(const pfc::string8& filter, updRelSrc updsrc, bool init_expand);
 
-	// get/search artists service callbacks
+	// artist get/search service callbacks
 
 	void on_get_artist_done(cupdRelSrc updsrc, Artist_ptr& artist);
 	void on_search_artist_done(const pfc::array_t<Artist_ptr>& p_artist_exact_matches, const pfc::array_t<Artist_ptr>& p_artist_other_matches, bool append);
@@ -282,23 +301,17 @@ private:
 	void on_expand_master_release_done(const MasterRelease_ptr& master_release, int pos, threaded_process_status& p_status, abort_callback& p_abort);
 	void on_expand_master_release_complete();
 
-	bool full_olcache() { return ol::can_read() && ol::can_write(); };
+	// spawns get_artist_process_callback
 
 	void convey_artist_list_selection(cupdRelSrc in_cupdsrc);
 
-	// on write tags
+	// spawns process_release_callback
 
-	void on_write_tags(const pfc::string8& release_id);
+	void trigger_release(const pfc::string8& release_id);
 
 	//..
 
 	bool id_from_url(HWND hwndCtrl, pfc::string8& out);
-
-	void set_role_label(bool filtered) {
-
-		pfc::string8 note = (PFC_string_formatter() << "main role " << (filtered ? "&& filtered versions" : ""));
-		uSetDlgItemText(m_hWnd, IDC_CHK_FIND_RELEASE_FILTER_ROLEMAIN, note);
-	}
 
 	//filter box delay/timer
 	bool is_filter_box_event_enabled() { return m_filter_box_events_enabled; }
@@ -308,16 +321,16 @@ private:
 	bool is_filter_autofill_enabled() { return m_filter_box_autofill_enabled; }
 	void block_autofill_release_filter(bool blocked) { m_filter_box_autofill_enabled = !blocked; }
 
-	//timer
-	void KFilterTimerOn(CWindow parent) { m_tickCount = 0; SetTimer(KTypeFilterTimerID, KTypeFilterTimeOut); }
-	void KTurnOffFilterTimer() throw() { KillTimer(KTypeFilterTimerID); }
+private:
 
-
-	metadb_handle_list items;
+	metadb_handle_list m_items;
 
 	foo_conf conf;
 	history_oplog m_oplogger;
 	id_tracer m_tracer;
+
+	bool m_va = false;
+	pfc::string8 m_va_search;
 
 	CFindReleaseTree m_dctree;
 	CArtistList m_alist;
@@ -332,7 +345,9 @@ private:
 	CMyEditWithButtons cewb_release_filter;
 	CMyEditWithButtons cewb_release_url;
 
-	CHyperLink artist_link;
+	CHyperLink m_artist_link;
+
+	fb2k::CDarkModeHooks m_dark;
 
 	uint32_t m_tickCount;
 	bool m_filter_box_events_enabled = true;

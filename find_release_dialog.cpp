@@ -30,8 +30,8 @@ void load_global_icons() {
 
 // constructor
 
-CFindReleaseDialog::CFindReleaseDialog(HWND p_parent, metadb_handle_list items, foo_conf cfg) : items(items), conf(cfg),
-cewb_artist_search(), cewb_release_filter(), cewb_release_url(), m_dctree(this, &m_tracer), m_alist(this, &m_tracer) {
+CFindReleaseDialog::CFindReleaseDialog(HWND p_parent, metadb_handle_list items, foo_conf cfg) : m_items(items), conf(cfg),
+m_va(false), cewb_artist_search(), cewb_release_filter(), cewb_release_url(), m_dctree(this, &m_tracer), m_alist(this, &m_tracer) {
 
 	load_global_icons();
 
@@ -68,22 +68,19 @@ CFindReleaseDialog::~CFindReleaseDialog() {
 		awt_save_normal_mode();
 
 		if (!g_discogs->tag_mappings_dialog) {
-			//back to normal mode
-			//lo former, hi current
-			CONF.mode_write_alt = MAKELPARAM(HIWORD(CONF.mode_write_alt), 0);		
-			//todo: destroy g_discogs->tag_mappings_dialog
+			//lo former, hi current: back to normal mode
+			CONF.mode_write_alt = MAKELPARAM(HIWORD(CONF.mode_write_alt), 0);
 		}
 
+#ifdef SIM_VA_MA_BETA_VER
+		//disable 
+		CONF.find_release_dlg_flags &= ~FLG_VARIOUS_AS_MULTI_ARTIST;
+#endif
 		g_discogs->find_release_dialog = nullptr;
-	}
-	else {
-	
-		log_msg("Tracing exit sequence... g_discogs gone cleaning up Find release dialog.");
 	}
 }
 
-//override
-void CFindReleaseDialog::show() {
+void CFindReleaseDialog::show() /*override*/ {
 	
 	if (g_discogs->find_release_artist_dialog) {
 		::ShowWindow(g_discogs->find_release_artist_dialog->m_hWnd, SW_SHOW);
@@ -93,8 +90,7 @@ void CFindReleaseDialog::show() {
 	
 }
 
-//override
-void CFindReleaseDialog::hide() {
+void CFindReleaseDialog::hide() /*override*/ {
 
 	if (g_discogs->find_release_artist_dialog) {
 		::ShowWindow(g_discogs->find_release_artist_dialog->m_hWnd, SW_HIDE);
@@ -104,7 +100,8 @@ void CFindReleaseDialog::hide() {
 
 }
 
-void CFindReleaseDialog::enable(bool is_enabled) {
+void CFindReleaseDialog::enable(bool is_enabled) /*override*/ {
+	//..
 }
 
 void CFindReleaseDialog::enable_alt(bool is_enabled) {
@@ -171,7 +168,6 @@ inline bool CFindReleaseDialog::build_current_cfg() {
 	return bres;
 }
 
-
 void CFindReleaseDialog::init_cfged_dialog_controls() {
 
 	// TEXT BOX RETURN OVERRIDE
@@ -205,24 +201,19 @@ void CFindReleaseDialog::init_cfged_dialog_controls() {
 	// tree stats
 
 	if (conf.find_release_dlg_flags & flg_fr::FLG_SHOW_RELEASE_TREE_STATS) {
-		//do not save
-		print_root_stats(m_row_stats, false);
+		print_root_stats(m_row_stats, false/*save*/);
 	}
 	else {
 		
 		pfc::string8 artist_name = m_alist.Get_Artist() ? m_alist.Get_Artist()->name : "";
 		pfc::string8 artist_id = m_alist.Get_Artist() ? m_alist.Get_Artist()->id : "";
 		rppair row_stats{ std::pair("",""), std::pair(artist_name, artist_id) };
-		//do not overwrite
+
 		print_root_stats(row_stats, /*overwrite*/ !m_row_stats.second.first.get_length());
 	}
 }
 
-//
-
 // message map
-
-//
 
 LRESULT CFindReleaseDialog::OnButtonNext(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 
@@ -230,10 +221,9 @@ LRESULT CFindReleaseDialog::OnButtonNext(WORD /*wNotifyCode*/, WORD wID, HWND /*
 	release_id = trim(uGetWindowText(m_edit_release).c_str());
 
 	if (is_number(release_id.c_str()) || id_from_url(m_edit_release, release_id)) {
-	
-		// ON WRITE TAGS
 
-		on_write_tags(release_id);
+		trigger_release(release_id);
+
 	}
 
 	return TRUE;
@@ -247,15 +237,10 @@ bool CFindReleaseDialog::ForwardVKReturn()
 	HWND hwnd = GetFocus();
 	
 	if (hwnd == m_artist_list) {
-		
-		//to artist list
-		wchar_t buffer[128] = {};
-		::GetClassName(hwnd, buffer, (int)(std::size(buffer) - 1));
-
-		const wchar_t* cls = buffer;
 
 		m_alist.Default_Action();
 		return true;
+
 	}
 	else if (hwnd == m_release_tree) {
 
@@ -287,14 +272,54 @@ bool OAuthCheck(const foo_conf& conf) {
 	return true;
 }
 
-//
-
 // on init dialog
-
-//
 
 #define OVRCEDIT
 #define VKHOOK
+
+
+bool CFindReleaseDialog::get_VA_search_str(pfc::string8& out) {
+
+	size_t max_search_artists = 3;
+	size_t ileft = max_search_artists;
+	std::vector<pfc::string8> vsa;
+
+	for (auto witem : m_items) {
+		bool badd = false;
+		pfc::string8 buffer;
+		witem->format_title(nullptr, buffer, m_artist_name_script, nullptr);
+		if (ileft == max_search_artists) {
+			if (buffer.get_length()) {
+				badd = true;
+			}
+		}
+		else {
+			if (std::find(vsa.begin(), vsa.end(), buffer) == vsa.end()) {
+				badd = true;
+			}
+		}
+		if (badd) {
+			vsa.emplace_back(buffer);
+			--ileft;
+		}
+		if (!ileft) {
+			break;
+		}
+	}
+
+	std::ostringstream oss;
+	if (vsa.size() > 1)
+	{
+		std::copy(vsa.begin(), vsa.end() - 1, std::ostream_iterator<pfc::string8>(oss, "+"));
+		oss << vsa.back();
+		out = oss.str().c_str();
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
 
 LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
 
@@ -318,22 +343,14 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	cewb_artist_search.SetEnterEscHandlers();
 	cewb_release_url.SetEnterEscHandlers();
 
-	artist_link.SubclassWindow(GetDlgItem(IDC_STATIC_FIND_REL_STATS));
-	COLORREF lnktx = IsDark() ? GetSysColor(/*COLOR_BTNHIGHLIGHT*/COLOR_MENUHILIGHT) : (COLORREF)(-1);
-	artist_link.m_clrLink = lnktx;
-	artist_link.m_clrVisited = lnktx;
-	// init cfged
+	m_artist_link.SubclassWindow(GetDlgItem(IDC_STATIC_FIND_REL_STATS));
+	COLORREF lnktx = m_dark.IsDark() ? GetSysColor(/*COLOR_BTNHIGHLIGHT*/COLOR_MENUHILIGHT) : (COLORREF)(-1);
+	m_artist_link.m_clrLink = lnktx;
+	m_artist_link.m_clrVisited = lnktx;
 
+	// init cfged
 	init_cfged_dialog_controls();
 
-
-	//init versions-roles checkboxes
-	if (conf.find_release_filter_flag & FilterFlag::Versions) {
-		uButton_SetCheck(m_hWnd, IDC_CHK_FIND_RELEASE_FILTER_VERS, true);
-	}
-	if (conf.find_release_filter_flag & FilterFlag::RoleMain) {
-		uButton_SetCheck(m_hWnd, IDC_CHK_FIND_RELEASE_FILTER_ROLEMAIN, true);
-	}
 	bool db_ready_to_search = false;
 
 	// retreive selection info
@@ -344,29 +361,49 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	
 	// album name, artist name, album artist
 
-	metadb_handle_ptr item = items[0];
-	item->format_title(nullptr, frm_album, m_album_name_script, nullptr);			//ALBUM
-	item->format_title(nullptr, frm_artist, m_artist_name_script, nullptr);			//ARTIST
-	item->format_title(nullptr, frm_album_artist, m_album_artist_script, nullptr);	//ALBUM ARTIST
+	metadb_handle_ptr item = m_items[0];
+	item->format_title(nullptr, frm_album, m_album_name_script, nullptr);           //ALBUM
+	item->format_title(nullptr, frm_artist, m_artist_name_script, nullptr);         //ARTIST
+	item->format_title(nullptr, frm_album_artist, m_album_artist_script, nullptr);  //ALBUM ARTIST
+
+	bool bvarious = STR_EQUAL(frm_album_artist, "VA") || frm_album_artist.has_prefix("VA ");
+	bvarious |= frm_album_artist.toLower().has_prefix("various") /*|| frm_album_artist.toLower().has_prefix("various artists")*/;
+	bvarious |= frm_album_artist.toLower().has_prefix("varios") /*|| frm_album_artist.toLower().has_prefix("varios artistas")*/;
+
+	m_va = bvarious;
+	if (m_va) {
+		pfc::string8 buffer;
+		if (get_VA_search_str(buffer)) {
+			m_va_search = buffer;
+		}
+	}
+
+	//init versions-roles checkboxes
+	if (conf.find_release_filter_flag & FilterFlag::Versions) {
+		uButton_SetCheck(m_hWnd, IDC_CHK_FIND_RELEASE_FILTER_VERS, true);
+	}
+	if (conf.find_release_filter_flag & FilterFlag::RoleMain) {
+		uButton_SetCheck(m_hWnd, IDC_CHK_FIND_RELEASE_FILTER_ROLEMAIN, true);
+	}
+	if (m_va_search.get_length()) {
+		::EnableWindow(uGetDlgItem(IDC_CHK_FIND_RELEASE_FILTER_ROLEMAIN), false);
+		conf.find_release_filter_flag &= ~(FilterFlag::RoleMain);
+	}
 
 	// init tracer
 
-	m_tracer.init_tracker_tags(items);
-
-	//..
+	m_tracer.init_tracker_tags(m_items);
 
 	// use album artist or artist name
 
 	const char* artist = frm_album_artist.get_length() ? frm_album_artist.get_ptr() :
 		frm_artist.get_length() ? frm_artist.get_ptr() : "";
 
-	bool bvarious = STR_EQUAL(frm_artist.toLower(), "various") || STR_EQUAL(frm_artist.toLower(), "various artists");
-
 	//init artist search/release id textboxes
 
 	if (!m_tracer.has_release() && CONF.awt_alt_mode()) {
 		file_info_impl finfo;
-		metadb_handle_ptr item = items[0];
+		metadb_handle_ptr item = m_items[0];
 		item->get_info(finfo);
 
 		pfc::string8 release_id;
@@ -383,8 +420,14 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	else {
 		uSetWindowText(m_edit_release, m_tracer.has_release() ? std::to_string(m_tracer.release_id).c_str() : "");
 	}
-	uSetWindowText(m_edit_artist, artist ? artist : "");
-	
+
+	if (m_va && m_va_search.get_length()) {
+		uSetWindowText(m_edit_artist, m_va_search);
+		uSetWindowText(uGetDlgItem(IDC_BTN_SEARCH), "Search VA");
+	}
+	else {
+		uSetWindowText(m_edit_artist, artist ? artist : "");
+	}
 
 	// dlg resize and dimensions
 
@@ -393,7 +436,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 
 	HWND wndReplace = ::GetDlgItem(m_hWnd, IDC_ARTIST_LIST);
 	m_alist.CreateInDialog(*this, IDC_ARTIST_LIST, wndReplace);
-	m_alist.InitializeHeaderCtrl(HDS_HIDDEN);	
+	m_alist.InitializeHeaderCtrl(HDS_HIDDEN);
 	m_artist_list = m_alist.m_hWnd;
 	if (CONF.awt_alt_mode()) {
 		//..
@@ -402,15 +445,15 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 		m_alist.Inititalize();
 	}
 
-	m_dctree.Inititalize(m_release_tree, m_edit_filter, m_edit_release, items, frm_album /*ALBUM*/);
+	m_dctree.Inititalize(m_release_tree, m_edit_filter, m_edit_release, m_items, frm_album /*ALBUM*/);
 
 	SetWindowSubclass(m_artist_list, EnterKeySubclassProc, 0, 0);
 	SetWindowSubclass(m_release_tree, EnterKeySubclassProc, 0, 0);
 
 	// dark mode
 
-	AddDialog(m_hWnd);
-	AddControls(m_hWnd);
+	m_dark.AddDialog(m_hWnd);
+	m_dark.AddControls(m_hWnd);
 
 	CustomFont(m_hWnd, HIWORD(conf.custom_font));
 
@@ -418,38 +461,39 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 		bool brelease_ided = m_tracer.release_tag && m_tracer.release_id != pfc_infinite;
 		bool bskip_ided = conf.skip_mng_flag & SkipMng::RELEASE_DLG_IDED;
 
-		bool cfg_always_load_artist_ided_preview = true && !CONF.mode_write_alt;
+		bool cfg_always_load_artist_ided_preview = /*force*/true && !CONF.awt_alt_mode();
 
 		if (!(bskip_ided && brelease_ided)) {
 
 			//route
-			route_artist_search(artist, false, m_tracer.artist_tag);
+			pfc::string8 artist_meta = trim(uGetWindowText(m_edit_artist));
+			route_artist_search(artist_meta, false, m_tracer.artist_tag);
 		}
 		else 
 		{
 			if (cfg_always_load_artist_ided_preview && m_tracer.artist_tag) {
 
 				//route
-				route_artist_search(artist, false, true);
+				pfc::string8 artist_meta = trim(uGetWindowText(m_edit_artist));
+				route_artist_search(artist_meta, false, true);
 			}
 		}
 	}
 
 	//..
 
-	//autofill filter textbox (album)
+	//album filter textbox
 
 	block_filter_box_events(true);
-	//if (m_tracer.is_multi_artist() || !m_tracer.has_amr() || !conf.enable_autosearch) {
-		uSetWindowText(m_edit_filter, frm_album);
-	//}
+
+	uSetWindowText(m_edit_filter, frm_album);
 
 	block_filter_box_events(false);
 
 	HWND hwnd = uGetDlgItem(IDC_STATIC_FIND_REL_SEARCH_STATS);
 	::ShowWindow(hwnd, SW_HIDE);
 
-	// SHOW RELEASES DLG OR SKIP TO MATCH TRACKS
+	// SHOW RELEASE DLG OR SKIP TO MATCH TRACKS
 
 	if (OAuthCheck(conf) || (db_ready_to_search)) {
 
@@ -462,7 +506,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 		if (bskip_ided && brelease_ided) {
 
 			//.. skip find release dialog
-			on_write_tags(std::to_string(m_tracer.release_id).c_str());
+			trigger_release(std::to_string(m_tracer.release_id).c_str());
 
 			//..
 
@@ -522,6 +566,7 @@ LRESULT CFindReleaseDialog::OnContextMenu(UINT uMsg, WPARAM wParam, LPARAM lPara
 }
 
 LRESULT CFindReleaseDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
+
 	pushcfg();
 	if (g_discogs) {
 		//destroy artist panel instance
@@ -529,9 +574,6 @@ LRESULT CFindReleaseDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /
 			&& (conf.find_release_dlg_flags & (FLG_PROFILE_DLG_SHOW | FLG_PROFILE_DLG_ATTACHED)) == (FLG_PROFILE_DLG_SHOW | FLG_PROFILE_DLG_ATTACHED)) {
 			g_discogs->find_release_artist_dialog->DestroyWindow();
 		}		
-	}
-	else {
-		log_msg("Tracing exit sequence... g_discogs gone destroying Find Release dialog.");
 	}
 
 	cfg_dialog_position_find_release_dlg.RemoveWindow(m_hWnd);
@@ -542,7 +584,6 @@ LRESULT CFindReleaseDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /
 LRESULT CFindReleaseDialog::OnButtonSearch(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 
 	pfc::string8 artist_meta = trim(uGetWindowText(m_edit_artist));
-
 	bool force_get_by_id = id_from_url(m_edit_artist, artist_meta);
 
 	if (artist_meta.get_length()) {
@@ -569,7 +610,7 @@ void CFindReleaseDialog::on_get_artist_done(cupdRelSrc updsrc, Artist_ptr& artis
 
 	cupdRelSrc cupdsrc = updsrc;
 	if (cupdsrc == updRelSrc::ArtistProfile) {
-		cupdsrc.extended |= full_olcache() && conf.auto_rel_load_on_select;
+		cupdsrc.extended |= ol::full_cache() && conf.auto_rel_load_on_select;
 	}
 	if (cupdsrc.oninit || cupdsrc == updRelSrc::ArtistList || (!cupdsrc.oninit && cupdsrc == updRelSrc::ArtistProfile && cupdsrc.extended)) {
 		m_dctree.on_get_artist_done(cupdsrc, artist);
@@ -634,16 +675,8 @@ std::pair<rppair_t, rppair_t> CFindReleaseDialog::update_releases(const pfc::str
 }
 
 
-void CFindReleaseDialog::apply_filter(pfc::string8 strFilter, bool force_redraw, bool force_rebuild) {
-
-	// forwarded apply_filter
-
-	m_dctree.apply_filter(strFilter, force_redraw, force_rebuild);
-
-}
-
-void CFindReleaseDialog::OnTypeFilterTimer(WPARAM id) {
-
+void CFindReleaseDialog::OnTypeFilterTimer(WPARAM id)
+{
 	if (id == KTypeFilterTimerID) {
 
 		switch (++m_tickCount) {
@@ -654,22 +687,44 @@ void CFindReleaseDialog::OnTypeFilterTimer(WPARAM id) {
 		case 3:
 
 			pfc::string8 strFilter = trim(uGetWindowText(m_edit_filter));
-			if (!is_filter_autofill_enabled() && strFilter.get_length()) {
-				rppair row;
-				row.first.first = strFilter;
-				add_history(oplog_type::filter, kHistoryFilterButton, row);
+				if (!is_filter_autofill_enabled() && strFilter.get_length()) {
+					rppair row;
+					row.first.first = strFilter;
+					try {
+						add_history(oplog_type::filter, kHistoryFilterButton, row);
+					}
+					catch (foo_discogs_exception e) {
+						pfc::string8 error;
+						error << ("(skipped) ") << e.what() << "\n";
+						completion_notify::ptr reply;
+						popup_message_v3::query_t query = { "Information",
+							error.c_str(), popup_message::icon_error,
+							popup_message_v3::buttonOK,
+							popup_message_v3::iconQuestion,
+							reply
+						};
+						popup_message_v3::get()->show_query_modal(query);
+					}
+				}
+
+				//..
+
+				apply_filter(strFilter);
+
+				//..
+
+				KillTimer(KTypeFilterTimerID);
+				break;
 			}
-
-			//..
-
-			apply_filter(strFilter);
-
-			//..
-
-			KillTimer(KTypeFilterTimerID);
-			break;
 		}
-	}
+}
+
+void CFindReleaseDialog::apply_filter(pfc::string8 strFilter, bool force_redraw, bool force_rebuild) {
+
+	// forwarded apply_filter
+
+	m_dctree.apply_filter(strFilter, force_redraw, force_rebuild);
+
 }
 
 LRESULT CFindReleaseDialog::OnEditFilter(WORD wNotifyCode, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
@@ -788,7 +843,7 @@ LRESULT CFindReleaseDialog::OnButtonConfigure(WORD /*wNotifyCode*/, WORD wID, HW
 }
 
 //todo: rev
-void CFindReleaseDialog::on_write_tags(const pfc::string8& release_id) {
+void CFindReleaseDialog::trigger_release(const pfc::string8& release_id) {
 	if (std::atoi(release_id) == 0) {
 		uMessageBox(m_hWnd, "Release Id non-valid Release Id, unable to continue.", "foo_discogger: Error", MB_APPLMODAL | MB_ICONASTERISK);
 		return;
@@ -824,7 +879,7 @@ void CFindReleaseDialog::on_write_tags(const pfc::string8& release_id) {
 	}
 
 	try {
-		service_ptr_t<process_release_callback> task = new service_impl_t<process_release_callback>(this, release_id, offline_artist_id, "", items);
+		service_ptr_t<process_release_callback> task = new service_impl_t<process_release_callback>(this, release_id, offline_artist_id, "", m_items);
 		task->start(m_hWnd);
 	}
 	catch (locked_task_exception e)
@@ -895,7 +950,7 @@ void CFindReleaseDialog::convey_artist_list_selection(cupdRelSrc cupdsrc) {
 
 	need_data |= need_releases;
 
-	if (full_olcache() && cupdsrc == updRelSrc::ArtistProfile && conf.auto_rel_load_on_select) {
+	if (ol::full_cache() && cupdsrc == updRelSrc::ArtistProfile && conf.auto_rel_load_on_select) {
 		need_data = true;
 	}
 	// UPDATE DLG CONTROLS WITH SELECTED PROFILE DATA OR LAUNCH TASK TO COLLECT IT
@@ -907,6 +962,11 @@ void CFindReleaseDialog::convey_artist_list_selection(cupdRelSrc cupdsrc) {
 			std::lock_guard<std::mutex> guard(m_loading_selection_rw_mutex);
 
 			m_loading_selection_id = atoi(artist.get()->id);
+		}
+
+		if (artist->id.equals("0") || artist->id.equals("194"/*various artists*/)) {
+			g_discogs->find_release_dialog->on_get_artist_done(cupdsrc, artist);
+			return;
 		}
 
 		service_ptr_t<get_artist_process_callback> task =
@@ -975,14 +1035,14 @@ void CFindReleaseDialog::route_artist_search(pfc::string8 artistname, bool dlgbu
 				cupdsrc.extended |= conf.auto_rel_load_on_open;
 			}
 			else if (updsrc == updRelSrc::ArtistProfile) {
-				cupdsrc.extended |= full_olcache() && conf.auto_rel_load_on_select;
+				cupdsrc.extended |= ol::full_cache() && conf.auto_rel_load_on_select;
 			}
 			
 			bool bmulti_artist = !(dlgbutton && idded) && m_tracer.is_multi_artist();
 			if (bmulti_artist) {
 
-				service_ptr_t<get_various_artists_process_callback> task =
-					new service_impl_t<get_various_artists_process_callback>(cupdsrc, m_tracer.get_vartist_ids());
+				service_ptr_t<get_multi_artists_process_callback> task =
+					new service_impl_t<get_multi_artists_process_callback>(cupdsrc, m_tracer.get_vartist_ids());
 
 				task->start(m_hWnd);
 		}
@@ -995,7 +1055,7 @@ void CFindReleaseDialog::route_artist_search(pfc::string8 artistname, bool dlgbu
 		}
 		else if (by_name && !CONF.awt_alt_mode()) {
 			service_ptr_t<search_artist_process_callback> task =
-				new service_impl_t<search_artist_process_callback>(artistname.get_ptr(), 0);
+				new service_impl_t<search_artist_process_callback>(artistname.get_ptr(), m_va, 0);
 			task->start(m_hWnd);
 		}
 	}
@@ -1075,17 +1135,16 @@ void CFindReleaseDialog::print_root_stats(rppair root_stats, bool save) {
 		stat_msg << " - Masters: " << root_stats.first.first;
 	}
 
-
 	if (root_stats.second.first.get_length()) {
 
 		pfc::string8 url("https://www.discogs.com/artist/");
 		url << root_stats.second.second;
 		pfc::stringcvt::string_wide_from_utf8 wtext(url.get_ptr());
-		artist_link.SetHyperLink((LPCTSTR)const_cast<wchar_t*>(wtext.get_ptr()));
+		m_artist_link.SetHyperLink((LPCTSTR)const_cast<wchar_t*>(wtext.get_ptr()));
 		wtext.convert(root_stats.second.first);
-		artist_link.SetLabel(wtext.get_ptr());
-		CRect rc; ::GetWindowRect(artist_link, &rc);
-		artist_link.RedrawWindow(0, 0, RDW_INVALIDATE);
+		m_artist_link.SetLabel(wtext.get_ptr());
+		CRect rc; ::GetWindowRect(m_artist_link, &rc);
+		m_artist_link.RedrawWindow(0, 0, RDW_INVALIDATE);
 	}
 	else {
 		stat_msg = "";
@@ -1093,8 +1152,9 @@ void CFindReleaseDialog::print_root_stats(rppair root_stats, bool save) {
 
 	uSetDlgItemText(m_hWnd, IDC_STATIC_FIND_REL_STATS_EXT, stat_msg);
 
-	if (save)
+	if (save) {
 		m_row_stats = root_stats;
+	}
 }
 
 
@@ -1192,11 +1252,10 @@ bool CFindReleaseDialog::add_history(oplog_type optype, std::string cmd, rppair 
 	return add_history(optype, cmd, row.first.first, row.first.second, row.second.first, row.second.second);
 }
 
-bool CFindReleaseDialog::Set_Config_Flag(int ID, int flag, bool flagvalue) {
+bool CFindReleaseDialog::SetConfigFlag(int ID, int flag, bool flagvalue) {
 	
 	FlgMng fv_stats;
 	conf.GetFlagVar(ID, fv_stats);
-	
 	fv_stats.SetFlag(flag, flagvalue);
 	return true;
 }

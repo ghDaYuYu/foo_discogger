@@ -1182,7 +1182,7 @@ namespace Discogs
 	extern void parseImages(json_t *array, pfc::array_t<Image_ptr> &images);
 	extern Image_ptr parseImage(json_t *element);
 
-	extern void parseArtistReleases(json_t *element, Artist *artist);
+	extern void parseArtistReleases(json_t *element, Artist *artist, bool bva_artists);
 	extern void parseMasterVersions(json_t *element, MasterRelease *master_release);
 
 	extern ReleaseArtist_ptr parseReleaseArtist(json_t *element, bool preload = false);

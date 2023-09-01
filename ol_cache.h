@@ -34,6 +34,7 @@ namespace Offline {
 	static bool can_read() { return CONF.cache_offline_cache_flag & CacheFlags::OC_READ; }
 	static bool can_write() { return CONF.cache_offline_cache_flag & CacheFlags::OC_WRITE; }
 	static bool can_ovr() { return CONF.cache_offline_cache_flag & CacheFlags::OC_OVERWRITE; }
+	static bool full_cache() { return can_read() && can_write(); }
 
 	static pfc::string8 get_offline_path(pfc::string8 id, GetFrom gfFrom, pfc::string8 secId, bool native) {
 

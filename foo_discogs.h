@@ -4,6 +4,7 @@
 
 #include "version.h"
 #include "discogs_interface.h"
+
 #include "tags.h"
 #include "error_manager.h"
 #include "string_encoded_array.h"
@@ -12,6 +13,8 @@
 using namespace Discogs;
 
 const UINT WM_CUSTOM_ANV_CHANGED = WM_USER + 100;
+const UINT WM_CUSTOM_VA_AS_MULTI_ARTIST_CHANGED = WM_USER + 101;
+
 
 class CFindReleaseDialog;
 class CFindReleaseArtistDialog;
@@ -26,7 +29,7 @@ class CUpdateTagsDialog;
 class contextmenu_discogs;
 class process_release_callback;
 class get_artist_process_callback;
-class get_various_artists_process_callback;
+class get_multi_artists_process_callback;
 class search_artist_process_callback;
 class edit_complete;
 

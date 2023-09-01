@@ -1947,9 +1947,15 @@ void Discogs::parseMasterRelease(MasterRelease *master_release, json_t *root) {
 
 }
 
-void Discogs::parseArtistReleases(json_t *root, Artist *artist) {
+void Discogs::parseArtistReleases(json_t *root, Artist *artist, bool bva_artists) {
 	try {
-		json_t* releases = json_object_get(root, "releases");
+		json_t* releases;
+		if (bva_artists) {
+			releases = json_object_get(root, "results");
+		}
+		else {
+			releases = json_object_get(root, "releases");
+		}
 		if (json_is_array(releases)) {
 
 			for (size_t i = 0; i < json_array_size(releases); i++) {
@@ -2002,39 +2008,52 @@ void Discogs::parseArtistReleases(json_t *root, Artist *artist) {
 							}
 						}
 						if (!duplicate) {
-							release->loaded_preview = true;
+
+							release->loaded_preview = !bva_artists; /*no main release ID in VA results*/
 							artist->master_releases.append_single(std::move(release));
 							artist->search_order_master.append_single(true);
 
 						}
 					}
-					else {
+					else if (STR_EQUAL(type, "release")) {
 
 						// NON-MASTER RELASE & RELEASES
 
 						size_t lkey = encode_mr(artist->search_role_list_pos, JSONAttributeString(rel, "id"));
-						Release_ptr release = discogs_interface->get_release(lkey, decode_mr(lkey).second);
-
+						Release_ptr release = discogs_interface->get_release(lkey);
 
 						void* iter = json_object_iter((json_t*)rel);
 
 						if (!release->loaded_preview) {
 
+							release->master_id = JSONAttributeString(rel, "master_id");
+
 							release->title = JSONAttributeString(rel, "title");
 							release->search_labels = JSONAttributeString(rel, "label");
 
-							pfc::string8 all_formats = JSONAttributeString(rel, "format");
+							release->search_catno = JSONAttributeString(rel, "catno");
+							release->release_year = JSONAttributeString(rel, "year");
+							release->country = JSONAttributeString(rel, "country");
+
+							pfc::string8 all_formats;
 							pfc::array_t<pfc::string8> flist;
-							tokenize(all_formats, ",", flist, false);
+							if (bva_artists) {
+								flist = JSONAttributeStringArray(rel, "format");
+								all_formats = pfc::format_array(flist);
+							}
+							else {
+								all_formats = JSONAttributeString(rel, "format");
+								
+								tokenize(all_formats, ",", flist, false);
+							}
 							tokenize(flist[0], ",", release->search_major_formats, false);
 							t_size formats_cpos = flist[0].get_length();
 							release->search_formats = ltrim(substr(all_formats, formats_cpos + 1, all_formats.get_length() - formats_cpos));
-							release->search_catno = JSONAttributeString(rel, "catno");
-							release->release_year = JSONAttributeString(rel, "year");
+
 							if (release->release_year.get_length() == 0) {
 								release->release_year = getYearFromReleased(JSONAttributeString(rel, "released"));
 							}
-							release->country = JSONAttributeString(rel, "country");
+
 							release->search_role = JSONAttributeString(rel, "role");
 							release->search_roles.add_item(JSONAttributeString(rel, "role"));
 						}
@@ -2056,11 +2075,15 @@ void Discogs::parseArtistReleases(json_t *root, Artist *artist) {
 						}
 						if (!duplicate) {
 
-							release->loaded_preview = true;
-							artist->releases.append_single(std::move(release));
-							artist->search_order_master.append_single(false);
-
+							release->loaded_preview = /*!bva_artists*/true;
+							if (!(bva_artists && atoi(release->master_id))) {
+								artist->releases.append_single(std::move(release));
+								artist->search_order_master.append_single(false);
+							}
 						}
+					}
+					else {
+						// ..
 					}
 				}
 			}

@@ -88,8 +88,8 @@ BEGIN
     GROUPBOX        "Writing tags",IDC_GRP_STATIC_CFG_WRITE_TAGS,6,25,308,67
     CONTROL         "Skip preview tags dialog by default",IDC_CHK_SKIP_PREVIEW_DIALOG,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,37,134,10
-    CONTROL         "Remove any pre-existing tags",IDC_CHK_REMOVE_OTHER_TAGS,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,49,134,10
+    CONTROL         "Remove any pre-existing tags (excl. those defined in Tag mapping)",IDC_CHK_REMOVE_OTHER_TAGS,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,49,235,10
     LTEXT           "Excluding (comma separated):",IDC_STATIC,28,63,115,9
     EDITTEXT        IDC_EDIT_REMOVE_EXCLUDING_TAGS,28,73,278,14,ES_AUTOHSCROLL,WS_EX_CLIENTEDGE
     GROUPBOX        "Artist names",IDC_GRP_STATIC_CFG_ARTIST_NAMES,6,96,308,52
@@ -165,6 +165,8 @@ BEGIN
     CONTROL         "Save all images",IDC_CHK_ARTIST_ART_FETCH_ALL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,36,194,65,10
     CONTROL         "Overwrite existing files",IDC_CHK_ARTIST_ART_OVERWRITE,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,109,194,89,10
+    CONTROL         "Beta: Include all artists credited in tracks (auto reset)",IDC_CHK_CFG_ART_SIM_VA,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,216,196,10
 END
 
 IDD_DIALOG_CONF_UI DIALOGEX 0, 0, 319, 233
@@ -333,7 +335,8 @@ BEGIN
     PUSHBUTTON      "OK",IDOK,76,195,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,128,195,50,14
     PUSHBUTTON      "Apply",IDC_APPLY,180,195,49,14
-    PUSHBUTTON      "&Add id3...",IDC_SPLIT_BTN_TAG_ID3_ADD_NEW,110,4,40,14
+    PUSHBUTTON      "&Std. tags...",IDC_SPLIT_BTN_TAG_ID3_ADD_NEW,106,4,44,14
+    LTEXT           "Tip",IDC_STATIC_TAG_TIP,64,198,0,8,NOT WS_VISIBLE
 END
 
 IDD_DIALOG_PREVIEW_LEADING_TAG DIALOGEX 0, 0, 283, 213

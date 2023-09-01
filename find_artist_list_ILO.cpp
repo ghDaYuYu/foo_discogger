@@ -33,9 +33,19 @@ void ILOD_artist_list::listItemAction(ctx_t, size_t) {
 }
 
 void ILOD_artist_list::listSelChanged(ctx_t) {
-	bool full_cache = ol::can_read() && ol::can_write();
+
+	bool bva = false;
+
+	if (get_uilist()->Get_Artists().get_count() == 1) {
+		auto artist = get_uilist()->Get_Artists()[0];
+		if (artist->id.equals("194")/*various artists*/) {
+			get_uilist()->Default_Action();
+			return;
+		}
+	}
+
 	cupdRelSrc in_cupdsrc(updRelSrc::ArtistProfile);
-	in_cupdsrc.extended = full_cache && CONF.auto_rel_load_on_select;
+	in_cupdsrc.extended = (ol::full_cache() && CONF.auto_rel_load_on_select);
 
 	auto dlg = dynamic_cast<CFindReleaseDialog*>(this);
 	dlg->convey_artist_list_selection(in_cupdsrc);

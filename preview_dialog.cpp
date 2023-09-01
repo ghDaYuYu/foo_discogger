@@ -229,10 +229,10 @@ inline bool get_diff_release_name(TagWriter_ptr tag_writer, pfc::string8& rel_de
 CPreviewTagsDialog::~CPreviewTagsDialog() {
 
 	awt_save_normal_mode();
-	
+
 	if (::IsWindow(m_uilist.m_hWnd)) {
-		//todo: rev latest libPPUI updates
 		m_uilist.SetSelection(bit_array_true(), bit_array_false());
+
 		if (m_uilist.TableEdit_IsActive()) {
 			m_uilist.TableEdit_Abort(true);
 		}
@@ -314,8 +314,22 @@ LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	init_other_controls_and_results();
 
 	//add rec icon to write tags button
-	HWND write_btn = GetDlgItem(IDC_BTN_WRITE_TAGS);
-	::SendMessageW(write_btn, BM_SETIMAGE, IMAGE_BITMAP, (LPARAM)g_hIcon_rec);
+	if (IsWine()) {
+		HWND hwndWriteTags = GetDlgItem(IDC_BTN_WRITE_TAGS);
+		pfc::string8 wine_text;
+		uGetWindowText(hwndWriteTags, wine_text);
+		wine_text.set_string(PFC_string_formatter() << u8"☰" << "  " << wine_text);
+		TCHAR outBuffer[MAX_PATH + 1] = {};
+		pfc::stringcvt::convert_utf8_to_wide(outBuffer, MAX_PATH,
+			wine_text.get_ptr(), wine_text.get_length());
+
+		::SetWindowText(hwndWriteTags, outBuffer);
+	}
+	else {
+		HWND hwndWriteTags = GetDlgItem(IDC_BTN_WRITE_TAGS);
+		::SendMessageW(hwndWriteTags, BM_SETIMAGE, IMAGE_BITMAP, (LPARAM)g_hIcon_rec);
+	}
+
 	HWND hwndSmallPreview = GetDlgItem(IDC_ALBUM_ART);
 
 	LPARAM stl = ::uGetWindowLong(hwndSmallPreview, GWL_STYLE);
@@ -384,8 +398,8 @@ LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	SendMessage(m_hWnd, WM_NEXTDLGCTL, (WPARAM)hwndDefaultControl, TRUE);
 
 	//darkmode
-	AddDialog(m_hWnd);
-	AddControls(m_hWnd);
+	m_dark.AddDialog(m_hWnd);
+	m_dark.AddControls(m_hWnd);
 
 	show();
 	return FALSE;
@@ -450,7 +464,7 @@ bool CPreviewTagsDialog::context_menu_show(HWND wnd, size_t isel, LPARAM lParamP
 		uAppendMenu(menu, MF_SEPARATOR, 0, 0);
 
 		if (b_result_list) {
-			if (bselection) {
+			if (bsingle_selection) {
 
 				bool binplace = is_result_editable(isel);
 				uAppendMenu(menu, MF_STRING, ID_PREVIEW_CMD_EDIT_RESULT_TAG, "&Edit");
@@ -534,17 +548,18 @@ bool CPreviewTagsDialog::context_menu_switch(HWND wnd, POINT point, int cmd, bit
 #pragma warning( push )
 #pragma warning( disable :26816 )
 
-	// WRITE ALL TAGS
+	// WRITE TAGS
 	case ID_PREVIEW_CMD_WRITE_TAGS: {
 	
 		m_tag_writer->ResetMask();
 
+		//todo: param 1 to stick or crash
 		BOOL bDummy;
 		return OnButtonWriteTags(0, 1, NULL, bDummy);
 		break;
 	}
 
-	// WRITE SELECTED TAGS - WRITE AND UPDATE
+	// WRITE TAGS FORCE WRITE AND UPDATE
 	case ID_PREVIEW_CMD_WRITE_TAGS_MASK_FORCE_WU:
 
 		m_tag_writer->tag_results_mask_force_wu = true;
@@ -557,7 +572,7 @@ bool CPreviewTagsDialog::context_menu_switch(HWND wnd, POINT point, int cmd, bit
 		pfc::bit_array_bittable tag_mask(bit_array_false(), TAGS.get_count());
 		auto fpos = 0;
 		while ((fpos = selmask.find_first(true, fpos, selmask.size())) < selmask.size()) {
-
+	
 			tag_mask.set(fpos, true);
 			fpos++;
 		}
@@ -859,12 +874,12 @@ LRESULT CPreviewTagsDialog::OnButtonWriteTags(WORD /*wNotifyCode*/, WORD wID, HW
 		service_ptr_t<write_tags_task> task = new service_impl_t<write_tags_task>(m_tag_writer);
 		task->start();
 	}
-	catch (locked_task_exception e)
+	catch (.../*locked_task_exception e*/)
 	{
-		log_msg(e.what());
+		log_msg("exception executing write tags task"/*e.what()*/);
 	}
 
-	if (!(CONF.tag_save_flags & TAGSAVE_PREVIEW_STICKY_FLAG) && !wID) {
+	if (!(CONF.tag_save_flags & TAGSAVE_PREVIEW_STICKY_FLAG) && (wID == IDC_BTN_WRITE_TAGS || !wID)) {
 		destroy_all();
 	}
 	return TRUE;
@@ -1053,9 +1068,7 @@ void CPreviewTagsDialog::compute_stats_track_map(pfc::bit_array_bittable list_ma
 						subupdates++; subskips > 0 ? subskips-- : 0;
 					}
 					if (usr_approved) {
-
 						tag_result_ptr usr_res = m_tag_writer->tag_results[walk_tag];
-
 						usr_res->result_approved = true;
 						usr_res->r_usr_approved.resize(walk_tk + 1); usr_res->r_usr_approved.set(walk_tk, usr_approved);
 						usr_res->r_usr_modded.resize(walk_tk + 1); usr_res->r_usr_modded.set(walk_tk, usr_approved);
@@ -1065,7 +1078,6 @@ void CPreviewTagsDialog::compute_stats_track_map(pfc::bit_array_bittable list_ma
 					tag_result_ptr usr_res = m_tag_writer->tag_results[walk_tag];
 					usr_res->r_usr_modded.resize(walk_tk + 1); usr_res->r_usr_modded.set(walk_tk, false);
 				}
-
 			}
 			else {
 
@@ -1073,15 +1085,11 @@ void CPreviewTagsDialog::compute_stats_track_map(pfc::bit_array_bittable list_ma
 					tag_result_ptr usr_res = m_tag_writer->tag_results[walk_tag];
 					usr_res->r_usr_approved.resize(walk_tk + 1); usr_res->r_usr_approved.set(walk_tk, false);
 					usr_res->r_usr_modded.resize(walk_tk + 1); usr_res->r_usr_modded.set(walk_tk, true);
-
-				
-				
 				}
 				else {
 					tag_result_ptr usr_res = m_tag_writer->tag_results[walk_tag];
 					usr_res->r_usr_modded.resize(walk_tk + 1); usr_res->r_usr_modded.set(walk_tk, false);
 				}
-				
 
 				//no need to update old val = new val for this tag/track
 				stats.totalequal++;
@@ -1139,25 +1147,18 @@ LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam, BOOL& bHand
 	switch (lplvcd->nmcd.dwDrawStage) {
 
 	case CDDS_PREPAINT: {
-
 		auto ctrl = uGetDlgItem(IDC_BTN_WRITE_TAGS);
 		ctrl.EnableWindow(check_write_tags_status());
-
 		ctrl = uGetDlgItem(IDC_CHK_REPLACE_ANV);
 		ctrl.EnableWindow(bresults && m_tag_writer->GetRelease()->has_anv());
-
 		ctrl = uGetDlgItem(IDC_VIEW_NORMAL);
 		ctrl.EnableWindow(bresults);
-
 		ctrl = uGetDlgItem(IDC_VIEW_DIFFERENCE);
 		ctrl.EnableWindow(bresults);
-
 		ctrl = uGetDlgItem(IDC_VIEW_ORIGINAL);
 		ctrl.EnableWindow(bresults);
-
 		ctrl = uGetDlgItem(IDC_VIEW_DEBUG);
 		ctrl.EnableWindow(bresults);
-
 		return CDRF_NOTIFYITEMDRAW;
 	}
 
@@ -1176,8 +1177,6 @@ LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam, BOOL& bHand
 			size_t c_usr_approved = m_tag_writer->tag_results[pos]->r_usr_approved.size();
 			size_t first_usr_modded = m_tag_writer->tag_results[pos]->r_usr_modded.find_first(true, 0, c_usr_modded);
 			size_t first_usr_approved = m_tag_writer->tag_results[pos]->r_usr_approved.find_first(true, 0, c_usr_approved);
-			//bool this_usr_modded = m_tag_writer->tag_results[pos]->r_usr_approved[];
-
 			if (m_tag_writer->tag_results[pos]->r_usr_modded.find_first(true, 0, c_usr_modded) < c_usr_modded) {
 				lplvcd->clrText = CHANGE_USR_APPROVED_RGB;
 				return CDRF_NEWFONT;
@@ -1214,12 +1213,12 @@ LRESULT CPreviewTagsDialog::OnCustomDraw(int idCtrl, LPNMHDR lParam, BOOL& bHand
 
 void CPreviewTagsDialog::enable(bool is_enabled, bool change_focus) {
 
-	HWND ctrlWriteTags = GetDlgItem(IDC_BTN_WRITE_TAGS);
-	::uEnableWindow(ctrlWriteTags, !is_enabled ? FALSE : m_tag_writer->Staging_Results());
+	HWND hwndWriteTags = GetDlgItem(IDC_BTN_WRITE_TAGS);
+	::uEnableWindow(hwndWriteTags, !is_enabled ? FALSE : m_tag_writer->Staging_Results()/*->will_modify/*is_enabled*/);
 
 	for (HWND walk = ::GetWindow(m_hWnd, GW_CHILD); walk != NULL; ) {
 		HWND next = ::GetWindow(walk, GW_HWNDNEXT);
-		if (next != ctrlWriteTags) 
+		if (next != hwndWriteTags)
 			::uEnableWindow(next, is_enabled);
 		walk = next;
 	}

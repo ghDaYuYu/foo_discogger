@@ -11,7 +11,7 @@
 
 class CPreviewTagsDialog : public MyCDialogImpl<CPreviewTagsDialog>,
 	public CDialogResize<CPreviewTagsDialog>, public CMessageFilter,
-	public ILOD_preview, public fb2k::CDarkModeHooks {
+	public ILOD_preview {
 
 public:
 
@@ -176,9 +176,15 @@ private:
 	bool context_menu_show(HWND wnd, size_t isel, LPARAM lParamPos);
 	bool context_menu_switch(HWND wnd, POINT point, int cmd, bit_array_bittable selmask, std::vector<std::pair<std::string, std::string>>vartists);
 
+
+private:
+
 	HWND m_results_list;
 	CListControlOwnerData m_uilist;
 	CTristate m_tristate;
+
+	fb2k::CDarkModeHooks m_dark;
+
 	HBITMAP m_preview_bitmap;
 	foo_conf conf;
 
@@ -186,11 +192,9 @@ private:
 	pfc::bit_array_bittable m_vstats_mask;
 
 	std::vector<std::pair<int, int>> m_vcol_data_subitems;
-
 	bool m_cfg_bshow_stats = false;
 
 	TagWriter_ptr m_tag_writer;
-
 	size_t m_tw_index = 0;
 	size_t m_tw_skip = 0;
 

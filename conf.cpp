@@ -1329,3 +1329,14 @@ bool CConf::awt_mode_changing() {
 bool CConf::awt_alt_mode() {
 	return HIWORD(CONF.mode_write_alt);
 }
+
+#ifdef SIM_VA_MA_BETA
+void g_clear_va_ma_releases() {
+	if (discogs_interface) {
+		for (auto w : g_va_ma_releases) {
+			discogs_interface->delete_artist_cache("", w.c_str());
+		}
+		g_va_ma_releases.clear();
+	}
+}
+#endif

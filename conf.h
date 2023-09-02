@@ -697,3 +697,7 @@ public:
 
 typedef CConf foo_conf;
 inline CConf CONF("Global");
+#ifdef SIM_VA_MA_BETA
+inline std::vector<std::string> g_va_ma_releases;
+extern void g_clear_va_ma_releases();
+#endif

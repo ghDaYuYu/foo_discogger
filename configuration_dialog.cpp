@@ -305,6 +305,7 @@ LRESULT CConfigurationDialog::OnCustomAnvChanged(UINT /*uMsg*/, WPARAM /*wParam*
 	return FALSE;
 }
 
+#ifdef SIM_VA_MA_BETA
 LRESULT CConfigurationDialog::OnCustomVAMulti_Changed(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/) {
 
 	if (g_hWndTabDialog[CONF_ART_TAB]) {
@@ -313,6 +314,7 @@ LRESULT CConfigurationDialog::OnCustomVAMulti_Changed(UINT /*uMsg*/, WPARAM /*wP
 	}
 	return FALSE;
 }
+#endif
 
 LRESULT CConfigurationDialog::OnDestroy(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled) {
 
@@ -494,7 +496,7 @@ void CConfigurationDialog::init_art_dialog(HWND wnd) {
 	uButton_SetCheck(wnd, IDC_CHK_ARTIST_ART_OVERWRITE, conf.artist_art_overwrite);
 
 	HWND wndSimVA = ::uGetDlgItem(wnd, IDC_CHK_CFG_ART_SIM_VA);
-#ifdef SIM_VA_MA_BETA_VER
+#ifdef SIM_VA_MA_BETA
 	::ShowWindow(wndSimVA, SW_SHOW);
 	bool sim_va_as_ma = conf.find_release_dlg_flags & CFindReleaseDialog::FLG_VARIOUS_AS_MULTI_ARTIST;
 	uButton_SetCheck(wnd, IDC_CHK_CFG_ART_SIM_VA, sim_va_as_ma);
@@ -803,14 +805,17 @@ void CConfigurationDialog::save_art_dialog(HWND wnd, bool dlgbind) {
 	}
 	conf_ptr->album_art_skip_default_cust = MAKELPARAM(art_app_flag, HIWORD(conf_ptr->album_art_skip_default_cust));
 
-#ifdef SIM_VA_MA_BETA_VER
+#ifdef SIM_VA_MA_BETA
 	bool bsim_va_as_ma = uButton_GetCheck(wnd, IDC_CHK_CFG_ART_SIM_VA);
-	if (bsim_va_as_ma)
+	if (bsim_va_as_ma) {
 		conf_ptr->find_release_dlg_flags |= CFindReleaseDialog::FLG_VARIOUS_AS_MULTI_ARTIST;
-	else
+	}
+	else {
 		conf_ptr->find_release_dlg_flags &= ~CFindReleaseDialog::FLG_VARIOUS_AS_MULTI_ARTIST;
+		g_clear_va_ma_releases();
+	}
 #else
-	conf_ptr->find_release_dlg_flags &= ~CFindReleaseDialog::FLG_VARIOUS_AS_MULTI_ARTIST;
+	//conf_ptr->find_release_dlg_flags &= ~CFindReleaseDialog::FLG_VARIOUS_AS_MULTI_ARTIST;
 #endif
 }
 
@@ -846,12 +851,12 @@ bool CConfigurationDialog::cfg_art_has_changed() {
 	bres |= conf.artist_art_overwrite != conf_edit.artist_art_overwrite;
 
 	bres |= conf.album_art_skip_default_cust != conf_edit.album_art_skip_default_cust;
-
+#ifdef SIM_VA_MA_BETA
 	bool sim_va_as_ma = conf.find_release_dlg_flags & CFindReleaseDialog::FLG_VARIOUS_AS_MULTI_ARTIST;
 	bool sim_va_as_ma_edit = conf_edit.find_release_dlg_flags & CFindReleaseDialog::FLG_VARIOUS_AS_MULTI_ARTIST;
 	
 	bres |= (sim_va_as_ma != sim_va_as_ma_edit);
-
+#endif
 	return bres;
 }
 

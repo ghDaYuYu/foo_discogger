@@ -16,7 +16,9 @@
 #include "track_matching_utils.h"
 
 #include "preview_dialog.h"
+#ifdef SIM_VA_MA_BETA
 #include "configuration_dialog.h"
+#endif
 #include "track_matching_dialog.h"
 
 #define ENCODE_DISCOGS(d,t)		((d==-1||t==-1) ? -1 : ((d<<16)|t))
@@ -146,8 +148,9 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 		bool save_artwork = m_conf.save_album_art || m_conf.save_artist_art || m_conf.embed_album_art || m_conf.embed_artist_art;
 
 		m_tristate.Init(buser_skip_artwork ? BST_CHECKED : BST_UNCHECKED, save_artwork);
-
+#ifdef SIM_VA_MA_BETA
 		enable_VA_AS_MULTI(m_conf.find_release_dlg_flags & CFindReleaseDialog::FLG_VARIOUS_AS_MULTI_ARTIST);
+#endif
 
 		if (!buser_skip_artwork && save_artwork) {
 			//;
@@ -693,11 +696,11 @@ LRESULT CTrackMatchingDialog::OnButtonWriteArtwork(WORD /*wNotifyCode*/, WORD wI
 }
 
 LRESULT CTrackMatchingDialog::OnButtonPreviewTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-
+#ifdef SIM_VA_MA_BETA
 	if (m_conf.find_release_dlg_flags & CFindReleaseDialog::FLG_VARIOUS_AS_MULTI_ARTIST) {
 		return TRUE;
 	}
-
+#endif
 	auto user_wants_skip = HIWORD(m_conf.album_art_skip_default_cust);
 
 	bool b_user_skip_artwork = IsDlgButtonChecked(IDC_CHK_SKIP_ARTWORK);
@@ -728,11 +731,11 @@ LRESULT CTrackMatchingDialog::OnButtonPreviewTags(WORD /*wNotifyCode*/, WORD wID
 }
 
 LRESULT CTrackMatchingDialog::OnButtonWriteTags(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-
+#ifdef SIM_VA_MA_BETA
 	if (m_conf.find_release_dlg_flags & CFindReleaseDialog::FLG_VARIOUS_AS_MULTI_ARTIST) {
 		return TRUE;
 	}
-
+#endif
 	bool save_artwork = m_conf.save_album_art || m_conf.save_artist_art || m_conf.embed_album_art || m_conf.embed_artist_art;
 
 	auto user_wants_skip = HIWORD(m_conf.album_art_skip_default_cust);
@@ -880,9 +883,11 @@ void CTrackMatchingDialog::LibUIAsTrackList(bool toTrackFile) {
 	}
 }
 
+#ifdef SIM_VA_MA_BETA
 void CTrackMatchingDialog::GlobalReplace_VA_AS_MULTI_ARTIST(bool state) {
 	CONF.find_release_dlg_flags &= ~CFindReleaseDialog::FLG_VARIOUS_AS_MULTI_ARTIST;
 	CONF.save(CConf::cfgFilter::CONF, CONF, CFG_FIND_RELEASE_DIALOG_FLAG);
+	g_clear_va_ma_releases();
 	if (g_discogs->configuration_dialog) {
 		SendMessage(g_discogs->configuration_dialog->m_hWnd, WM_CUSTOM_VA_AS_MULTI_ARTIST_CHANGED, 0, state);
 	}
@@ -901,6 +906,7 @@ void CTrackMatchingDialog::enable_VA_AS_MULTI(bool is_enabled) {
 	hwnd = GetDlgItem(IDC_CHK_SKIP_ARTWORK);
 	::uEnableWindow(hwnd, !is_enabled);
 }
+#endif
 
 size_t CTrackMatchingDialog::get_art_perm_selection(HWND hwndList, bool flagselected, const size_t max_items, pfc::array_t<t_uint8>& outmask, bit_array_bittable& are_albums) {
 
@@ -1003,7 +1009,11 @@ bool CTrackMatchingDialog::context_menu_form(HWND wnd, LPARAM lParamPos) {
 	pfc::string8 artist_id(tw_release->artists[0]->full_artist->id);
 	std::vector<std::pair<std::string, std::string>>vartists;
 	bool is_multiartist = discogs_interface->artists_vid(tw_release, vartists);
+#ifdef SIM_VA_MA_BETA
 	bool bva_as_multi = m_conf.find_release_dlg_flags & CFindReleaseDialog::FLG_VARIOUS_AS_MULTI_ARTIST;
+#else
+	bool bva_as_multi = false;
+#endif
 
 	bool hasRelease = discogs_release_id.get_length();
 	bool hasMasterRelease = master_release_id.get_length();
@@ -1165,8 +1175,11 @@ bool CTrackMatchingDialog::context_menu_track_show(HWND wnd, int idFrom, LPARAM 
 		size_t citems = is_uilist ? p_uilist->GetItemCount() : 0;
 		bit_array_bittable selmask = is_uilist ? p_uilist->GetSelectionMask() : bit_array_bittable();
 		bool bsel = selmask.find_first(true, 0, selmask.size()) != selmask.size();
-
+#ifdef SIM_VA_MA_BETA
 		bool bva_as_multi = m_conf.find_release_dlg_flags & CFindReleaseDialog::FLG_VARIOUS_AS_MULTI_ARTIST;
+#else
+		bool bva_as_multi = false;
+#endif
 
 		bit_array_bittable mixedvals;
 
@@ -1769,8 +1782,6 @@ LRESULT CTrackMatchingDialog::OnUpdateSkipButton(UINT uMsg, WPARAM wParam, LPARA
 
 void CTrackMatchingDialog::destroy_all() {
 
-	GlobalReplace_VA_AS_MULTI_ARTIST(false);
-
 	if (g_discogs) {
 		CFindReleaseDialog* dlg = g_discogs->find_release_dialog;
 		if (dlg) {
@@ -1783,7 +1794,9 @@ void CTrackMatchingDialog::destroy_all() {
 	else {
 		log_msg("Tracing exit sequence... g_discogs gone.");
 	}
-
+#ifdef SIM_VA_MA_BETA
+	GlobalReplace_VA_AS_MULTI_ARTIST(false);
+#endif
 	DestroyWindow();
 }
 

@@ -63,10 +63,21 @@ private:
 	}
 
 	inline void add_release_to_cache(const size_t lkey, Release_ptr &release) {
+#ifdef SIM_VA_MA_BETA
 		if (!(CONF.find_release_dlg_flags & 1 << 5/*CFindReleaseDialog::FLG_VARIOUS_AS_MULTI_ARTIST*/)) {
 			cache_releases->put(lkey, release);
 		}
+		else {
+			std::string id = release->id.c_str();
+			if (std::find(g_va_ma_releases.begin(), g_va_ma_releases.end(), id) == g_va_ma_releases.end()) {
+				g_va_ma_releases.emplace_back(release->id.c_str());
+			}
 	}
+#else
+		cache_releases->put(lkey, release);
+#endif
+	}
+
 
 	inline void add_master_release_to_cache(const size_t lkey, MasterRelease_ptr &master) {
 

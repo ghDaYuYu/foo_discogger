@@ -72,9 +72,10 @@ CFindReleaseDialog::~CFindReleaseDialog() {
 			CONF.mode_write_alt = MAKELPARAM(HIWORD(CONF.mode_write_alt), 0);
 		}
 
-#ifdef SIM_VA_MA_BETA_VER
+#ifdef SIM_VA_MA_BETA
 		//disable 
 		CONF.find_release_dlg_flags &= ~FLG_VARIOUS_AS_MULTI_ARTIST;
+		g_clear_va_ma_releases();
 #endif
 		g_discogs->find_release_dialog = nullptr;
 	}

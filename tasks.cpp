@@ -553,7 +553,7 @@ void download_art_paths_task::on_success(HWND p_wnd) {
 	CONF.find_release_dlg_flags &= ~CFindReleaseDialog::FLG_VARIOUS_AS_MULTI_ARTIST;
 	CONF.save(CConf::cfgFilter::CONF, CONF, CFG_FIND_RELEASE_DIALOG_FLAG);
 
-	if (IsWindow(g_discogs->configuration_dialog->m_hWnd)) {
+	if (g_discogs->configuration_dialog && IsWindow(g_discogs->configuration_dialog->m_hWnd)) {
 		CConfigurationDialog* cfgdlg = static_cast<CConfigurationDialog*>(g_discogs->configuration_dialog);
 		BOOL bdummy = 0;
 		cfgdlg->OnCustomVAMulti_Changed(0, 0, 0, bdummy);

@@ -1,11 +1,11 @@
-#pragma once
+﻿#pragma once
 #define COMPONENT_NAME "foo_discogger"
 #define COMPONENT_YEAR "2023"
 
 #define COMPONENT_VERSION_MAJOR 1
 #define COMPONENT_VERSION_MINOR 0
 #define COMPONENT_VERSION_PATCH 20
-#define COMPONENT_VERSION_SUB_PATCH 2
+#define COMPONENT_VERSION_SUB_PATCH 3
 
 #define SIM_VA_MA_BETA
 #define FIX_VER

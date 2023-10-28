@@ -354,11 +354,11 @@ LRESULT CPreviewTagsDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 		}
 	}
 
-	bool user_wants_skip = (HIWORD(conf.album_art_skip_default_cust) & ARTSAVE_SKIP_USER_FLAG) != 0;
+	bool buser_skip_artwork = (HIWORD(conf.album_art_skip_default_cust) & ARTSAVE_SKIP_USER_FLAG) != 0;
 	bool save_artwork = conf.save_album_art || conf.save_album_art || conf.embed_album_art || conf.embed_artist_art;
 
 	if (!save_artwork) {
-		m_tristate.Init(BST_CHECKED, FALSE);
+		m_tristate.Init(buser_skip_artwork ? BST_CHECKED : BST_UNCHECKED, FALSE);
 	}
 	else
 	{

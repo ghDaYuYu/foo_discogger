@@ -185,7 +185,7 @@ LRESULT CTrackMatchingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 			HWND hwndBtn = uGetDlgItem(IDC_CHK_MNG_ARTWORK);
 			::EnableWindow(hwndBtn, FALSE);
 
-			m_tristate.Init(BST_CHECKED, FALSE);
+			m_tristate.Init(m_tristate.GetState(), FALSE);
 			preview_job pj(false, 0, false, false, false);
 			m_vpreview_jobs.emplace_back(pj);
 		}

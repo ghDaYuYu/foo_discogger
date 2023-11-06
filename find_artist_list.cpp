@@ -368,7 +368,9 @@ void CArtistList::Default_Action() {
 	// * CONVEY ARTIST-LIST
 
 	CFindReleaseDialog* dlg = static_cast<CFindReleaseDialog*>(m_host);
-	dlg->convey_artist_list_selection(updRelSrc::ArtistList);
+	cupdRelSrc upd(updRelSrc::ArtistList);
+	upd.extended = true;
+	dlg->convey_artist_list_selection(upd);
 }
 
 // CListControlOwnerData overrides

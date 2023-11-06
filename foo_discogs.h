@@ -111,6 +111,8 @@ public:
 	friend bool operator == (const cupdRelSrc& lhs, const updRelSrc& rhs);
 	// implicit conversion
 	operator updRelSrc() const { return src; }
+	// implicit conversion fun param
+	updRelSrc operator ()() const { return src; }
 
 	bool extended;
 	bool oninit;

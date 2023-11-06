@@ -605,7 +605,7 @@ void CFindReleaseDialog::on_get_artist_done(cupdRelSrc updsrc, Artist_ptr& artis
 
 	m_alist.on_get_artist_done(updsrc, artist);
 
-	if (m_dctree.Get_Artist().get() && atoi(m_dctree.Get_Artist()->id) == atoi(artist->id)) {
+	if (m_dctree.Get_Size() && m_dctree.Get_Artist().get() && atoi(m_dctree.Get_Artist()->id) == atoi(artist->id)) {
 		return;
 	}
 
@@ -614,12 +614,12 @@ void CFindReleaseDialog::on_get_artist_done(cupdRelSrc updsrc, Artist_ptr& artis
 		cupdsrc.extended |= ol::full_cache() && conf.auto_rel_load_on_select;
 	}
 	if (cupdsrc.oninit || cupdsrc == updRelSrc::ArtistList || (!cupdsrc.oninit && cupdsrc == updRelSrc::ArtistProfile && cupdsrc.extended)) {
+
 		m_dctree.on_get_artist_done(cupdsrc, artist);
 
-		if (conf.auto_rel_load_on_open) {
-			if (updsrc == updRelSrc::UndefFast && m_dctree.Get_Size() && m_tracer.has_master()) {
-
-				m_dctree.OnInitExpand(mounted_param(m_tracer.master_i, ~0, true, false).lparam());	
+		if (conf.auto_rel_load_on_open || cupdsrc.extended) {
+			if ((cupdsrc == updRelSrc::ArtistList || updsrc == updRelSrc::UndefFast) && m_dctree.Get_Size() && m_tracer.has_master()) {
+				m_dctree.OnInitExpand(mounted_param(m_tracer.master_i, ~0, true, false).lparam());
 			}
 		}
 	}

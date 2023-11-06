@@ -513,18 +513,25 @@ void CFindReleaseTree::init_tracker_i(Artist_ptr artist, pfc::string8 filter_mas
 				}
 				for (size_t j = 0; j < artist->master_releases[master_ndx]->sub_releases.size(); j++) {
 					Release_ptr r_p = artist->master_releases[master_ndx]->sub_releases[j];
-					if (filtered)
+					if (filtered) {
 						matches_release = !stricmp_utf8(r_p->title, filter_release);
+					}
 
 					if (matches_release && atoi(artist->master_releases[master_ndx]->sub_releases[j]->id) == m_idtracer_p->release_id) {
+						bool bmaster_fault = m_idtracer_p->master_i != master_ndx;
+						if (bmaster_fault) {
+								pfc::string8 logmsg = "Error: Master/Release mismatch";
+								log_msg(logmsg);
+						}
 						m_idtracer_p->release_i = mounted_param(master_ndx, j, true, true);
 						m_idtracer_p->release_pos = pos + j;
-						if (!m_idtracer_p->master_tag) {
+						if (!m_idtracer_p->master_tag || bmaster_fault) {
 							m_idtracer_p->master_i = master_ndx;
 							m_idtracer_p->master_pos = pos;
 							m_idtracer_p->master_tag = true;
 						}
 						release_done = true;
+						break;
 					}
 				}
 			}

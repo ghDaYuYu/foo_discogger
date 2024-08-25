@@ -994,9 +994,15 @@ void parseTrackPosition(ReleaseTrack_ptr& track, const std::pair<ReleaseFormat_p
 		curr_vol_number = 1;
 	}
 
-	//rewind-hidden track 0 not supported
+	//patch crash: rewind-hidden 0 tracks
 	if (track->discogs_track_number.equals("-1")) {
 		track->discogs_track_number = "1a";
+	}
+	else if (track->discogs_track_number.startsWith("0.")) {
+		auto hidden_num = track->discogs_track_number.subString(2, 1);
+		pfc::string8 hidden_alpha = "1";
+		hidden_alpha.add_char(96 + atoi(hidden_num));
+		track->discogs_track_number = hidden_alpha;
 	}
 
 	trk_name_nfo trk_name(track->discogs_track_number, track->title_subtrack.get_length());
@@ -1392,11 +1398,17 @@ void parseAllTrackPositions(pfc::array_t<ReleaseTrack_ptr>& intermediate_tracks,
 
 				if (parse_nfo.subtrk_postfix.get_length()) {
 
-					//alt-subtrack
-					//track to disc and subtrack to track
+					//alt-subtrack notation (5.1 non indexed subtracks?)
+					//temp fix to reduce false alt-subtrack parsing
+					//could fail with multidisk releases
+					//todo: test case releases ids?
 
-					parse_nfo.vol_preffix = parse_nfo.trk_postfix;
-					parse_nfo.trk_postfix = parse_nfo.subtrk_postfix;
+					auto dtd = (std::max)(release->discogs_total_discs, 1);
+					if (atoi(parse_nfo.trk_postfix) <= dtd) {
+						//track to disc and subtrack to track
+						parse_nfo.vol_preffix = parse_nfo.trk_postfix;
+						parse_nfo.trk_postfix = parse_nfo.subtrk_postfix;
+					}
 				}
 			}
 
@@ -1864,7 +1876,9 @@ void Discogs::parseRelease(Release *release, json_t *root) {
 	//
 
 	json_t *extraartists = json_object_get(root, "extraartists");
-	parseReleaseCredits(extraartists, release->credits, release);
+	if (extraartists) {
+		parseReleaseCredits(extraartists, release->credits, release);
+	}
 
 	pfc::string8 tmp = remove_dot_2spaces(JSONAttributeString(root, "notes"));
 	tmp.replace_char('\x01', ' ');

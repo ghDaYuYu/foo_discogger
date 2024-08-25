@@ -9,7 +9,7 @@
 
 DECLARE_COMPONENT_VERSION(
 // component name
-"Discogger",
+COMPONENT_NAME_HC,
 // component version
 FOO_DISCOGGER_VERSION,
 "A foobar 2000 plugin to access Discogs database (https://www.discogs.com)\n\n"
@@ -17,7 +17,7 @@ FOO_DISCOGGER_VERSION,
 "Version: "FOO_DISCOGGER_VERSION"\n"
 "Compiled: "__DATE__ "\n"
 "fb2k SDK: "PLUGIN_FB2K_SDK"\n"
-"Website: https://github.com/ghDaYuYu/foo_discogs\n"
+"Website: https://github.com/ghDaYuYu/foo_discogger\n"
 "\nfoo_discogger is a fork of foo_discogs v2.23 repository by zoomorph (https://bitbucket.org/zoomorph/foo_discogs)\n\n"
 "Acknowledgements:\n"
 "Thanks to Michael Pujos (aka bubbleguuum) for starting the foo_discogs project (up to version 1.32) and "

@@ -890,20 +890,43 @@ bool string_encoded_array::_contains(const string_encoded_array &other) {
 	return true;
 }
 
-bool string_encoded_array::_filter(const string_encoded_array &other) {
+bool string_encoded_array::_filter(const string_encoded_array& other) {
 	PFC_ASSERT(m_depth == 1);
+	bool removed = false;
+	if (other.m_depth > 1) {
+		array_param_too_deep(2);
+	}
+	else if (other.m_depth == 0) {
+		removed = _filter_str(other);
+	}
+	else if (other.m_depth == 1) {
+		size_t count = other.get_width();
+		for (size_t i = 0; i < count; i++) {
+			removed |= _filter_str(other.sub_array[i]);
+		}
+	}
+	return removed;
+}
+
+bool string_encoded_array::_filter_str(const string_encoded_array& other) {
+	PFC_ASSERT(m_depth == 1);
+	size_t removed = 0;
 	if (other.m_depth != 0) {
 		array_param_too_deep(2);
 	}
-	size_t count = get_width();
-	pfc::array_t<string_encoded_array> new_sub_array;
-	for (size_t i = 0; i < count; i++) {
-		if (!STR_EQUAL(sub_array[i], other.value)) {
-			new_sub_array.append_single(sub_array[i]);
+	else {
+		size_t l = 0;
+		size_t count = get_width();
+		for (size_t i = 0; i < count; i++) {
+			if (!STR_EQUAL(sub_array[i], other.value))
+				sub_array[l++] = sub_array[i];
+			else
+				removed++;
 		}
+		count -= removed;
+		sub_array.set_size(count);
 	}
-	sub_array = new_sub_array;
-	return true;
+	return (bool)removed;
 }
 bool string_encoded_array::_multi_len() {
 	PFC_ASSERT(m_depth == 0);

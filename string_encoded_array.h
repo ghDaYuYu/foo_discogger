@@ -57,6 +57,7 @@ private:
 	bool _append(const string_encoded_array&);
 	bool _contains(const string_encoded_array&);
 	bool _filter(const string_encoded_array&);
+	bool _filter_str(const string_encoded_array&);
 	//bool _reduce();
 	bool _multi_len();
 	bool _multi_longest(const string_encoded_array&);

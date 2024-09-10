@@ -64,9 +64,7 @@ CFindReleaseDialog::~CFindReleaseDialog() {
 	DeleteObject(g_hFont);
 
 	if (g_discogs) {
-
-		awt_save_normal_mode();
-
+		awt_update_mod_flag(/*fromFlag*/false);
 		if (!g_discogs->tag_mappings_dialog) {
 			//lo former, hi current: back to normal mode
 			CONF.mode_write_alt = MAKELPARAM(HIWORD(CONF.mode_write_alt), 0);
@@ -106,7 +104,10 @@ void CFindReleaseDialog::enable(bool is_enabled) /*override*/ {
 }
 
 void CFindReleaseDialog::enable_alt(bool is_enabled) {
-	
+
+	if (CONF.awt_get_alt_mode()) { uSetWindowText(m_hWnd, "Find Releases (PWT)"); }
+	else { uSetWindowText(m_hWnd, "Find Releases"); }
+
 	HWND h1 = GetDlgItem(IDC_RELEASE_URL_TEXT);
 	HWND h2 = GetDlgItem(IDC_BTN_PROCESS_RELEASE);
 	HWND h3 = GetDlgItem(IDC_LABEL_RELEASE_ID);
@@ -326,7 +327,8 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 
 	SetIcon(g_discogs->icon);
 
-	enable_alt(CONF.awt_alt_mode());
+	enable_alt(CONF.awt_get_alt_mode());
+
 
 	m_edit_artist = GetDlgItem(IDC_EDIT_SEARCH);
 	m_edit_filter = GetDlgItem(IDC_EDIT_FILTER);
@@ -402,7 +404,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 
 	//init artist search/release id textboxes
 
-	if (!m_tracer.has_release() && CONF.awt_alt_mode()) {
+	if (!m_tracer.has_release() && CONF.awt_get_alt_mode()) {
 		file_info_impl finfo;
 		metadb_handle_ptr item = m_items[0];
 		item->get_info(finfo);
@@ -439,7 +441,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 	m_alist.CreateInDialog(*this, IDC_ARTIST_LIST, wndReplace);
 	m_alist.InitializeHeaderCtrl(HDS_HIDDEN);
 	m_artist_list = m_alist.m_hWnd;
-	if (CONF.awt_alt_mode()) {
+	if (CONF.awt_get_alt_mode()) {
 		//..
 	}
 	else {
@@ -462,7 +464,7 @@ LRESULT CFindReleaseDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 		bool brelease_ided = m_tracer.release_tag && m_tracer.release_id != pfc_infinite;
 		bool bskip_ided = conf.skip_mng_flag & SkipMng::RELEASE_DLG_IDED;
 
-		bool cfg_always_load_artist_ided_preview = /*force*/true && !CONF.awt_alt_mode();
+		bool cfg_always_load_artist_ided_preview = /*force*/true && !CONF.awt_get_alt_mode();
 
 		if (!(bskip_ided && brelease_ided)) {
 
@@ -1054,7 +1056,7 @@ void CFindReleaseDialog::route_artist_search(pfc::string8 artistname, bool dlgbu
 				task->start(m_hWnd);
 			}
 		}
-		else if (by_name && !CONF.awt_alt_mode()) {
+		else if (by_name && !CONF.awt_get_alt_mode()) {
 			service_ptr_t<search_artist_process_callback> task =
 				new service_impl_t<search_artist_process_callback>(artistname.get_ptr(), m_va, 0);
 			task->start(m_hWnd);

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <bitset>
 
 class CConf;
@@ -14,7 +14,7 @@ public:
 	int id() { return m_id; }
 	bool SetFlag(HWND hWnd, UINT uid, int flg);
 	bool SetFlag(int flg, bool flgval);
-	bool GetFlat(int flg);
+	bool GetFlag(int flg);
 	friend class CConf;
 
 private:

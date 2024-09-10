@@ -128,8 +128,16 @@ FB2K_STREAM_WRITER_OVERLOAD(tag_mapping_entry) {
 	bool mod_write = value.enable_write;
 	bool mod_update = value.enable_update;
 	if (release_id_mod) {
-		mod_write = LOWORD(CONF.alt_write_flags) & (1 << 0);
-		mod_update = LOWORD(CONF.alt_write_flags) & (1 << 1);
+		if (CONF.awt_get_alt_mode()) {
+			//non alt is former
+			mod_write = LOWORD(CONF.alt_write_flags) & (1 << 0);
+			mod_update = LOWORD(CONF.alt_write_flags) & (1 << 1);
+		}
+		else {
+			//non alt is current
+			mod_write = HIWORD(CONF.alt_write_flags) & (1 << 0);
+			mod_update = HIWORD(CONF.alt_write_flags) & (1 << 1);
+		}
 	}
 	pfc::string8 guid_tag = pfc::print_guid(value.guid_tag);
 	pfc::string8 tag_name(value.tag_name.get_ptr());
@@ -154,9 +162,7 @@ extern void init_with_default_tag_mappings();
 
 extern bool awt_get_release_mod_flag(tag_mapping_entry& out);
 extern bool awt_set_release_mod_flag(tag_mapping_entry e);
-extern int awt_update_mod_flag(bool fromFlag =	true);
-extern bool awt_unmatched_flag();
-extern void awt_save_normal_mode();
+extern int awt_update_mod_flag(bool fromFlag);
 
 extern void copy_tag_mappings(tag_mapping_list_type* out_tmt);
 extern void copy_default_tag_mappings(tag_mapping_list_type* out_tmt);

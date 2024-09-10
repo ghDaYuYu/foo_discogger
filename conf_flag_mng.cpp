@@ -10,7 +10,7 @@ FlgMng::FlgMng(CConf* pconf, int ID) : m_pcfg(pconf), m_id(ID) {
 
 //get flags
 
-bool FlgMng::GetFlat(int flg) {
+bool FlgMng::GetFlag(int flg) {
 
 	int* varval = m_pcfg->id_to_ref_int(m_id);
 	return  *varval & flg;

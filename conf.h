@@ -544,8 +544,9 @@ public:
 	bool history_enabled();
 	bool history_max();
 
-	bool awt_mode_changing();
-	bool awt_alt_mode();
+
+	bool awt_get_alt_mode();
+	bool awt_set_alt_mode(bool enabled);
 		
 	bool replace_ANVs = false;
 	bool move_the_at_beginning = true;

@@ -91,7 +91,7 @@ void CTagMappingDialog::UpdateAltMode(bool erase) {
 
 	if (g_discogs) {
 
-		conf.alt_write_flags = awt_update_mod_flag(/*from entry*/true);
+		conf.alt_write_flags = awt_update_mod_flag(/*fromFlag*/true);
 	}
 
 	copy_tag_mappings(m_ptag_map);
@@ -232,9 +232,7 @@ void CTagMappingDialog::applymappings() {
 
 	set_cfg_tag_mappings(m_ptag_map);
 
-	if (awt_unmatched_flag()) {
-
-		conf.alt_write_flags = awt_update_mod_flag(/*from flag*/false);
+	if (CONF.alt_write_flags != awt_update_mod_flag(false)) {
 		CONF.save(CConf::cfgFilter::TAG, CONF, CFG_ALT_WRITE_FLAGS);
 	}
 
@@ -267,7 +265,7 @@ void CTagMappingDialog::add_new_tag(size_t pos, tag_mapping_entry entry) {
 }
 
 void CTagMappingDialog::showtitle() {
-	if (CONF.awt_alt_mode()) { uSetWindowText(m_hWnd, "Tag Mapping +"); }
+	if (CONF.awt_get_alt_mode()) { uSetWindowText(m_hWnd, "Tag Mapping (PWT)"); }
 	else { uSetWindowText(m_hWnd, "Tag Mapping"); }
 }
 
@@ -881,7 +879,7 @@ void CTagMappingDialog::show_context_menu(CPoint& pt, pfc::bit_array_bittable& s
 			sop_wu &= entry.enable_write && entry.enable_update;
 			sop_nwu &= !entry.enable_write && !entry.enable_update;
 			bool release_id_mod = single_sel && STR_EQUAL(TAG_RELEASE_ID, entry.tag_name.get_ptr());
-			release_id_mod &= !CONF.awt_alt_mode();
+			release_id_mod &= !CONF.awt_get_alt_mode();
 			bool frozen_mod = single_sel && entry.freeze_tag_name;
 			bool nfsop_w, nfsop_u, nfsop_wu, nfsop_nwu;
 			nfsop_w = nfsop_u = nfsop_wu = nfsop_nwu = !bshift && (release_id_mod || frozen_mod);
@@ -957,7 +955,7 @@ void CTagMappingDialog::show_context_menu(CPoint& pt, pfc::bit_array_bittable& s
 				do {
 					entry = m_ptag_map->get_item(isel);
 					release_id_mod = STR_EQUAL(TAG_RELEASE_ID, entry.tag_name.get_ptr()) && !bl_write;
-					release_id_mod &= !CONF.awt_alt_mode();
+					release_id_mod &= !CONF.awt_get_alt_mode();
 
 					if ((entry.freeze_tag_name && bshift && !release_id_mod) || !entry.freeze_tag_name) {
 

@@ -264,20 +264,27 @@ public:
 
 		switch (p_index) {
 		case WriteTags:
-		case WriteTagsAlt:
+		case WriteTagsAlt: {
 			//lo former, hi current
-			CONF.mode_write_alt = MAKELPARAM(HIWORD(CONF.mode_write_alt), p_index == WriteTagsAlt);
+			awt_update_mod_flag(/*fromFlag*/false);
+			bool bchanged = CONF.awt_set_alt_mode(p_index == WriteTagsAlt);
+			if (bchanged) {
+				awt_update_mod_flag(/*fromFlag*/true);
+			}
+			if (g_discogs->find_release_dialog) {
+				g_discogs->find_release_dialog->destroy();
+			}
 			g_discogs->find_release_dialog = fb2k::newDialog<CFindReleaseDialog>(core_api::get_main_window(), p_data, CONF);
 			if (g_discogs->tag_mappings_dialog) {
-				if (CONF.awt_mode_changing()) {
+				if (bchanged) {
 					if (g_discogs->tag_mappings_dialog) {
 						CTagMappingDialog* dlg = g_discogs->tag_mappings_dialog;
-						dlg->UpdateAltMode(true);						
+						dlg->UpdateAltMode(true);
 					}
 				}
 			}
 			break;
-
+		}
 		case EditTagMappings:
 			if (!g_discogs->tag_mappings_dialog) {
 				g_discogs->tag_mappings_dialog = fb2k::newDialog<CTagMappingDialog>(core_api::get_main_window());

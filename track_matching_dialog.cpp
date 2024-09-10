@@ -1813,6 +1813,6 @@ LRESULT CTrackMatchingDialog::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM
 }
 
 void CTrackMatchingDialog::showtitle() {
-	if (CONF.awt_alt_mode()) { uSetWindowText(m_hWnd, "Track Matching & Artwork +"); }
+	if (CONF.awt_get_alt_mode()) { uSetWindowText(m_hWnd, "Track Matching & Artwork (PWT)"); }
 	else { uSetWindowText(m_hWnd, "Track Matching & Artwork"); }
 }

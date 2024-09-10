@@ -400,60 +400,30 @@ int awt_update_mod_flag(bool fromFlag) {
 
 	//lo former state, hi current
 
-	tag_mapping_entry forth;
-	tag_mapping_entry curr;
-	awt_get_release_mod_flag(curr);
-	auto leaving_val = (curr.enable_write ? 1 << 0 : 0) | (curr.enable_update ? 1 << 1 : 0);
-
-	if (!fromFlag) {
-		if (CONF.awt_alt_mode()) {
-			CONF.alt_write_flags = MAKELPARAM(LOWORD(CONF.alt_write_flags), leaving_val);
-		}
-		else {
-			CONF.alt_write_flags = MAKELPARAM(!leaving_val ? 1 : leaving_val, HIWORD(CONF.alt_write_flags));
-		}
+	if (fromFlag) {
+		//from flag to tag map
+		//tag_mapping_entry forth;
+		tag_mapping_entry curr;
+		awt_get_release_mod_flag(curr);
+		curr.enable_write = HIWORD(CONF.alt_write_flags) & (1 << 0);
+		curr.enable_update = HIWORD(CONF.alt_write_flags) & (1 << 1);
+		awt_set_release_mod_flag(curr);
+	}
+	else 
+	{
+		//from map to flag
+		tag_mapping_entry forth;
+		tag_mapping_entry curr;
+		awt_get_release_mod_flag(curr);
+		auto leaving_rw_flag = (curr.enable_write ? 1 << 0 : 0) | (curr.enable_update ? 1 << 1 : 0);
+		auto curr_mode_flags = HIWORD(CONF.alt_write_flags);
+		curr_mode_flags &= ~(1 << 0);
+		curr_mode_flags &= ~(1 << 1);
+		curr_mode_flags |= leaving_rw_flag;
+		CONF.alt_write_flags = MAKELPARAM(LOWORD(CONF.alt_write_flags), curr_mode_flags);
 		return CONF.alt_write_flags;
 	}
-
-	if (CONF.awt_alt_mode()) {
-		//alt
-		forth.enable_write = HIWORD(CONF.alt_write_flags) & (1 << 0);
-		forth.enable_update = HIWORD(CONF.alt_write_flags) & (1 << 1);
-	}
-	else {
-		//normal
-		forth.enable_write = LOWORD(CONF.alt_write_flags) & (1 << 0);
-		forth.enable_update = LOWORD(CONF.alt_write_flags) & (1 << 1);
-	}
-	awt_set_release_mod_flag(forth);
-
 	return CONF.alt_write_flags;
-}
-
-bool awt_unmatched_flag() {
-
-	//lo former state, hi current
-
-	tag_mapping_entry forth;
-	tag_mapping_entry curr;
-	awt_get_release_mod_flag(curr);
-	auto curr_val = (curr.enable_write ? 1 << 0 : 0) | (curr.enable_update ? 1 << 1 : 0);
-
-	if (CONF.awt_alt_mode()) {
-		//alt tag write
-		return HIWORD(CONF.alt_write_flags) != curr_val;		
-	}
-	else {
-		//normal tag write
-		return LOWORD(CONF.alt_write_flags) != curr_val;
-	}
-}
-
-void awt_save_normal_mode() {
-
-	if (!CONF.awt_alt_mode()) {
-		awt_update_mod_flag(/*from entry*/false);
-	}
 }
 
 void update_loaded_tagmaps_multivalues() {

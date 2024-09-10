@@ -49,7 +49,7 @@ public:
 
 		AddColumnEx("Artist", colw, LVCFMT_LEFT, true);
 
-		if (CONF.awt_alt_mode())
+		if (CONF.awt_get_alt_mode())
 			::EnableWindow(m_hWnd, FALSE);
 	}
 

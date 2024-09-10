@@ -228,7 +228,7 @@ inline bool get_diff_release_name(TagWriter_ptr tag_writer, pfc::string8& rel_de
 
 CPreviewTagsDialog::~CPreviewTagsDialog() {
 
-	awt_save_normal_mode();
+	awt_update_mod_flag(/*fromFlag*/false);
 
 	if (::IsWindow(m_uilist.m_hWnd)) {
 		m_uilist.SetSelection(bit_array_true(), bit_array_false());
@@ -1392,6 +1392,6 @@ LRESULT CPreviewTagsDialog::OnCheckPreviewShowStats(WORD /*wNotifyCode*/, WORD w
 }
 
 void CPreviewTagsDialog::showtitle() {
-	if (CONF.awt_alt_mode()) { uSetWindowText(m_hWnd, "Preview Tags +"); }
+	if (CONF.awt_get_alt_mode()) { uSetWindowText(m_hWnd, "Preview Tags (PWT)"); }
 	else { uSetWindowText(m_hWnd, "Preview Tags"); }
 }

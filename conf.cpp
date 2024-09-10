@@ -160,6 +160,7 @@ bool CConf::load() {
 
 	if (vLoad == v000) {
 		console::print("Installing foo_discogger");
+		awt_set_alt_mode(false);
 		save();
 		//EXIT
 		return prepare_dbf_and_cache(false);
@@ -1329,17 +1330,60 @@ bool CConf::awt_mode_changing() {
 	return LOWORD(mode_write_alt) != HIWORD(mode_write_alt);
 }
 
-bool CConf::awt_alt_mode() {
-	return HIWORD(CONF.mode_write_alt);
+bool CConf::awt_get_alt_mode() {
+	return HIWORD(alt_write_flags) & (1 << 2);
 }
 
-#ifdef SIM_VA_MA_BETA
-void g_clear_va_ma_releases() {
-	if (discogs_interface) {
-		for (auto w : g_va_ma_releases) {
-			discogs_interface->delete_artist_cache("", w.c_str());
+bool CConf::awt_set_alt_mode(bool benabled) {
+	bool bchanged = false;
+	bool bfirst_run = !alt_write_flags;
+	//lo former, hi current
+	auto current = HIWORD(alt_write_flags);
+	bool alt_current = current & (1 << 2);
+	auto former = LOWORD(alt_write_flags);
+	bool alt_former = former & (1 << 2);
+	//make sure alt modes differ
+	if (alt_former == alt_current) {
+		//fix it - make former different
+		if (alt_current) {
+			//first run
+			if (bfirst_run) {
+				former |= (1 << 0) /*| (1 << 1)*/;
+			}
+			//disable former alt mode
+			former &= ~(1 << 2);
 		}
-		g_va_ma_releases.clear();
+		else {
+			//first run
+			if (bfirst_run) {
+				current |= (1 << 0) /*| (1 << 1)*/;
+			}
+			//enable former alt mode
+			former |= (1 << 2);
+		}
+		alt_write_flags = MAKELPARAM(former, current);
 	}
+
+	//swap former and current (keep write mode (1 << 0) and update mode (1 << 1)
+
+	//same status?
+	if (alt_current == benabled) {
+
+		if (bfirst_run) {
+			//.. skip save
+		}
+	}
+	else {
+		//swap modes
+		//lo former, hi current
+		CONF.alt_write_flags = MAKELPARAM(/*l*/HIWORD(CONF.alt_write_flags) , /*h*/LOWORD(CONF.alt_write_flags));
+		if (bfirst_run) {
+			//.. skip save
+		}
+		else {
+			CONF.save(CConf::cfgFilter::TAG, CONF, CFG_ALT_WRITE_FLAGS);
+		}
+		bchanged = true;
+	}
+	return bchanged || bfirst_run;
 }
-#endif

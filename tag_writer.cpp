@@ -751,7 +751,7 @@ void TagWriter::write_tags() {
 				const tag_result_ptr& result = tag_results[j];
 				//todo:
 				bool release_id_mod = STR_EQUAL(TAG_RELEASE_ID, result->tag_entry->tag_name.get_ptr());
-				release_id_mod &= !CONF.awt_alt_mode();
+				release_id_mod &= !CONF.awt_get_alt_mode();
 
 				if (bhasmask && !tag_results_mask.get(j) && !release_id_mod /*&& (!(result->tag_entry->freeze_tag_name && result->tag_entry->enable_write))*/)
 				{
@@ -788,7 +788,7 @@ void TagWriter::write_tags() {
 				const tag_result_ptr& result = tag_results[fpos];
 				//todo:
 				bool release_id_mod = STR_EQUAL(TAG_RELEASE_ID, result->tag_entry->tag_name.get_ptr());
-				release_id_mod &= !CONF.awt_alt_mode();
+				release_id_mod &= !CONF.awt_get_alt_mode();
 
 				bool bvalidate = false;
 				write_tag_nfo out_write_info = { 0 };

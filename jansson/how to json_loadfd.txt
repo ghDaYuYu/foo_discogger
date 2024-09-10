@@ -1,0 +1,38 @@
+
+-----------------------
+jansson_config.h
+-----------------------
+
+add...
+
+#define HAVE_UNISTD_H 1
+
+-----------------------
+dump.c
+load.c
+-----------------------
+
+comment...
+
+#ifdef HAVE_UNISTD_H
+  //#include <unistd.h>
+#endif
+
+-----------------------
+load.c
+-----------------------
+
+comment STDIN_FILENO...
+
+json_t *json_loadfd(int input, size_t flags, json_error_t *error) {
+    lex_t lex;
+    const char *source;
+    json_t *result;
+
+#ifdef HAVE_UNISTD_H
+    //if (input == STDIN_FILENO)
+    source = "<stdin>";
+    //else
+#else
+    source = "<stream>";
+#endif

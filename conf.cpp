@@ -83,19 +83,22 @@ bool prepare_dbf_and_cache(bool bimport = true) {
 
 		bool b_dst_exists = std::filesystem::exists(os_dst);
 
+		char fullpath[MAX_PATH] = "";
+		pfc::stringcvt::convert_wide_to_utf8(fullpath, MAX_PATH, os_dst.wstring().c_str(), MAX_PATH);
+
 		if (b_dst_exists && bimport) {
 
 			//todo: test import definitions
 
 			sqldb db;
-			db.open(os_dst.string().c_str(), SQLITE_OPEN_READWRITE);
+			db.open(fullpath, SQLITE_OPEN_READWRITE);
 			sqlite3* pDb = db.db_handle();
 
 			char* zErrMsg = 0;
 			pfc::string8 sqlcmd;
 			sqlcmd << "ATTACH DATABASE \'" << os_src.string().c_str() << "\' AS trg";
 			size_t ret = sqlite3_exec(pDb, sqlcmd, NULL, NULL, &zErrMsg);
-			sqlcmd = "INSERT INTO trg.def_credit (name, tagtype, desc, titleformat) SELECT name, tagtype, desc, titleformat FROM def_credit WHERE tagtype IS NULL;";
+			sqlcmd = "INSERT INTO trg.def_credit (name, tagtype, guid, titleformat) SELECT name, tagtype, desc, titleformat FROM def_credit WHERE tagtype IS NULL;";
 			ret = sqlite3_exec(pDb, sqlcmd, NULL, NULL, &zErrMsg);
 			db.close();
 		}

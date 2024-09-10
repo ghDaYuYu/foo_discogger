@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 
 #include <GdiPlus.h>
 #include "CGdiPlusBitmap.h"
@@ -247,9 +247,8 @@ imgpairs MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::string8> n8_cache_p
 	std::filesystem::path os_file_small = std::filesystem::u8path(temp_file_small.c_str());
 	std::filesystem::path os_file_mini = std::filesystem::u8path(temp_file_mini.c_str());
 
-
-	FILE* fd = nullptr;
-	if (fopen_s(&fd, os_file_small.string().c_str(), "wb") != 0) {
+	auto jf = _wopen(os_file_small.wstring().c_str(), _O_CREAT | _O_TRUNC | _O_RDWR | _O_BINARY, _S_IWRITE);
+	if (jf == -1) {
 		pfc::string8 msg("can't open ");
 		msg << temp_file_small;
 		log_msg(msg);
@@ -257,15 +256,15 @@ imgpairs MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::string8> n8_cache_p
 	}
 	else {
 		//write small thumb (aprox. 150x150)
-		if (fwrite(small_art.get_ptr(), small_art.get_size(), 1, fd) != 1) {
+		auto w = _write(jf, small_art.get_ptr(), small_art.get_size());
+		if (w != small_art.get_size()) {
+			_close(jf);
 			pfc::string8 msg("error writing ");
 			msg << temp_file_small;
 			log_msg(msg);
 			return imgpairs{ {nullptr, nullptr}, {nullptr, nullptr } };
 		}
-	}
-	if (fd != nullptr) {
-		fclose(fd);
+		_close(jf);
 	}
 
 	Bitmap bmSmall(os_file_small.wstring().c_str());
@@ -309,15 +308,18 @@ imgpairs MemoryBlockToTmpBitmap(std::pair<pfc::string8, pfc::string8> n8_cache_p
 		
 		PFC_ASSERT(gdi_res == Gdiplus::Ok);
 
-		FILE* fd = nullptr;
-		if (fopen_s(&fd, os_file_mini.string().c_str(), "wb") != 0) {
+		auto jf = _wopen(os_file_mini.wstring().c_str(), _O_CREAT | _O_TRUNC | _O_RDWR | _O_BINARY, _S_IWRITE);
+
+		if (jf == -1) {
 			pfc::string8 msg("can't open ");
 			msg << temp_file_mini;
 			log_msg(msg);
 			return imgpairs{ {nullptr, nullptr}, {nullptr, nullptr } };
 		}
-		if (fd != nullptr)
-			fclose(fd);
+		else {
+			_close(jf);
+		}
+
 		CLSID pngClsid;
 		HRESULT hres = CLSIDFromString(L"{557cf406-1a04-11d3-9a73-0000f81ef32e}", &pngClsid);
 

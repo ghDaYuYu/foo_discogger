@@ -1,4 +1,6 @@
 #include "stdafx.h"
+#include <fcntl.h>
+#include <io.h>
 
 #include "helpers/DarkMode.h"
 
@@ -600,19 +602,37 @@ bool CTagMappingDialog::ExportJSON(std::filesystem::path os_file) {
 
 		std::filesystem::path os_root = std::filesystem::u8path(os_file.u8string());
 
-		auto res = json_dump_file(arr_top, os_file.generic_string().c_str() /*os_file.u8string().c_str() os_file.c_str()os_file.string.c_str()*/ /*os_root.u8string().c_str()*/, JSON_INDENT(5));
+		jf = _wopen(os_file.wstring().c_str(), _O_CREAT | _O_TRUNC | _O_RDWR | _O_TEXT, _S_IWRITE);
+
+		if (jf == -1) {
+			foobar2000_io::exception_io e("Open failed on output file");
+			throw e;
+		}
+		auto res = json_dumpfd(arr_top, jf, JSON_INDENT(5));
+		_close(jf);
 
 		for (auto w : vjson) {
 			free(w);
 		}
-
-		log_msg(PFC_string_formatter() << "Wrote " << std::to_string(n_entries).c_str() << " tag mapping entries to file");
+		if (res == -1) {
+			log_msg(PFC_string_formatter() << "Could not write " << std::to_string(n_entries).c_str() << " tag mapping entries to file");
+			return false;;
+		}
+		else {
+			log_msg(PFC_string_formatter() << "Wrote " << std::to_string(n_entries).c_str() << " tag mapping entries to file");
+		}
 	}
 	catch (foobar2000_io::exception_io e) {
+		if (jf != -1) {
+			_close(jf);
+		}
 		log_msg(PFC_string_formatter() << "Could not write tag mappings to file, " << e);
 		return false;
 	}
 	catch (...) {
+		if (jf != -1) {
+			_close(jf);
+		}
 		log_msg(PFC_string_formatter() << "Could not write tag mappings to file, " << "Unhandled Exception");
 		return false;
 	}
@@ -649,19 +669,32 @@ bool CTagMappingDialog::ImportJSON(std::filesystem::path os_file, tag_mapping_li
 		size_t clines = 0;
 		std::vector<tag_mapping_entry> temp_data;
 
+		int jf = -1;
+
 		try {
 
-			json_error_t error;
-			auto json = json_load_file(os_file.generic_string().c_str(), JSON_DECODE_ANY, &error);
+			json_error_t json_error = { 0 };
+
+			jf = _wopen(os_file.wstring().c_str(), _O_RDONLY);
+
+			if (jf == -1) {
+				foobar2000_io::exception_io e("Open failed on input file");
+				throw e;
+			}
+
+			auto json = json_loadfd(jf, JSON_DECODE_ANY, &json_error);
+			_close(jf);
+
 			if (!json) {
 			
 				return false;
 			}
-			if (error.line) {
-				log_msg(PFC_string_formatter() << "Error reading tag mappings JSON: " << error.line << ": " << error.text);
+
+			if (strlen(json_error.text)) {
+				log_msg(PFC_string_formatter() << "Error reading tag mappings JSON: " << json_error.line << ": " << json_error.text);
 			}
 
-			size_t clines = json_array_size(json);
+			clines = json_array_size(json);
 
 			tag_mapping_entry elem = tag_mapping_entry();
 
@@ -751,10 +784,16 @@ bool CTagMappingDialog::ImportJSON(std::filesystem::path os_file, tag_mapping_li
 			}
 		}
 		catch (foobar2000_io::exception_io e) {
+			if (jf != -1) {
+				_close(jf);
+			}
 			log_msg(PFC_string_formatter() << "Reading data from file failed:" << e);
 			return false;
 		}
 		catch (...) {
+			if (jf != -1) {
+				_close(jf);
+			}
 			log_msg(PFC_string_formatter() << "Reading data from file failed, " << "Unhandled Exception");
 			return false;
 		}

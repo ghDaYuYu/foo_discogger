@@ -1,4 +1,8 @@
 #pragma once
+#include <fcntl.h>
+#include <io.h>
+#include <ctime>
+
 #include <errno.h>
 #include <filesystem>
 #include "jansson/jansson.h"
@@ -97,11 +101,20 @@ namespace Offline {
 			filenames.append_single(n8_full_path);
 			return filenames;
 		}
+
 		n8_full_path << ndx << THUMB_EXTENSION;
-		
-		abort_callback_dummy dummy_abort;
+		std::filesystem::path os_path = std::filesystem::u8path(n8_rel_path.get_ptr());
+
 		try {
-			listFiles(n8_rel_path, folders, dummy_abort);
+			std::filesystem::directory_iterator dirpos{ os_path};
+			for (auto walk_dir : dirpos) {
+				auto u8str = walk_dir.path().u8string();
+				folders.add_item(u8str.c_str());
+			}
+		}
+		catch (std::filesystem::filesystem_error e) {
+			//auto t = e.what();
+			return filenames;
 		}
 		catch (...) {
 			return filenames;
@@ -109,14 +122,8 @@ namespace Offline {
 
 		for (t_size walk = 0; walk < folders.get_size(); ++walk) {
 			pfc::string8 tmp(folders[walk]);
-			extract_native_path(tmp, tmp);
-			if (stricmp_utf8(tmp, n8_full_path) == 0) {
-				if (native) 
-					filenames.append_single(tmp);
-				else 
-					filenames.append_single(folders[walk]);
+				filenames.append_single(tmp);
 				if (ndx != ~0) break;
-			}
 		}
 		return filenames;
 	}
@@ -197,10 +204,10 @@ namespace Offline {
 
 			//delete if exists
 
-			fs::path os_path = fs::u8path(path.c_str());
+			fs::path os_file = fs::u8path(path.c_str());
 			
 			try {
-				fs::remove_all(os_path);
+				fs::remove_all(os_file);
 			}
 			catch (...) {
 				return false;
@@ -211,21 +218,18 @@ namespace Offline {
 			//pending
 
 			std::error_code ec;
-			bool bfolder_created = fs::create_directories(os_path, ec);
+			bool bfolder_created = fs::create_directories(os_file, ec);
 
 			if (!ec.value() && bfolder_created) {
-
-				os_path = fs::u8path((PFC_string_formatter() << path << "\\" << MARK_LOADING_NAME).c_str());
+				os_file = fs::u8path((PFC_string_formatter() << path << "\\" << MARK_LOADING_NAME).c_str());
 
 				int flags = 0; // JSON_ENCODE_ANY | JSON_INDENT(1);
-				FILE* file;
-				errno = 0;
-				//ab+ : append; open or create binary file for update, writing at eof
-				if ((file = fopen(os_path.string().c_str(), "w")) != NULL)
-				{
-					int w = fwrite(fcontent.get_ptr(), fcontent.get_length(), 1, file);
-					bok = ((w || !fcontent.get_length()) && !fclose(file));
 
+				auto jf = _wopen(os_file.wstring().c_str(), _O_CREAT | _O_TRUNC | _O_RDWR | _O_TEXT/*_O_U8TEXT*/, _S_IWRITE);
+
+				if (jf != -1) {
+					int w = _write(jf, fcontent.get_ptr(), fcontent.get_length());
+					bok = ((w || !fcontent.get_length()) && !_close(jf));
 					return bok;
 				}
 			}
@@ -389,20 +393,15 @@ namespace Offline {
 
 			if (srclen > 0) {
 
-				FILE* file;
 				errno = 0;
-				json_error_t json_error = {};
+				json_error_t json_error = { 0 };
 
-				if ((file = fopen(os_ol.string().c_str(), "r")) != NULL)
-				{
-					// json load
+				int jf = -1;
+				jf = _wopen(os_ol.wstring().c_str(), _O_RDONLY);
 
-					root = json_loadf(file, 0, &json_error);
-
-					//..
-
-					fclose(file);
-					file = NULL;
+				if (jf != -1) {
+					root = json_loadfd(jf, JSON_DECODE_ANY, &json_error);
+					_close(jf);
 				}
 
 				if (errno || strlen(json_error.text) || root == nullptr) {
@@ -442,17 +441,14 @@ namespace Offline {
 			
 			if (bfolder_exists) {
 				int flags = 0; 
-				FILE* file;
-				errno = 0;
 
-				if ((file = fopen(os_full.string().c_str(), "ab+")) != NULL)
-				{
-					int result = json_dumpf(root, file, flags);
-					return (fclose(file) == 0 && result == 0);
+				int jf = _wopen(os_full.wstring().c_str(), _O_CREAT | _O_TRUNC | _O_RDWR | _O_TEXT, _S_IWRITE);
+
+				if (jf != -1) {
+					auto result = json_dumpfd(root, jf, flags);
+					return (!_close(jf) && !result);
 				}
-				else {
-					//..
-				}
+
 			}
 			return false;
 		}

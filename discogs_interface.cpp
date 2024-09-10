@@ -527,30 +527,31 @@ bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release, bool isArti
 		bool bexists = true;
 		pfc::string8 n8_file_name = n8_cache_thumbs[0];
 
+		int jf = -1;
+
 		try {
 
-			std::filesystem::path os_file_name = std::filesystem::u8path(n8_file_name.get_ptr());
+			std::filesystem::path os_file = std::filesystem::u8path(n8_file_name.get_ptr());
 			
-			if (std::filesystem::exists(os_file_name)) {
+			if (std::filesystem::exists(os_file)) {
 
-				int filesize = std::filesystem::file_size(os_file_name);
-
-				FILE* file;
+				int filesize = std::filesystem::file_size(os_file);
 				errno = 0;
+				jf = _wopen(os_file.wstring().c_str(), _O_RDONLY | _O_BINARY);
 
-				if (fopen_s(&file, os_file_name.string().c_str(), "rb") == 0) {
-
+				if (jf == -1) {
+					foobar2000_io::exception_io e("Open failed on input file");
+					throw e;
+				}
+				else {
 					small_art.set_size(filesize);
-					size_t done = fread(small_art.get_ptr(), filesize, 1, file);
+					size_t done = _read(jf, small_art.get_ptr(), filesize);
 					bres = done;
-					fclose(file);
+					_close(jf);
 				}
 
 				if (errno || !bres) {
-
-					pfc::string8 msg("can't open ");
-					msg << n8_file_name;
-					log_msg(msg);
+					log_msg(PFC_string_formatter() << "can't open " << n8_file_name);
 					return false;
 				}
 			}
@@ -559,11 +560,16 @@ bool DiscogsInterface::get_thumbnail_from_cache(Release_ptr release, bool isArti
 			}
 		}
 		catch (foo_discogs_exception& e) {
-
+			if (jf != -1) {
+				_close(jf);
+			}
 			throw(e);
 			return false;
 		}
 		catch (...) {
+			if (jf != -1) {
+				_close(jf);
+			}
 			foo_discogs_exception e;
 			e << "Unknown exception";
 			throw(e);

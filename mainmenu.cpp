@@ -9,7 +9,7 @@
 #include "tags.h"
 
 static const GUID contextmenu_group_discogs_id = { 0x73505390, 0x5ff3, 0x4ca0, { 0x91, 0x1e, 0xc1, 0xf9, 0xfd, 0xaa, 0x88, 0xed } }; //mod
-static service_factory_single_t<contextmenu_group_popup_impl> mygroup(contextmenu_group_discogs_id, contextmenu_groups::tagging, "Discogger", 0);
+static service_factory_single_t<contextmenu_group_popup_impl> mygroup(contextmenu_group_discogs_id, contextmenu_groups::tagging, COMPONENT_NAME_HC, 0);
 static const GUID contextmenu_group_discogs_web_id = { 0x51d6ec22, 0x3bed, 0x46de, { 0x94, 0x71, 0xeb, 0xc8, 0x98, 0xed, 0x75, 0x62 } };
 static service_factory_single_t<contextmenu_group_popup_impl> mysep1(contextmenu_group_discogs_web_id, contextmenu_group_discogs_id, "Web", 0);
 static const GUID contextmenu_group_discogs_utilities_id = { 0x2fa5ff96, 0xf204, 0x4922, { 0xa6, 0x28, 0x40, 0x1d, 0xf8, 0xe0, 0xe8, 0xef } }; //mod
@@ -241,10 +241,10 @@ public:
 			p_out = "Write tags...";
 			break;
 		case WriteTagsAlt:
-			p_out = "Plain write tags ...";
+			p_out = "Plain write tags...";
 			break;
 		case EditTagMappings:
-			p_out = "Edit Tag Mappings...";
+			p_out = "Edit tag mappings...";
 			break;
 		case Configuration:
 			p_out = "Configuration...";
@@ -315,7 +315,7 @@ public:
 		case WriteTagsAlt:
 			p_displayflags =
 				!g_discogs->locked_operation &&
-				!g_discogs->find_release_dialog &&
+				/*!g_discogs->find_release_dialog &&*/
 				!g_discogs->track_matching_dialog &&
 				!g_discogs->preview_tags_dialog ? 0 : FLAG_GRAYED;
 			break;
@@ -385,10 +385,10 @@ public:
 	void get_item_name(unsigned p_index, pfc::string_base& p_out) override {
 		switch (p_index) {
 		case FindDeletedReleases:
-			p_out = "Find Deleted Releases...";
+			p_out = "Find deleted releases...";
 			break;
 		case FindReleasesNotInCollect:
-			p_out = "Find Releases not in Collection...";
+			p_out = "Find releases not in collection...";
 			break;
 		}
 	}

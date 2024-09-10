@@ -148,6 +148,7 @@ bool CConf::load() {
 	vspec v207{ &vec_specs, 27, 50, 15 }; // 1.0.13
 	vspec v208{ &vec_specs, 27, 50, 16 }; // 1.0.15
 	vspec v209{ &vec_specs, 27, 51, 16 }; // 1.0.16.1
+	vspec v210{ &vec_specs, 27, 52, 16 }; // 1.0.21
 
 	vspec* vlast = &vec_specs.at(vec_specs.size() - 1);
 	
@@ -241,6 +242,12 @@ bool CConf::load() {
 		);
 		cfg_int_entries.add_item(
 			make_conf_entry(CFG_CUSTOM_FONT, custom_font)
+		);
+	}
+
+	if (vLoad < v210) {
+		cfg_int_entries.add_item(
+			make_conf_entry(CFG_DISK_CACHE_EXP, disk_cache_exp)
 		);
 	}
 
@@ -589,7 +596,10 @@ bool CConf::int_load(const conf_int_entry& item) {
 	case CFG_ALT_WRITE_FLAGS:
 		alt_write_flags = item.value;
 		break;
-
+	//v210 (1.0.21)
+	case CFG_DISK_CACHE_EXP:
+		disk_cache_exp = item.value;
+		break;
 	//..
 	default:
 		return false;
@@ -961,6 +971,10 @@ bool CConf::id_to_val_int(int id, const CConf& in_conf, int& out, bool assert) {
 	case CFG_ALT_WRITE_FLAGS:
 		out = in_conf.alt_write_flags;
 		break;
+	//v210 (1.0.21)
+	case CFG_DISK_CACHE_EXP:
+		out = in_conf.disk_cache_exp;
+		break;
 	//..
 	default:
 		if (assert) {
@@ -1270,6 +1284,8 @@ void CConf::save() {
 	cfg_int_entries.add_item(make_conf_entry(CFG_CUSTOM_FONT, custom_font));
 	//v209 (1.0.16.1)
 	cfg_int_entries.add_item(make_conf_entry(CFG_ALT_WRITE_FLAGS, alt_write_flags));
+	//v210 (1.0.21)
+	cfg_int_entries.add_item(make_conf_entry(CFG_DISK_CACHE_EXP, disk_cache_exp));
 	//..
 
 	cfg_string_entries.remove_all();
@@ -1322,12 +1338,30 @@ bool CConf::history_enabled() {
 	return HIWORD(history_enabled_max);
 }
 
-bool CConf::history_max() {
-	return LOWORD(history_enabled_max);
+bool CConf::expiration_enabled() {
+	return HIWORD(disk_cache_exp) & (1 << 0);
 }
 
-bool CConf::awt_mode_changing() {
-	return LOWORD(mode_write_alt) != HIWORD(mode_write_alt);
+int CConf::expiration_days() {
+	return LOWORD(disk_cache_exp);
+}
+
+void CConf::set_expiration_enabled(bool enabled) {
+
+	auto k_enabled = 1 << 0;
+	auto flg = HIWORD(disk_cache_exp);
+
+	if (enabled) {
+		flg |= k_enabled;
+	}
+	else {
+		flg &= ~k_enabled;
+	}
+	disk_cache_exp = MAKELPARAM(LOWORD(disk_cache_exp), flg);
+}
+
+void CConf::set_expiration_days(int days) {
+	disk_cache_exp = MAKELPARAM(days, HIWORD(disk_cache_exp));
 }
 
 bool CConf::awt_get_alt_mode() {

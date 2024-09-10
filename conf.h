@@ -172,7 +172,8 @@
 
 //v209 (1.0.16.1)
 #define CFG_ALT_WRITE_FLAGS                         2146
-
+//v210 (1.0.21)
+#define CFG_DISK_CACHE_EXP                          2147
 
 // STRINGS -------------------------------------
 
@@ -445,6 +446,8 @@ public:
 		{ asi(cfgFilter::CONF), CFG_CUSTOM_FONT},
 		//v208
 		{ asi(cfgFilter::CONF), CFG_MULTIVALUE_FIELDS},
+		//v210
+		{ asi(cfgFilter::CONF), CFG_DISK_CACHE_EXP},
 		//..
 
 		// **** FIND (find_release_dialog)
@@ -542,7 +545,11 @@ public:
 	void save(cfgFilter cfgfilter, const CConf & in_conf, int id);
 
 	bool history_enabled();
-	bool history_max();
+
+	bool expiration_enabled();
+	int expiration_days();
+	void set_expiration_enabled(bool enabled);
+	void set_expiration_days(int days);
 
 
 	bool awt_get_alt_mode();
@@ -688,10 +695,11 @@ public:
 	pfc::string8 multivalue_fields = "ARTIST;ALBUM ARTIST;PRODUCER;COMPOSER;PERFORMER;GENRE;STYLE";
 	//v209 (1.0.16.1)
 	int alt_write_flags = 0;
+	//v210 (1.0.21)
+	int disk_cache_exp = 30; //hi flags, lo days
 	//..
 
 	std::vector<int> vflags;
-	int mode_write_alt = 0;
 
 	friend class FlgMng;
 };

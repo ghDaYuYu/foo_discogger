@@ -458,7 +458,19 @@ void CConfigurationDialog::init_memory_cache_buttons(HWND wnd) {
 
 void CConfigurationDialog::init_caching_dialog(HWND wnd) {
 
-	//hidden regular & skip videp
+#ifdef CACHE_EXPIRATION
+#else
+	HWND hwndcustFont = ::uGetDlgItem(wnd, IDC_EDIT_CFG_CACHE_EXP_DAYS);
+	::EnableWindow(hwndcustFont, FALSE);
+	::ShowWindow(hwndcustFont, SW_HIDE);
+	hwndcustFont = ::uGetDlgItem(wnd, IDC_CHK_CFG_CACHE_EXP_ENABLED);
+	::EnableWindow(hwndcustFont, FALSE);
+	::ShowWindow(hwndcustFont, SW_HIDE);
+	hwndcustFont = ::uGetDlgItem(wnd, IDC_STATIC_CFG_CACHE_EXP_DAYS);
+	::ShowWindow(hwndcustFont, SW_HIDE);
+#endif
+
+	//hidden_postfix regular & skip videp
 
 	uButton_SetCheck(wnd, IDC_CHK_HIDDEN_MERGE_TITLES, conf.parse_hidden_merge_titles);
 	uButton_SetCheck(wnd, IDC_CHK_HIDDEN_AS_REGULAR, conf.parse_hidden_as_regular);
@@ -485,6 +497,12 @@ void CConfigurationDialog::init_caching_dialog(HWND wnd) {
 	pfc::string8 num;
 	num << conf.cache_max_objects;
 	uSetDlgItemText(wnd, IDC_EDIT_CACHED_OBJECTS, num);
+
+	num = "";
+	LPARAM lp = LPARAM(conf.disk_cache_exp);
+	num << conf.expiration_days();
+	uSetDlgItemText(wnd, IDC_EDIT_CFG_CACHE_EXP_DAYS, num);
+	uButton_SetCheck(wnd, IDC_CHK_CFG_CACHE_EXP_ENABLED, conf.expiration_enabled());
 
 	init_memory_cache_buttons(wnd);
 }
@@ -760,6 +778,9 @@ void CConfigurationDialog::save_caching_dialog(HWND wnd, bool dlgbind) {
 	else
 		conf_ptr->cache_offline_cache_flag &= ~(ol::CacheFlags::MERGE_SUBTRACKS);
 
+	auto expiration_enabled = uButton_GetCheck(wnd, IDC_CHK_CFG_CACHE_EXP_ENABLED);
+	conf_ptr->set_expiration_enabled(expiration_enabled);
+
 	if (original_parsing_merge_titles != conf_ptr->parse_hidden_merge_titles ||
 		original_parsing != conf_ptr->parse_hidden_as_regular ||
 		original_skip_video != conf_ptr->skip_video_tracks) {
@@ -767,12 +788,20 @@ void CConfigurationDialog::save_caching_dialog(HWND wnd, bool dlgbind) {
 	}
 
 	pfc::string8 text;
+
+	uGetDlgItemText(wnd, IDC_EDIT_CFG_CACHE_EXP_DAYS, text);
+
+	if (is_number(text.c_str())) {
+		conf_ptr->set_expiration_days(abs(atoi(text)));
+	}
+
+
 	uGetDlgItemText(wnd, IDC_EDIT_CACHED_OBJECTS, text);
 
-	if (!is_number(text.c_str())) return;
-
-	conf_ptr->cache_max_objects = atol(text);
-	discogs_interface->set_cache_size(conf_ptr->cache_max_objects);
+	if (is_number(text.c_str())) {
+		conf_ptr->cache_max_objects = abs(atol(text));
+		discogs_interface->set_cache_size(conf_ptr->cache_max_objects);
+	}
 }
 
 bool CConfigurationDialog::cfg_caching_has_changed() {
@@ -784,6 +813,7 @@ bool CConfigurationDialog::cfg_caching_has_changed() {
 	bres |= conf.skip_video_tracks != conf_edit.skip_video_tracks;
 	bres |= conf.cache_max_objects != conf_edit.cache_max_objects;
 	bres |= conf.cache_offline_cache_flag != conf_edit.cache_offline_cache_flag;
+	bres |= conf.disk_cache_exp != conf_edit.disk_cache_exp;
 	return bres;
 }
 bool CConfigurationDialog::cfg_db_has_changed() {

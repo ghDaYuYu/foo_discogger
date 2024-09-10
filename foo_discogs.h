@@ -33,9 +33,40 @@ class get_multi_artists_process_callback;
 class search_artist_process_callback;
 class edit_complete;
 
+inline HFONT g_hFont;
+inline HFONT g_hFontTabs;
+
 class foo_discogs : public ErrorManager
 {
 public:
+
+	// custom fonts
+
+	class ui_v2_config_callback : public ui_config_callback {
+		ui_v2_config_callback(foo_discogs* pdiscogs) : p_discogs(pdiscogs) {};
+		virtual void ui_fonts_changed() override;
+		virtual void ui_colors_changed() override;
+
+	private:
+		foo_discogs* p_discogs/* = nullptr*/;
+
+	friend class foo_discogs;
+	};
+
+	ui_v2_config_callback* ui_v2_cfg_callback = nullptr;
+	void notify(const GUID& p_what, t_size p_param1, const void* p_param2, t_size p_param2size);
+
+#ifdef CUI_CALLBACK
+	//todo
+	class cui_v2_common_callback : public cui::fonts::common_callback {
+	public:
+		virtual void on_font_changed(uint32_t changed_items_mask) const override;
+	};
+
+	service_ptr_t<cui::fonts::manager> m_cui_mng;
+	cui_v2_common_callback* m_cui_v2_common_callback = nullptr;
+#endif
+
 	enum discog_web_page
 	{
 		ARTIST_PAGE,
@@ -93,7 +124,6 @@ inline foo_discogs* g_discogs = nullptr;
 
 inline HICON g_hIcon_quian;
 inline HBITMAP g_hIcon_rec;
-inline HFONT g_hFont;
 
 enum class PreView :int { Normal = 0, Diff, Original, Dbg, Undef, default = 0 };
 inline pfc::string8 preview_to_label(PreView pv) { return pv == PreView::Normal ? "Results" : pv == PreView::Diff ? "Difference" :

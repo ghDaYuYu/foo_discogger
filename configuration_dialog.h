@@ -192,7 +192,7 @@ class preferences_page_myimpl : public preferences_page_impl<CConfigurationDialo
 
 public:
 
-	const char* get_name() { return "Discogger"; }
+	const char* get_name() { return COMPONENT_NAME_HC; }
 	GUID get_guid() { return guid_pref_page; }
 	GUID get_parent_guid() { return guid_tagging; }
 };

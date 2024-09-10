@@ -14,6 +14,8 @@
 #include "find_release_artist_dlg.h"
 #include "track_matching_utils.h"
 
+#include "helpers/ui_element_helpers.h"
+
 #include "foo_discogs.h"
 
 using namespace std;
@@ -41,17 +43,17 @@ class initquit_discogs : public initquit
 
 		for (auto & entry :  cfg_tag_mappings) {
 
-			if (!CONF.alt_write_flags) {
-				//todo: clean up, use awt function
-				bool release_id_mod = STR_EQUAL(TAG_RELEASE_ID, entry.tag_name.get_ptr());
-				if (release_id_mod) {
-					int non_alt = ((entry.enable_write || /*force*/true) ? 1 << 0 : 0) | (entry.enable_update ? 1 << 1 : 0);
-					if (!entry.enable_write) {
-						entry.enable_write = true;
-					}
-					CONF.alt_write_flags = MAKELPARAM(non_alt, 1 << 3);
-				}
+			bool release_id_mod = STR_EQUAL(TAG_RELEASE_ID, entry.tag_name.get_ptr());
+			if (release_id_mod) {
+				bool alt_enabled = CONF.awt_get_alt_mode();
+				//fix may be required
+				bool bchanged = CONF.awt_set_alt_mode(alt_enabled);
+				int non_alt = alt_enabled ? LOWORD(CONF.alt_write_flags) : HIWORD(CONF.alt_write_flags);
+
+				entry.enable_write = non_alt & (1 << 0);
+				entry.enable_update = non_alt & (1 << 1);
 			}
+
 
 			entry.is_multival_meta = is_multivalue_meta(entry.tag_name);
 		
@@ -96,6 +98,15 @@ foo_discogs::foo_discogs() {
 	static_api_ptr_t<titleformat_compiler>()->compile_force(dc_release_id_script, (PFC_string_formatter() << "[%" << TAG_RELEASE_ID << "%]").c_str());
 
 	gave_oauth_warning = false;
+
+	bool bv2 = core_version_info_v2::get()->test_version(2, 0, 0, 0);
+	if (bv2) {
+		ui_v2_cfg_callback = new ui_v2_config_callback(this);
+		ui_config_manager::get()->add_callback(ui_v2_cfg_callback);
+	}
+	else {
+		//..
+	}
 }
 
 foo_discogs::~foo_discogs() {
@@ -122,6 +133,17 @@ foo_discogs::~foo_discogs() {
 	if (tag_mappings_dialog) {
 		tag_mappings_dialog->destroy();
 	}
+
+	bool bv2 = core_version_info_v2::get()->test_version(2, 0, 0, 0);
+	if (bv2) {
+		ui_config_manager::get()->remove_callback(ui_v2_cfg_callback);
+		delete ui_v2_cfg_callback;
+	}
+
+	DeleteObject(g_hIcon_quian);
+	DeleteObject(g_hIcon_rec);
+	DeleteObject(g_hFont);
+	DeleteObject(g_hFontTabs);
 
 }
 
@@ -840,3 +862,64 @@ void foo_discogs::embed_image(MemoryBlock &buffer, metadb_handle_ptr item, GUID 
 	editor->set(embed_guid, data, p_abort);
 	editor->commit(p_abort);
 }
+
+void foo_discogs::ui_v2_config_callback::ui_fonts_changed() {
+
+	g_hFont = ui_config_manager::get()->query_font(ui_font_playlists);
+	g_hFontTabs = ui_config_manager::get()->query_font(ui_font_tabs);
+	p_discogs->notify(ui_element_notify_font_changed, 0, nullptr, 0);
+}
+
+void foo_discogs::ui_v2_config_callback::ui_colors_changed() {
+	//..
+}
+
+void foo_discogs::notify(const GUID& p_what, t_size p_param1, const void* p_param2, t_size p_param2size) {
+
+	if (ui_v2_cfg_callback) {
+		if (p_what == ui_element_notify_font_changed) {
+
+			//FIND RELEASE
+			if (find_release_dialog) {
+				CustomFont(find_release_dialog->m_hWnd, HIWORD(CONF.custom_font));
+				find_release_dialog->Invalidate(true);
+			}
+			//FIND RELEASE ARTIST
+			if (find_release_artist_dialog) {
+				CustomFont(find_release_artist_dialog->m_hWnd, HIWORD(CONF.custom_font));
+				find_release_artist_dialog->Invalidate(true);
+			}
+			//TRACK MATCHING
+			if (track_matching_dialog) {
+				CustomFont(track_matching_dialog->m_hWnd, HIWORD(CONF.custom_font));
+				track_matching_dialog->Invalidate(true);
+			}
+			//PREVIEW TAGS
+			if (preview_tags_dialog) {
+				CustomFont(preview_tags_dialog->m_hWnd, HIWORD(CONF.custom_font));
+				preview_tags_dialog->Invalidate(true);
+			}
+			//PREVIEW LEADING
+			if (preview_modal_tag_dialog) {
+				CustomFont(preview_modal_tag_dialog->m_hWnd, HIWORD(CONF.custom_font));
+				preview_modal_tag_dialog->Invalidate(true);
+			}
+			//TAG MAPPING
+			if (tag_mappings_dialog) {
+				CustomFont(tag_mappings_dialog->m_hWnd, HIWORD(CONF.custom_font));
+				tag_mappings_dialog->Invalidate(true);
+			}
+		}
+		return;
+	}
+	else {
+		//..
+	}
+}
+
+#ifdef CUI_CALLBACK
+//cui also calls DUI on font changed when common list font gets modified
+void foo_discogs::cui_v2_common_callback::on_font_changed(uint32_t changed_items_mask) const {
+	//..
+}
+#endif

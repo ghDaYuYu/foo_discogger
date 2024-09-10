@@ -101,10 +101,10 @@ LRESULT CPreviewLeadingTagDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/,
 	m_ui_list.CreateInDialog(*this, IDC_LEADING_TAG_LIST);
 
 	//darkmode
-	AddDialog(m_hWnd);
-	AddControls(m_hWnd);
+	m_dark.AddDialog(m_hWnd);
+	m_dark.AddControls(m_hWnd);
 
-	CustomFont(m_hWnd, m_customfont);
+	CustomFont(m_hWnd, HIWORD(CONF.custom_font));
 
 	m_ui_list.AddColumn("#", MulDiv(25, DPI.cx, 96), HDF_RIGHT, false);
 	m_ui_list.AddColumn("Track", MulDiv(150, DPI.cx, 96), 0, false);

@@ -649,7 +649,7 @@ bool CPreviewTagsDialog::context_menu_switch(HWND wnd, POINT point, int cmd, bit
 
 		if (isel < selmask.size()) {
 			if (!g_discogs->preview_modal_tag_dialog) {
-				fb2k::newDialog <CPreviewLeadingTagDialog>(core_api::get_main_window(), m_tag_writer, isel, get_preview_mode(), HIWORD(conf.custom_font));
+				fb2k::newDialog <CPreviewLeadingTagDialog>(core_api::get_main_window(), m_tag_writer, isel, get_preview_mode());
 			}
 			else {
 				::SetFocus(g_discogs->preview_modal_tag_dialog->m_hWnd);

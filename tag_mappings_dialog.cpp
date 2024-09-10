@@ -148,6 +148,8 @@ LRESULT CTagMappingDialog::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM
 	//dark mode
 	m_dark.AddControls(m_hWnd);
 
+	CustomFont(m_hWnd, HIWORD(conf.custom_font));
+
 	load_column_layout();
 	show();
 

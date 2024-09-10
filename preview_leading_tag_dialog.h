@@ -10,7 +10,7 @@
 #include "preview_leading_tag_ILO.h"
 
 class CPreviewLeadingTagDialog : public MyCDialogImpl<CPreviewLeadingTagDialog>,
-	public CDialogResize<CPreviewLeadingTagDialog>,	private ILOD_preview_leading, public fb2k::CDarkModeHooks {
+	public CDialogResize<CPreviewLeadingTagDialog>,	private ILOD_preview_leading {
 
 public:
 
@@ -28,8 +28,8 @@ public:
 
 	//constructor
 
-	CPreviewLeadingTagDialog(HWND p_parent, TagWriter_ptr tag_writer, size_t isel, PreView parent_preview_mode, bool customfont)
-		: m_tag_writer(tag_writer), m_isel(isel), m_parent_preview_mode(parent_preview_mode), m_customfont(customfont), m_ui_list(this),
+	CPreviewLeadingTagDialog(HWND p_parent, TagWriter_ptr tag_writer, size_t isel, PreView parent_preview_mode)
+		: m_tag_writer(tag_writer), m_isel(isel), m_parent_preview_mode(parent_preview_mode), m_ui_list(this),
 		ILOD_preview_leading(tag_writer->tag_results[isel], parent_preview_mode) {
 
 		g_discogs->preview_modal_tag_dialog = this;
@@ -109,11 +109,14 @@ private:
 	virtual const size_t ilo_get_finfo_count() override { return m_tag_writer->m_finfo_manager->get_item_count(); }
 	//
 
+private:
+
 	pfc::array_t<tab_entry> m_tab_table;
 	CListControlOwnerData m_ui_list;
 
 	PreView m_parent_preview_mode;
-	bool m_customfont;
+
+	fb2k::CDarkModeHooks m_dark;
 
 	TagWriter_ptr m_tag_writer;
 	service_ptr_t<titleformat_object> m_track_desc_script;

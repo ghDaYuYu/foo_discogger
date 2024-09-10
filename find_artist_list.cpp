@@ -405,7 +405,7 @@ void CArtistList::ShowArtistProfile() {
 void CArtistList::open_artist_profile(size_t list_index) {
 
 	if (!g_discogs->find_release_artist_dialog) {
-		g_discogs->find_release_artist_dialog = fb2k::newDialog<CFindReleaseArtistDialog>(core_api::get_main_window(), SW_SHOW, HIWORD(CONF.custom_font));
+		g_discogs->find_release_artist_dialog = fb2k::newDialog<CFindReleaseArtistDialog>(core_api::get_main_window(), SW_SHOW);
 	}
 
 	if (list_index != pfc_infinite) {

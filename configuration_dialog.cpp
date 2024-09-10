@@ -253,11 +253,21 @@ void CConfigurationDialog::pushcfg(bool reset) {
 		
 		conf_edit = foo_conf(conf);
 		conf_edit.SetName("CfgEdit");
+
+		bool fonts_changed = conf.custom_font != CONF.custom_font;
+		if (fonts_changed) {
+			g_hFont = nullptr;
+			g_hFontTabs = nullptr;
+		}
+
 		CONF.save(CConf::cfgFilter::CONF, conf);
 		CONF.load();
 
 		if (brefresh_tagmap_multivalues) {
 			update_loaded_tagmaps_multivalues();
+		}
+		if (fonts_changed) {
+			g_discogs->notify(ui_element_notify_font_changed, 0, 0, 0);
 		}
 	}
 }
@@ -525,14 +535,30 @@ void CConfigurationDialog::init_ui_dialog(HWND wnd) {
 	uButton_SetCheck(wnd, IDC_CHK_FIND_RELEASE_STATS, bstats);
 
 	//list style
-	HWND hwndcustFont = ::uGetDlgItem(wnd, IDC_CHK_CFG_CUSTOM_FONT_ENABLE);
-	::ShowWindow(hwndcustFont, SW_SHOW);
 
-	uButton_SetCheck(wnd, IDC_CHK_CFG_CUSTOM_FONT_ENABLE, HIWORD(conf.custom_font));
+	const auto cf = HIWORD(conf.custom_font);
+
+	if (cf & (1 << 0)) {
+		uButton_SetCheck(wnd, IDC_CHK_CFG_CUSTOM_FONT_EXPANDED, true);
+	}
+	else if (cf & (1 << 1)) {
+		uButton_SetCheck(wnd, IDC_CHK_CFG_CUSTOM_FONT_FB2K, true);
+	}
+	else {
+		uButton_SetCheck(wnd, IDC_CHK_CFG_CUSTOM_FONT_DEFAULT, true);
+	}
+
 	InitComboRowStyle(wnd, IDC_CMB_CONFIG_LIST_STYLE, conf.list_style);
 	HWND hcmb = ::uGetDlgItem(wnd, IDC_CMB_CONFIG_LIST_STYLE);
 
 	BOOL res = ::SendMessage(hcmb, CB_SETMINVISIBLE, 10, 0L);
+
+	bool bv2 = core_version_info_v2::get()->test_version(2, 0, 0, 0);
+	if (!bv2) {
+		HWND hwndcustFont = ::uGetDlgItem(wnd, IDC_CHK_CFG_CUSTOM_FONT_FB2K);
+		::EnableWindow(hwndcustFont, FALSE);
+		::ShowWindow(hwndcustFont, SW_HIDE);
+	}
 
 	//dark mode
 	m_dark.AddControls(wnd);
@@ -874,8 +900,13 @@ void CConfigurationDialog::save_ui_dialog(HWND wnd, bool dlgbind) {
 	conf_ptr->GetFlagVar(CFG_FIND_RELEASE_DIALOG_FLAG, fv_stats);
 	bool val = fv_stats.SetFlag(wnd, IDC_CHK_FIND_RELEASE_STATS, CFindReleaseDialog::FLG_SHOW_RELEASE_TREE_STATS);
 
-	bool custom_font_enabled = uButton_GetCheck(wnd, IDC_CHK_CFG_CUSTOM_FONT_ENABLE);
-	conf_ptr->custom_font = MAKELPARAM(0, custom_font_enabled);
+	size_t custom_font = uButton_GetCheck(wnd, IDC_CHK_CFG_CUSTOM_FONT_DEFAULT) ? 0 : 0;
+	bool chk = uButton_GetCheck(wnd, IDC_CHK_CFG_CUSTOM_FONT_EXPANDED);
+	custom_font = chk ? (custom_font | (1 << 0)) : custom_font;
+	chk = uButton_GetCheck(wnd, IDC_CHK_CFG_CUSTOM_FONT_FB2K);
+	custom_font = chk ? (custom_font | (1 << 1)) : custom_font;
+
+	conf_ptr->custom_font = MAKELPARAM(0, custom_font);
 
 	//todo: move this to on apply
 	if (g_discogs->find_release_dialog) {

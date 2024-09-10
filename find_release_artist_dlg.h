@@ -5,7 +5,7 @@
 #include "foo_discogs.h"
 
 class CFindReleaseArtistDialog :
-	public CDialogImpl<CFindReleaseArtistDialog>, public CMessageFilter, public fb2k::CDarkModeHooks {
+	public CDialogImpl<CFindReleaseArtistDialog>, public CMessageFilter {
 
 public:
 	enum { IDD = IDD_DIALOG_FIND_ARTIST };
@@ -19,7 +19,7 @@ public:
 		COMMAND_HANDLER_EX(IDCANCEL, BN_CLICKED, OnCancel)
 	END_MSG_MAP()
 
-	CFindReleaseArtistDialog(HWND p_parent, size_t SW_FLAG, bool customfont);
+	CFindReleaseArtistDialog(HWND p_parent, size_t SW_FLAG);
 
 	~CFindReleaseArtistDialog() {
 
@@ -35,17 +35,20 @@ public:
 
 private:
 
-	size_t m_sw_flag;
-	size_t m_id = pfc_infinite;
-	bool m_loaded = false;
-	bool m_customfont = false;
-
 	LRESULT OnInitDialog(HWND hWnd, LPARAM lParam);
 	void OnDestroy();
 	void OnClose();
 	void OnSize(UINT nType, CSize newSize);
 	void OnGetMinMaxInfo(LPMINMAXINFO lpMinMaxInfo);
 	void OnCancel(UINT nCode, int nId, HWND hWnd);
+
+private:
+
+	size_t m_sw_flag;
+	size_t m_id = pfc_infinite;
+	bool m_loaded = false;
+
+	fb2k::CDarkModeHooks m_dark;
 
 	dialog_resize_helper m_resize_helper;
 	static dialog_resize_helper::param m_resize_helper_table[];

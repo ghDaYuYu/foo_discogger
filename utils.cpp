@@ -743,20 +743,60 @@ bool check_os_wine() {
 	}
 }
 
-void CustomFont(HWND hwndParent, bool enabled, bool enableedits) {
+void CustomFont(HWND hwndParent, size_t flag, bool check_font, bool apply) {
 
-	if (enabled) {
+	if (!flag) {
 
+		if (check_font) {
+
+			g_hFont = (HFONT)::GetStockObject(DEFAULT_GUI_FONT);
+			g_hFontTabs = (HFONT)::GetStockObject(DEFAULT_GUI_FONT);
+
+		}
+	}
+	else if (flag & (1 << 0)) {
+		//expanded
+		if (check_font) {
+			LOGFONTW lf;
+			CWindowDC dc(core_api::get_main_window());
+			CTheme wtheme;
+			HTHEME theme = wtheme.OpenThemeData(core_api::get_main_window(), L"TEXTSTYLE");
+			GetThemeFont(theme, dc, TEXT_EXPANDED, 0, TMT_FONT, &lf);
+			g_hFont = CreateFontIndirectW(&lf);
+			g_hFontTabs = CreateFontIndirectW(&lf);
+		}
+	}
+	else if (flag & (1 << 1)) {
+
+		if (check_font) {
+			bool bv2 = core_version_info_v2::get()->test_version(2, 0, 0, 0);
+			if (bv2) {
+				auto ui_cfg_mng = ui_config_manager::get();
+
+				if (!g_hFont) {
+					g_hFont = ui_cfg_mng->query_font(ui_font_playlists);
+				}
+				if (!g_hFontTabs) {
+					g_hFontTabs = ui_cfg_mng->query_font(ui_font_tabs);
+				}
+			}
+		}
+	}
+
+	if (apply) {
 		for (HWND walk = ::GetWindow(hwndParent, GW_CHILD); walk != NULL; ) {
 			wchar_t buffer[128] = {};
 			::GetClassName(walk, buffer, (int)(std::size(buffer) - 1));
 			const wchar_t* cls = buffer;
 			HWND next = ::GetWindow(walk, GW_HWNDNEXT);
 			if (next && ::IsWindow(next)) {
-				if (g_hFont && (((_wcsnicmp(cls, L"libPPUI:", 8) == 0) || (_wcsnicmp(cls, L"SysTreeV", 8) == 0))
-					|| (enableedits && ((_wcsnicmp(cls, L"Edit", 4) == 0))))) {
+				if (g_hFont && (((_wcsnicmp(cls, L"libPPUI:", 8) == 0) || (_wcsnicmp(cls, L"SysTreeV", 8) == 0)))) {
 					CWindow* cwnd = &CWindow(walk);
 					cwnd->SetFont(g_hFont);
+				}
+				else if (g_hFontTabs && (_wcsnicmp(cls, L"SysTabControl32", 15) == 0)) {
+					CWindow* cwnd = &CWindow(walk);
+					cwnd->SetFont(g_hFontTabs);
 				}
 			}
 			walk = next;

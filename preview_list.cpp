@@ -10,7 +10,6 @@ const size_t SHOWING_IMAGE_NDX = 1;
 CPreviewList::CPreviewList(IListControlOwnerDataSource* ilo)
 	: CListControlOwnerData(ilo) {
 
-	IListControlOwnerDataSource* kk = (IListControlOwnerDataSource*)ilo;
 	CPreviewTagsDialog* dlg = dynamic_cast<CPreviewTagsDialog*>(m_host);
 }
 

@@ -15,7 +15,7 @@ dialog_resize_helper::param CFindReleaseArtistDialog::m_resize_helper_table[] =
 	{IDCANCEL,    dialog_resize_helper::XY_MOVE},
 };
 
-CFindReleaseArtistDialog::CFindReleaseArtistDialog(HWND p_parent, size_t SW_FLAG, bool custfont) : m_sw_flag(SW_FLAG), m_customfont(custfont),
+CFindReleaseArtistDialog::CFindReleaseArtistDialog(HWND p_parent, size_t SW_FLAG) : m_sw_flag(SW_FLAG),
 	m_resize_helper(m_resize_helper_table, tabsize(m_resize_helper_table), 235, 94, 0, 0)
 {
     //..
@@ -77,10 +77,10 @@ LRESULT CFindReleaseArtistDialog::OnInitDialog(HWND hWnd, LPARAM lParam)
 	cfg_dialog_position_find_release_artist_dlg.AddWindow(m_hWnd);
 
 	//darkmode
-	AddDialog(m_hWnd);
-	AddControls(m_hWnd);
+	m_dark.AddDialog(m_hWnd);
+	m_dark.AddControls(m_hWnd);
 
-	CustomFont(m_hWnd, m_customfont, true);
+	CustomFont(m_hWnd, HIWORD(CONF.custom_font), true);
 
 	ShowWindow(m_sw_flag);
 	return TRUE;

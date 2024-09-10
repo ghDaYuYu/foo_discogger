@@ -165,7 +165,7 @@ void erase(pfc::array_t<T> &ar, unsigned int index) {
 
 extern bool tokenize_filter(pfc::string8 filter, pfc::array_t<pfc::string>& out_filter_words_lowercase);
 
-extern void CustomFont(HWND hwndParent, bool enable, bool enable_cedit = false);
+extern void CustomFont(HWND hwndParent, size_t flag, bool check_font = true, bool apply = true);
 
 extern bool sortByVal(const std::pair<int, int>& a, const std::pair<int, int>& b);
 

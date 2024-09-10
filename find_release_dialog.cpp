@@ -18,14 +18,7 @@ void load_global_icons() {
 	bool bdark = fb2k::isDarkMode();
 	g_hIcon_quian = LoadDpiIconResource(!bdark ? Icon::Quian : Icon::Quian_Dark, dpiX);
 	g_hIcon_rec = LoadDpiBitmapResource(Icon::Record, bdark);
-	LOGFONTW lf;
-	CWindowDC dc(core_api::get_main_window());
 
-	CTheme fbtheme;
-	HTHEME theme = fbtheme.OpenThemeData(core_api::get_main_window(), L"TEXTSTYLE");
-
-	GetThemeFont(theme, dc, TEXT_EXPANDED, 0, TMT_FONT, &lf);
-	g_hFont = CreateFontIndirectW(&lf);
 }
 
 // constructor
@@ -34,10 +27,6 @@ CFindReleaseDialog::CFindReleaseDialog(HWND p_parent, metadb_handle_list items, 
 m_va(false), cewb_artist_search(), cewb_release_filter(), cewb_release_url(), m_dctree(this, &m_tracer), m_alist(this, &m_tracer) {
 
 	load_global_icons();
-
-	if (CONF.awt_mode_changing()) {
-		awt_update_mod_flag(/*from map_entry*/true);
-	}
 
 	//HWND
 
@@ -58,10 +47,6 @@ m_va(false), cewb_artist_search(), cewb_release_filter(), cewb_release_url(), m_
 }
 
 CFindReleaseDialog::~CFindReleaseDialog() {
-
-	DeleteObject(g_hIcon_quian);
-	DeleteObject(g_hIcon_rec);
-	DeleteObject(g_hFont);
 
 	if (g_discogs) {
 		awt_update_mod_flag(/*fromFlag*/false);
@@ -195,7 +180,7 @@ void CFindReleaseDialog::init_cfged_dialog_controls() {
 
 				// new profile dlg
 				g_discogs->find_release_artist_dialog = 
-					fb2k::newDialog<CFindReleaseArtistDialog>(core_api::get_main_window(), SW_HIDE, HIWORD(conf.custom_font));
+					fb2k::newDialog<CFindReleaseArtistDialog>(core_api::get_main_window(), SW_HIDE);
 			}
 		}
 	}

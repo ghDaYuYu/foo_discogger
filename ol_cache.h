@@ -122,8 +122,10 @@ namespace Offline {
 
 		for (t_size walk = 0; walk < folders.get_size(); ++walk) {
 			pfc::string8 tmp(folders[walk]);
+			if (!stricmp_utf8(tmp, n8_full_path)) {
 				filenames.append_single(tmp);
 				if (ndx != ~0) break;
+			}
 		}
 		return filenames;
 	}

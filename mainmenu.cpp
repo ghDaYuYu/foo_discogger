@@ -314,10 +314,11 @@ public:
 		case WriteTags:
 		case WriteTagsAlt:
 			p_displayflags =
-				!g_discogs->locked_operation &&
-				/*!g_discogs->find_release_dialog &&*/
-				!g_discogs->track_matching_dialog &&
-				!g_discogs->preview_tags_dialog ? 0 : FLAG_GRAYED;
+			!g_discogs->locked_operation &&
+			//todo: rev acquiring lock to remove !find_release_dialog req. 
+			!g_discogs->find_release_dialog &&
+			!g_discogs->track_matching_dialog &&
+			!g_discogs->preview_tags_dialog ? 0 : FLAG_GRAYED;
 			break;
 		case EditTagMappings:
 			p_displayflags = g_discogs->tag_mappings_dialog ? FLAG_GRAYED : 0;

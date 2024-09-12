@@ -865,7 +865,7 @@ void foo_discogs::embed_image(MemoryBlock &buffer, metadb_handle_ptr item, GUID 
 
 void foo_discogs::ui_v2_config_callback::ui_fonts_changed() {
 
-	g_hFont = ui_config_manager::get()->query_font(ui_font_playlists);
+	g_hFont = ui_config_manager::get()->query_font(ui_font_lists);
 	g_hFontTabs = ui_config_manager::get()->query_font(ui_font_tabs);
 	p_discogs->notify(ui_element_notify_font_changed, 0, nullptr, 0);
 }

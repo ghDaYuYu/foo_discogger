@@ -774,7 +774,7 @@ void CustomFont(HWND hwndParent, size_t flag, bool check_font, bool apply) {
 				auto ui_cfg_mng = ui_config_manager::get();
 
 				if (!g_hFont) {
-					g_hFont = ui_cfg_mng->query_font(ui_font_playlists);
+					g_hFont = ui_cfg_mng->query_font(ui_font_lists);
 				}
 				if (!g_hFontTabs) {
 					g_hFontTabs = ui_cfg_mng->query_font(ui_font_tabs);

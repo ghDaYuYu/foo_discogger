@@ -80,6 +80,11 @@ void CTagMappingDialog::on_mapping_changed(bool changed) {
 void CTagMappingDialog::pushcfg() {
 
 	if (build_current_cfg()) {
+
+		//todo:
+		//ref (patch 1.0.21.1, CFG_ALT_WRITE_FLAGS) - applymapping
+		//conf.alt_write_flags = CONF.alt_write_flags;
+
 		CONF.save(CConf::cfgFilter::TAG, conf);
 		CONF.load();
 	}
@@ -234,7 +239,14 @@ void CTagMappingDialog::applymappings() {
 
 	set_cfg_tag_mappings(m_ptag_map);
 
-	if (CONF.alt_write_flags != awt_update_mod_flag(false)) {
+	auto old_alf = CONF.alt_write_flags;
+	auto new_alf = awt_update_mod_flag(false);
+
+	if (old_alf != new_alf) {
+		//todo:
+		//ref (patch 1.0.21.1, CFG_ALT_WRITE_FLAGS) - pushcfg
+		conf.alt_write_flags = new_alf;
+		//
 		CONF.save(CConf::cfgFilter::TAG, CONF, CFG_ALT_WRITE_FLAGS);
 	}
 

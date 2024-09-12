@@ -489,6 +489,8 @@ public:
 		//v200
 		{ asi(cfgFilter::TAG), CFG_EDIT_TAGS_DIALOG_HL_KEYWORD },
 		//v209 (1.0.16.1)
+		//todo: (ref patch 1.0.21.1)
+		//use cfgFilter::CONF instead
 		{ asi(cfgFilter::TAG), CFG_ALT_WRITE_FLAGS },
 
 		//..

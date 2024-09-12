@@ -645,7 +645,7 @@ void process_result(const metadb_handle_ptr item, file_info* info, size_t ndx_tr
 	else {
 
 		bool release_id_mod = STR_EQUAL(TAG_RELEASE_ID, result->tag_entry->tag_name.get_ptr());
-		release_id_mod &= !CONF.awt_alt_mode();
+		release_id_mod &= !CONF.awt_get_alt_mode();
 
 		if (release_id_mod) {
 			if (!(result->tag_entry->enable_write)) {

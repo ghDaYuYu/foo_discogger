@@ -48,10 +48,10 @@ class initquit_discogs : public initquit
 				bool alt_enabled = CONF.awt_get_alt_mode();
 				//fix may be required
 				bool bchanged = CONF.awt_set_alt_mode(alt_enabled);
-				int non_alt = alt_enabled ? LOWORD(CONF.alt_write_flags) : HIWORD(CONF.alt_write_flags);
+				int current_alt = HIWORD(CONF.alt_write_flags);
 
-				entry.enable_write = non_alt & (1 << 0);
-				entry.enable_update = non_alt & (1 << 1);
+				entry.enable_write = current_alt & (1 << 0);
+				entry.enable_update = current_alt & (1 << 1);
 			}
 
 

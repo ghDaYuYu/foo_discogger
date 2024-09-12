@@ -375,7 +375,7 @@ private:
 	void listFocusChanged(ctx_t) {
 		auto ifocus = m_tag_list.GetFocusItem();
 		if (ifocus != ~0 && (*m_ptag_map)[ifocus].freeze_tag_name) {
-			uSetDlgItemText(m_hWnd, IDC_STATIC_TAG_TIP, "Tip: Shift+RClick");
+			uSetDlgItemText(m_hWnd, IDC_STATIC_TAG_TIP, "Tip: Shift + Right click");
 			::ShowWindow(uGetDlgItem(IDC_STATIC_TAG_TIP), SW_SHOW);
 		}
 		else {

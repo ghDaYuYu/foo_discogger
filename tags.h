@@ -166,7 +166,7 @@ extern int awt_update_mod_flag(bool fromFlag);
 
 extern void copy_tag_mappings(tag_mapping_list_type* out_tmt);
 extern void copy_default_tag_mappings(tag_mapping_list_type* out_tmt);
-extner void copy_id3_default_tag_mappings(tag_mapping_list_type* out_tmt, bool onlyms, bool menuctx);
+extern void copy_id3_default_tag_mappings(tag_mapping_list_type* out_tmt, bool onlyms, bool menuctx);
 
 extern void update_loaded_tagmaps_multivalues();
 extern void set_cfg_tag_mappings(pfc::list_t<tag_mapping_entry> *mappings);

@@ -2049,20 +2049,30 @@ void Discogs::parseArtistReleases(json_t *root, Artist *artist, bool bva_artists
 							release->release_year = JSONAttributeString(rel, "year");
 							release->country = JSONAttributeString(rel, "country");
 
-							pfc::string8 all_formats;
-							pfc::array_t<pfc::string8> flist;
-							if (bva_artists) {
-								flist = JSONAttributeStringArray(rel, "format");
-								all_formats = pfc::format_array(flist);
+							auto jobj = json_object_get(rel, "format");
+							if (jobj) {
+
+								pfc::string8 all_formats;
+								pfc::array_t<pfc::string8> flist;
+
+								bool is_array = json_is_array(jobj);
+								if (is_array) {
+									flist = JSONAttributeStringArray(rel, "format");
+									all_formats = pfc::format_array(flist);
+								}
+								else {
+									all_formats = JSONAttributeString(rel, "format");
+									tokenize(all_formats, ",", flist, false);
+								}
+								if (flist.get_count()) {
+									tokenize(flist[0], ",", release->search_major_formats, false);
+									t_size formats_cpos = flist[0].get_length();
+									release->search_formats = ltrim(substr(all_formats, formats_cpos + 1, all_formats.get_length() - formats_cpos));
+								}
+								else {
+									release->search_formats = "n/a";
+								}
 							}
-							else {
-								all_formats = JSONAttributeString(rel, "format");
-								
-								tokenize(all_formats, ",", flist, false);
-							}
-							tokenize(flist[0], ",", release->search_major_formats, false);
-							t_size formats_cpos = flist[0].get_length();
-							release->search_formats = ltrim(substr(all_formats, formats_cpos + 1, all_formats.get_length() - formats_cpos));
 
 							if (release->release_year.get_length() == 0) {
 								release->release_year = getYearFromReleased(JSONAttributeString(rel, "released"));
